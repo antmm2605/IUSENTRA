@@ -63,6 +63,16 @@ def test_preparazione_backup_persistenza_e_pagina_primaria(tmp_path, monkeypatch
         assert economic.status_code == 200, economic.get_json()
         assert economic.get_json()['pagination'] == payload['pagination']
         assert [item['id'] for item in economic.get_json()['items']] == [item['id'] for item in payload['items']]
+        compact = client.get('/api/v1/ui/fascicoli?page=2&page_size=25&view=operativa&compact=1',
+            headers={'X-API-Key': 'react-test-key'})
+        assert compact.status_code == 200
+        compact_payload = compact.get_json()
+        assert compact_payload['pagination'] == payload['pagination']
+        assert compact_payload['summary'] == payload['summary']
+        assert compact_payload['items'] == [
+            {key: value for key, value in item.items() if key != 'paymentSummary'} for item in payload['items']
+        ]
+        assert all('paymentSummary' in item for item in economic.get_json()['items'])
         with app.test_request_context('/__change-controlled-source'):
             with worker_studio_writer(anchor) as database:
                 row = database.conn.execute('SELECT id,dati_json FROM fascicoli ORDER BY id LIMIT 1').fetchone()

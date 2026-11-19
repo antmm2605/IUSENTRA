@@ -91,14 +91,32 @@ def notifiche(
     attivita: list[dict[str, Any]],
     *,
     fonti_provvedimenti: dict[str, str] | None = None,
+    conclusioni: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    letture = [_leggi_presidio(voce) for voce in presidi]
+    ordini_eseguiti = {}
+    for voce in conclusioni or ():
+        if voce.get("codice") != "notifica_ordinata" or voce.get("stato") != "fatto" or not voce.get("prova_notifica"):
+            continue
+        oid = (voce.get("letto") or {}).get("oggetto_id")
+        fonte = (fonti_provvedimenti or {}).get(oid)
+        scadenza = (voce.get("termine") or {}).get("scadenza")
+        if fonte and scadenza:
+            ordini_eseguiti[(fonte, data_it(scadenza))] = voce
+    letture = []
+    for presidio in presidi:
+        voce = _leggi_presidio(presidio)
+        eseguita = ordini_eseguiti.get((voce["source_message_id"], voce["scadenza"]))
+        if eseguita and voce["caso"] == "explicit_order" and voce["aperta"]:
+            voce.update(stato="DELIVERY_COMPLETE", stato_etichetta="Notifica eseguita con ricevute",
+                         aperta=False, perfezionata=True, prossima_azione="",
+                         prova_notifica=eseguita["prova_notifica"])
+        letture.append(voce)
     letture.extend(_leggi_attivita(voce) for voce in attivita if pulisci(voce.get("tipo")).upper() == "NOTIFICA")
     letture.sort(key=lambda voce: voce["data"][6:] + voce["data"][3:5] + voce["data"][:2] if voce["data"] else "")
     ordini_con_ricevute = {
         voce["source_message_id"] for voce in letture
         if voce.get("source_message_id") and voce.get("caso") == "explicit_order"
-        and (voce.get("consegne_pec") or {}).get("stesso_invio")
+        and ((voce.get("consegne_pec") or {}).get("stesso_invio") or voce.get("prova_notifica"))
     }
     ricevute = {
         fonte for voce in letture

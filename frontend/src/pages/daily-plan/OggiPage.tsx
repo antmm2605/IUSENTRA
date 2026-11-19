@@ -112,7 +112,7 @@ export function OggiPage() {
   useEffect(() => {
     if (!aggiornamentoRichiesto || !aggiornamentoJobId) return
     let annullato = false
-    let tentativi = 0
+    const inizioAttesa = Date.now()
     const controller = new AbortController()
     let timer = window.setTimeout(async function poll() {
       try {
@@ -144,7 +144,7 @@ export function OggiPage() {
           )
         } else if (esito.ok && stato === 'queued') {
           setAggiornamentoMessaggio(
-            esito.messaggio || 'Aggiornamento in coda. Il piano resta consultabile durante la preparazione.',
+            esito.messaggio || 'Aggiornamento in coda. La pagina mostrerà il piano appena sarà disponibile.',
           )
         } else {
           setAggiornamentoMessaggio('Verifico lo stato dell’aggiornamento del piano...')
@@ -153,16 +153,16 @@ export function OggiPage() {
         if (error instanceof DOMException && error.name === 'AbortError') return
       }
 
-      tentativi += 1
-      if (tentativi >= 18) {
+      const attesa = Date.now() - inizioAttesa
+      if (attesa >= 16 * 60_000) {
         setAggiornamentoMessaggio(
-          'Non ho ancora ricevuto l’esito dell’elaborazione. Puoi continuare a lavorare: il piano resta consultabile e il controllo automatico prosegue.',
+          'L’elaborazione prosegue in background. Puoi tornare a questa pagina per consultare il piano aggiornato.',
         )
         setAggiornamentoRichiesto(false)
         setAggiornamentoJobId('')
         return
       }
-      timer = window.setTimeout(poll, 5000)
+      timer = window.setTimeout(poll, attesa < 60_000 ? 5000 : 15_000)
     }, 800)
     return () => {
       annullato = true
@@ -286,46 +286,48 @@ export function OggiPage() {
         </p>
       ) : null}
 
-      <section className="grid gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={conteggi.p0 ? 'destructive' : 'secondary'}>
-            {conteggi.p0} immediate assegnate a me
-          </Badge>
-          <Badge variant={conteggi.p1 ? 'default' : 'secondary'}>{conteggi.p1} entro il giorno</Badge>
-          {piano.riepilogo.immediate_da_assegnare_studio ? (
-            <Badge asChild variant="destructive">
-              <a href="/workspace-intelligente">
-                {piano.riepilogo.immediate_da_assegnare_studio} immediate da assegnare · Controllo Studio
-              </a>
+      {!nonGenerato ? (
+        <section className="grid gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={conteggi.p0 ? 'destructive' : 'secondary'}>
+              {conteggi.p0} immediate assegnate a me
             </Badge>
-          ) : null}
-          {piano.riepilogo.da_assegnare_studio ? (
-            <Badge variant="outline">{piano.riepilogo.da_assegnare_studio} da assegnare</Badge>
-          ) : null}
-          {piano.riepilogo.da_rivedere ? (
-            <Badge variant="outline">{piano.riepilogo.da_rivedere} da confermare</Badge>
-          ) : null}
-          {anteprima ? <Badge variant="outline">Anteprima, non salvata</Badge> : null}
-          {!piano.copertura_completa && !nonGenerato ? (
-            <Badge variant="destructive" className="gap-1">
-              <AlertTriangle size={12} aria-hidden="true" /> Copertura incompleta
-            </Badge>
-          ) : null}
-        </div>
-        <CoverageChips piano={piano} />
-        {piano.avvisi.length ? (
-          <div className="grid gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-            {piano.avvisi.map((avviso) => (
-              <p key={avviso}>{avviso}</p>
-            ))}
+            <Badge variant={conteggi.p1 ? 'default' : 'secondary'}>{conteggi.p1} entro il giorno</Badge>
+            {piano.riepilogo.immediate_da_assegnare_studio ? (
+              <Badge asChild variant="destructive">
+                <a href="/workspace-intelligente">
+                  {piano.riepilogo.immediate_da_assegnare_studio} immediate da assegnare · Controllo Studio
+                </a>
+              </Badge>
+            ) : null}
+            {piano.riepilogo.da_assegnare_studio ? (
+              <Badge variant="outline">{piano.riepilogo.da_assegnare_studio} da assegnare</Badge>
+            ) : null}
+            {piano.riepilogo.da_rivedere ? (
+              <Badge variant="outline">{piano.riepilogo.da_rivedere} da confermare</Badge>
+            ) : null}
+            {anteprima ? <Badge variant="outline">Anteprima, non salvata</Badge> : null}
+            {!piano.copertura_completa ? (
+              <Badge variant="destructive" className="gap-1">
+                <AlertTriangle size={12} aria-hidden="true" /> Copertura incompleta
+              </Badge>
+            ) : null}
           </div>
-        ) : null}
-        {piano.sintesi ? (
-          <p className="whitespace-pre-line rounded-md border bg-muted/40 px-3 py-2 text-sm">
-            {piano.sintesi}
-          </p>
-        ) : null}
-      </section>
+          <CoverageChips piano={piano} />
+          {piano.avvisi.length ? (
+            <div className="grid gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              {piano.avvisi.map((avviso) => (
+                <p key={avviso}>{avviso}</p>
+              ))}
+            </div>
+          ) : null}
+          {piano.sintesi ? (
+            <p className="whitespace-pre-line rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              {piano.sintesi}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       {nonGenerato ? (
         <IusEmptyState
@@ -350,10 +352,10 @@ export function OggiPage() {
       ) : (
         <>
           <ActivitySection
-            title="Priorità del giorno"
+            title="Priorità assegnate a te"
             icon={ListTodo}
             items={piano.sezioni.da_fare_ora}
-            emptyText="Nessuna urgenza per la data selezionata."
+            emptyText="Nessuna urgenza assegnata a te per la data selezionata."
             onOpenDetail={apriDettaglio}
             onAction={azione}
             busyId={busyId}
@@ -367,7 +369,7 @@ export function OggiPage() {
             title="PEC da presidiare"
             icon={Mail}
             items={piano.sezioni.pec}
-            emptyText="Nessuna comunicazione in attesa di presidio."
+            emptyText="Nessun’altra PEC da presidiare nel tuo piano."
             onOpenDetail={apriDettaglio}
             onAction={azione}
             busyId={busyId}

@@ -197,7 +197,7 @@ def daily_plan_refresh_status_payload(job_id: str) -> dict[str, Any]:
     target_date = str((job.get("payload") or {}).get("target_date") or "")
     messages = {
         "queued": (
-            "Aggiornamento in coda: il piano resta consultabile e l'elaborazione automatica prosegue senza bloccare la pagina."
+            "Aggiornamento in coda. La pagina mostrerà il piano appena sarà disponibile."
         ),
         "running": "Aggiornamento in elaborazione automatica.",
         "done": "Aggiornamento completato: il piano è pronto.",

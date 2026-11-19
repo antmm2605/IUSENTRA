@@ -85,6 +85,8 @@ _DELLA_SENTENZA = re.compile(
     + _DATA + r"\b|\bpubbl\.\s+il\s+" + _DATA + r"\b",
     re.IGNORECASE,
 )
+_TIMBRO_PAT = re.compile(r"\bpubblicato\s+il\s+" + _DATA + r"\b", re.IGNORECASE)
+_REGISTRI_PAT = re.compile(r"\bREG\.\s*PROV\.\s*COLL\..*?\bREG\.\s*RIC\.", re.IGNORECASE | re.DOTALL)
 
 
 def _date_trovate(espressione: re.Pattern[str], testo: str) -> set[date]:
@@ -96,6 +98,16 @@ def _date_trovate(espressione: re.Pattern[str], testo: str) -> set[date]:
         except ValueError:
             continue
     return trovate
+
+
+def data_pubblicazione_pat(testo: str) -> date | None:
+    """Il timbro di pubblicazione nell'intestazione propria del provvedimento PAT."""
+    intestazione = str(testo or "")[:600]
+    registro = _REGISTRI_PAT.search(intestazione)
+    if not registro:
+        return None
+    trovate = _date_trovate(_TIMBRO_PAT, intestazione[:registro.start()])
+    return next(iter(trovate)) if len(trovate) == 1 else None
 
 
 def data_pubblicazione(testo: str, *, comunicazione: bool = True) -> date | None:
@@ -220,6 +232,7 @@ _DECISA_IN_CAMERA = re.compile(
     r"\bcos[iì]\s+decis[ao]\s+(?:in\s+[^,.;]{1,90}\s+)?"
     r"nella\s+camera\s+di\s+consiglio\s+del(?:\s+giorno)?\s*$", re.IGNORECASE,
 )
+_DECISA_IN_CALCE = re.compile(r"\bcos[iì]\s+decis[ao]\s+in\s+[^,.;]{1,90},\s+in\s+data\s*$", re.IGNORECASE)
 _CALCE = re.compile(r"\b[A-ZÀ-Ü][\wÀ-ÿ'’]+(?:\s+[A-ZÀ-Ü][\wÀ-ÿ'’]+)?\s*,\s*(?:l[iì]\s+)?$")
 _FIRMA = re.compile(r"^\W{0,6}(?:il\s+giudice|il\s+presidente|il\s+consigliere|il\s+giudice\s+estensore|il\s+cancelliere)\b",
                     re.IGNORECASE)
@@ -246,7 +259,8 @@ def data_decisione(testo: str) -> date | None:
         if inizio < len(pulito) - 3000:
             continue
         prima = pulito[max(0, inizio - 180):inizio]
-        if _DECISA_IN_CAMERA.search(prima) or (_CALCE.search(prima[-60:]) and _FIRMA.search(pulito[fine:fine + 60])):
+        calce = _CALCE.search(prima[-60:]) or _DECISA_IN_CALCE.search(prima)
+        if _DECISA_IN_CAMERA.search(prima) or (calce and _FIRMA.search(pulito[fine:fine + 60])):
             trovate.add(giorno)
     return next(iter(trovate)) if len(trovate) == 1 else None
 

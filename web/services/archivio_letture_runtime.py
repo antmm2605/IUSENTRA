@@ -264,6 +264,35 @@ def _testo_nativo(fascicolo_id: str, documento: Any, *, contenuto: bytes | None 
         return ""
 
 
+def fatto_timbro_pubblicazione_pat(fascicolo_id: str, documento: Any, testo: str) -> Fatto | None:
+    """Il PDF PAT può conservare il timbro nella resa visibile della firma."""
+    from subprocess import DEVNULL, PIPE, SubprocessError, run
+    from pct.formatting import format_date_it
+    from pct.termine_lungo_sentenza import data_pubblicazione_pat
+
+    intestazione = "".join(testo[:600].split()).casefold()
+    if "reg.prov.coll." not in intestazione or "reg.ric." not in intestazione or _formato_documento(documento) != ".pdf":
+        return None
+    giorno = data_pubblicazione_pat(testo)
+    if giorno is None:
+        raw = _bytes_documento(fascicolo_id, documento)
+        if not raw.startswith(b"%PDF-"):
+            return None
+        try:
+            estratto = run(["pdftotext", "-f", "1", "-l", "1", "-layout", "-", "-"],
+                           input=raw, stdout=PIPE, stderr=DEVNULL, check=True, timeout=5)
+        except (OSError, SubprocessError):
+            return None
+        giorno = data_pubblicazione_pat(estratto.stdout.decode("utf-8", errors="replace"))
+    if giorno is None:
+        return None
+    citazione = "Pubblicato il " + format_date_it(giorno)
+    return Fatto(categoria="data", campo="pubblicazione_pat", valore=giorno.isoformat(), valore_letto=citazione,
+                 etichetta="Pubblicazione della sentenza PAT", contesto=citazione, origine="nativo",
+                 confidenza=0.99, verifica="verificata",
+                 prove=[{"codice": "timbro_pubblicazione_pat", "esito": "ok", "dettaglio": citazione + " · pagina 1"}])
+
+
 def _testo_ocr(documento: Any) -> str:
     try:
         from web.helpers import get_indice
@@ -273,14 +302,14 @@ def _testo_ocr(documento: Any) -> str:
         return ""
 
 
-def testi_indice_archivio(fascicolo: Any) -> dict[str, str]:
+def testi_indice_archivio(fascicolo: Any, *, documento_ids: set[str] | None = None) -> dict[str, str]:
     """Testo SQL corrente, abbinato all'impronta del contenuto: nessun nome o JSON storico."""
     from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id
     from web.services.registro_letture_runtime import impronte_contenuto
     fid = str(fascicolo.id)
     cache = getattr(g, "_archivio_testi_sql", {}) if has_app_context() else {}
     if fid in cache:
-        return cache[fid]
+        return cache[fid] if documento_ids is None else {oid: testo for oid, testo in cache[fid].items() if oid in documento_ids}
     repository = build_document_ai_service().repository
     tenant = document_ai_tenant_id()
     records = sorted(repository.list_documents(tenant, fid), key=lambda r: str(r.updated_at or ""), reverse=True)
@@ -303,6 +332,8 @@ def testi_indice_archivio(fascicolo: Any) -> dict[str, str]:
 
     result = {}
     for doc in fascicolo.documenti:
+        if documento_ids is not None and str(doc.id) not in documento_ids:
+            continue
         sha = str(getattr(doc, "hash_contenuto_sha256", "") or "") or (hashes.nota(doc) if hashes else "") or str(getattr(doc, "hash_sha256", "") or "")
         record = by_sha.get(sha)
         testo = _testo(record) if record is not None else ""
@@ -318,7 +349,7 @@ def testi_indice_archivio(fascicolo: Any) -> dict[str, str]:
             testo = _testo_ocr(doc)
         if testo.strip():
             result[str(doc.id)] = testo
-    if has_app_context():
+    if has_app_context() and documento_ids is None:
         cache[fid] = result
         g._archivio_testi_sql = cache
     return result
@@ -436,6 +467,19 @@ def _messaggi_pec(fascicolo: Any) -> list[dict[str, Any]] | None:
     except Exception as exc:
         logger.warning("Presidio PEC non raggiungibile per %s: letture PEC rinviate (%s)", getattr(fascicolo, "id", ""), exc)
         return None
+
+
+def _registra_ricevute_deposito(fascicolo: Any, registro: RegistroLetture, tenant: str,
+                                messaggi: list[dict[str, Any]]) -> int:
+    from web.services.correlazioni_ricevute_archivio import registra_ricevute
+
+    aggiunte = registra_ricevute(fascicolo, registro, tenant, messaggi)
+    if aggiunte:
+        from web.services.pannelli_pronti_runtime import segnala_scrittura_fascicolo
+
+        invalida_lettura(fascicolo.id)
+        segnala_scrittura_fascicolo(fascicolo.id)
+    return aggiunte
 
 
 # ---- la lettura del fascicolo -----------------------------------------------------
@@ -577,7 +621,10 @@ def _leggi_un_documento(fascicolo: Any, registro: RegistroLetture, tenant: str, 
         cache["scaglioni_cu"] = _cu_tiers()
     metadata.update(codice_fiscale_cliente=getattr(cliente, "codice_fiscale", ""), fascicolo=fascicolo, documento_id=documento.id,
                     document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=cache["scaglioni_cu"])
-    fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata), oggetto, "documenti")
+    estratti = leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata)
+    if timbro := fatto_timbro_pubblicazione_pat(fascicolo_id, documento, testo):
+        estratti.append(timbro)
+    fatti = _attribuisci(estratti, oggetto, "documenti")
     registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
     registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, esito={"origine": origine, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI, "letture": [o for o, _ in letture], "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
     conteggi["letti"] += 1
@@ -773,7 +820,10 @@ def _riapri_per_regole(fascicolo: Any, registro: RegistroLetture, tenant: str) -
                     versioni[(lettura.tipo, lettura.oggetto_id)] = lettura.versione_lettore
         if not versioni:
             return 0
-        fatti = [f for f in registro.fatti(tenant, fascicolo_id, categoria="data", verifiche=None)
+        fatti = [f for f in (
+                     *registro.fatti(tenant, fascicolo_id, categoria="data", verifiche=None),
+                     *registro.fatti(tenant, fascicolo_id, categoria="importo", campo="liquidazione_giudice"),
+                 )
                  if (f.tipo, f.oggetto_id) in oggetti and f.sha256 == oggetti[(f.tipo, f.oggetto_id)].impronta]
         riaperti = 0
         buste_email = {
@@ -1089,6 +1139,10 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
 
                 metadati = recupera_giudice(fascicolo, registro, tenant, limite=limite)
                 metadati["esiti"] = _recupera_esiti_sentenze(fascicolo, registro, tenant)
+                if getattr(fascicolo, "depositi_pct", ()):
+                    metadati["ricevute_deposito"] = _registra_ricevute_deposito(
+                        fascicolo, registro, tenant, _messaggi_pec(fascicolo) or [],
+                    )
                 consegne = _consegna_ai_presidi(fascicolo, registro)
                 consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
             catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
@@ -1133,6 +1187,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         riconvalidati = _riconvalida(fascicolo, registro, tenant, con_notifiche=messaggi is None)
         documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite, rileggi_superati=rileggi_superati, fine_turno=fine_turno)
         pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite, fine_turno=fine_turno)
+        if messaggi and getattr(fascicolo, "depositi_pct", ()):
+            pec["riscontri_deposito"] = _registra_ricevute_deposito(fascicolo, registro, tenant, messaggi)
         promossi = _ricollauda_plausibili(fascicolo, registro, tenant, contesto)
         _recupera_esiti_sentenze(fascicolo, registro, tenant)
     except Exception as exc:
@@ -1645,16 +1701,51 @@ RILETTURE_PER_GIRO = 4
 ORE_RILETTURA = frozenset({21, 22, 23, 0, 1, 2, 3, 4, 5})
 
 
+def _liquidazioni_da_riallineare(registro: RegistroLetture, tenant_id: str, *, limite: int) -> list[str]:
+    """Fascicoli che hanno almeno una liquidazione corrente letta prima della nuova regola."""
+    from pct.archivio_letture.riletture_mirate import REGOLA_IDENTITA_LIQUIDAZIONE
+
+    if limite <= 0:
+        return []
+    with registro.connection() as conn:
+        return [r["fascicolo_id"] for r in conn.execute(
+            """
+            SELECT DISTINCT f.fascicolo_id
+            FROM letture_fatti f
+            JOIN letture l ON l.tenant_id=f.tenant_id AND l.fascicolo_id=f.fascicolo_id
+              AND l.tipo=f.tipo AND l.oggetto_id=f.oggetto_id AND l.sha256=f.sha256
+              AND l.lettore=CASE WHEN f.tipo='documento' THEN 'motore_documenti' ELSE 'motore_pec' END
+            JOIN letture_oggetti o ON o.tenant_id=f.tenant_id AND o.fascicolo_id=f.fascicolo_id
+              AND o.tipo=f.tipo AND o.oggetto_id=f.oggetto_id AND o.presente=1
+            WHERE f.tenant_id=? AND f.categoria='importo' AND f.campo='liquidazione_giudice'
+              AND f.verifica IN ('verificata','corretta','plausibile') AND f.tipo IN ('documento','allegato_pec')
+              AND l.stato='letto' AND l.versione_lettore NOT LIKE ?
+              AND f.sha256=CASE WHEN o.sha256<>'' THEN LOWER(o.sha256)
+                  WHEN o.sha256_archivio<>'' THEN 'archivio:' || LOWER(o.sha256_archivio)
+                  ELSE 'dimensione:' || CAST(o.dimensione AS TEXT) END
+            ORDER BY f.fascicolo_id LIMIT ?
+            """, (tenant_id, "%+" + REGOLA_IDENTITA_LIQUIDAZIONE, limite),
+        ).fetchall()]
+
+
+def _versione_documenti_aggiornata(versione: str) -> bool:
+    from pct.archivio_letture.riletture_mirate import REGOLA_IDENTITA_LIQUIDAZIONE
+
+    precedente = VERSIONE_MOTORE_DOCUMENTI.removesuffix("+" + REGOLA_IDENTITA_LIQUIDAZIONE)
+    return versione in {VERSIONE_MOTORE_DOCUMENTI, precedente}
+
+
 def fascicoli_da_aggiornare(registro: RegistroLetture, tenant_id: str, *, limite: int) -> list[str]:
-    """Fascicoli da riprendere di notte, i più vecchi per primi: letti con un motore documenti superato, oppure
-    rimasti in errore o a metà. I fascicoli in errore restavano esclusi per sempre (verifica del 01/11/2026:
-    99 fascicoli fermi per «database is locked» e tempo esaurito nella rilettura notturna).
-    """
+    """Prepara le revisioni mirate, poi il recupero dei fascicoli incompleti o in errore."""
+    if limite <= 0:
+        return []
+    da_aggiornare = _liquidazioni_da_riallineare(registro, tenant_id, limite=limite)
     righe = [r for r in registro.righe_fascicoli(tenant_id, lettore=LETTORE_DOCUMENTI)
              if _testo(r.get("stato")) in {"errore", "parziale"}
-             or _testo(r.get("versione_lettore")) != VERSIONE_MOTORE_DOCUMENTI]
+             or not _versione_documenti_aggiornata(_testo(r.get("versione_lettore")))]
     righe.sort(key=lambda r: _testo(r.get("aggiornato_il")))
-    return [_testo(r.get("fascicolo_id")) for r in righe[:max(0, limite)] if _testo(r.get("fascicolo_id"))]
+    da_aggiornare.extend(_testo(r["fascicolo_id"]) for r in righe if r.get("fascicolo_id"))
+    return list(dict.fromkeys(da_aggiornare))[:limite]
 
 
 def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora: int | None = None,
@@ -1668,7 +1759,11 @@ def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora:
         return 0
     # Solo le riletture pesanti: lo storico delle proposte dalla sentenza ha il suo lotto leggero
     # (proposte_storico_runtime, a ogni giro della coda).
-    da_aggiornare = fascicoli_da_aggiornare(registro, tenant_id, limite=limite)
+    try:
+        da_aggiornare = fascicoli_da_aggiornare(registro, tenant_id, limite=limite)
+    except Exception:
+        logger.exception("Riletture notturne non accodate per %s", tenant_id or "studio")
+        return 0
     return sum(bool(registro.accoda_evento(tenant_id, fid, solo_se_fermo=True)) for fid in da_aggiornare)
 
 
@@ -1679,13 +1774,13 @@ def accoda_verifiche_periodiche(registro: RegistroLetture, tenant_id: str, *, or
 
     from pct.discordanze_letture_repository import RegistroDiscordanze
     from pct.ora_italiana import ROME_TZ
-    from web.services.esito_sentenze_recovery import accoda_liquidazioni_incomplete
+    from web.services.esito_sentenze_recovery import accoda_decisioni_incomplete
     from web.services.fascicolo_lettura_verifiche import ORE_MASSIME_IN_CORSO, VERSIONE_VERIFICHE
 
     if not tenant_id or limite <= 0 or (datetime.now(ROME_TZ).hour if ora is None else ora) not in ORE_RILETTURA:
         return 0
     soglia = (datetime.now(timezone.utc) - timedelta(hours=ORE_MASSIME_IN_CORSO)).isoformat()
-    riscontri = accoda_liquidazioni_incomplete(registro, tenant_id, prima_di=soglia, limite=limite)
+    riscontri = accoda_decisioni_incomplete(registro, tenant_id, prima_di=soglia, limite=limite)
     da_verificare = RegistroDiscordanze(registro).fascicoli_da_verificare(
         tenant_id, versione=VERSIONE_VERIFICHE, retry_prima_di=soglia, limite=limite-riscontri,
     )
@@ -1726,13 +1821,14 @@ def _registra_esiti_udienze(fascicolo: Any) -> int:
         from pct.archivio_letture.presidi import eventi_letti
         from pct.esito_udienza import registra_esiti
         from pct.ora_italiana import oggi_roma
-        from web.helpers import get_scadenziario
+        from web.helpers import get_agenda, get_scadenziario
 
         oggi = oggi_roma()
         eventi = eventi_letti(fatti_fascicolo(fascicolo), oggi=oggi)
         scadenziario = get_scadenziario()
         fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-        registrate = registra_esiti(scadenziario, fascicolo_id=fascicolo_id, eventi=eventi, oggi=oggi)
+        registrate = registra_esiti(scadenziario, fascicolo_id=fascicolo_id, eventi=eventi, oggi=oggi,
+                                    agenda=get_agenda())
         # Scadenze di deposito adempiute dal deposito consegnato nel termine (pct/deposito_adempimento.py).
         from pct.deposito_adempimento import abbina_depositi
         from web.services.correlazioni_ricevute_archivio import depositi_da_archivio
@@ -1978,7 +2074,7 @@ def lettura_dopo_evento(fascicolo_id: str) -> bool:
         return False
 
 
-def stato_lettura_fascicolo(documenti: dict[str, Any], pec: dict[str, Any]) -> str:
+def stato_lettura_fascicolo(documenti: dict[str, Any], pec: dict[str, Any], *, rilettura_mirata: bool = False) -> str:
     """mai_letto, in_errore, fermo, da_aggiornare o da_leggere, dalle righe del registro dei due motori.
 
     Fermo solo se letto con le regole correnti: un fascicolo letto da un motore superato non ha le
@@ -1990,7 +2086,7 @@ def stato_lettura_fascicolo(documenti: dict[str, Any], pec: dict[str, Any]) -> s
     if "errore" in (stato_documenti, stato_pec):
         return "in_errore"
     if stato_documenti in ("", "completa") and stato_pec in ("", "completa"):
-        if documenti and _testo(documenti.get("versione_lettore")) != VERSIONE_MOTORE_DOCUMENTI:
+        if rilettura_mirata or (documenti and not _versione_documenti_aggiornata(_testo(documenti.get("versione_lettore")))):
             return "da_aggiornare"
         return "fermo"
     return "da_leggere"
@@ -2018,6 +2114,9 @@ def panoramica_letture(*, includi_fermi: bool = True, limite: int = 0) -> dict[s
         righe_pec = {
             _testo(r.get("fascicolo_id")): r for r in registro.righe_fascicoli(tenant, lettore=LETTORE_PEC)
         }
+        riletture_mirate = set(_liquidazioni_da_riallineare(
+            registro, tenant, limite=len(righe_documenti.keys() | righe_pec.keys()),
+        ))
         conteggi = registro.conteggi_letture(tenant)
     except Exception:
         logger.exception("Panoramica delle letture non disponibile")
@@ -2039,7 +2138,7 @@ def panoramica_letture(*, includi_fermi: bool = True, limite: int = 0) -> dict[s
         non_leggibili = int(per_stato.get("non_leggibile", 0))
         totali["oggetti_letti"] += letti
         totali["oggetti_non_leggibili"] += non_leggibili
-        stato = stato_lettura_fascicolo(documenti, pec)
+        stato = stato_lettura_fascicolo(documenti, pec, rilettura_mirata=fascicolo_id in riletture_mirate)
         totali[{"fermo": "fermi", "da_leggere": "da_leggere", "in_errore": "in_errore", "mai_letto": "mai_letti",
                 "da_aggiornare": "da_aggiornare"}[stato]] += 1
         if stato == "fermo" and not includi_fermi:

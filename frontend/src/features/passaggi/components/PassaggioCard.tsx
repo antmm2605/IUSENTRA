@@ -1,6 +1,8 @@
 import { Lock, PencilLine, ShieldAlert, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IusStatusBadge } from '@/components/iusentra'
+import { NormativeArticleLink } from '@/components/NormativeArticleLink'
+import { formatDateIt } from '@/formatting'
 import type { Passaggio } from '../types'
 import type { BozzaNote } from '../api'
 import { ApriBozzaNote } from './ApriBozzaNote'
@@ -19,6 +21,10 @@ const VINCOLI: Record<string, string> = {
   conferma_avvocato: 'decisione riservata all’avvocato',
 }
 
+function valoreVisibile(valore: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(valore) ? formatDateIt(valore, valore) : valore
+}
+
 // Un passaggio: che cosa ha fatto il software, con quale regola, norma, prove
 // e dati; accanto, le regole dello studio applicate o rifiutate.
 export function PassaggioCard({ passaggio, onCorreggi, bozza, fascicoloId }: {
@@ -28,6 +34,8 @@ export function PassaggioCard({ passaggio, onCorreggi, bozza, fascicoloId }: {
   fascicoloId?: string
 }) {
   const campi = Object.entries(passaggio.campi)
+  const campiBozza = bozza?.campi_da_completare ?? []
+  const campiDagliAtti = campiBozza.filter((campo) => campo !== 'data dell’atto')
   return (
     <li className={`iu-passaggio is-${passaggio.stato}`}>
       <div className="iu-passaggio__testa">
@@ -45,14 +53,27 @@ export function PassaggioCard({ passaggio, onCorreggi, bozza, fascicoloId }: {
         <span>Regola del software</span> {passaggio.regola.descrizione}
         {passaggio.confidenza !== null ? <em> · affidabilità {Math.round(passaggio.confidenza * 100)}%</em> : null}
       </p>
-      {bozza?.documento ? <p>Provvedimento · {bozza.documento}</p> : null}
+      {bozza?.documento && fascicoloId ? (
+        <p>Provvedimento · <a href={`/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(bozza.documento_id)}/visualizza`}>{bozza.documento}</a>{bozza.sezione_provvedimento ? ` · ${bozza.sezione_provvedimento}` : ''}</p>
+      ) : null}
+      {campiDagliAtti.length > 0 && fascicoloId ? (
+        <p>Da completare prima del PDF ({campiDagliAtti.join(', ')}).{' '}
+          {bozza?.ricorso_da_acquisire ? (
+            <>Acquisisci «{bozza.ricorso_da_acquisire.atto}». La cancelleria ha accettato la busta {bozza.ricorso_da_acquisire.busta}
+              {bozza.ricorso_da_acquisire.data ? ` del ${valoreVisibile(bozza.ricorso_da_acquisire.data)}` : ''}.</>
+          ) : null}{' '}
+          <a href={`/fascicoli/${encodeURIComponent(fascicoloId)}#documenti`}>Apri gli atti del fascicolo</a>.
+        </p>
+      ) : null}
       {passaggio.norme.length ? (
         <p className="iu-passaggio__norme">
           <span>Norma</span>{' '}
           {passaggio.norme.map((norma, indice) => (
             <span key={norma.id}>
               {indice ? '; ' : ''}
-              {norma.url ? <a href={norma.reader_url || norma.url} target="_blank" rel="noreferrer" title={norma.verifica || norma.titolo}>{norma.norma}</a> : norma.norma}
+                {norma.reader_url
+                  ? <a href={norma.reader_url} target="_blank" rel="noreferrer" title={norma.verifica || norma.titolo}>{norma.norma}</a>
+                  : norma.url ? <NormativeArticleLink url={norma.url} article={norma.norma}>{norma.norma}</NormativeArticleLink> : norma.norma}
             </span>
           ))}
         </p>
@@ -63,14 +84,14 @@ export function PassaggioCard({ passaggio, onCorreggi, bozza, fascicoloId }: {
             <div key={`p${indice}`}><dt>Letto in {prova.fonte || prova.tipo}</dt><dd>«{prova.estratto}»</dd></div>
           ))}
           {passaggio.dati.map((dato) => (
-            <div key={`d${dato.etichetta}`}><dt>{dato.etichetta}</dt><dd>{dato.valore}{dato.fonte ? <small> ({dato.fonte})</small> : null}</dd></div>
+            <div key={`d${dato.etichetta}`}><dt>{dato.etichetta}</dt><dd>{valoreVisibile(dato.valore)}{dato.fonte ? <small> ({dato.fonte})</small> : null}</dd></div>
           ))}
           {campi.map(([nome, campo]) => (
             <div key={`c${nome}`}>
               <dt>{campo.vincolato ? <Lock size={12} aria-label="fissato dalla norma" /> : null} {campo.etichetta}</dt>
               <dd>
-                {campo.valore}
-                {campo.valoreSoftware ? <small> (il software proponeva {campo.valoreSoftware})</small> : null}
+                {valoreVisibile(campo.valore)}
+                {campo.valoreSoftware ? <small> (il software proponeva {valoreVisibile(campo.valoreSoftware)})</small> : null}
               </dd>
             </div>
           ))}

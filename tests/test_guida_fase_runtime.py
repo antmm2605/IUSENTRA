@@ -23,7 +23,9 @@ def test_senza_lettura_la_guida_resta_quella_della_scheda():
     assert applica_fase_reale(payload, None) == payload
 
 
-def test_la_guida_usa_i_passi_persistiti_e_limita_la_bozza_agli_atti_da_fare():
+def test_la_guida_usa_i_passi_persistiti_e_limita_la_bozza_agli_atti_da_fare(monkeypatch):
+    from web.services import guida_fase_runtime, riscontri_processuali_runtime
+
     lettura = {
         **LETTURA_DECISA,
         "prossimi_passi": [
@@ -49,6 +51,19 @@ def test_la_guida_usa_i_passi_persistiti_e_limita_la_bozza_agli_atti_da_fare():
     assert note["modello_atto"] == "builtin-tmp-civ-012"
     assert note["entro"] == "17/12/2026"
     assert "documento" not in lettura["prossimi_passi"][0]
+    precedente = applica_fase_reale({}, {**lettura, "aggiornamento_pendente": True})
+    assert precedente["passi_operativi"][1]["documento"]["documento_id"] == "decreto"
+    assert precedente["passi_operativi"][1]["modello_atto"] == ""
+    bozze = {"corrente": {"documento_id": "decreto", "termine": "2026-12-17"},
+             "altro_decreto": {"documento_id": "diverso", "termine": "2026-12-17"},
+             "altro_termine": {"documento_id": "decreto", "termine": "2026-12-18"}}
+    monkeypatch.setattr(guida_fase_runtime, "lettura_pronta", lambda _id: lettura)
+    monkeypatch.setattr(riscontri_processuali_runtime, "risultato_materializzato",
+                        lambda _id, _pannello: {"bozzeNote": bozze})
+    operativi = guida_fase_runtime.fase_per_la_guida("F1")["passi_operativi"]
+    assert operativi[1]["bozza_note"] == {"chiave": "corrente", "documento_id": "decreto"}
+    bozze["duplicata"] = dict(bozze["corrente"])
+    assert "bozza_note" not in guida_fase_runtime.fase_per_la_guida("F1")["passi_operativi"][1]
 
 
 def test_bozza_note_usa_solo_il_passaggio_corrente_e_univoco(monkeypatch):

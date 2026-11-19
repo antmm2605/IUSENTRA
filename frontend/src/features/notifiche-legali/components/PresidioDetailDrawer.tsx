@@ -85,7 +85,7 @@ export default function PresidioDetailDrawer({
                 <StatusBadge tone={presidioStatusTone(detail.status)}>
                   {presidioStatusLabel(detail.status, detail.status_label)}
                 </StatusBadge>
-                <StatusBadge tone={priorityTone(detail.priority)}>{detail.priority}</StatusBadge>
+                {detail.excluded_source ? null : <StatusBadge tone={priorityTone(detail.priority)}>{detail.priority}</StatusBadge>}
               </div>
               <dl>
                 <div><dt>Cliente/parte</dt><dd>{detail.practice.client || 'Da completare'}</dd></div>
@@ -99,7 +99,7 @@ export default function PresidioDetailDrawer({
                 {detail.explicit_due_at ? <div><dt>Termine indicato nel provvedimento</dt><dd>{formatDateTimeIt(detail.explicit_due_at)}</dd></div> : null}
                 {detail.legal_term ? (
                   <div><dt>{detail.legal_term.label}</dt><dd><a href={detail.legal_term.href}>{formatDateIt(detail.legal_term.date) || 'da verificare'}</a> · {detail.legal_term.state}. {detail.legal_term.note}</dd></div>
-                ) : !detail.explicit_due_at ? <div><dt>Termine</dt><dd>{presidioUnresolvedTerm(detail)}.</dd></div> : null}
+                ) : !detail.explicit_due_at && !detail.excluded_source ? <div><dt>Termine</dt><dd>{presidioUnresolvedTerm(detail)}.</dd></div> : null}
               </dl>
               <p><strong>Motivo:</strong> {detail.detection_reason}</p>
               <p><strong>Prossima azione:</strong> {detail.next_action}</p>

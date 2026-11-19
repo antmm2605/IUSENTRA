@@ -1812,6 +1812,8 @@ class LegalUpdateRepository:
         source_code: str = "",
         classification_type: str = "",
         status: str = "",
+        fetch_status: str = "",
+        without_review: bool = False,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         clauses = []
@@ -1825,6 +1827,11 @@ class LegalUpdateRepository:
         if status:
             clauses.append("q.status = ?")
             params.append(_normalize_token(status))
+        if fetch_status:
+            clauses.append("r.fetch_status = ?")
+            params.append(fetch_status)
+        if without_review:
+            clauses.append("q.id IS NULL")
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         params.append(int(limit))
         with self._connect() as conn:
@@ -1847,6 +1854,28 @@ class LegalUpdateRepository:
                 """,
                 tuple(params),
             ).fetchall()
+        return [dict(row) for row in rows]
+
+    def published_news_with_direct_evidence(self, *, since: str) -> list[dict[str, Any]]:
+        """Schede effettivamente pubblicate, con contesto ufficiale verificato sul documento originario."""
+        with self._connect() as conn:
+            rows = conn.execute("""
+                SELECT s.code AS source_code, r.title, r.source_url, r.published_at,
+                       r.raw_text, p.short_summary, p.content, MAX(e.updated_at) AS verified_at
+                FROM news p
+                JOIN source_documents_normalized n ON n.id = p.source_document_id
+                JOIN source_documents_raw r ON r.id = n.raw_document_id
+                JOIN sources s ON s.id = r.source_id
+                JOIN review_queue q ON q.normalized_document_id = n.id AND q.status = 'published'
+                JOIN web_verification_evidence e ON e.review_id = q.id AND e.normalized_document_id = n.id
+                WHERE p.publication_status = 'published' AND p.source_url = r.source_url
+                  AND r.published_at >= ? AND s.is_official = 1 AND e.is_official = 1
+                  AND e.source_code = s.code AND e.source_url = r.source_url AND e.verification_status = 'verified'
+                  AND e.context_chars > 0 AND e.content_text <> ''
+                  AND p.short_summary <> '' AND p.content <> ''
+                GROUP BY s.code, r.title, r.source_url, r.published_at, r.raw_text, p.short_summary, p.content
+                ORDER BY verified_at DESC
+            """, (since,)).fetchall()
         return [dict(row) for row in rows]
 
     def get_staging_document(self, raw_document_id: int) -> dict[str, Any] | None:
@@ -2184,12 +2213,20 @@ class LegalUpdateRepository:
             conn.commit()
         return self.get_review_item(review_id) or {}
 
-    def list_review_queue(self, *, statuses: tuple[str, ...] = (), limit: int = 100) -> list[dict[str, Any]]:
-        where = ""
+    def list_review_queue(
+        self, *, statuses: tuple[str, ...] = (), limit: int = 100, review_ids: tuple[int, ...] | None = None,
+    ) -> list[dict[str, Any]]:
+        if review_ids == ():
+            return []
+        clauses: list[str] = []
         params: list[Any] = []
         if statuses:
-            where = "WHERE q.status IN ({})".format(",".join("?" for _ in statuses))
+            clauses.append("q.status IN ({})".format(",".join("?" for _ in statuses)))
             params.extend(_normalize_token(status) for status in statuses)
+        if review_ids is not None:
+            clauses.append("q.id IN ({})".format(",".join("?" for _ in review_ids)))
+            params.extend(review_ids)
+        where = "WHERE " + " AND ".join(clauses) if clauses else ""
         params.append(int(limit))
         with self._connect() as conn:
             rows = conn.execute(

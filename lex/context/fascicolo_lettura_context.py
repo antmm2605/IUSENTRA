@@ -54,10 +54,12 @@ def _deposito_dict(deposito: Any) -> dict[str, Any]:
         "id", "timestamp", "stato", "tipo_atto", "pec_destinatario", "messaggio", "ricevuta_accettazione",
         "ricevuta_consegna", "ricevuta_controlli_automatici", "esito_controlli", "ricevuta_cancelleria", "note",
         "nome_atto_principale", "id_deposito_esterno", "fonte_portale", "servizio_portale", "data_accettazione",
+        "registrato_da",
     )
     dati = {campo: getattr(deposito, campo, "") for campo in campi}
     dati["documenti_ids"] = list(getattr(deposito, "documenti_ids", []) or [])
     dati["consegne_archivio"] = list(getattr(deposito, "consegne_archivio", ()) or ())
+    dati["reinvio_accettato"] = getattr(deposito, "reinvio_accettato", {})
     dati["titolo"] = _clean(getattr(deposito, "nome_atto_principale", "") or getattr(deposito, "tipo_atto", ""))
     return dati
 
@@ -87,6 +89,7 @@ def _documento_leggero(documento: Any) -> dict[str, Any]:
         "data_documento": _clean(getattr(documento, "data_documento", ""))[:10],
         "data_caricamento": _clean(getattr(documento, "data_caricamento", "") or getattr(documento, "creato_il", ""))[:10],
         "firmato": bool(getattr(documento, "firmato", False)),
+        "bozza_locale": getattr(documento, "fonte_documento", "") == "BOZZA_NOTE_127_TER",
         "lex_read": False,
         "id_deposito_pct": _clean(getattr(documento, "id_deposito_pct", "")),
         "content_sha256": _clean(getattr(documento, "hash_contenuto_sha256", "") or getattr(documento, "hash_sha256", "")),
@@ -227,6 +230,7 @@ def _regia(fascicolo: Any) -> dict[str, Any]:
         "operational_state": _clean(testata.get("operationalState") or payload.get("page_state")),
         "page_state": _clean(payload.get("page_state")),
         "next_action": _clean(testata.get("nextAction") or (payload.get("message") if payload.get("page_state") != "profilo_da_confermare" else "")),
+        "fase_deposito": dict(testata.get("depositPhase") or {}),
         "completion": int(testata.get("completion") or 0),
         "blockers": blocchi,
         "missing_documents": mancanti,
@@ -438,7 +442,11 @@ def _verifiche(fascicolo: Any) -> dict[str, Any]:
     controlli = leggi_registro(fascicolo.id)
     controllo_pec = dict((controlli.get("esiti") or {}).get("pec") or {})
     if controllo_pec:
-        esiti.setdefault("pec", {})["da_confermare"] = list(controllo_pec.get("da_confermare") or [])
+        gia_collegate = {oggetto["oggetto_id"] for oggetto in messaggi if oggetto.get("oggetto_id")}
+        esiti.setdefault("pec", {})["da_confermare"] = [
+            candidato for candidato in controllo_pec.get("da_confermare") or ()
+            if not isinstance(candidato, dict) or candidato.get("id") not in gia_collegate
+        ]
         esiti["pec"]["esaminate"] = int(controllo_pec.get("esaminate") or 0)
         esiti["pec"]["nuove_collegate"] = int(controllo_pec.get("collegate") or 0)
     controlli_esiti = dict(controlli.get("esiti") or {})

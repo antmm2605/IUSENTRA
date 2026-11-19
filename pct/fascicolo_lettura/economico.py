@@ -62,12 +62,13 @@ def _voce_presidio(voce: Any) -> dict[str, Any]:
     }
 
 
-def economico(dati: dict[str, Any], oggi: Any = None) -> dict[str, Any]:
+def economico(dati: dict[str, Any], oggi: Any = None, *, liquidazione_causa: dict[str, Any] | None = None) -> dict[str, Any]:
     sintesi = dict((dati or {}).get("summary") or {})
     parcelle = [_parcella(voce) for voce in list((dati or {}).get("parcelle") or [])]
     presidio = dict((dati or {}).get("presidio") or {})
     voci = presidio.get("items") if isinstance(presidio.get("items"), dict) else {}
-    liquidazione = _voce_presidio(voci.get("liquidazione_giudice"))
+    voce_liquidazione = liquidazione_causa if liquidazione_causa is not None else voci.get("liquidazione_giudice")
+    liquidazione = _voce_presidio(voce_liquidazione)
     contributo = _voce_presidio(voci.get("contributo_unificato"))
     spese = _voce_presidio(voci.get("spese_esborsi"))
     sentenze = dict((dati or {}).get("sentenze") or {})
@@ -81,6 +82,11 @@ def economico(dati: dict[str, Any], oggi: Any = None) -> dict[str, Any]:
             for credito in sentenze.get("crediti_confermati") or []
         ):
             liquidazione.update(stato="credito_registrato", stato_etichetta="Credito registrato")
+    fonte = (voce_liquidazione or {}).get("fonteImportoVerificata")
+    if fonte and liquidazione.get("importo"):
+        if liquidazione.get("stato") == "da_registrare":
+            liquidazione.update(stato="letta", stato_etichetta="Importo da provvedimento")
+        liquidazione.update(fonte=fonte["nome"], fonte_href=fonte["previewHref"])
     giorno_oggi = data_da(oggi)
     scadute = [
         voce for voce in parcelle
@@ -98,15 +104,15 @@ def economico(dati: dict[str, Any], oggi: Any = None) -> dict[str, Any]:
     liquidato = liquidazione.get("importo") or 0.0
     if not liquidato:
         liquidazione_incasso = ""
-    elif liquidazione.get("pagato") or incassato >= liquidato:
+    elif liquidazione.get("pagato") or (liquidazione_causa is None and incassato >= liquidato):
         liquidazione_incasso = "incassata"
-    elif incassato > 0:
+    elif liquidazione_causa is None and incassato > 0:
         liquidazione_incasso = "parziale"
     else:
         liquidazione_incasso = "non_incassata"
     anticipazioni = _importo(presidio.get("anticipazioniDaRecuperare"))
     return {
-        "presente": bool(sintesi) or bool(parcelle) or bool(voci),
+        "presente": bool(sintesi) or bool(parcelle) or bool(voci) or bool(liquidazione_causa),
         "preventivi": int(sintesi.get("preventivi_count") or 0),
         "conferimenti": int(sintesi.get("conferimenti_count") or 0),
         "parcelle": len(parcelle),

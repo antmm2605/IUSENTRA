@@ -62,6 +62,7 @@ export function PecCancelleriaDettaglio({ profilo, allegati, testo: corpo, onLeg
           <Dato etichetta="Resistente / convenuto" valore={nomeProprio(testo(profilo.convenuto_principale))}/>
           <Dato etichetta="Evento" valore={evento}/>
           <Dato etichetta="Descrizione" valore={descrizione && descrizione !== evento ? descrizione : ''}/>
+          <Dato etichetta="Fonte dell’evento" valore={testo(profilo.fonte_evento)}/>
           <Dato etichetta="Udienza" valore={testo(profilo.udienza_data_ora)}/>
         </dl>
       </section>

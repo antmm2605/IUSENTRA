@@ -17,9 +17,11 @@ from typing import Any, Iterable
 from urllib.parse import urlsplit
 
 from pct.legal_notification_rulepack import detect_notification_candidates
+from pct.fascicolo_sentenza_economica import richiesta_autocertificazione_esenzione
 from pct.pec_economia import classifica_contributo_unificato_pec, integra_contributo_unificato
 from pct.pec_legal_deadline_proposer import propose_legal_deadline
 from pct.pec_legal_workflow import classifica_pec_legale, estrai_registri
+from pct.provvedimenti.testo import date_vere
 from pct.spese_liquidate_lettura import MONEY_AMOUNT_PATTERN, parse_importo
 
 SCHEMA = "iusentra.pec.legal_event_understanding.v2"
@@ -693,9 +695,14 @@ def _is_receipt_message(parsed: dict[str, Any], report: dict[str, Any]) -> bool:
     """La PEC è una ricevuta: tipo di evento, tipo del daticert.xml o oggetto standard della ricevuta."""
     if _clean(report.get("event_type"), 80) in _RECEIPT_EVENT_TYPES:
         return True
-    if _clean(_dict(parsed.get("pec_receipt")).get("type"), 80) in _RECEIPT_DATICERT_TYPES:
+    if ricevuta_pec_strutturata(_dict(parsed.get("pec_receipt"))):
         return True
     return bool(_RECEIPT_SUBJECT.search(_clean(_dict(parsed.get("headers")).get("subject"), 300)))
+
+
+def ricevuta_pec_strutturata(pec_receipt: dict[str, Any]) -> bool:
+    """La natura della ricevuta risulta dai metadati daticert già letti."""
+    return _clean(pec_receipt.get("type"), 80).lower().replace("-", "_") in _RECEIPT_DATICERT_TYPES
 
 
 def _build_hearings(
@@ -914,6 +921,8 @@ def _build_deadlines(
     dies_a_quo_date: str,
     judgment_decision: bool | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    if _is_receipt_message(parsed, report):
+        return [], None
     proposal_container = _dict(report.get("deadline_proposal"))
     legal = proposal_container.get("legal_deadline_proposal")
     if not isinstance(legal, dict):
@@ -1097,6 +1106,36 @@ def _pct_receipts(parsed: dict[str, Any], report: dict[str, Any]) -> dict[str, A
         "blocking_errors": blocking,
         "evidence": [_evidence("pct_deposit_receipt", current.get("label") or stage or "catena PCT non applicabile", confidence=0.8)],
     }
+
+
+def _evento_ministeriale(profile: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
+    """Riconosce le formule dell'evento nel tracciato XML della cancelleria."""
+    ministeriale = _dict(profile.get("comunicazione_ministeriale"))
+    if profile.get("fonte_certa") != "giustizia" or not ministeriale.get("numero_ruolo") or not ministeriale.get("codice_ufficio"):
+        return "", "", {}
+    oggetto = _norm(ministeriale.get("oggetto"))
+    testo = _clean(ministeriale.get("contenuto"), 6000)
+    if oggetto in {"iscrizione ruolo generale", "iscrizione a ruolo generale"}:
+        return "iscrizione_a_ruolo", testo, {}
+    if re.fullmatch(r"revoca udienza e fissazione termine per note in sost(?:ituzione|\.) udienza", oggetto):
+        return "fissazione_note", testo, {}
+    if oggetto == "fissazione udienza di discussione":
+        fissazione = re.search(
+            r"\bfissata udienza di discussione\s+il\s+(\d{1,2}[/.-]\d{1,2}[/.-]\d{4})\s+"
+            r"(?:alle\s+ore\s+|ore\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d)\s+in presenza\b",
+            testo, flags=re.IGNORECASE,
+        )
+        date_lette = date_vere(fissazione[1]) if fissazione else []
+        if fissazione and date_lette:
+            giorno = date_lette[0][0].isoformat()
+            ora, minuti = fissazione[2].replace(".", ":").split(":")
+            return "udienza_in_presenza", testo, {
+                "date": giorno, "time": f"{int(ora):02d}:{minuti}", "mode": "presenza",
+                "source": "Comunicazione.xml", "judge": _clean(profile.get("giudice"), 120),
+                "agenda_action": "create", "human_review_required": False,
+                "evidence": [_evidence("Comunicazione.xml", fissazione[0], confidence=1.0)],
+            }
+    return "", "", {}
 
 
 def _classify(
@@ -1358,8 +1397,16 @@ def build_legal_event_understanding(
         for text_value in [_attachment_text(item)]
         if text_value
     ]
+    profile = _dict(parsed.get("procedural_profile"))
+    evento_xml, contenuto_xml, udienza_xml = ("", "", {})
+    if not _is_receipt_message(parsed, report):
+        evento_xml, contenuto_xml, udienza_xml = _evento_ministeriale(profile)
+    if evento_xml:
+        # L'evento della busta è identificato dal tracciato dell'ufficio.
+        # Le formule negli atti allegati non cambiano l'evento comunicato.
+        body_text, operative_texts = contenuto_xml, []
     text = "\n".join(dict.fromkeys([body_text, *operative_texts])).strip()
-    source_judgment_decision = any(
+    source_judgment_decision = not evento_xml and any(
         _is_judgment_decision_text(source_text)
         for source_text in [body_text, *operative_texts]
         if source_text
@@ -1376,12 +1423,19 @@ def build_legal_event_understanding(
         list(dict.fromkeys(operative_attachment_names or attachment_names)),
         judgment_decision=source_judgment_decision,
     )
-    profile = _dict(parsed.get("procedural_profile"))
+    richiesta = ""
+    if evento_xml:
+        classification.update(primary_event=evento_xml, events=[evento_xml], confidence=1.0,
+                              human_review_required=False, authoritative_event_source="Comunicazione.xml",
+                              reason=_clean(_dict(profile.get("comunicazione_ministeriale")).get("oggetto")))
+        if richiesta := richiesta_autocertificazione_esenzione(contenuto_xml):
+            classification["events"].append("richiesta_autocertificazione_contributo_unificato")
+            classification["reason"] += f" · {richiesta}."
     registri = _list(_dict(parsed.get("legal_workflow")).get("registri")) or estrai_registri(text)
     first_registry = registri[0] if registri and isinstance(registri[0], dict) else {}
     if not dies_a_quo_date:
         dies_a_quo_date = str(_field_value(parsed, "data_consegna", "data_invio") or headers.get("date") or "")
-    hearings = _build_hearings(
+    hearings = ([udienza_xml] if udienza_xml else []) if evento_xml else _build_hearings(
         parsed,
         report,
         text,
@@ -1401,7 +1455,9 @@ def build_legal_event_understanding(
     # versamento producono lo stesso esito su presidio PEC e fascicolo.
     contributo_unificato = classifica_contributo_unificato_pec(
         body_text,
-        attachments=operative_attachments,
+        # Una richiesta dell'ufficio attende la dichiarazione trasmessa in
+        # risposta. Il ricorso con la clausola di esenzione resta allegato.
+        attachments=() if richiesta else operative_attachments,
     )
     integra_contributo_unificato(classification, payments, contributo_unificato)
     pct = _pct_receipts(parsed, report)
@@ -1421,7 +1477,7 @@ def build_legal_event_understanding(
             already_found=notifications,
         )
     )
-    if _notifica_l53_ricevuta(headers, casella or _dict(parsed.get("casella"))):
+    if not _is_receipt_message(parsed, report) and _notifica_l53_ricevuta(headers, casella or _dict(parsed.get("casella"))):
         deadlines.extend(_termini_notifica_ricevuta(text, dies_a_quo_date, attachment_names))
         notifications = [_come_notifica_ricevuta(item) for item in notifications]
     priority = _priority(classification, deadlines, hearings, payments, pct)

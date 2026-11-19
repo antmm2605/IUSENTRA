@@ -13,6 +13,7 @@ from urllib.parse import quote
 
 MARCATORE = "SUPERATA_DA_SENTENZA"
 _MARCATORE_CONCLUSIVA = f"{MARCATORE}:DEFINITIVA:"
+_MARCATORE_TRATTAZIONE_SCRITTA = f"{MARCATORE}:TRATTAZIONE_SCRITTA:"
 _FORMULA_CONCLUSIVA = re.compile(r"\bdefinitivamente\s+(?:pronunciando|decidendo)\b", re.I)
 TIPI_PROCEDURALI = {
     "UDIENZA", "DEPOSITO_MEMORIA", "DEPOSITO_ATTO", "RISPOSTA_ECCEZIONE", "ADEMPIMENTO",
@@ -38,15 +39,21 @@ def decisione_superante(scadenza: Any, *, al_giorno: date | None = None) -> tupl
 
         al_giorno = oggi_roma()
     for riga in _valore(scadenza, "note").splitlines():
-        if not riga.startswith(_MARCATORE_CONCLUSIVA):
+        if riga.startswith(_MARCATORE_CONCLUSIVA):
+            prefisso = _MARCATORE_CONCLUSIVA
+        elif riga.startswith(_MARCATORE_TRATTAZIONE_SCRITTA):
+            prefisso = _MARCATORE_TRATTAZIONE_SCRITTA
+        else:
             continue
-        giorno, _, documento = riga[len(_MARCATORE_CONCLUSIVA):].partition(":")
+        giorno, _, documento = riga[len(prefisso):].partition(":")
         try:
             giorno = date.fromisoformat(giorno).isoformat()
         except ValueError:
             continue
         scadenza_letta = (_valore(scadenza, "data_scadenza") or _valore(scadenza, "data"))[:10]
-        if documento and scadenza_letta and scadenza_letta < giorno <= al_giorno.isoformat():
+        if documento and scadenza_letta and giorno <= al_giorno.isoformat() and (
+            scadenza_letta < giorno or (prefisso == _MARCATORE_TRATTAZIONE_SCRITTA and scadenza_letta == giorno)
+        ):
             return giorno, documento
     return None
 
@@ -59,7 +66,8 @@ def riscontro_storico(fascicolo_id: str, decisione: tuple[str, str]) -> tuple[st
     return motivo, href
 
 
-def da_segnalare(scadenza: Any, *, fascicolo_id: str, giorno_sentenza: str, conclusiva: bool = False) -> bool:
+def da_segnalare(scadenza: Any, *, fascicolo_id: str, giorno_sentenza: str, conclusiva: bool = False,
+                 trattazione_scritta_decisa: bool = False) -> bool:
     """Valuta le scadenze procedurali del fascicolo già passate alla decisione."""
     from pct.scadenze_stato import ESITO_UDIENZA, stato_operativo, termine_note_in_sostituzione
 
@@ -76,7 +84,9 @@ def da_segnalare(scadenza: Any, *, fascicolo_id: str, giorno_sentenza: str, conc
         giorno = date.fromisoformat(_valore(scadenza, "data_scadenza")[:10])
     except ValueError:
         return False
-    if giorno >= decisione:
+    if giorno == decisione:
+        return conclusiva and trattazione_scritta_decisa and termine_note_in_sostituzione(scadenza)
+    if giorno > decisione:
         return False
     if termine_note_in_sostituzione(scadenza):
         return True
@@ -88,6 +98,7 @@ def da_segnalare(scadenza: Any, *, fascicolo_id: str, giorno_sentenza: str, conc
 
 def segnala_scadenze_superate(
     scadenziario: Any, *, fascicolo_id: str, giorno_sentenza: str, origine: str, documento_conclusivo: str = "",
+    trattazione_scritta_decisa: bool = False,
 ) -> int:
     """Aggiunge l'avviso alle scadenze probabilmente superate dalla sentenza; restituisce quante."""
     if not fascicolo_id or not giorno_sentenza:
@@ -97,6 +108,7 @@ def segnala_scadenze_superate(
     for scadenza in list(scadenziario.tutte(solo_aperte=True, id_fascicolo=fascicolo_id)):
         if not da_segnalare(
             scadenza, fascicolo_id=fascicolo_id, giorno_sentenza=giorno_sentenza, conclusiva=bool(documento_conclusivo),
+            trattazione_scritta_decisa=trattazione_scritta_decisa,
         ):
             continue
         avviso = (f"Possibile scadenza superata dalla sentenza del {giorno_it} ({origine}): verificare se "
@@ -105,7 +117,9 @@ def segnala_scadenze_superate(
         if documento_conclusivo:
             avviso = (f"Trattazione conclusa dalla sentenza del {giorno_it} ({origine}). "
                       "Il termine resta nello storico per riscontrare l'adempimento.")
-            marcatore = f"{_MARCATORE_CONCLUSIVA}{giorno_sentenza[:10]}:{documento_conclusivo}"
+            prefisso = (_MARCATORE_TRATTAZIONE_SCRITTA if _valore(scadenza, "data_scadenza")[:10] == giorno_sentenza[:10]
+                        else _MARCATORE_CONCLUSIVA)
+            marcatore = f"{prefisso}{giorno_sentenza[:10]}:{documento_conclusivo}"
         scadenziario.aggiorna(
             _valore(scadenza, "id"),
             descrizione=f"{avviso}\n{_valore(scadenza, 'descrizione')}".strip(),

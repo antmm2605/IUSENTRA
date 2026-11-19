@@ -106,12 +106,15 @@ def test_sync_api_reads_vertical_counters_without_cross_tenant_data(tmp_path, mo
             conn.execute(f"INSERT INTO {table} VALUES ('other','studio-b','altro studio')")
         paths[key] = str(target)
     app = Flask(__name__)
-    app.config.update(paths, CLIENTI_DB=str(tmp_path / "clienti.json"))
+    app.config.update(paths, CLIENTI_DB=str(tmp_path / "clienti.json"), SQLITE_MODE=True)
     @app.before_request
     def context():
         g.utente_corrente = SimpleNamespace(ha_permesso=lambda permission: permission == "fascicoli.leggi")
         g.tenant_context_slug = "studio-a"
-    monkeypatch.setattr(storage_runtime, "get_request_studio_db", lambda _: SimpleNamespace(conn=central))
+    def forbidden_initialization(*_args, **_kwargs):
+        raise AssertionError("Il polling non prepara il database in scrittura")
+
+    monkeypatch.setattr(storage_runtime, "_ensure_sqlite_runtime_from_json", forbidden_initialization)
     monkeypatch.setattr(registry_runtime, "tenant_corrente", lambda: "studio-a")
     monkeypatch.setattr(registry_runtime, "_dsn_postgres", lambda paths=None: "")
     register_sync_runtime_routes(app, sync_manager=SimpleNamespace(), get_fascicoli=lambda: None, get_utenti=lambda: None, audit=lambda *args, **kwargs: None)

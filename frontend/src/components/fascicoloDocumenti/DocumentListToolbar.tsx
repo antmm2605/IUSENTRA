@@ -9,17 +9,19 @@ export type DocumentSectionOption = { id: string; label: string }
 const STATUS_OPTIONS: ReadonlyArray<{ id: DocumentStatusFilter; label: string }> = [
   { id: 'tutti', label: 'Tutti gli stati' },
   { id: 'da_firmare', label: 'Firma non verificata' },
-  { id: 'da_verificare', label: 'Da verificare' },
+  { id: 'da_verificare', label: 'Da confermare o verificare' },
 ]
 
 export function DocumentListToolbar<T>({
   controls,
   sections,
   visibleCount,
+  catalogoDisponibile,
 }: {
   controls: DocumentListControls<T>
   sections: DocumentSectionOption[]
   visibleCount: number
+  catalogoDisponibile: boolean
 }) {
   const searchId = useId()
   const sortId = useId()
@@ -80,8 +82,8 @@ export function DocumentListToolbar<T>({
       </div>
       <div className="iu-doclist-toolbar__chips iu-doclist-toolbar__chips--status" aria-label="Filtra per stato">
         {STATUS_OPTIONS.map((option) => (
-          <button key={option.id} type="button" aria-pressed={status === option.id} onClick={() => setStatus(status === option.id && option.id !== 'tutti' ? 'tutti' : option.id)}>
-            {option.label} <b>{statusCounts[option.id]}</b>
+          <button key={option.id} type="button" aria-pressed={status === option.id} disabled={option.id === 'da_verificare' && !catalogoDisponibile} onClick={() => setStatus(status === option.id && option.id !== 'tutti' ? 'tutti' : option.id)}>
+            {option.label} {option.id !== 'da_verificare' || catalogoDisponibile ? <b>{statusCounts[option.id]}</b> : null}
           </button>
         ))}
       </div>

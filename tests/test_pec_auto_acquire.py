@@ -222,14 +222,32 @@ def test_acquisizione_incrementale_legge_solo_nuovi_arrivi_dopo_cursor(tmp_path:
 
 
 def test_worker_pec_delega_presidio_documentale_all_archivio(tmp_path: Path, monkeypatch) -> None:
+    from web.services import daily_plan_runtime
+    from web.services.pannelli_pronti_runtime import archivio_per_percorsi
+
     paths = _paths(tmp_path)
+    paths["STUDIO_DB"] = str(tmp_path / "studio.db")
+    archivio = archivio_per_percorsi(paths)
+    for fid in ("F1", "F2"):
+        archivio.salva(
+            chiave_voce=fid, fascicolo_id=fid, pannello="lettura", percorso=f"/f/{fid}/lettura",
+            profilo="profilo", impronta="corrente", stato=200, tipo="application/json", corpo=b"{}", durata_ms=1,
+        )
+    assert archivio.fascicoli_aperti_dal(72) == []
+    dirty = {}
+    monkeypatch.setattr(daily_plan_runtime, "mark_dirty_for_paths",
+                        lambda *_args, **kwargs: dirty.update({kwargs["entity_type"]: kwargs["entity_ids"]}))
 
     class FakeRepository:
         def enqueue_stale_attachment_repairs(self, *, limit: int, actor: str) -> dict[str, object]:
             return {"ok": True, "queued": 1, "unresolved": 0, "limit": limit, "actor": actor}
 
         def run_pending_jobs(self, *, limit: int, actor: str) -> dict[str, object]:
-            return {"processed": 0, "failed": 0, "jobs": [], "limit": limit, "actor": actor}
+            return {"processed": 3, "failed": 0, "jobs": [
+                {"message_id": "M1", "result": {"fascicolo_id": "F1"}},
+                {"message_id": "M1", "result": {"fascicolo_id": "F1"}},
+                {"message_id": "M2", "result": {}},
+            ], "limit": limit, "actor": actor}
 
         def cleanup_legacy_pec_operational_items(self, *, actor: str) -> dict[str, int]:
             return {"scadenziario_removed": 0, "agenda_removed": 0, "errors": 0}
@@ -251,6 +269,9 @@ def test_worker_pec_delega_presidio_documentale_all_archivio(tmp_path: Path, mon
     assert report["document_presidio"]["consumer"] == "archivio_letture"
     assert report["document_presidio"]["source_of_truth"] == "archivio_letture"
     assert "skipped_service" not in report["document_presidio"]
+    assert archivio.fascicoli_aperti_dal(72) == ["F1"]
+    assert archivio.generazione("F1") == 0
+    assert dirty == {"fascicolo": {"F1"}, "pec_message": {"M1", "M2"}}
 
 def test_notifica_scadenze_automatiche_agli_utenti_dello_studio(tmp_path: Path) -> None:
     from flask import Flask

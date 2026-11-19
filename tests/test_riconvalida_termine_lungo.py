@@ -127,6 +127,32 @@ def test_senza_deposito_certo_si_conta_dalla_decisione_mai_dalla_comunicazione(t
     assert riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: testi.get(fid, []))["dalla_decisione"] == 0
 
 
+def test_trattazione_scritta_usa_la_data_prudenziale_dalla_pec_fonte(tmp_path):
+    from pct.riconvalida_termine_lungo import DALLA_DECISIONE
+
+    scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    bozza = _bozza(scadenziario, numero="1367/2026", fascicolo="F1", comunicazione="12/10/2026")
+    scadenziario.aggiorna(bozza.id, data_scadenza="2027-04-12", data_decorrenza="2026-10-12",
+                         source_event_at="2026-10-12T09:00:00Z", source_message_id="pec_x")
+    sentenza = (
+        "Il G.L., letto l’art.127 ter c.p.c.; richiamato il proprio decreto di sostituzione dell’udienza "
+        "del 9.10.2026; letti gli atti di causa pronuncia la seguente SENTENZA ... P.Q.M. accoglie il ricorso. "
+        "Così deciso in Reggio Calabria, in data 9.10.2026 Il Giudice del Lavoro."
+    )
+
+    def verifica(allegati):
+        return riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: [sentenza],
+                                allegati_della_comunicazione=lambda fid, pec: allegati.get((fid, pec), []))
+
+    assert verifica({("F1", "pec_altra"): [sentenza]})["dalla_decisione"] == 0
+    assert verifica({("F1", "pec_x"): [sentenza.replace("del 9.10.2026", "del 8.10.2026")]})["dalla_decisione"] == 0
+    assert verifica({("F1", "pec_x"): [sentenza]})["dalla_decisione"] == 1
+    voce = scadenziario.get(bozza.id)
+    assert voce.data_scadenza == "2027-04-09" and voce.data_decorrenza == "2026-10-09"
+    assert voce.stato == StatoTermine.BOZZA and NON_CERTA in voce.note and DALLA_DECISIONE in voce.note
+    assert verifica({("F1", "pec_x"): [sentenza]})["dalla_decisione"] == 0
+
+
 def test_decisioni_diverse_o_lontane_non_si_sceglie(tmp_path):
     scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
     bozza = _bozza(scadenziario, numero="1674/2026", fascicolo="F1", comunicazione="08/10/2026")
@@ -151,7 +177,7 @@ def test_le_frasi_della_proposta_seguono_la_scadenza_ricalcolata(tmp_path):
     voce = scadenziario.get(bozza.id)
     assert voce.data_scadenza == "2027-04-07"
     assert "entro il 07/04/2027" in voce.note and "08/04/2027" not in voce.note
-    assert "calcolati dal 07/10/2026 (giorno dell'udienza in cui la sentenza è stata letta" in voce.descrizione
+    assert "calcolati dal 07/10/2026 (data della decisione usata in via prudenziale" in voce.descrizione
     assert "calcolati dal 08/10/2026" not in voce.descrizione
 
 
@@ -171,6 +197,24 @@ def test_voce_gia_ricalcolata_con_frasi_vecchie_si_riallinea(tmp_path):
     voce = scadenziario.get(bozza.id)
     assert voce.data_scadenza == "2027-04-07" and "entro il 07/04/2027" in voce.note
     assert "calcolati dal 07/10/2026" in voce.descrizione
+    assert "La data di pubblicazione resta da accertare" in voce.note
+
+
+def test_lettura_riusa_solo_la_data_prudenziale_della_stessa_pec():
+    from pct.ragionamento.modello import Atto
+    from pct.ragionamento.regole.sentenza import termini_lunghi_prudenziali
+    from pct.riconvalida_termine_lungo import DALLA_DECISIONE
+
+    sentenza = Atto("S1", "sentenza.pdf", "provvedimento", "Sentenza", sentenza=True, testo=SENTENZA_429)
+    documenti = [{"id": "S1", "pec_origine": "pec_test"}]
+    bozza = {
+        "data": "2027-04-07", "data_decorrenza": "2026-10-07", "source_message_id": "pec_test",
+        "deadline_profile_code": "CIV_APPELLO_LUNGO", "stato": "BOZZA",
+        "note": f"PEC_TERMINE_PROPOSTO:pec_test:CIV_APPELLO_LUNGO\n{NON_CERTA}\n{DALLA_DECISIONE} decisione=2026-10-07:",
+    }
+    assert termini_lunghi_prudenziali([sentenza], documenti, [bozza]) == {"S1": "2027-04-07"}
+    assert not termini_lunghi_prudenziali([sentenza], documenti, [dict(bozza, source_message_id="pec_altra")])
+    assert not termini_lunghi_prudenziali([sentenza], documenti, [bozza, dict(bozza, data="2027-04-08")])
 
 
 ORDINANZA_ESTINZIONE = (

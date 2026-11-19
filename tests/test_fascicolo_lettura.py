@@ -8,7 +8,6 @@ li fonda e le lacune dichiarate come tali.
 """
 
 from __future__ import annotations
-
 from datetime import date, timedelta
 
 from pct.fascicolo_lettura import DatiLettura, componi, costruisci_lettura, lettura_come_payload
@@ -24,6 +23,34 @@ TESTO_CITAZIONE = (
     "euro 25.000,00 oltre interessi e rivalutazione, con vittoria di spese. Si dichiara che il valore della causa è euro 25.000. "
     "Milano, 10 gennaio 2026."
 )
+
+
+def test_il_motivo_informativo_del_deposito_non_diventa_un_prossimo_passo():
+    from pct.fascicolo_lettura.prossimi_passi import _passi_regia
+
+    motivo = "Fascicolo importato. Nessuna busta in preparazione."
+    regia = {"next_action": motivo, "fase_deposito": {"codice": "non_richiesta", "motivo": motivo}}
+    assert _passi_regia(regia, []) == []
+    azione = "Acquisire l’atto mancante"
+    passi = _passi_regia({**regia, "next_action": azione, "blockers": [{"suggested_action": azione}]}, [])
+    assert [passo.azione for passo in passi] == [azione]
+
+
+def test_la_bozza_locale_resta_visibile_ma_non_e_prova_del_deposito():
+    dati = DatiLettura(
+        fascicolo=_fascicolo(),
+        documenti=[_documento("B1", "Note.docx", bozza_locale=True)],
+        catalogo=[_voce_catalogo("B1", "Note di trattazione scritta", "atto_difensivo", "atti")],
+        depositi=[{**_deposito("ACCETTATO_CANCELLERIA", "Ricorso (originale notificato).pdf"),
+                   "id_deposito_esterno": "157920954", "data_accettazione": "2026-02-01"}],
+        oggi=OGGI,
+    )
+    risultato = costruisci_lettura(dati)
+    assert risultato["documenti"]["tutti"][0]["bozza_locale"]
+    assert risultato["documenti"]["ultimo_atto_di_parte"] is None
+    assert "Note di trattazione scritta" not in risultato["fase"]["prove"]
+    assert any("Ricorso (originale notificato).pdf" in prova and "157920954" in prova
+               for prova in risultato["fase"]["prove"])
 
 
 def _fascicolo(**extra) -> dict:
@@ -260,9 +287,14 @@ def test_deposito_in_corso_lo_controlla_il_presidio_non_l_avvocato():
     dati.verifiche = {"eseguita_il": "2026-09-14T10:00:00+02:00", "eseguita_il_it": "14/09/2026 ore 10:00", "esiti": {"depositi": {"pendenti": 1, "esito": "controllate", "controllati": 1, "aggiornati": 0, "errori": 0}}}
     lettura = costruisci_lettura(dati)
     passo = next(passo for passo in lettura["prossimi_passi"] if passo["fonte"] == "presidio depositi")
-    assert passo["azione"] == "Deposito «Atto di citazione» senza esito da 13 giorni nonostante il controllo automatico delle ricevute"
+    assert passo["azione"] == "Deposito «Atto di citazione» senza riscontro da 13 giorni"
     assert "controllo del 14/09/2026 ore 10:00" in passo["motivo"] and passo["urgenza"] == 1
     assert "ricevute controllate: 1 depositi controllati" in lettura["narrativa"]
+
+    dati.verifiche["esiti"]["depositi"]["errori"] = 1
+    lettura = costruisci_lettura(dati)
+    assert not any(passo["fonte"] == "presidio depositi" for passo in lettura["prossimi_passi"])
+    dati.verifiche["esiti"]["depositi"]["errori"] = 0
 
     # Deposito di ieri: il presidio ha controllato, è presto per parlare di anomalia.
     dati.depositi = [_deposito("CONSEGNATO", timestamp=(OGGI - timedelta(days=1)).isoformat() + "T10:00:00")]
@@ -298,6 +330,22 @@ def test_scadenza_scaduta_e_il_primo_passo():
     primo = next(passo for passo in lettura["prossimi_passi"] if passo["azione"] == "Verificare l’esito della scadenza «Deposito comparsa di risposta»")
     assert primo["urgenza"] == 0
     assert all("Scadenza chiusa" not in passo["azione"] for passo in lettura["prossimi_passi"])
+
+
+def test_riepilogo_scadenze_riusa_lo_stato_operativo_dello_scadenziario():
+    dati = _caso_completo()
+    giorno = (OGGI - timedelta(days=3)).isoformat()
+    dati.scadenze = [
+        {"id": "nota", "tipo": "UDIENZA", "data": giorno, "stato": "APERTO",
+         "note": f"SUPERATA_DA_SENTENZA:TRATTAZIONE_SCRITTA:{giorno}:DOC"},
+        {"id": "udienza", "tipo": "UDIENZA", "data": giorno, "stato": "APERTO"},
+        {"id": "memoria", "tipo": "DEPOSITO_MEMORIA", "data": giorno, "stato": "SCADUTO"},
+        {"id": "bozza", "tipo": "IMPUGNAZIONE", "data": OGGI.isoformat(), "stato": "BOZZA"},
+        {"id": "futura", "tipo": "ADEMPIMENTO", "data": OGGI.isoformat(), "stato": "APERTO"},
+    ]
+    assert costruisci_lettura(dati)["scadenze"] == {
+        "totale": 2, "scadute": 1, "prossimi30": 1, "successive": 0,
+    }
 
 
 def test_fascicolo_chiuso_non_propone_adempimenti_di_fase():
@@ -584,9 +632,19 @@ def test_molti_depositi_fermi_dopo_il_controllo_diventano_un_solo_passo():
     lettura = costruisci_lettura(dati)
     passi = [passo for passo in lettura["prossimi_passi"] if passo["fonte"] == "presidio depositi"]
     assert len(passi) == 1
-    assert passi[0]["azione"] == "5 depositi senza esito della cancelleria dopo il controllo automatico delle ricevute"
+    assert passi[0]["azione"] == "Riscontrare 5 depositi con ricevute mancanti"
     assert "«Atto 5»" in passi[0]["motivo"]
     assert "5 depositi non hanno ancora l'accettazione della cancelleria" in lettura["lacune"]
+
+
+def test_ricevuta_simulata_della_cancelleria_non_prova_il_deposito():
+    from pct.deposito_simulazione import simulated_deposit_note
+
+    dati = _caso_completo()
+    dati.depositi = [{**_deposito("ACCETTATO_CANCELLERIA"), "note": simulated_deposit_note()}]
+    lettura = costruisci_lettura(dati)
+    assert lettura["depositi"]["perfezionati"] == []
+    assert lettura["depositi"]["prove_senza_invio"][0]["stato"] == "PROVA_SENZA_INVIO"
 
 
 def test_documenti_letti_ma_non_riconosciuti_e_procura_assente_sono_decisioni_dell_avvocato():
@@ -672,7 +730,17 @@ def test_liquidazione_del_giudice_e_bonifici_entrano_nel_presidio_economico():
     assert "Liquidazione del giudice: € 4.500,00 (sentenza del 01/09/2026), da registrare nel presidio; non ancora bonificata sul conto dello studio." in lettura["narrativa"]
 
     fonte = {"documentoId": "D1", "sha256": "a" * 64}
-    dati.economico["presidio"]["items"]["liquidazione_giudice"]["fontiVerifica"] = [fonte]
+    voce = dati.economico["presidio"]["items"]["liquidazione_giudice"]
+    voce["fonteImportoVerificata"] = {**fonte, "nome": "SentenzaDefinitiva.pdf",
+                                       "previewHref": "/fascicoli/F001/documenti/D1/visualizza"}
+    lettura = costruisci_lettura(dati)
+    assert lettura["economico"]["liquidazione"]["stato"] == "letta"
+    assert lettura["economico"]["liquidazione"]["fonte_href"] == "/fascicoli/F001/documenti/D1/visualizza"
+    assert lettura["economico"]["liquidazione_incasso"] == "non_incassata"
+    assert not any(passo["azione"].startswith("Confermare nel presidio economico") for passo in lettura["prossimi_passi"])
+    assert "€ 4.500,00 (SentenzaDefinitiva.pdf); non ancora bonificata" in lettura["narrativa"]
+    del voce["fonteImportoVerificata"]
+    voce["fontiVerifica"] = [fonte]
     credito = {"documento_id": "D1", "impronta": "b" * 64, "importo": 4500.0}
     dati.economico["sentenze"]["crediti_confermati"] = [credito]
     assert costruisci_lettura(dati)["economico"]["liquidazione"]["stato"] == "da_registrare"
@@ -719,6 +787,15 @@ def test_udienza_trascorsa_senza_esito_chiede_l_esito_una_volta():
     passi = _passi_udienze_senza_esito(app, date(2026, 10, 28))
     assert len(passi) == 1 and "12/06/2026" in passi[0].azione and "un'altra udienza precedente" in passi[0].motivo
     assert _passi_udienze_senza_esito(app[2:], date(2026, 10, 28)) == []
+
+    from pct.note_127_ter.bozza import MODALITA_NOTE
+
+    decreto = {"data": "12/06/2026", "modalita": MODALITA_NOTE, "documento_id": "decreto"}
+    passi = _passi_udienze_senza_esito(app, date(2026, 10, 28), udienze_lette=[decreto])
+    assert len(passi) == 1 and "10/03/2026" in passi[0].azione
+    ambiguo = [*app, {**app[1], "data_ora": "2026-06-12T12:00:00"}]
+    passi = _passi_udienze_senza_esito(ambiguo, date(2026, 10, 28), udienze_lette=[decreto])
+    assert len(passi) == 1 and "12/06/2026" in passi[0].azione
 
 
 def test_ragionamento_non_fa_sparire_una_scadenza_automatica_non_ricostruita():
@@ -807,6 +884,42 @@ def test_prossimi_passi_riusa_il_riscontro_sullo_stesso_adempimento():
     }
 
 
+def test_deposito_ordinato_riusa_la_bozza_solo_dalla_stessa_pec():
+    from pct.fascicolo_lettura.prossimi_passi import prossimi_passi
+
+    giorno = "2026-11-16"
+    titolo = "Depositare le graduatorie con il proprio nominativo"
+    decisione = {
+        "codice": "deposito_ordinato", "stato": "da_fare", "onerato": "noi", "cosa": titolo,
+        "perche": "Il giudice ha assegnato il termine.", "norme": [{"id": "cc_2697"}],
+        "termine": {"scadenza": giorno, "giorni_residui": 0},
+        "letto": {"oggetto_id": "ORDINE", "nome": "Provvedimento.pdf"},
+    }
+    bozza = {
+        "id": "B1", "titolo": "Depositare le graduatorie", "data": giorno, "stato": "BOZZA",
+        "source_message_id": "pec_abc", "note": "PEC_TERMINE_PROPOSTO:pec_abc:PROVV_DEPOSITO",
+    }
+
+    def passi(pec, decisioni, data=giorno):
+        return prossimi_passi(
+            intestazione={}, fase_letta={}, depositi_letti={"falliti": [], "in_corso": []},
+            notifiche_lette={"fallite": [], "aperte": []},
+            documenti_letti={"tutti": [], "non_indicizzati": [], "da_verificare": [], "totale": 0},
+            scadenze=[{**bozza, "data": data}], conformita={}, regia={}, economico_letto={}, pec_letto={}, oggi=giorno,
+            documenti=[{"id": "ORDINE", "pec_origine": pec}],
+            ragionamento={"fascicolo_id": "F1", "conclusioni": decisioni},
+        )[0]
+
+    unificati = passi("pec_abc", [decisione])
+    assert [p["azione"] for p in unificati] == [titolo]
+    assert unificati[0]["href"] == "/scadenziario?id_fascicolo=F1#proposte"
+    assert "in bozza" in unificati[0]["motivo"] and "Provvedimento.pdf" in unificati[0]["motivo"]
+    assert "2697" in unificati[0]["norma"]
+    assert len(passi("pec_altra", [decisione])) == 2
+    assert len(passi("pec_abc", [decisione], data="2026-11-17")) == 2
+    assert len(passi("pec_abc", [decisione, {**decisione, "cosa": "Depositare altra prova"}])) == 3
+
+
 def test_le_consegne_collegate_non_ripropongono_la_notifica_ordinata():
     from pct.fascicolo_lettura.notifiche import notifiche
     from pct.fascicolo_lettura.prossimi_passi import _passi_notifiche
@@ -855,6 +968,60 @@ def test_la_scadenza_del_decreto_non_si_attribuisce_a_un_altro_presidio():
     assert primo.entro == "08/01/2027"
     assert secondo.azione == "Esaminare la sentenza («sentenza.pdf»)"
     assert not secondo.entro
+    assert _passi_notifiche(
+        lettura, scadenze, notifiche_gia_lette={("pec-decreto", date(2027, 1, 8))},
+    ) == [secondo]
+    assert _passi_notifiche(
+        lettura, scadenze, notifiche_gia_lette={("pec-decreto", date(2027, 1, 9))},
+    ) == [primo, secondo]
+
+
+def test_la_scelta_sulla_notifica_della_sentenza_riusa_la_conclusione_della_stessa_pec():
+    from pct.fascicolo_lettura.notifiche import notifiche
+    from pct.fascicolo_lettura.pec import pec as leggi_pec, pec_con_valutazione_notifica
+    from pct.fascicolo_lettura.prossimi_passi import prossimi_passi
+
+    presidio = {
+        "id": "N1", "channel": "pec", "status": "DETECTED",
+        "notification_case": "judgment_to_notify_review",
+        "source_message_id": "pec_sentenza", "document": {"name": "sentenza.pdf.zip"},
+        "next_action": "Esaminare la notifica",
+    }
+    sentenza = {"id": "S1", "sentenza": True, "appartenenza": "causa", "copie": ["S2"]}
+    conclusione = {
+        "codice": "notifica_sentenza", "stato": "da_fare", "onerato": "noi",
+        "cosa": "Valutare se notificare la sentenza", "letto": {"oggetto_id": "S1", "nome": "sentenza.pdf"},
+        "perche": "Scelta difensiva", "norme": [],
+    }
+
+    def passi(pec="pec_sentenza", atti=None, **variante):
+        ragionamento = {"fascicolo_id": "F1", "conclusioni": [conclusione],
+                        "atti": [sentenza] if atti is None else atti}
+        fonti = {oid: pec for oid in ("S2", "S3")}
+        gia_lette = pec_con_valutazione_notifica(ragionamento, fonti)
+        risultati, _ = prossimi_passi(
+            intestazione={}, fase_letta={}, depositi_letti={"falliti": [], "in_corso": []},
+            notifiche_lette=notifiche([{**presidio, **variante}], []),
+            documenti_letti={"tutti": [], "non_indicizzati": [], "da_verificare": [], "totale": 0},
+            scadenze=[], conformita={}, regia={}, economico_letto={}, pec_letto={}, oggi="2026-11-17",
+            ragionamento=ragionamento, pec_sentenze_gia_lette=gia_lette,
+        )
+        return [voce["azione"] for voce in risultati if "notifica" in voce["azione"]]
+
+    assert passi() == ["Valutare se notificare la sentenza per far decorrere il termine breve"]
+    assert len(passi("pec_altra")) == 2
+    assert len(passi(atti=[sentenza, {**sentenza, "id": "S3", "copie": []}])) == 2
+    assert len(passi(status="NEEDS_REVIEW")) == 2
+    assert len(passi(explicit_due_at="2026-12-17")) == 2
+    assert len(passi(consegne_pec={"richieste": 1, "collegate": 0, "ricevute": []})) == 1
+    assert len(passi(consegne_pec={"richieste": 1, "collegate": 0, "ricevute": ["R1"]})) == 2
+    termine = {"id": "R1", "deadline_type": "Valutare/preparare notifica sentenza", "human_review_required": True}
+    messaggi = [
+        {"id": "pec_sentenza", "termini": [termine, {**termine, "id": "R2", "deadline": "2026-12-17"}]},
+        {"id": "pec_altra", "termini": [termine]},
+    ]
+    aperti = leggi_pec(messaggi, pec_sentenze_gia_lette={"pec_sentenza"})["termini_da_registrare"]
+    assert [(voce["messaggio_id"], voce["id"]) for voce in aperti] == [("pec_sentenza", "R2"), ("pec_altra", "R1")]
 
 
 def test_la_busta_del_ricorso_notificato_si_cita_con_la_data_della_ricevuta():
@@ -966,3 +1133,18 @@ def test_cronologia_deposito_pec_usa_la_consegna_e_non_la_registrazione():
     evento = next(voce for voce in lettura["cronologia"] if voce["categoria"] == "deposito")
     assert evento["data"] == "2026-09-29"
     assert evento["dettaglio"] == "Data della ricevuta di avvenuta consegna"
+def test_vecchia_ricevuta_consegna_non_ripropone_esame_sentenza():
+    from pct.fascicolo_lettura.pec import leggi_messaggio
+
+    ricevuta = {
+        "subject": "CONSEGNA: Notificazione ai sensi della legge n. 53/1994 [Notifica_ID:abc]",
+        "collegata": True,
+        "eventi": [{"primary_event": "ricevuta_consegna_pec", "human_review_required": True}],
+        "termini": [{"deadline_type": "Valutare/preparare notifica sentenza"}],
+    }
+    letta = leggi_messaggio(ricevuta)
+    assert not letta["da_controllare"]
+    assert not letta["termini"]
+    assert letta["eventi"][0]["evento"] == "ricevuta consegna pec"
+    letta = leggi_messaggio({**ricevuta, "signature_status": "non_valida"})
+    assert letta["motivi_controllo"] == ["firma non valida"]

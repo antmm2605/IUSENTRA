@@ -19,10 +19,19 @@ from pct.percorso_pratica.giurisdizioni import AMMINISTRATIVO, giurisdizione_e_g
 from pct.incasso_provato import pagamento_provato, pagato_deciso_dall_avvocato
 from pct.spese_liquidate_provvedimento import spese_liquidate
 
-from ..modello import Conclusione, Dubbio, Fonte
+from pct.termine_lungo_sentenza import data_decisione
+
+from ..modello import Atto, Conclusione, Dubbio, Fonte
 from ..norme import norme
 from ..testo import data_it, giorno, pulito, semplice
 from .contesto import Contesto
+
+_DISTRAZIONE_CONDIZIONATA = re.compile(r"\b(?:distrarsi|distratte|distrazione)\b.{0,70}\b(?:ove|se|qualora)\s+richiest", re.I)
+_RICHIESTA_ANTISTATARIA = re.compile(
+    r"\b(?:da\s+distrarsi|chiede\s+la\s+distrazione)\b.{0,160}\b(?:avere|aver)\s+anticipato\b"
+    r".{0,100}\bnon\s+(?:ancora\s+)?(?:riscosso|percepito)\b", re.I,
+)
+
 
 def liquidazione(testo: str) -> dict[str, Any] | None:
     """Compensi ed esborsi liquidati: regola unica di `pct/spese_liquidate_provvedimento.spese_liquidate`."""
@@ -33,7 +42,21 @@ def liquidazione(testo: str) -> dict[str, Any] | None:
     # la distrazione chiesta dal difensore (art. 93 c.p.c.) può stare nella frase dopo la liquidazione
     distrazione = bool(letta.get("distrazione")) or bool(re.search(r"\bdistra(?:e|endo|tt[aei]|rsi|zione)\b|antistatari", dispositivo, re.I))
     return {**letta, "compensi": float(letta.get("compensi") or 0), "esborsi": float(letta.get("esborsi") or 0),
-            "distrazione": distrazione, "brano": pulito(letta.get("brano"))[:300]}
+            "distrazione": distrazione, "distrazione_condizionata": bool(_DISTRAZIONE_CONDIZIONATA.search(pulito(dispositivo))),
+            "brano": pulito(letta.get("brano"))[:300]}
+
+
+def _richiesta_antistataria(atti: list[Atto], sentenza: Atto) -> dict[str, str]:
+    decisione = data_decisione(sentenza.testo) or giorno(sentenza.data)
+    if not sentenza.rg or not decisione:
+        return {}
+    candidati = (atto for atto in atti if atto.autore == "studio" and atto.rg == sentenza.rg
+                 and atto.natura in {"atto_principale", "atto_difensivo", "note_scritte"})
+    for atto in sorted(candidati, key=lambda voce: voce.data, reverse=True):
+        data_atto = giorno(atto.data)
+        if data_atto and data_atto <= decisione and (richiesta := _RICHIESTA_ANTISTATARIA.search(pulito(atto.testo))):
+            return {"id": atto.id, "nome": atto.nome, "brano": richiesta.group()}
+    return {}
 
 
 def riscontro_incasso(voce: dict[str, Any], parcelle: list[dict[str, Any]]) -> str:
@@ -60,6 +83,7 @@ def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcell
 
     risultato, liquidazioni, visti = [], [], set()
     atti = sorted(ctx.della_causa(), key=priorita_fonte_sentenza)
+    amministrativo = semplice(ctx.fascicolo.get("tipo")) == "amministrativo"
     for atto in atti:
         if atto.autore != "giudice" or atto.id in visti:
             continue
@@ -74,15 +98,24 @@ def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcell
         riscontro = next((prova for prova in riscontri if prova), "")
         incassato = ctx.posizione == "attiva" and bool(riscontro)
         beneficiario = "all'avvocato antistatario (art. 93 c.p.c.)" if letta["distrazione"] else "al cliente"
-        liquidazioni.append({"atto": atto.id, "copie": list(atto.copie), "nome": atto.nome, **letta, "incassato": incassato})
+        richiesta = _richiesta_antistataria(atti, atto) if letta["distrazione_condizionata"] else {}
+        if letta["distrazione_condizionata"] and not richiesta:
+            beneficiario = "al beneficiario da individuare verificando la richiesta di distrazione (art. 93 c.p.c.)"
+        liquidazioni.append({"atto": atto.id, "copie": list(atto.copie), "nome": atto.nome, **letta,
+                             "incassato": incassato, "richiesta_distrazione": richiesta})
         if ctx.posizione != "attiva":
             continue
         data_fonte = (data_pubblicazione(atto.testo) if atto.sentenza else "") or atto.data
+        riferimenti = ["cpc_641_spese"] if decreto else ["cpc_91"]
+        if amministrativo and not decreto:
+            riferimenti.insert(0, "cpa_26")
+        if letta["distrazione"] and not decreto:
+            riferimenti.append("cpc_93")
         risultato.append(Conclusione(
             "spese_liquidate", f"Riscuotere le spese liquidate dal giudice: {format_euro_it(letta['compensi'])} di compensi"
             + (f" e {format_euro_it(letta['esborsi'])} di spese" if letta["esborsi"] else "") + (" oltre accessori di legge" if letta["accessori"] else ""),
             Fonte(atto.id, atto.nome, letta["brano"], data_fonte),
-            norme("cpc_641_spese") if decreto else norme("cpc_91") + (norme("cpc_93") if letta["distrazione"] else []),
+            norme(*riferimenti),
             "richiesta di pagamento alla controparte e, se non paga, esecuzione con il titolo",
             f"il provvedimento ne ingiunge o ne condanna il pagamento: la somma spetta {beneficiario}",
             "fatto" if incassato else "da_fare", riscontro if incassato else

@@ -176,7 +176,7 @@ def guida_pratica_fase(id_fasc: str):
     try:
         from web.services.guida_fase_runtime import fase_per_la_guida
 
-        return jsonify(fase_per_la_guida(id_fasc))
+        return jsonify(fase_per_la_guida(id_fasc, consultiva=True))
     except Exception as exc:
         current_app.logger.exception("Errore fase Guida Pratica fascicolo %s: %s", id_fasc, exc)
         return jsonify({"ok": False, "errore": "Fase della pratica non disponibile."}), 200

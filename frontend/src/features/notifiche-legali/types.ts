@@ -134,6 +134,7 @@ export type PresidioSummary = {
   source_effective_at: string
   explicit_due_at?: string | null
   legal_term?: PresidioLegalTerm | null
+  excluded_source?: boolean
   notification_case: string
   notification_case_label: string
   channel: string

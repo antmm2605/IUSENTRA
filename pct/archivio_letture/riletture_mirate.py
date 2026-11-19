@@ -25,6 +25,7 @@ from typing import Any, Iterable
 REGOLE_TERMINE_SCRITTO = "termine-scritto:v1"
 REGOLA_NOTE_ANTECEDENTI = "note-antecedenti:v1"
 REGOLA_RUOLO_ALLEGATO = "ruolo-allegato-pec:v1"
+REGOLA_IDENTITA_LIQUIDAZIONE = "identita-liquidazione:v1"
 
 _RE_127_TER = re.compile(r"127\W{0,3}ter|trattazione\s+scritta|note\s+(?:scritte|in\s+sost)", re.I)
 _RE_ELENCO_RUOLI = re.compile(r"\d{1,6}\s*/\s*\d{2,4}(?:\s*\+\s*sub\.?\s*\d+)?\s*[;,]\s*(?:n\.?\s*)?\d{1,6}\s*/\s*\d{2,4}", re.I)
@@ -74,6 +75,11 @@ def oggetti_da_rileggere(
             for f in elenco
         ):
             motivo = "trattazione scritta: verificare se il decreto dispone il deposito prima della data d’udienza"
+        if not motivo and REGOLA_IDENTITA_LIQUIDAZIONE not in versione and any(
+            f.categoria == "importo" and f.campo == "liquidazione_giudice"
+            and f.verifica in {"verificata", "corretta", "plausibile"} for f in elenco
+        ):
+            motivo = "liquidazione giudiziale: verificare se le fonti riproducono lo stesso dispositivo"
         if motivo:
             esito[chiave] = motivo
     return esito

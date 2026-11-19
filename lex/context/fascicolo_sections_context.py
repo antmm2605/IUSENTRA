@@ -89,6 +89,8 @@ def _serialize_scadenza(scadenza) -> dict[str, Any]:
         "hearing_mode": getattr(scadenza, "hearing_mode", ""),
         "hearing_mode_source": getattr(scadenza, "hearing_mode_source", ""),
         "source_message_id": getattr(scadenza, "source_message_id", ""),
+        "deadline_profile_code": getattr(scadenza, "deadline_profile_code", ""),
+        "data_decorrenza": getattr(scadenza, "data_decorrenza", ""),
     }
 
 

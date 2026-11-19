@@ -43,6 +43,24 @@ def test_decreto_di_fissazione_con_visto_il_ricorso_anche_senza_titolo():
     assert identita.fonte == "normattiva_cpc_art_415_decreto_fissazione"
 
 
+def test_sentenza_a_verbale_che_richiama_note_non_e_un_atto_della_parte():
+    from web.services.react_fascicoli_bridge import _notification_proof_kind_for_document
+
+    testo = (
+        "TRIBUNALE DI ROMA Sezione Lavoro\n"
+        "Il G.L., richiamato il proprio decreto di sostituzione dell’udienza; "
+        "letti gli atti di causa e le note conclusive delle parti, pronuncia il seguente provvedimento.\n"
+        "REPUBBLICA ITALIANA NEL NOME DEL POPOLO ITALIANO\n"
+        "Il Tribunale di Roma ha emesso la seguente\nSENTENZA\n"
+        "nel procedimento iscritto al n. 10 del R.G. dell’anno 2026.\n"
+        "P.Q.M. definitivamente pronunciando accoglie il ricorso."
+    )
+    assert _voce(testo, numero_rg="10", anno_rg="2026", ufficio="Tribunale di Roma") == "Sentenza"
+    documento = SimpleNamespace(nome="1738246s.pdf", fonte_documento="PEC_CANCELLERIA",
+                               note="Comunicazione di cancelleria. Notifica. Attestazione di conformità della copia.")
+    assert _notification_proof_kind_for_document(documento) == ""
+
+
 def test_le_note_di_parte_che_riportano_il_decreto_restano_note():
     assert _voce(NOTE_DI_PARTE) == "Note scritte ex art. 127-ter c.p.c."
     # L'atto di parte che dice «visto il ricorso … fissa» non diventa un decreto.
@@ -76,12 +94,24 @@ COMUNICAZIONE = (
 
 
 def test_pec_di_deposito_copia_in_chiaro_e_comunicazione_di_cancelleria():
-    assert _voce(PEC_DEPOSITO) == "PEC di deposito telematico"
+    assert _voce(PEC_DEPOSITO) == "Messaggio di deposito telematico (busta PCT)"
     assert _voce(COPIA_IN_CHIARO) == "Copia non crittografata del deposito telematico"
     assert _voce(COMUNICAZIONE) == "Comunicazione di cancelleria"
     assert _content_identity(COMUNICAZIONE).fonte == "normattiva_cpc_art_136_comunicazioni"
     # Lo stesso oggetto da un mittente qualsiasi resta un messaggio PEC.
     assert _voce(COMUNICAZIONE.replace("tribunale.roma@civile.ptel.giustiziacert.it", "studio@pec.it")) == "Messaggio PEC"
+
+
+def test_busta_pct_espone_prova_mime_e_fonti_della_busta():
+    esito = resolve_document_catalog(
+        tenant_id="t", fascicolo_id="F", document_id="D", document_sha256="a" * 64, filename="x.eml",
+        extracted_text=PEC_DEPOSITO, document_metadata={"archive_reading": True},
+        fascicolo_context={"tipo_fascicolo": "lavoro"})
+    prova = next(e.excerpt for e in esito.evidence if e.evidence_type == "document_identity")
+    assert all(t in prova for t in ("MIME", "Deposito telematico", "ufficio giudiziario", "Atto.enc"))
+    fonti = {e.locator for e in esito.evidence if e.evidence_type == "legal_source"}
+    assert "normattiva_dm_44_2011_art_13_busta" in fonti
+    assert not any("licenziament" in fonte for fonte in fonti)
 
 
 def test_la_fonte_della_regola_arriva_alle_evidenze():
@@ -253,3 +283,37 @@ def test_note_127ter_con_il_ruolo_sulla_riga_del_titolo():
              "RGN 1612/2025 Note scritte in sostituzione dell’udienza\n\nPer la Prof.ssa Rossi, rappresentata e difesa dall'Avv. "
              "Neri, in vista dell'udienza sostituita ai sensi dell'art. 127-ter c.p.c. si precisano le conclusioni.")
     assert _voce(testo) == "Note scritte ex art. 127-ter c.p.c."
+
+
+
+def test_busta_pct_dimostrata_chiude_la_revisione_di_una_voce_lex_errata(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id, fascicolo_id = "studio-test", "FASC-BUSTA"
+    testo = PEC_DEPOSITO
+    source = _ready_source(repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id, document_id="DOC-BUSTA",
+                           filename="deposito.eml", sha256="c" * 64, text=testo, tipo_documento="COMUNICAZIONE")
+    pipeline = FascicoloDocumentCatalogPipeline(repo)
+    args = dict(tenant_id=tenant_id, fascicolo=_lavoro(fascicolo_id), sources=[source], actor="lettura-automatica", process=True)
+    pipeline.run(**args)
+    conn = repo._conn()
+    conn.execute(
+        "UPDATE document_catalog_assignments SET document_label='Ricorso al TAR', resolver_version='vecchia', "
+        "reason='Seconda lettura Lex: tipo suggerito dal testo allegato', status='review_required' "
+        "WHERE tenant_id=? AND fascicolo_id=?", (tenant_id, fascicolo_id))
+    conn.commit()
+
+    pipeline.run(**args)
+
+    voce = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-BUSTA")
+    assert voce.document_label == "Messaggio di deposito telematico (busta PCT)"
+    assert voce.status == "proposed" and voce.confidence == 99
+    assert voce.metadata["voce_lex_precedente"]["document_label"] == "Ricorso al TAR"
+    assert not repo.list_catalog_reviews(tenant_id, fascicolo_id)
+    review = repo.list_catalog_reviews(tenant_id, fascicolo_id, include_resolved=True)
+    assert len(review) == 1 and review[0].reason_code == "struttura_busta_verificata"
+
+    pipeline.run(**args, retry=True)
+
+    voce = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-BUSTA")
+    assert voce.metadata["voce_lex_precedente"]["document_label"] == "Ricorso al TAR"
+    assert len(repo.list_catalog_reviews(tenant_id, fascicolo_id, include_resolved=True)) == 1

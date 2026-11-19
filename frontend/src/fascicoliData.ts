@@ -331,6 +331,7 @@ export type FascicoliPageParams = {
   secondarySort?: string
   groupBy?: FascicoliGroupMode
   view?: 'operativa' | 'economica' | string
+  compact?: boolean
   fieldFilters?: FascicoliFieldFilters
   alertsOnly?: boolean
   communicationsOnly?: boolean
@@ -513,6 +514,7 @@ export type FascicoloAppointment = {
 }
 
 export type FascicoloDepositReceiptStep = {
+  sourceHref?: string
   id: string
   label: string
   done: boolean
@@ -608,6 +610,7 @@ export type FascicoloNotificationRelata = {
   acquisitionHref: string
   prepareHref: string
   depositHref: string
+  depositLabel?: string
   primaryHref: string
   primaryLabel: string
   systemNotification: string
@@ -1094,6 +1097,7 @@ export type FascicoloDetailData = {
   requestError?: string
   fascicolo: FascicoloFull
   quickCounts: Record<string, number>
+  notificationCommunicationIds?: string[]
   depositPhaseSummary?: Record<string, unknown>
   lexIndexing: LexIndexingSummary
   profile: KeyValue[]
@@ -2361,6 +2365,7 @@ function normalizeNotificationRelata(value: unknown): FascicoloNotificationRelat
     acquisitionHref: text(value.acquisitionHref ?? value.acquisition_href, emptyNotificationRelata.acquisitionHref),
     prepareHref: text(value.prepareHref ?? value.prepare_href, emptyNotificationRelata.prepareHref),
     depositHref: text(value.depositHref ?? value.deposit_href, emptyNotificationRelata.depositHref),
+    depositLabel: text(value.depositLabel),
     primaryHref: text(value.primaryHref ?? value.primary_href, emptyNotificationRelata.primaryHref),
     primaryLabel: text(value.primaryLabel ?? value.primary_label, emptyNotificationRelata.primaryLabel),
     systemNotification: text(value.systemNotification ?? value.system_notification, emptyNotificationRelata.systemNotification),
@@ -2582,6 +2587,9 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     fascicolo: full,
     depositPhaseSummary: isRecord(payload.depositPhaseSummary) ? payload.depositPhaseSummary : undefined,
     quickCounts: isRecord(payload.quickCounts ?? payload.quick_counts) ? payload.quickCounts as Record<string, number> : {},
+    notificationCommunicationIds: Array.isArray(payload.notificationCommunicationIds)
+      ? payload.notificationCommunicationIds.map((id) => text(id)).filter(Boolean)
+      : undefined,
     lexIndexing: {
       total_documents: number(lexIndexingSource.total_documents ?? lexIndexingSource.totalDocuments),
       ready: number(lexIndexingSource.ready),
@@ -2691,7 +2699,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
         simulated: bool(row.simulated ?? row.simulazione),
         receiptSteps: asArray(row.receiptSteps ?? row.receipt_steps).map((step, stepIndex) => {
           const item = isRecord(step) ? step : {}
-          return { id: text(item.id, `ricevuta-${stepIndex}`), label: text(item.label, 'Ricevuta'), done: bool(item.done), tone: text(item.tone, bool(item.done) ? 'success' : 'neutral') as Tone }
+          return { id: text(item.id, `ricevuta-${stepIndex}`), label: text(item.label, 'Ricevuta'), done: bool(item.done), tone: text(item.tone, bool(item.done) ? 'success' : 'neutral') as Tone, sourceHref: text(item.sourceHref) }
         }),
         checkReceiptsAction: text(row.checkReceiptsAction ?? row.check_receipts_action),
         nextSimulationAction: text(row.nextSimulationAction ?? row.next_simulation_action),
@@ -3228,6 +3236,7 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   if (params.secondarySort?.trim()) query.set('secondary_sort', params.secondarySort.trim())
   if (params.groupBy && params.groupBy !== 'nessuno') query.set('group_by', params.groupBy)
   if (params.view?.trim()) query.set('view', params.view.trim())
+  if (params.compact) query.set('compact', '1')
   Object.entries(params.fieldFilters || {}).forEach(([key, value]) => {
     if (value?.trim()) query.set(`f_${key}`, value.trim())
   })

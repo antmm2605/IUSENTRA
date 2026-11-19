@@ -11,7 +11,7 @@ import requests
 
 from pct.notiziario import fonti
 from pct.notiziario.adattatori import identificativo_notizia
-from pct.notiziario.alimentazione import STATO_ACQUISIZIONE, inoltra_alla_revisione
+from pct.notiziario.alimentazione import STATO_ACQUISIZIONE, inoltra_alla_revisione, riusa_pubblicazioni_verificate
 from pct.notiziario.archivio import ArchivioNotiziario
 from pct.notiziario.giro import esegui_giro, fonti_scadute, raccogli
 from pct.notiziario.pertinenza import costruisci_indice, fascicoli_pertinenti
@@ -167,6 +167,42 @@ def test_inoltro_alla_revisione_solo_norme_pronunce_prassi_di_fonti_censite_e_un
     assert primo["published_at"] and primo["raw_text"].startswith(primo["title"])
     assert inoltra_alla_revisione(archivio, repository) == 0
     assert len(repository.salvati) == 8
+
+
+def test_il_notiziario_riusa_solo_pubblicazioni_con_prova_ufficiale(tmp_path):
+    from pct.legal_update_pipeline import build_legal_update_pipeline
+
+    archivio = ArchivioNotiziario(tmp_path / "notiziario.sqlite")
+    repository = build_legal_update_pipeline(str(tmp_path / "motori.json")).repository
+    fonte = repository.get_source_by_code("gazzetta_ufficiale")
+    giorno = ADESSO.date().isoformat()
+    url = "https://www.gazzettaufficiale.it/eli/id/esempio"
+    titolo = "Decreto sui diritti di copia"
+    notizia = {"id": "N1", "fonte": "gu_serie_generale", "tipo": "norma", "url": url,
+               "titolo": titolo, "data": giorno, "sintesi": "Pubblicazione del decreto."}
+    archivio.salva([notizia])
+    assert inoltra_alla_revisione(archivio, repository) == 1
+    raw, = repository.list_raw_documents(fetch_status=STATO_ACQUISIZIONE, without_review=True)
+    n = repository.save_normalized_document(raw["id"], {"title": titolo})
+    a = repository.save_analysis(n["id"], {"classification_type": "NORMATIVA"})
+    q = repository.upsert_review_item({"normalized_document_id": n["id"], "analysis_id": a["id"], "status": "pending"})
+    assert repository.list_raw_documents(fetch_status=STATO_ACQUISIZIONE, without_review=True) == []
+    repository.create_or_update_news({"title": titolo, "source_url": url, "source_document_id": n["id"],
+                                      "short_summary": "Il decreto aggiorna i diritti di copia.",
+                                      "content": "Usare i nuovi importi dalla data di efficacia indicata nell’art. 2.",
+                                      "publication_status": "published"}, performed_by="test")
+    prova = {"source_url": url, "official": True, "context_chars": 85,
+             "content": "Art. 2. Gli importi dei diritti di copia si applicano dalla data di efficacia del decreto."}
+    repository.record_web_verification_evidence(review_id=q["id"], normalized_document_id=n["id"], source=fonte,
+                                                verification={"confirmations": [prova]})
+    assert riusa_pubblicazioni_verificate(archivio, repository, oggi=ADESSO.date()) == 0
+    repository.set_review_status(q["id"], "published", reviewer="test")
+    assert riusa_pubblicazioni_verificate(archivio, repository, oggi=ADESSO.date()) == 1
+    assert archivio.elenco_verificato()[0]["evidenza"] == url
+    assert riusa_pubblicazioni_verificate(archivio, repository, oggi=ADESSO.date()) == 0
+    archivio.salva([{**notizia, "sintesi": "Sintesi della pubblicazione rettificata."}])
+    assert riusa_pubblicazioni_verificate(archivio, repository, oggi=ADESSO.date()) == 0
+    assert archivio.elenco_verificato() == []
 
 
 def _fascicoli():

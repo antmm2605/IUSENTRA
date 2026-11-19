@@ -122,6 +122,46 @@ def test_card_mostra_nome_fonte_e_sintesi_senza_codici_interni():
     assert "Fonte: documenti del fascicolo." in testo
 
 
+def test_apri_notifica_mostra_pec_e_solo_originale_autorevole(monkeypatch):
+    from web.services import daily_plan_sources, notification_presidia_payloads, notification_presidia_runtime
+
+    def open_repository(*, read_only):
+        assert read_only
+        return object()
+
+    monkeypatch.setattr(notification_presidia_runtime, "build_notification_presidio_repository", open_repository)
+    monkeypatch.setattr(notification_presidia_runtime, "presidio_permissions", lambda: {"can_view_evidence": True})
+    monkeypatch.setattr(notification_presidia_payloads, "_detail_rows", lambda repo, presidio: (
+        {"fascicolo_id": "FASC-1", "source_message_id": "pec-originale"},
+        [
+            {"fascicolo_document_id": "DOC-NON-RICONCILIATO", "document_role": "portal_original", "authoritative": False},
+            {"fascicolo_document_id": "DOC-ORIG", "document_role": "portal_original", "authoritative": True, "original_filename": "Decreto.pdf.p7m"},
+        ],
+        [],
+    ))
+    monkeypatch.setattr(daily_plan_sources, "pec_message_source", lambda mid, **kwargs: daily_plan_source_cards.fonte(
+        tipo="pec", etichetta="Comunicazione di cancelleria",
+        href=f"/email/?audit_id={mid}", apri_href=f"/email/?audit_id={mid}",
+    ))
+    monkeypatch.setattr(daily_plan_sources, "_notification_document_role", lambda *_: ("1084/2026", "1084/2026"))
+    item = _item(evidence=[SignalEvidence(source_type="notification", source_id="presidio-1")])
+    payload = resolve_item_sources(item, paths={}, tenant_label="default", today=TODAY)
+    assert [fonte["tipo"] for fonte in payload["fonti"]] == ["documento", "pec", "scheda"]
+    assert payload["fonti"][0]["href"] == "/fascicoli/FASC-1/documenti/DOC-ORIG/visualizza"
+    assert "audit_id=pec-originale" in payload["fonti"][1]["href"]
+    assert "presidio=presidio-1" in payload["fonti"][2]["apri_href"]
+
+    monkeypatch.setattr(daily_plan_sources, "_notification_document_role", lambda *_: ("1084/2026", "627/2026"))
+    payload = resolve_item_sources(item, paths={}, tenant_label="default", today=TODAY)
+    assert [fonte["tipo"] for fonte in payload["fonti"]] == ["pec", "scheda"]
+    assert not payload["fonti"][0]["verificata"]
+    assert not payload["fonti"][0]["href"] and payload["fonti"][0]["apri_href"]
+    assert "627/2026" in payload["fonti"][1]["nota"] and "1084/2026" in payload["fonti"][1]["nota"]
+
+    item.fascicolo_id = "FASC-2"
+    assert resolve_item_sources(item, paths={}, tenant_label="default", today=TODAY)["fonti"] == []
+
+
 def test_apri_risolve_documento_da_snapshot_storico_senza_link(monkeypatch):
     monkeypatch.setattr(daily_plan_runtime, "_fascicoli_store", lambda paths: _Store({"FASC-1": _fascicolo()}))
     monkeypatch.setattr(

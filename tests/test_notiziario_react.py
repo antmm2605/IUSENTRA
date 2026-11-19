@@ -66,6 +66,22 @@ def test_interazioni_notiziario_restano_nel_database_tenant(tmp_path: Path):
     assert row["source"] == "react_notiziario"
 
 
+def test_lettura_delle_preferenze_non_crea_lo_schema_e_regge_uno_scrittore(tmp_path: Path):
+    db = tmp_path / "studio.db"
+    with sqlite3.connect(db) as writer:
+        writer.execute("PRAGMA journal_mode=WAL")
+        reader = sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True, timeout=0)
+        try:
+            studio_db = SimpleNamespace(conn=reader, backend_kind="sqlite")
+            assert load_settings_config_section(studio_db, "notiziario", initialize_schema=False) == {}
+            assert not reader.execute("SELECT name FROM sqlite_master WHERE name='settings_config'").fetchone()
+            save_settings_config_section(SimpleNamespace(conn=writer, backend_kind="sqlite"), "notiziario", {"read": True})
+            writer.execute("BEGIN IMMEDIATE")
+            assert load_settings_config_section(studio_db, "notiziario", initialize_schema=False) == {"read": True}
+        finally:
+            reader.close()
+
+
 def test_lettore_accetta_solo_fonti_istituzionali_e_restituisce_blocchi(monkeypatch):
     html = b"""
     <html><head><title>Gazzetta Ufficiale</title></head><body>
@@ -382,22 +398,16 @@ def test_aggiorna_con_un_aggiornamento_in_corso_risponde_subito_con_la_cache(tmp
     assert chiamate == []
 
 
-def test_i_fascicoli_da_collegare_si_leggono_dall_indice_leggero(monkeypatch):
-    """Il menu dei fascicoli non carica l'archivio intero (documenti, attivita')."""
+def test_i_fascicoli_da_collegare_si_leggono_dall_indice_salvato(monkeypatch):
+    """Il menu usa la proiezione dello studio anche quando l'archivio è a freddo."""
     import web.blueprints.api_v1_react as api
 
-    class _Gestione:
-        def indice_leggero(self):
-            return [
-                SimpleNamespace(id="A", numero="2026/0002", titolo="Affinito c. MIM", numero_rg="3001", anno_rg="2025", stato="APERTO"),
-                SimpleNamespace(id="B", numero="2026/0001", titolo="Chiuso", numero_rg="", anno_rg="", stato="ARCHIVIATO"),
-                SimpleNamespace(id="C", numero="2026/0003", titolo="Senza ruolo", numero_rg="", anno_rg="", stato="StatoFascicolo.APERTO"),
-            ]
-
-        def tutti(self, **_kwargs):
-            raise AssertionError("l'archivio intero non serve per il menu")
-
-    monkeypatch.setattr(api, "_fascicolo_singolo_loader", lambda: _Gestione)
+    rows = [
+        dict(id="A", numero="2026/0002", titolo="Affinito c. MIM", numero_rg="3001", anno_rg="2025", stato="APERTO"),
+        dict(id="B", numero="2026/0001", titolo="Chiuso", numero_rg="", anno_rg="", stato="ARCHIVIATO"),
+        dict(id="C", numero="2026/0003", titolo="Senza ruolo", numero_rg="", anno_rg="", stato="StatoFascicolo.APERTO"),
+    ]
+    monkeypatch.setattr(api, "_workspace_snapshot", lambda: {"case_index": rows})
 
     assert api._notiziario_case_options() == [
         {"id": "C", "label": "2026/0003 - Senza ruolo"},
@@ -429,14 +439,11 @@ def test_api_notiziario_legge_l_archivio_condiviso_con_filtri_e_fascicoli_pertin
     voce = _archivio_con_una_notizia(tmp_path)
     monkeypatch.setattr(api, "_notiziario_load_interactions", lambda: {voce["id"]: {"read": True}})
 
-    class _Gestione:
-        def indice_leggero(self):
-            return [SimpleNamespace(
-                id="F3", numero="2026/0003", titolo="Verdi c. INPS", oggetto="Cessione del quinto della pensione",
-                tipo="LAVORO", stato="APERTO", numero_rg="12", anno_rg="2026", area_pratica="previdenza",
-            )]
-
-    monkeypatch.setattr(api, "_fascicolo_singolo_loader", lambda: _Gestione)
+    rows = [dict(
+        id="F3", numero="2026/0003", titolo="Verdi c. INPS", oggetto="Cessione del quinto della pensione",
+        tipo="LAVORO", stato="APERTO", numero_rg="12", anno_rg="2026", area_pratica="previdenza",
+    )]
+    monkeypatch.setattr(api, "_workspace_snapshot", lambda: {"case_index": rows})
     client, headers = _client(tmp_path)
     client.application.config["NOTIZIARIO_DB"] = str(tmp_path / "notiziario.sqlite")
 

@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 from web.services.notification_presidia_runtime import (
     build_notification_presidio_repository, legal_notification_presidia_rollout, presidio_permissions,
 )
-from web.services.notification_presidia_payloads import NOTIFICATION_CASE_LABELS, NEXT_ACTIONS, STATUS_LABELS
+from web.services.notification_presidia_payloads import NOTIFICATION_CASE_LABELS, STATUS_LABELS, prossimo_passaggio_presidio
 
 TERMINALI = {"CLOSED", "NOT_REQUIRED", "CANCELLED", "LEGACY_ASSUMED_HANDLED"}
 
@@ -30,7 +30,7 @@ def righe_presidi() -> list[dict]:
                 "id": f"presidio-{riga['id']}", "fascicolo_id": riga["fascicoloId"],
                 "title": NOTIFICATION_CASE_LABELS.get(riga["notificationCase"].casefold(), "Notifica da verificare"),
                 "subtitle": " · ".join(p for p in (
-                    NEXT_ACTIONS.get(stato, "Esamina il presidio"),
+                    prossimo_passaggio_presidio(stato, str(riga.get("resolutionCode") or ""), fallback="Esamina il presidio"),
                     f"Destinatari: {progresso['delivered']}/{progresso['total']} consegnati",
                     "Termine espresso nel documento" if termine else "Termine non determinato: verifica l'atto e il rito",
                 ) if p),

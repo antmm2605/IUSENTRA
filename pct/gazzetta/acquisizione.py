@@ -105,7 +105,9 @@ def esegui_giro(
                 esito.update(ok=False, messaggio="Sommari non letti: " + "; ".join(esito["errori"][:3]))
             elif esito["rimasti"]:
                 esito["messaggio"] = f"Lettura in corso: {esito['rimasti']} fascicoli ancora da leggere al prossimo giro."
-        archivio.registra_esito(codice, ok=esito["ok"], quando=quando, messaggio=esito["messaggio"])
+        archivio.registra_esito(
+            codice, ok=esito["ok"], quando=quando, messaggio=esito["messaggio"], completo=not esito["rimasti"],
+        )
     archivio.pota(oggi=adesso.astimezone(ROME_TZ).date())
     return {
         "ok": all(esito["ok"] for esito in esiti.values()),

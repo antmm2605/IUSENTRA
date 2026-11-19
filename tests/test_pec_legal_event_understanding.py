@@ -5,7 +5,7 @@ from email import policy
 from email.message import EmailMessage
 
 from pct.pec_legal_event_understanding import SCHEMA, build_legal_event_understanding
-from pct.pec_pipeline import PecAuditRepository
+from pct.pec_pipeline import PecAuditRepository, build_pec_procedural_profile
 
 
 TEAMS = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc/0?context=xyz"
@@ -30,6 +30,60 @@ def _parsed(subject: str = "Fissazione udienza da remoto", body: str = "", *, da
         "fields": {"data_consegna": {"value": date}},
         "pct_deposit_receipt": {},
     }
+
+
+def test_gli_eventi_ministeriali_prevalgono_sull_atto_allegato():
+    storico = "Il giudice del lavoro ha pronunciato la seguente SENTENZA. P.Q.M. accoglie il ricorso."
+    parsed = _parsed(body=storico)
+    casi = (
+        ("ISCRIZIONE RUOLO GENERALE",
+         "ISCRITTO A RUOLO GENERALE. Note: trasmettere entro cinque giorni autocertificazione esenzione cu.",
+         "iscrizione_a_ruolo"),
+        ("FISSAZIONE UDIENZA DI DISCUSSIONE",
+         "FISSATA UDIENZA DI DISCUSSIONE IL 09/10/2026 09:00 in presenza", "udienza_in_presenza"),
+        ("REVOCA UDIENZA E FISSAZIONE TERMINE PER NOTE IN SOST. UDIENZA",
+         "REVOCATA UDIENZA E FISSATO TERMINE PER NOTE IN SOST. UDIENZA il 09/10/2026 10:00", "fissazione_note"),
+    )
+    for oggetto, corpo, evento in casi:
+        xml = (f"<Comunicazione><NumeroRuolo>2848/2026/LAV</NumeroRuolo>"
+               f"<Oggetto>{oggetto}</Oggetto><Contenuto><![CDATA[{corpo}]]></Contenuto>"
+               "<CodiceUG>0800630097</CodiceUG></Comunicazione>")
+        parsed["procedural_profile"] = build_pec_procedural_profile(
+            fonte_certa="giustizia", xml_texts={"Comunicazione.xml": xml},
+        )
+        allegato = {"filename": "Ricorso.pdf", "ocr_text": (
+            "Ricorso ex art. 414 c.p.c. Esenzione dal contributo unificato "
+            "di iscrizione a ruolo ai sensi dell'art. 9 comma 1-bis D.P.R. 115/2002."
+        )}
+        lettura = build_legal_event_understanding(parsed, attachments=[allegato])
+        assert lettura["classification"]["primary_event"] == evento
+        assert lettura["classification"]["authoritative_event_source"] == "Comunicazione.xml"
+        assert "sentenza_a_verbale" not in lettura["classification"]["events"]
+        assert not any(item["dies_a_quo_type"] == "notificazione" for item in lettura["deadlines"])
+        if evento == "udienza_in_presenza":
+            assert (lettura["hearing"]["date"], lettura["hearing"]["time"], lettura["hearing"]["mode"]) == (
+                "2026-10-09", "09:00", "presenza",
+            )
+        else:
+            assert not lettura["hearings"]
+        if evento == "iscrizione_a_ruolo":
+            assert "richiesta_autocertificazione_contributo_unificato" in lettura["classification"]["events"]
+            assert not lettura["payments"]
+        parsed["procedural_profile"] = build_pec_procedural_profile(
+            fonte_certa="", xml_texts={"Comunicazione.xml": xml},
+        )
+        assert "authoritative_event_source" not in build_legal_event_understanding(parsed)["classification"]
+
+
+def test_i_campi_vuoti_del_profilo_non_contengono_il_campo_successivo():
+    profilo = build_pec_procedural_profile(body_text=(
+        "Tribunale di Reggio Calabria.\nSez/Coll.: \nTipo procedimento: Diritto del Lavoro\n"
+        "Numero di Ruolo generale: 2848/2026\nGiudice: \nRicorr. principale: Nome Ricorrente\n"
+        "Oggetto: ISCRIZIONE RUOLO GENERALE\nDescrizione: ISCRITTO A RUOLO GENERALE"
+    ))
+    assert not profilo.get("giudice")
+    assert not profilo.get("sezione")
+    assert profilo["tipo_procedimento"] == "Diritto del Lavoro"
 
 
 def test_vista_unificata_aggrega_segnali():

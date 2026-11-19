@@ -103,10 +103,14 @@ def termine_equivalente(scadenze: Iterable[Any], *, fascicolo_id: str, giorno: d
     deciso) e ogni termine per note scritte o in sostituzione dell'udienza ancora attivo, anche
     inserito a mano: nessun doppione nello scadenziario.
     """
+    from pct.scadenze_stato import annullata_per_fonte_estranea
+
     if not fascicolo_id:
         return None
     for voce in scadenze or []:
         if _testo(voce, "id_fascicolo") != fascicolo_id or _testo(voce, "data_scadenza")[:10] != giorno.isoformat():
+            continue
+        if annullata_per_fonte_estranea(voce):
             continue
         codice = _testo(voce, "deadline_profile_code").upper()
         if codice == CODICE_NOTE_127_TER:

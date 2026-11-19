@@ -58,6 +58,52 @@ def test_la_lettura_del_fascicolo_riallinea_solo_i_suoi_presidi(monkeypatch):
     assert _riallinea_notifiche_del_fascicolo("F1")["errore"] == "RuntimeError"
 
 
+def test_rettifica_richiede_lo_stesso_ruolo_estraneo_nell_originale_e_nella_pec(monkeypatch):
+    from types import SimpleNamespace
+    from web.services import notification_presidia_fascicolo_reconciliation as mod
+
+    monkeypatch.setattr(mod, "_notification_document_role", lambda *_: ("1084/2026", "627/2026"))
+    row = {"id": "p", "status": "ORIGINAL_ACQUIRED", "fascicolo_id": "F", "source_message_id": "PEC"}
+    docs = [
+        {"document_role": "portal_original", "authoritative": True, "fascicolo_document_id": "D"},
+        {"document_role": "office_pec_copy", "content_sha256": "hash-esatto"},
+    ]
+    writes = []
+    repo = SimpleNamespace(transition=lambda *args, **kwargs: writes.append((args, kwargs)) or SimpleNamespace(inserted=True))
+    ocr = {"sha256": "hash-esatto", "ocr_text": "N. R.G. 1084/2026\nTRIBUNALE"}
+    audit = SimpleNamespace(
+        connect=_Repo([]).connection,
+        latest_parsed_row=lambda *_: {"id": "V"},
+        attachment_rows=lambda *_: [ocr],
+    )
+    assert not mod._rettifica_fonte_di_altro_ruolo(repo, audit, row, docs, [], "sistema")
+    ocr["ocr_text"] = "N. R.G. 627/2026\nTRIBUNALE"
+    assert not mod._rettifica_fonte_di_altro_ruolo(repo, audit, row, docs, [{"rac_message_id": "RAC"}], "sistema")
+    assert not writes
+    assert mod._rettifica_fonte_di_altro_ruolo(repo, audit, row, docs, [], "sistema")
+    assert writes[0][0] == ("p", "CANCELLED")
+    assert writes[0][1]["evidence"]["document_rg"] == "627/2026"
+
+
+def test_fonte_estranea_annullata_mostra_il_motivo_senza_termine_del_fascicolo(monkeypatch):
+    from web.services import notification_legal_terms
+
+    def termina(*args):
+        raise AssertionError("Nessun termine va cercato per la fonte esclusa.")
+
+    monkeypatch.setattr(payloads, "_practice_payload", lambda fid: {"id": fid})
+    monkeypatch.setattr(notification_legal_terms, "termine_per_presidio", termina)
+    row = {
+        "id": "p", "status": "CANCELLED", "fascicolo_id": "F",
+        "notification_case": "explicit_order", "resolution_code": "PROVVEDIMENTO_ALTRO_RUOLO",
+        "resolution_reason": "L’atto riguarda il R.G. 627/2026.", "explicit_due_at": "2026-12-16",
+    }
+    item = payloads._summary({}, row, [], [], [])
+    assert item["excluded_source"] is True
+    assert item["detection_reason"] == row["resolution_reason"]
+    assert item["legal_term"] is None and item["explicit_due_at"] is None
+
+
 def test_la_lettura_del_fascicolo_si_prepara_in_sfondo_senza_fermare_la_lettura(monkeypatch):
     """V21: la scheda «Lettura» (16-25 s alla prima apertura) si prepara alla fine della lettura in sfondo."""
     import web.blueprints.api_v1_react as api

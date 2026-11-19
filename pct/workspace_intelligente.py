@@ -365,7 +365,7 @@ class WorkspaceIntelligenteService:
         giurisprudenza: Optional[GestioneGiurisprudenza] = None,
         studio_patron_rule: Optional[RegolaCalendario] = None,
         snapshot_path: str = "",
-        postgres_dsn: str = "",
+        postgres_dsn: str | None = None,
     ) -> None:
         self.agenda = agenda
         self.scadenziario = scadenziario
@@ -374,7 +374,7 @@ class WorkspaceIntelligenteService:
         self.giurisprudenza = giurisprudenza
         self.studio_patron_rule = studio_patron_rule
         self.snapshot_path = str(snapshot_path or "").strip()
-        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
+        self.postgres_dsn = resolve_runtime_postgres_dsn() if postgres_dsn is None else postgres_dsn
         self._snapshot_repository = (
             WorkspaceIntelligenceRepository(
                 derive_workspace_intelligence_repository_db_path(self.snapshot_path),
@@ -926,6 +926,20 @@ class WorkspaceIntelligenteService:
         )
         return hot[:limit]
 
+    @staticmethod
+    def azione_scadenze_urgenti(conteggio: int) -> dict[str, str]:
+        descrizione = (
+            "Un termine scaduto o in scadenza entro 3 giorni da verificare o depositare."
+            if conteggio == 1
+            else f"{conteggio} termini scaduti o in scadenza entro 3 giorni da verificare o depositare."
+        )
+        return {
+            "tone": "danger",
+            "title": "Presidiare le scadenze urgenti",
+            "description": descrizione,
+            "href": "/scadenziario",
+        }
+
     def panoramica(self, *, horizon_days: int = 14, hot_limit: int = 8) -> Dict[str, Any]:
         # Tempi di ciascun pezzo, letti dalla Panoramica per dire dove va il tempo (V12).
         tempi: Dict[str, float] = {}
@@ -992,14 +1006,7 @@ class WorkspaceIntelligenteService:
 
         actions: List[Dict[str, str]] = []
         if urgent_deadlines:
-            actions.append(
-                {
-                    "tone": "danger",
-                    "title": "Presidiare le scadenze urgenti",
-                    "description": f"{len(urgent_deadlines)} termini scaduti o in scadenza entro 3 giorni da verificare o depositare.",
-                    "href": "/scadenziario",
-                }
-            )
+            actions.append(self.azione_scadenze_urgenti(len(urgent_deadlines)))
         if reminders:
             actions.append(
                 {
@@ -1114,9 +1121,23 @@ class WorkspaceIntelligenteService:
     def save_snapshot(self, path: str, overview: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         source_overview = overview if overview is not None else self.panoramica()
         safe_overview = _storage_snapshot_overview(source_overview)
+        # Riusa i fascicoli già caricati dal calcolo. Nell'indice si salvano
+        # soltanto i campi consultati da Panoramica e Notizie utili.
+        fields = (
+            "id", "numero", "titolo", "nome_cliente", "id_cliente", "numero_rg", "anno_rg",
+            "rg_completo", "stato", "tipo", "oggetto", "tribunale", "controparte",
+            "area_pratica", "codice_oggetto_pst", "data_prossima_udienza", "has_conflicts",
+        )
+        case_index = []
+        for fascicolo in self.fascicoli.tutti(archiviati=False):
+            row = {name: getattr(fascicolo, name, "") for name in fields}
+            row["stato"] = getattr(row["stato"], "value", row["stato"])
+            row["tipo"] = getattr(row["tipo"], "value", row["tipo"])
+            case_index.append(row)
         payload = {
             "generated_at": _local_now().replace(microsecond=0).isoformat(),
             "overview": safe_overview,
+            "case_index": case_index,
         }
         if self._snapshot_repository is not None:
             self._snapshot_repository.save_snapshot(payload)
@@ -1124,8 +1145,10 @@ class WorkspaceIntelligenteService:
         return payload
 
     @staticmethod
-    def load_snapshot(path: str, *, postgres_dsn: str = "") -> Dict[str, Any]:
-        resolved_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
+    def load_snapshot(path: str, *, postgres_dsn: str | None = None) -> Dict[str, Any]:
+        # Una stringa vuota seleziona il mirror dello studio: in una richiesta
+        # multi-tenant non deve attivare il DSN predefinito della piattaforma.
+        resolved_dsn = resolve_runtime_postgres_dsn() if postgres_dsn is None else postgres_dsn
         if resolved_dsn:
             repository = WorkspaceIntelligenceRepository(
                 derive_workspace_intelligence_repository_db_path(path),

@@ -1987,17 +1987,22 @@ export function DocumentEditorPage() {
   const loadStamp = async () => {
     setStampOpen(true); setStampError(''); setStampLines([])
     try {
-      const response = await fetch('/api/editor/timbro', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      const payload = await response.json()
-      if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Timbro non caricato.')
       const matterId = route?.idFascicolo || draftMatter
       stampContextRef.current = null
+      let payload
       if (matterId) {
-        const fieldsResponse = await fetch(`/api/editor/${encodeURIComponent(matterId)}/campi-collegati`, {credentials: 'same-origin', headers: {Accept: 'application/json'}})
+        const fieldsResponse = await fetch(`/api/editor/${encodeURIComponent(matterId)}/campi-collegati?timbro=1`, {credentials: 'same-origin', headers: {Accept: 'application/json'}})
         const fields = await fieldsResponse.json()
         if (!fieldsResponse.ok || !fields.ok) throw new Error(fields.errore || 'Dati del timbro non caricati.')
         stampContextRef.current = fields
+        payload = fields.timbro
       }
+      if (!payload) {
+        const response = await fetch('/api/editor/timbro', {credentials: 'same-origin', headers: {Accept: 'application/json'}})
+        payload = await response.json()
+        if (!response.ok) throw new Error(payload.errore || 'Timbro non caricato.')
+      }
+      if (!payload.ok) throw new Error(payload.errore || 'Timbro non caricato.')
       const savedStamp = editorRef.current?.querySelector<HTMLElement>('[data-iu-editor-stamp]')
       const savedSources = (savedStamp?.dataset.iuStampSources || '').split(',')
       const savedLines = savedStamp ? [...savedStamp.querySelectorAll('p')].filter(p => p.textContent?.trim()).map((p, index) => {
@@ -2114,7 +2119,7 @@ export function DocumentEditorPage() {
       if (!response.ok || !payload.ok) { if ([400,403,404,409].includes(response.status)) finalPdfIntent.current = null; throw new Error(payload.errore || 'Salvataggio PDF non confermato.') }
       finalPdfIntent.current = null; setPdfResult({nome: payload.nome, url: payload.url})
       setStatus({ tone: 'success', label: 'PDF finale salvato nel fascicolo' })
-    } catch (error) { const message = error instanceof Error ? error.message : 'PDF non confermato. Riprova.'; setPdfError(message); setStatus({ tone: 'danger', label: message }) }
+    } catch (error) { setPdfError(error instanceof Error ? error.message : 'PDF non confermato. Riprova.') }
     finally { setPdfBusy(false) }
   }
 
@@ -2969,7 +2974,7 @@ export function DocumentEditorPage() {
         {!stampError && !stampLines.length && <p role="status">Caricamento timbro…</p>}
         <button type="button" disabled={!stampLines.some(line => line.included) || stampLines.filter(line => line.included).some(line => !Number.isFinite(line.lineHeight) || (line.lineHeight || 0) < 0.5 || (line.lineHeight || 0) > 5)} onClick={applyStamp}>Inserisci o aggiorna timbro</button>
       </Modal>
-      <EditorPersonalTemplates sourceDocument={route ? {matter: route.idFascicolo, document: route.idDocumento} : undefined} mattersLoading={draftCatalogLoading} mattersError={draftCatalogError} open={personalTemplatesOpen} onUsageChange={setTemplateMatterSelectionOpen} onClose={() => setPersonalTemplatesOpen(false)} serialize={serializeEditorHtml} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onApply={(html, title, missing) => {
+      <EditorPersonalTemplates bozzaNote={data.document.source === "BOZZA_NOTE_127_TER"} sourceDocument={route ? {matter: route.idFascicolo, document: route.idDocumento} : undefined} mattersLoading={draftCatalogLoading} mattersError={draftCatalogError} open={personalTemplatesOpen} onUsageChange={setTemplateMatterSelectionOpen} onClose={() => setPersonalTemplatesOpen(false)} serialize={serializeEditorHtml} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onApply={(html, title, missing) => {
         if (!editorRef.current) return
         editorRef.current.innerHTML = sanitizeHtml(html)
         editorRef.current.querySelectorAll<HTMLElement>('[data-iu-linked-field]').forEach(node => { node.tabIndex = 0; node.setAttribute('role', 'button'); node.title = 'Modifica il valore del campo nel documento' })

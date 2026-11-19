@@ -73,12 +73,13 @@ def _valore(fatto: Any, nome: str) -> Any:
     return fatto.get(nome) if isinstance(fatto, dict) else getattr(fatto, nome, None)
 
 
-def spese_lette(fatti: Iterable[Any], *, rg: str) -> list[dict[str, Any]]:
+def spese_lette(fatti: Iterable[Any], *, rg: str, sentenze_pertinenti: frozenset[str] | None = None) -> list[dict[str, Any]]:
     """Le regolazioni delle spese lette nelle sentenze della causa, una per documento.
 
-    ``rg`` è il numero di ruolo del fascicolo («2539/2025»): senza, nessuna sentenza è riconoscibile come della causa.
+    Usa gli identificativi già riscontrati dalla Lettura quando disponibili. Negli altri casi
+    confronta il ruolo della sentenza con il numero di ruolo registrato nel fascicolo.
     """
-    if not rg:
+    if not rg and sentenze_pertinenti is None:
         return []
     fatti = list(fatti)
     per_documento: dict[str, list[Any]] = {}
@@ -87,10 +88,13 @@ def spese_lette(fatti: Iterable[Any], *, rg: str) -> list[dict[str, Any]]:
     risultato = []
     for documento_id, prove in per_documento.items():
         certe = [f for f in prove if str(_valore(f, "verifica") or "") in VERIFICHE_CERTE]
-        ruoli = sorted((f for f in prove if str(_valore(f, "categoria") or "") == "ruolo"), key=lambda f: int(_valore(f, "posizione") or 0))
-        if not ruoli or str(_valore(ruoli[0], "verifica") or "") not in VERIFICHE_CERTE:
-            continue
-        pertinente = stesso_numero_ruolo(_valore(ruoli[0], "valore"), rg)
+        if sentenze_pertinenti is None:
+            ruoli = sorted((f for f in prove if str(_valore(f, "categoria") or "") == "ruolo"),
+                           key=lambda f: int(_valore(f, "posizione") or 0))
+            pertinente = bool(ruoli and str(_valore(ruoli[0], "verifica") or "") in VERIFICHE_CERTE
+                              and stesso_numero_ruolo(_valore(ruoli[0], "valore"), rg))
+        else:
+            pertinente = documento_id in sentenze_pertinenti
         spese = next((f for f in certe if _valore(f, "campo") == "spese_sentenza"), None)
         if not documento_id or not pertinente or spese is None:
             continue

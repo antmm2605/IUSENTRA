@@ -24,6 +24,13 @@ _ETICHETTE = ("sentenza", "ordinanza", "provvedimento")
 CAMPO_CONTROLLO = "esito_controllato"
 
 
+def _documenti_d_ufficio(fascicolo: Any) -> set[str]:
+    return {
+        str(doc.id) for doc in getattr(fascicolo, "documenti", [])
+        if str(getattr(doc, "fonte_documento", "") or "").startswith(("PEC_CANCELLERIA", "PST", "POLISWEB", "PORTALE_TELEMATICO"))
+    }
+
+
 def _sentenze_del_catalogo(fascicolo_id: str) -> set[str]:
     from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id
 
@@ -35,7 +42,7 @@ def _sentenze_del_catalogo(fascicolo_id: str) -> set[str]:
     }
 
 
-def accoda_liquidazioni_incomplete(registro: Any, tenant: str, *, prima_di: str, limite: int) -> int:
+def accoda_decisioni_incomplete(registro: Any, tenant: str, *, prima_di: str, limite: int) -> int:
     """Rimette nella coda ordinaria un lotto di letture storiche da completare."""
     from pct.archivio_letture.estrazione_esito import VERSIONE_ESTRAZIONE_ESITO
 
@@ -48,10 +55,18 @@ def accoda_liquidazioni_incomplete(registro: Any, tenant: str, *, prima_di: str,
             FROM letture_fatti f
             LEFT JOIN letture_eventi e ON e.tenant_id=f.tenant_id AND e.fascicolo_id=f.fascicolo_id
             WHERE f.tenant_id=? AND f.tipo='documento' AND f.motore='documenti'
-              AND f.categoria='evento' AND f.campo='spese_sentenza' AND f.verifica='verificata'
-              AND (f.valore IN ('condanna','compensazione_parziale')
-                   OR f.valore LIKE ? OR f.valore LIKE ?)
-              AND f.valore NOT LIKE ?
+              AND f.categoria='evento' AND f.verifica='verificata'
+              AND (
+                (f.campo='spese_sentenza'
+                 AND (f.valore IN ('condanna','compensazione_parziale') OR f.valore LIKE ? OR f.valore LIKE ?)
+                 AND f.valore NOT LIKE ?)
+                OR (f.campo='esito_sentenza' AND NOT EXISTS (
+                    SELECT 1 FROM letture_fatti d
+                    WHERE d.tenant_id=f.tenant_id AND d.fascicolo_id=f.fascicolo_id AND d.tipo=f.tipo
+                      AND d.oggetto_id=f.oggetto_id AND d.sha256=f.sha256 AND d.motore=f.motore
+                      AND d.campo='data_decisione_sentenza' AND d.verifica IN ('verificata','corretta')
+                ))
+              )
               AND (e.stato IS NULL OR (e.stato='idle' AND e.aggiornato_il<? AND e.last_error=''))
               AND EXISTS (
                   SELECT 1 FROM letture_oggetti o
@@ -80,7 +95,9 @@ def accoda_liquidazioni_incomplete(registro: Any, tenant: str, *, prima_di: str,
 def recupera_esiti(fascicolo: Any, registro: Any, tenant: str, *, sentenze: set[str] | None = None,
                    testo_salvato: Any = None) -> dict[str, int]:
     """Aggiunge esito e spese alle sentenze già lette che non li hanno; restituisce i conteggi."""
+    from pct.archivio_letture.collaudo import Contesto, collauda_tutti
     from pct.archivio_letture.estrazione_esito import VERSIONE_ESTRAZIONE_ESITO, estrai_esito
+    from pct.archivio_letture.estrazione_ruolo import estrai_ruoli
     from pct.registro_letture.fatti_repository import Fatto
     from web.services.archivio_letture_runtime import _attribuisci, _testo_indice, _testo_ocr
 
@@ -88,10 +105,17 @@ def recupera_esiti(fascicolo: Any, registro: Any, tenant: str, *, sentenze: set[
     esito = {"controllate": 0, "recuperate": 0}
     if not fid:
         return esito
-    sentenze = _sentenze_del_catalogo(fid) if sentenze is None else sentenze
+    if sentenze is None:
+        ufficiali = _documenti_d_ufficio(fascicolo)
+        sentenze = _sentenze_del_catalogo(fid)
+        if ufficiali:
+            sentenze.update(f.oggetto_id for f in registro.fatti(tenant, fid, campo="esito_sentenza", verifiche=("verificata", "corretta"))
+                            if f.tipo == "documento" and f.oggetto_id in ufficiali)
     if not sentenze:
         return esito
     documenti = {str(getattr(d, "id", "")): d for d in getattr(fascicolo, "documenti", []) or []}
+    contesto = Contesto(numero_rg=getattr(fascicolo, "numero_rg", ""), anno_rg=getattr(fascicolo, "anno_rg", ""),
+                        ufficio_giudiziario=getattr(fascicolo, "tribunale", ""))
     letture = {(l.oggetto_id, l.sha256): l for l in registro.letture(tenant, fid, lettore="motore_documenti") if l.stato == "letto"}
     leggi = testo_salvato or (lambda documento: _testo_ocr(documento) or _testo_indice(fascicolo, documento))
     for oggetto in registro.oggetti(tenant, fid):
@@ -122,6 +146,9 @@ def recupera_esiti(fascicolo: Any, registro: Any, tenant: str, *, sentenze: set[
         esito["controllate"] += 1
         estratti = estrai_esito(testo, origine="indice")
         nuovi = [f for f in estratti if f.campo not in campi_letti]
+        if "numero_ruolo" not in campi_letti and any(f.campo == "esito_sentenza" for f in estratti):
+            ruoli = collauda_tutti(estrai_ruoli(testo[:1800], origine="indice"), contesto)
+            nuovi.extend(f for f in ruoli if f.campo == "numero_ruolo" and f.verifica == "verificata")
         if len(spese_incomplete) == 1 and sum(f.campo == "spese_sentenza" for f in precedenti) == 1:
             precedente = spese_incomplete[0]
             for fatto in estratti:
@@ -154,10 +181,7 @@ def registra_scadenze_precedenti_alla_decisione(fascicolo: Any, registro: Any, t
     anno = str(getattr(fascicolo, "anno_rg", "") or "").strip()
     if not fid or not numero or not anno:
         return 0
-    ufficiali = {
-        str(doc.id) for doc in getattr(fascicolo, "documenti", [])
-        if str(getattr(doc, "fonte_documento", "") or "").startswith(("PEC_CANCELLERIA", "PST", "POLISWEB"))
-    }
+    ufficiali = _documenti_d_ufficio(fascicolo)
     if not ufficiali:
         return 0
     ruoli = {
@@ -179,16 +203,21 @@ def registra_scadenze_precedenti_alla_decisione(fascicolo: Any, registro: Any, t
         if fatto.campo == "esito_sentenza" and dispositivo_conclusivo(str(fatto.contesto or "")):
             conclusioni[fatto.oggetto_id] = fatto
         elif fatto.campo == "data_decisione_sentenza":
-            decisioni[fatto.oggetto_id] = str(fatto.valore or "").strip()
-    date = {decisioni[doc] for doc in conclusioni.keys() & decisioni.keys()}
+            decisioni[fatto.oggetto_id] = fatto
+    date = {str(decisioni[doc].valore or "").strip() for doc in conclusioni.keys() & decisioni.keys()}
     if len(date) != 1 or "" in date:
         return 0
     giorno = next(iter(date))
-    originale = min(doc for doc in conclusioni if decisioni.get(doc) == giorno)
+    def richiama_trattazione_scritta(doc: str) -> bool:
+        return any(p.get("codice") == "trattazione_scritta_decisa" and p.get("esito") == "ok" for p in decisioni[doc].prove)
+
+    originali = [doc for doc in conclusioni.keys() & decisioni.keys() if decisioni[doc].valore == giorno]
+    originale = min(originali, key=lambda doc: (not richiama_trattazione_scritta(doc), doc))
     return segnala_scadenze_superate(
         get_scadenziario(), fascicolo_id=fid, giorno_sentenza=giorno,
         origine=f"dispositivo verificato nel documento {originale}", documento_conclusivo=originale,
+        trattazione_scritta_decisa=richiama_trattazione_scritta(originale),
     )
 
 
-__all__ = ["CAMPO_CONTROLLO", "accoda_liquidazioni_incomplete", "recupera_esiti", "registra_scadenze_precedenti_alla_decisione"]
+__all__ = ["CAMPO_CONTROLLO", "accoda_decisioni_incomplete", "recupera_esiti", "registra_scadenze_precedenti_alla_decisione"]

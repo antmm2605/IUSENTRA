@@ -8,6 +8,7 @@ from pct.formatting import DISPLAY_TIMEZONE, format_date_it, format_euro_it
 from pct.template_atti_prefill import build_prefill_context, resolve_field
 from pct.archivio_letture.date_campi_modello import CAMPI_DATE
 from pct.editor_stamp import editor_stamp_lines
+from pct.note_127_ter.bozza import CAMPI_NOTE_EDITOR
 
 CLIENT_FIELDS = {
     "nome_completo": "Nome completo", "nome": "Nome", "cognome": "Cognome",
@@ -56,6 +57,7 @@ FIELDS += [("studio.provincia", "Provincia studio", "Studio e avvocato"),
            ("studio.cap", "CAP studio", "Studio e avvocato")]
 FIELDS += [("studio_timbro.nome_professionista", "Nome dell’avvocato (senza titolo)", "Studio e avvocato")]
 FIELDS += [("documento.data_atto", "Data dell’atto (oggi)", "Dati dell’atto")]
+FIELDS += [(key, label, "Note di trattazione scritta") for key, (label, _) in CAMPI_NOTE_EDITOR.items()]
 STAMP_ROW_FIELDS = {
     "studio_nome": "riga_studio", "studio_sottotitolo": "studio_sottotitolo",
     "professionista_nome": "professionista_nome", "qualifiche_professionali": "qualifiche_professionali",
@@ -73,11 +75,22 @@ FIELDS += [("studio_timbro." + key, label, "Timbro completo") for key, label in 
 FIELD_IDS = frozenset(key for key, _, _ in FIELDS)
 
 
-def linked_fields_catalog(*, cliente=None, fascicolo=None, config=None, studio_timbro=None, date_processuali=None):
+def linked_fields_catalog(*, cliente=None, fascicolo=None, config=None, studio_timbro=None, date_processuali=None,
+                          dati_note_scritte=None):
     """Proietta soltanto dati archiviati autorizzati; le assenze restano esplicite."""
     if cliente is not None and fascicolo is not None and str(getattr(fascicolo, "id_cliente", "")) != str(getattr(cliente, "id", "")):
         raise ValueError("Il cliente non è quello collegato al fascicolo.")
     context = build_prefill_context(cliente=cliente, fascicolo=fascicolo, config=config, studio_timbro=studio_timbro)
+    from pct.notifiche_legali import nome_avvocatura_stato
+    from pct.notiziario.pertinenza import descrizione_oggetto_pst
+
+    dati_fascicolo = context["fascicolo"] if fascicolo is not None else {}
+    oggetto_pst = descrizione_oggetto_pst(getattr(fascicolo, "codice_oggetto_pst", ""))
+    controparte = str(dati_fascicolo.get("controparte") or "")
+    if nome_avvocatura_stato(controparte):
+        dati_fascicolo["controparte"] = ""
+        if not dati_fascicolo.get("avvocato_controparte"):
+            dati_fascicolo["avvocato_controparte"] = controparte
     context["documento"] = {"data_atto": datetime.now(DISPLAY_TIMEZONE).date().isoformat()}
     from pct.studio_timbro import StudioTimbro
     stamp_payload = dict(context["studio_timbro"])
@@ -94,6 +107,11 @@ def linked_fields_catalog(*, cliente=None, fascicolo=None, config=None, studio_t
     result = []
     for key, label, group in FIELDS:
         field = resolve_field(key, [key], context).to_dict()
+        if key == "fascicolo.controparte" and nome_avvocatura_stato(controparte):
+            field["missing_reason"] = "L’Avvocatura difende l’amministrazione. La parte resistente va identificata negli atti."
+        if key == "fascicolo.oggetto" and not field["value"] and oggetto_pst:
+            field.update(value=oggetto_pst, source="fascicolo", source_label="Oggetto iscritto a ruolo (PST)",
+                         missing_reason="", confidence="high")
         if key == "studio_timbro.pec":
             # La PEC operativa proviene dalla sezione PEC delle impostazioni,
             # anche quando nel timbro è rimasto un indirizzo precedente.
@@ -104,6 +122,16 @@ def linked_fields_catalog(*, cliente=None, fascicolo=None, config=None, studio_t
             field = (date_processuali or {}).get(key, {
                 **field, "value": "", "missing_reason": "Data non ancora riscontrata in una fonte del procedimento.",
             })
+        if key in CAMPI_NOTE_EDITOR:
+            valore = (dati_note_scritte or {}).get(CAMPI_NOTE_EDITOR[key][1], "")
+            field.update(value=valore, source="fascicolo", source_label="Bozza da provvedimento",
+                         missing_reason="" if valore else "Dato assente o più provvedimenti applicabili.")
+            if not valore and key == "note_127ter.ruolo":
+                ruolo = str(getattr(fascicolo, "rg_completo", "") or "").removeprefix("RG ").strip()
+                if ruolo and "/" in ruolo:
+                    field.update(value=ruolo, source_label="Anagrafica del fascicolo", missing_reason="")
+            if not valore and key == "note_127ter.parte_assistita" and getattr(cliente, "nome_completo", ""):
+                field.update(value=cliente.nome_completo, source="cliente", source_label="Cliente del fascicolo", missing_reason="")
         value = str(field["value"] or "").strip()
         if value and key.rsplit(".", 1)[-1].startswith("data_"):
             value = format_date_it(value)
@@ -138,6 +166,21 @@ def date_modello_da_fatti(fatti, *, fascicolo_id, oggetti):
                               "sha256": f.sha256, "passaggio": f.contesto} for f in candidates],
         }
     return result
+
+
+def editor_linked_fields_missing(root, *, matter_id: str) -> list[str]:
+    """Campi non compilati o ancora associati a un altro fascicolo."""
+    labels = {key: label for key, label, _ in FIELDS}
+    missing = []
+    for node in root.xpath('.//*[@data-iu-linked-field]'):
+        label = labels.get(node.get('data-iu-linked-field'))
+        if not label:
+            continue
+        value = node.text_content().strip()
+        associated = node.get('data-iu-linked-matter')
+        if not value or (value.startswith('[') and value.endswith(']')) or associated and associated != matter_id:
+            missing.append(label.lower())
+    return list(dict.fromkeys(missing))
 
 
 def template_linked_html(html: str, *, context=None, matter_id='', client_id=''):

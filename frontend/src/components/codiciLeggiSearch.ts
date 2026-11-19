@@ -24,6 +24,11 @@ export function normaliseCatalogueText(value: string) {
 
 const abbreviations = new Set(['cc', 'c.c.', 'cpc', 'c.p.c.', 'cp', 'c.p.', 'cpp', 'c.p.p.', 'cpa', 'c.p.a.', 'cds', 'c.d.s.', 'cad', 'ccii'])
 
+export function matchesCatalogueAlias(act: CatalogueAct, query: string) {
+  const term = normaliseCatalogueText(query).trim()
+  return abbreviations.has(term) && (aliases[act.key || ''] || '').split(' ').includes(term)
+}
+
 export function matchesCatalogueAct(act: CatalogueAct, query: string) {
   const term = normaliseCatalogueText(query).trim()
   const eu = act.key?.match(/^reg_ue_(\d{4})_(\d+)$/)
@@ -42,5 +47,5 @@ export function matchesCatalogueAct(act: CatalogueAct, query: string) {
     return new RegExp(`(?:^|[^a-z0-9])${number}\\s*/\\s*${year}(?![a-z0-9])`).test(normaliseCatalogueText(`${act.label} ${act.title}`))
   }
   const synonyms = normaliseCatalogueText(aliases[act.key || ''] || '')
-  return normaliseCatalogueText(`${act.label} ${act.title} ${act.materia || ''} ${act.tipo || ''}`).includes(term) || (abbreviations.has(term) ? synonyms.split(' ').includes(term) : synonyms.includes(term))
+  return normaliseCatalogueText(`${act.label} ${act.title} ${act.materia || ''} ${act.tipo || ''}`).includes(term) || (abbreviations.has(term) ? matchesCatalogueAlias(act, term) : synonyms.includes(term))
 }

@@ -175,31 +175,33 @@ def _unique_by_json(items: Iterable[Any]) -> list[Any]:
 def _deep_merge(parent: dict[str, Any], child: dict[str, Any]) -> dict[str, Any]:
     """Merge profondo standard: dict ricorsivi, liste additive, scalari override."""
 
-    result = deepcopy(parent)
-    for key, value in child.items():
-        if key in {"differenze_rispetto_a_padre", "eredita_da"}:
-            continue
-        if isinstance(value, dict) and isinstance(result.get(key), dict):
-            result[key] = _deep_merge(result[key], value)
-        elif isinstance(value, list) and isinstance(result.get(key), list):
-            result[key] = _unique_by_json([*result[key], *deepcopy(value)])
-        else:
-            result[key] = deepcopy(value)
-    return result
+    def unisci(base: dict[str, Any], aggiunte: dict[str, Any]) -> dict[str, Any]:
+        risultato = dict(base)
+        for chiave, valore in aggiunte.items():
+            if chiave in {"differenze_rispetto_a_padre", "eredita_da"}:
+                continue
+            precedente = base.get(chiave)
+            if isinstance(valore, dict) and isinstance(precedente, dict):
+                risultato[chiave] = unisci(precedente, valore)
+            elif isinstance(valore, list) and isinstance(precedente, list):
+                risultato[chiave] = _unique_by_json([*precedente, *valore])
+            else:
+                risultato[chiave] = valore
+        return risultato
+
+    return deepcopy(unisci(parent, child))
 
 
 def _drop_inherited_scaffold_for_curated_override(previous: dict[str, Any], path: Path, item: dict[str, Any]) -> dict[str, Any]:
     if "top9" not in path.name.lower() or item.get("eredita_da"):
         return previous
-    cleaned = deepcopy(previous)
+    cleaned = dict(previous)
     cleaned.pop("differenze_rispetto_a_padre", None)
     return cleaned
 
 
 def _source_record(path: Path, meta: dict[str, str], item: dict[str, Any]) -> dict[str, Any]:
-    record = deepcopy(item)
-    for internal_key in ("_source_records", "_source_files"):
-        record.pop(internal_key, None)
+    record = deepcopy({key: value for key, value in item.items() if key not in {"_source_records", "_source_files"}})
     return {
         "file": path.name,
         "macro_area_id": meta.get("macro_area_id", ""),
@@ -345,15 +347,19 @@ class GuidaPraticaService:
                 row.setdefault("_macro_area_id", meta["macro_area_id"])
                 row.setdefault("_macro_area_denominazione", meta["denominazione"])
                 row.setdefault("_registro", meta["registro"])
-                row.setdefault("_source_records", [_source_record(path, meta, item)])
+                fonte = _source_record(path, meta, item)
+                row.setdefault("_source_records", [fonte])
                 if codice in by_code:
                     previous = by_code[codice]
                     previous = _drop_inherited_scaffold_for_curated_override(previous, path, row)
                     source_records = [
                         *_as_list(previous.get("_source_records")),
-                        _source_record(path, meta, item),
+                        fonte,
                     ]
-                    row = _deep_merge(previous, row)
+                    row = _deep_merge(
+                        {key: value for key, value in previous.items() if key not in {"_source_records", "_source_files"}},
+                        {key: value for key, value in row.items() if key not in {"_source_records", "_source_files"}},
+                    )
                     row["_source_files"] = _unique_by_json([*(previous.get("_source_files") or [previous.get("_source_file")]), path.name])
                     row["_source_records"] = _unique_by_json(source_records)
                     row["_source_file"] = path.name
@@ -392,9 +398,8 @@ class GuidaPraticaService:
             row.setdefault("codice", codice)
             row.setdefault("_source_file", source_label)
             row.setdefault("_source_files", [source_label])
-            row.setdefault(
-                "_source_records",
-                [
+            if "_source_records" not in row:
+                row["_source_records"] = [
                     {
                         "file": source_label,
                         "macro_area_id": _text(row.get("_macro_area_id")),
@@ -404,15 +409,20 @@ class GuidaPraticaService:
                         "denominazione": _text(row.get("denominazione")),
                         "record": deepcopy({key: value for key, value in row.items() if key not in {"_source_records", "_source_files"}}),
                     }
-                ],
-            )
+                ]
             if codice not in by_code:
                 by_code[codice] = row
                 return
             previous = by_code[codice]
             source_records = _unique_by_json([*_as_list(previous.get("_source_records")), *_as_list(row.get("_source_records"))])
             source_files = _unique_by_json([*_as_list(previous.get("_source_files")), *_as_list(row.get("_source_files"))])
-            merged = _deep_merge(previous, row)
+            # La provenienza è già stata unita con le sue regole. Non copiarla
+            # e deduplicarla di nuovo nel merge dei contenuti della scheda.
+            chiavi_provenienza = {"_source_records", "_source_files"}
+            merged = _deep_merge(
+                {key: value for key, value in previous.items() if key not in chiavi_provenienza},
+                {key: value for key, value in row.items() if key not in chiavi_provenienza},
+            )
             merged["_source_records"] = source_records
             merged["_source_files"] = source_files
             merged["_source_file"] = _text(row.get("_source_file"), _text(previous.get("_source_file")))
@@ -426,10 +436,10 @@ class GuidaPraticaService:
             if isinstance(item, dict):
                 _add_item(item, source_label=_text(item.get("_source_file"), "modulo_kb"))
 
-        out = deepcopy(base)
+        out = deepcopy({key: value for key, value in base.items() if key != "codici_materia"})
         out["codici_materia"] = [by_code[codice] for codice in sorted(by_code)]
         out["moduli"] = _unique_by_json([*_as_list(base.get("moduli")), *_as_list(modules.get("moduli"))])
-        merged_duplicates = _as_dict(base.get("duplicates_merged"))
+        merged_duplicates = _as_dict(out.get("duplicates_merged"))
         for codice, files in _as_dict(modules.get("duplicates_merged")).items():
             merged_duplicates.setdefault(codice, [])
             merged_duplicates[codice] = _unique_by_json([*merged_duplicates[codice], *_as_list(files)])
@@ -467,9 +477,9 @@ class GuidaPraticaService:
                 continue
             codice = normalize_codice_materia(item.get("codice") or item.get("codice_logico"))
             if codice:
-                row = deepcopy(item)
-                row.setdefault("codice", codice)
-                out[codice] = row
+                # L'indice puntuale legge lo stesso KB privato. La copia per
+                # il chiamante si fa quando viene richiesta la singola guida.
+                out[codice] = item if "codice" in item else {**item, "codice": codice}
         return out
 
     @staticmethod

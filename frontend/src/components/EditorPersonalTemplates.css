@@ -8,7 +8,13 @@
 }
 .iu-de-personal-templates p { margin: 0; }
 .iu-de-personal-templates > label { display: grid; gap: 6px; font-weight: 600; }
-.iu-de-personal-templates > label input,
+.iu-de-personal-templates > .iu-de-template-origin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.iu-de-template-origin input { width: 16px; height: 16px; margin: 0; }
+.iu-de-personal-templates > label input:not([type="checkbox"]),
 .iu-de-personal-templates > label select {
   box-sizing: border-box;
   width: 100%;

@@ -219,7 +219,8 @@ def test_impronta_ignora_la_creazione_del_wal_vuoto(studio):
 
 
 def test_fonti_studio_coprono_agenda_storica_e_registro_pec(studio, tmp_path):
-    from web.services.pannelli_pronti_fonti import TABELLE_STUDIO, file_dello_studio
+    from dataclasses import replace
+    from web.services.pannelli_pronti_fonti import TABELLE_PEC, TABELLE_STUDIO, file_dello_studio, percorso_pec
 
     _esegui(studio.studio_db, "DROP TABLE appuntamenti")
     _esegui(studio.studio_db, "CREATE TABLE appuntamenti (id TEXT PRIMARY KEY, dati_json TEXT)")
@@ -240,8 +241,53 @@ def test_fonti_studio_coprono_agenda_storica_e_registro_pec(studio, tmp_path):
     assert _impronta(studio, "F1") != prima_f1
     assert _impronta(studio, "F2") != prima_f2
 
-    casella = tmp_path / "email" / "casella.json"
-    assert file_dello_studio({"EMAIL_CASELLA_DB": casella}) == (str(casella.with_name("pec_audit.sqlite")),)
+    casella = tmp_path / "casella.json"
+    pec_db = percorso_pec({"EMAIL_CASELLA_DB": casella})
+    assert pec_db == str(casella.with_name("pec_audit.sqlite"))
+    assert percorso_pec({"EMAIL_CASELLA_DB": casella, "PEC_AUDIT_DB": "esplicito"}) == "esplicito"
+    assert file_dello_studio({"EMAIL_CASELLA_DB": casella}) == ()
+    _esegui(pec_db, "CREATE TABLE pec_messages(id TEXT, linked_fascicolo_id TEXT, status TEXT)")
+    _esegui(pec_db, "CREATE TABLE pec_legal_events(id TEXT, message_id TEXT, primary_event TEXT)")
+    _esegui(pec_db, "CREATE TABLE pec_legal_deadlines(id TEXT, legal_event_id TEXT, deterministic_status TEXT)")
+    _esegui(pec_db, "CREATE TABLE pec_fascicolo_links(id TEXT, fascicolo_id TEXT, status TEXT)")
+    _esegui(pec_db, "CREATE TABLE pec_audit_log(action TEXT)")
+    fonti = replace(studio.fonti, pec_db=pec_db)
+
+    def impronta_pec(fascicolo_id="F1"):
+        return impronta_fonti.impronta(fonti, fascicolo_id, generazione=0, versione="test")
+
+    precedente = impronta_pec()
+    _esegui(pec_db, "INSERT INTO pec_messages VALUES ('P1', 'F1', 'linked')")
+    assert impronta_pec() != precedente  # Il file resta fonte nei tenant precedenti alla migrazione.
+    prepara_database(pec_db, tabelle_senza_fascicolo=TABELLE_PEC, backup_dir=tmp_path / "backup",
+                     applica=True, sole_tabelle_condivise=True)
+    precedente = impronta_pec()
+    altro = impronta_pec("F2")
+    _esegui(pec_db, "INSERT INTO pec_audit_log VALUES ('pec.mime.opened')")
+    _esegui(pec_db, "UPDATE pec_messages SET status=status WHERE id='P1'")
+    assert impronta_pec() == precedente
+    _esegui(pec_db, "UPDATE pec_messages SET status='verified' WHERE id='P1'")
+    successiva = impronta_pec()
+    assert successiva != precedente
+    assert impronta_pec("F2") == altro
+    _esegui(pec_db, "INSERT INTO pec_legal_events VALUES ('E1', 'P1', 'consegna')")
+    assert impronta_pec() != successiva
+    assert impronta_pec("F2") == altro
+    successiva = impronta_pec()
+    _esegui(pec_db, "INSERT INTO pec_legal_deadlines VALUES ('T1', 'E1', 'bozza')")
+    assert impronta_pec() != successiva
+    assert impronta_pec("F2") == altro
+    successiva = impronta_pec()
+    _esegui(pec_db, "UPDATE pec_messages SET linked_fascicolo_id='F2' WHERE id='P1'")
+    assert impronta_pec() != successiva
+    assert impronta_pec("F2") != altro
+    successiva, altro = impronta_pec(), impronta_pec("F2")
+    _esegui(pec_db, "INSERT INTO pec_messages VALUES ('P2', '', 'ingested')")
+    assert impronta_pec() != successiva
+    assert impronta_pec("F2") != altro
+    successiva = impronta_pec()
+    _esegui(pec_db, "INSERT INTO pec_fascicolo_links VALUES ('L1', 'F2', 'da confermare')")
+    assert impronta_pec() != successiva  # Il presidio ammette anche corrispondenze testuali.
 
 
 def test_archivio_salva_e_conteggi(studio):
@@ -497,6 +543,35 @@ def test_lettura_preparata_dal_ciclo_si_apre_senza_calcolo(app_prova, monkeypatc
         assert riscontri.lettura_materializzata("F1") == risposta.json["lettura"]
 
 
+def test_cambio_regole_ricalcola_solo_la_lettura_e_riusa_il_nuovo_esito(studio, app_prova, monkeypatch):
+    import pct.ragionamento
+    from web.services import pannelli_pronti_runtime as runtime
+    from web.services.pannelli_pronti_catalogo import Pannello
+    from web.services.pannelli_pronti_sfondo import da_ricalcolare
+
+    app = app_prova.app
+
+    @app.get("/f/<id_fasc>/lettura")
+    @runtime.pannello_pronto(Pannello("lettura", "lettura"))
+    def lettura(id_fasc):
+        return jsonify(ok=True, lettura={"motore": pct.ragionamento.VERSIONE})
+
+    client = app.test_client()
+    assert client.get("/f/F1/quadro").headers[runtime.INTESTAZIONE] == "calcolato"
+    prima = client.get("/f/F1/lettura")
+    assert prima.headers[runtime.INTESTAZIONE] == "calcolato"
+    assert client.get("/f/F1/lettura").headers[runtime.INTESTAZIONE] == "pronto"
+    monkeypatch.setattr(pct.ragionamento, "VERSIONE", "regole-aggiornate")
+    coda = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
+    assert any(voce.pannello == "lettura" for voce in coda)
+    assert not any(voce.pannello == "quadro" for voce in coda)
+    assert client.get("/f/F1/quadro").headers[runtime.INTESTAZIONE] == "pronto"
+    aggiornata = client.get("/f/F1/lettura", environ_overrides={runtime.AMBIENTE_RICALCOLO: True})
+    assert aggiornata.headers[runtime.INTESTAZIONE] == "calcolato"
+    assert aggiornata.json["lettura"]["motore"] == "regole-aggiornate"
+    assert client.get("/f/F1/lettura").headers[runtime.INTESTAZIONE] == "pronto"
+
+
 def test_quadro_richiede_lettura_anche_a_pannello_chiuso(studio, app_prova, monkeypatch):
     from flask import session
     from web.services import pannelli_pronti_calcolatore, pannelli_pronti_runtime as runtime
@@ -652,6 +727,59 @@ def test_riscontri_dello_stesso_quadro_condividono_la_revisione_nella_richiesta(
     assert letture == ["F1"]
 
 
+def test_prospetti_riutilizzati_dopo_mezzanotte_finche_i_fatti_non_cambiano(studio, app_prova, monkeypatch):
+    from web.services import pannelli_pronti_runtime as runtime
+    from web.services.pannelli_pronti_catalogo import Pannello
+    from web.services.pannelli_pronti_sfondo import da_ricalcolare
+
+    giorno = "2026-11-16"
+    monkeypatch.setattr(impronta_fonti, "giorno_roma", lambda _adesso=None: giorno)
+    esecuzioni = []
+
+    @app_prova.app.get("/f/<id_fasc>/prospetti")
+    @runtime.pannello_pronto(Pannello("letture-prospetti", "prospetti"))
+    def prospetti(id_fasc):
+        esecuzioni.append(id_fasc)
+        return {"ok": True, "prospetti": []}
+
+    client = app_prova.app.test_client()
+    assert client.get("/f/F1/prospetti").headers[runtime.INTESTAZIONE] == "calcolato"
+    giorno = "2026-11-17"
+    assert client.get("/f/F1/prospetti").headers[runtime.INTESTAZIONE] == "pronto"
+    assert esecuzioni == ["F1"]
+    candidati = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
+    assert all(voce.pannello != "letture-prospetti" for voce in candidati)
+
+    _esegui(studio.registro_db, "INSERT INTO letture_fatti VALUES ('L1','studio-prova','F1','importo','350','verificata')")
+    candidati = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
+    assert any(voce.pannello == "letture-prospetti" for voce in candidati)
+    assert client.get("/f/F1/prospetti").headers[runtime.INTESTAZIONE] == "calcolato"
+    assert esecuzioni == ["F1", "F1"]
+
+
+def test_catalogo_riutilizzato_finche_le_regole_non_cambiano(studio, app_prova, monkeypatch):
+    from pct.document_intelligence import catalog_resolver
+    from web.services import pannelli_pronti_runtime as runtime
+    from web.services.pannelli_pronti_catalogo import Pannello
+
+    giorno = "2026-11-16"
+    monkeypatch.setattr(impronta_fonti, "giorno_roma", lambda _adesso=None: giorno)
+
+    @app_prova.app.get("/f/<id_fasc>/catalogo")
+    @runtime.pannello_pronto(Pannello("catalogazione-documentale", "catalogo"))
+    def catalogo(id_fasc):
+        return {"documenti": [], "regole": catalog_resolver.RESOLVER_VERSION}
+
+    client = app_prova.app.test_client()
+    assert client.get("/f/F1/catalogo").headers[runtime.INTESTAZIONE] == "calcolato"
+    giorno = "2026-11-17"
+    assert client.get("/f/F1/catalogo").headers[runtime.INTESTAZIONE] == "pronto"
+    monkeypatch.setattr(catalog_resolver, "RESOLVER_VERSION", "nuova-versione")
+    nuova = client.get("/f/F1/catalogo")
+    assert nuova.headers[runtime.INTESTAZIONE] == "calcolato"
+    assert nuova.get_json()["regole"] == "nuova-versione"
+
+
 def test_consultazione_pannello_a_freddo_non_installa_schema(studio, monkeypatch):
     from pct.pannelli_pronti import archivio as archivio_modulo
 
@@ -678,7 +806,13 @@ def test_quadro_salvato_risponde_prima_di_registrare_la_consultazione(studio, ap
     primo = client.get("/f/F1/quadro")
     assert primo.headers["X-Iusentra-Pannello"] == "calcolato"
     primo.close()
+    studio.archivio.registra_richiesta(
+        chiave_voce="richiesta-abbandonata", fascicolo_id="F2", pannello="quadro",
+        percorso="/f/F2/quadro", profilo="altro", sessione={"user_id": "u"}, servito=False,
+    )
     _esegui(studio.archivio.percorso, "UPDATE pannelli SET richiesto_il='2000-01-01'")
+    assert studio.archivio.elimina_vecchie() == 1
+    assert studio.archivio.voce("richiesta-abbandonata") is None
     originale = ArchivioPannelli.registra_richiesta
     richieste = []
 
@@ -792,7 +926,7 @@ def test_nuova_impronta_lettura_invalida_dipendenti_anche_con_corpo_identico(stu
 def test_passaggi_richiesti_hanno_priorita_dopo_la_lettura(studio):
     from web.services.pannelli_pronti_sfondo import da_ricalcolare
 
-    for pannello in ("quadro", "passaggi", "lettura", "documenti"):
+    for pannello in ("conto-economico", "quadro", "passaggi", "lettura", "documenti"):
         studio.archivio.registra_richiesta(
             chiave_voce=pannello, fascicolo_id="F1", pannello=pannello,
             percorso=f"/f/F1/{pannello}", profilo="p1", sessione={"user_id": "u1"}, servito=False,
@@ -804,7 +938,7 @@ def test_passaggi_richiesti_hanno_priorita_dopo_la_lettura(studio):
 
     voci = da_ricalcolare(studio.archivio, studio.fonti, solo_pannelli_prioritari=True)
     assert [(voce.fascicolo_id, voce.pannello) for voce in voci] == [
-        ("F1", "lettura"), ("F1", "passaggi"), ("F1", "quadro"),
+        ("F1", "lettura"), ("F1", "passaggi"), ("F1", "conto-economico"), ("F1", "quadro"),
     ]
 
 
@@ -955,9 +1089,138 @@ def test_quadro_precedente_consegnato_prima_di_scrivere_la_coda(studio, app_prov
     assert studio.archivio.fascicoli_in_attesa_di_lettura(minuti=1) == ["F1"]
 
 
+def test_conto_usa_importo_salvato_in_attesa_della_lettura_corrente(studio, app_prova, monkeypatch):
+    from flask import session
+    from web.services import pannelli_pronti_calcolatore, pannelli_pronti_runtime as runtime, riscontri_processuali_runtime
+    from web.services.pannelli_pronti_catalogo import PER_ENDPOINT
+    from web.services.pannelli_pronti_sfondo import da_ricalcolare
+
+    app = app_prova.app
+    pronto = True
+    importo = 800
+
+    @app.before_request
+    def _sessione():
+        session["user_id"] = "u1"
+
+    @app.get("/api/v1/ui/fascicoli/<id_fasc>/conto-economico")
+    @runtime.pannello_pronto(PER_ENDPOINT["api_v1_react.fascicolo_react_conto_economico"])
+    def conto(id_fasc):
+        app_prova.calcoli["n"] += 1
+        return jsonify(ok=True, righe=[{"voce": "sentenza", "importo": importo}],
+                       riscontriProcessuali={"stato": "pronto"},
+                       percorso={"prossimoPasso": "Preparare la proforma",
+                                 "passi": [{"codice": "proforma", "azione": {"comando": "genera_proforma"}}]})
+
+    monkeypatch.setattr(riscontri_processuali_runtime, "lettura_materializzata",
+                        lambda _: {"documenti": {}} if pronto else None)
+    avvii = []
+    monkeypatch.setattr(pannelli_pronti_calcolatore, "sveglia_calcolatore", lambda _, fid: avvii.append(fid))
+    client = app.test_client()
+    url = "/api/v1/ui/fascicoli/F1/conto-economico"
+    headers = {"X-Iusentra-Preparazione": "sfondo"}
+    worker = {runtime.AMBIENTE_RICALCOLO: True}
+    assert client.get(url, environ_overrides=worker).headers[runtime.INTESTAZIONE] == "calcolato"
+    assert client.get(url, headers=headers).headers[runtime.INTESTAZIONE] == "pronto"
+    assert not avvii and app_prova.calcoli["n"] == 1
+
+    pronto = False
+    _esegui(studio.studio_db, "INSERT INTO parcelle VALUES ('P1','F1','{}')")
+    precedente = client.get(url, headers=headers)
+    assert precedente.headers[runtime.INTESTAZIONE] == "precedente"
+    assert precedente.json["aggiornamentoPendente"] is True
+    assert precedente.json["righe"][0]["importo"] == 800
+    assert not precedente.json["percorso"]["prossimoPasso"]
+    assert "azione" not in precedente.json["percorso"]["passi"][0]
+    assert client.get(url, headers={**headers, "X-Iusentra-Solo-Corrente": "1"}).status_code == 202
+    assert app_prova.calcoli["n"] == 1
+    pendenti = da_ricalcolare(studio.archivio, studio.fonti, solo_pannelli_prioritari=True, fascicolo_richiesto="F1")
+    assert [(v.fascicolo_id, v.pannello) for v in pendenti] == [("F1", "lettura"), ("F1", "conto-economico")]
+
+    pronto, importo = True, 950
+    assert client.get(url, environ_overrides=worker).headers[runtime.INTESTAZIONE] == "calcolato"
+    corrente = client.get(url, headers=headers)
+    assert corrente.headers[runtime.INTESTAZIONE] == "pronto"
+    assert corrente.json["righe"][0]["importo"] == 950
+    assert "azione" in corrente.json["percorso"]["passi"][0]
+    assert app_prova.calcoli["n"] == 2
+
+
+def test_sfondo_prepara_la_scheda_guida_anche_se_la_giurisprudenza_e_gia_richiesta(studio):
+    from web.services.pannelli_pronti_runtime import _chiave_pannello
+    from web.services.pannelli_pronti_sfondo import da_ricalcolare
+
+    pannello = "guida-pratica"
+    percorso = "/api/v1/ui/fascicoli/F1/guida-pratica"
+    profilo = "profilo"
+    richiesta = dict(fascicolo_id="F1", pannello=pannello, profilo=profilo, sessione={"user_id": "u1"}, servito=False)
+    for variante in ("giurisprudenza", "scheda"):
+        if variante == "scheda":
+            lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
+            assert any(v.percorso == percorso + "?vista=scheda" and v.motivo == "prima apertura" for v in lavori)
+        query = f"vista={variante}"
+        studio.archivio.registra_richiesta(
+            chiave_voce=_chiave_pannello("F1", pannello, query, profilo), percorso=f"{percorso}?{query}", **richiesta)
+    lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
+    assert sum(v.percorso == percorso + "?vista=scheda" for v in lavori) == 1
+
+
+def test_guida_salvata_con_fase_corrente_nella_stessa_risposta(studio, app_prova, monkeypatch):
+    from web.services import guida_fase_runtime, pannelli_pronti_runtime as runtime
+    from web.services.pannelli_pronti_catalogo import PER_ENDPOINT
+
+    app = app_prova.app
+    dipendenza = {"ok": True, "fase": "iscritta_a_ruolo"}
+    monkeypatch.setattr(guida_fase_runtime, "fase_per_la_guida", lambda fid, consultiva: dict(dipendenza))
+
+    @app.get("/api/v1/ui/fascicoli/<id_fasc>/guida-pratica")
+    @runtime.pannello_pronto(PER_ENDPOINT["api_v1_guida_pratica.guida_pratica_fascicolo"])
+    def guida(id_fasc):
+        app_prova.calcoli["n"] += 1
+        return jsonify(ok=True, guida={
+            "codice": "220050", "denominazione": "Retribuzione",
+            "normativa": {"riferimenti_primari": [
+                {"fonte": "c.c.", "articolo": "2099", "descrizione": "Retribuzione"},
+                {"fonte": "Cost.", "articolo": "36"},
+                {"fonte": "c.c.", "articolo": "2948 n. 4"},
+                {"fonte": "c.c.", "articolo": "2099 e 2100"},
+                {"fonte": "c.c.", "articolo": "2100", "url": "https://www.gazzettaufficiale.it/"},
+            ]},
+        })
+
+    client = app.test_client()
+    url = "/api/v1/ui/fascicoli/F1/guida-pratica"
+    prima = client.get(url + "?vista=scheda")
+    assert prima.headers[runtime.INTESTAZIONE] == "calcolato"
+    assert prima.json["faseReale"]["fase"] == "iscritta_a_ruolo"
+    riferimenti = prima.json["guida"]["normativa"]["riferimenti_primari"]
+    assert [voce.get("archivio_atto") for voce in riferimenti] == [
+        "codice_civile", "costituzione", "codice_civile", None, None,
+    ]
+    assert [voce.get("url", "").split("?")[-1] for voce in riferimenti] == [
+        "urn:nir:stato:regio.decreto:1942-03-16;262:2~art2099",
+        "urn:nir:stato:costituzione:1947-12-27~art36",
+        "urn:nir:stato:regio.decreto:1942-03-16;262:2~art2948",
+        "",
+        "https://www.gazzettaufficiale.it/",
+    ]
+    assert b"faseReale" not in next(
+        voce.corpo for chiave, pannello, *_ in studio.archivio.voci_del_fascicolo("F1")
+        if pannello == "guida-pratica" and (voce := studio.archivio.voce(chiave)).corpo
+    )
+
+    dipendenza["fase"] = "decisa"
+    corrente = client.get(url + "?vista=scheda")
+    assert corrente.headers[runtime.INTESTAZIONE] == "pronto"
+    assert corrente.json["guida"] == prima.json["guida"]
+    assert corrente.json["faseReale"]["fase"] == "decisa"
+    assert app_prova.calcoli["n"] == 1
+    assert "faseReale" not in client.get(url + "?vista=giurisprudenza").json
+
+
 def test_sfondo_unisce_vecchia_chiave_e_chiave_corrente(studio):
     from pct.pannelli_pronti.impronta import impronta
-    from web.services.pannelli_pronti_catalogo import VERSIONE_PANNELLI
+    from web.services.pannelli_pronti_catalogo import VERSIONE_PANNELLI, impronta_del_pannello
     from web.services.pannelli_pronti_runtime import _chiave_pannello
     from web.services.pannelli_pronti_sfondo import da_ricalcolare
 
@@ -971,8 +1234,9 @@ def test_sfondo_unisce_vecchia_chiave_e_chiave_corrente(studio):
     lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
     assert len([voce for voce in lavori if voce.pannello == pannello]) == 1
 
-    impronta_corrente = impronta(studio.fonti, "F1", versione=VERSIONE_PANNELLI,
-                                         generazione=studio.archivio.generazione("F1"))
+    impronta_corrente = impronta_del_pannello(pannello, impronta(
+        studio.fonti, "F1", versione=VERSIONE_PANNELLI, generazione=studio.archivio.generazione("F1"),
+    ))
     assert studio.archivio.salva(chiave_voce=corrente, **valori, impronta=impronta_corrente,
                                 stato=200, tipo="application/json", corpo=b"{}", durata_ms=0)
     lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")

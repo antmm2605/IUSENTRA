@@ -45,6 +45,59 @@ def test_sql_model_api_replay_refill_permissions_and_invalid_input(tmp_path):
     assert client.get('/api/editor/F2/modelli-personali/' + identifier + '/compila').status_code == 403
 
 
+def test_modello_dalla_bozza_storica_riusa_solo_il_provvedimento_collegato(tmp_path, monkeypatch):
+    import json
+    from pct.note_127_ter.bozza import testo_note
+    from web.services.passaggi_runtime import _marcatore_bozza_note
+
+    fonte = SimpleNamespace(id='P1', hash_contenuto_sha256='fonte-originale', hash_sha256='')
+    chiave = '127ter.bozza_note:F1:23'
+    bozza = SimpleNamespace(id='B1', fonte_documento='BOZZA_NOTE_127_TER', tags=[_marcatore_bozza_note(chiave, fonte)])
+    fascicolo = SimpleNamespace(id='F1', documenti=[fonte, bozza])
+    dati = {'ufficio': 'Tribunale di prova', 'rg': '123/2026', 'giudice': '', 'parte': 'Cliente precedente',
+            'controparte': 'Resistente precedente', 'difensore': '', 'sezione': 'Sezione Prima'}
+    proposta = {'documento_id': fonte.id, 'termine': '2026-12-22', 'ora': '14:00', 'dati_modello': dati}
+    proposta['testo'] = testo_note(proposta, **dati)
+    monkeypatch.setattr('web.services.riscontri_processuali_runtime.risultato_materializzato',
+                        lambda fid, pannello: {'bozzeNote': {chiave: proposta}})
+    repo = GestioneTemplateRepository(str(tmp_path / 'models.db'))
+    app = Flask(__name__)
+
+    @app.before_request
+    def context():
+        g.utente_corrente = SimpleNamespace(ha_permesso=lambda name: True)
+
+    def risolvi(fid):
+        return jsonify(matterId=fid, clientId='C2', fields=[
+            {'id': 'note_127ter.termine', 'available': True, 'value': '25/01/2027 entro le ore 10:30'},
+            {'id': 'studio_timbro.riga_recapiti', 'available': True, 'value': 'Recapiti del nuovo studio'},
+        ])
+
+    register_editor_personal_template_routes(app, audit=lambda *a, **kw: None, get_repository=lambda: repo,
+                                             get_fascicoli=lambda: {'F1': fascicolo}, resolve_context=risolvi)
+    client = app.test_client()
+    payload = {'titolo': 'Note scritte', 'command_id': str(uuid4()), 'origine': 'provvedimento_note',
+               'source_document': {'matter': 'F1', 'document': 'B1'}}
+    prima = client.post('/api/editor/modelli-personali', json=payload)
+    assert prima.status_code == 201
+    assert client.post('/api/editor/modelli-personali', json=payload).json == prima.json
+    identifier = prima.json['id']
+    modello = client.get(f'/api/editor/modelli-personali/{identifier}').json['html']
+    assert '127ter' in modello and 'studio_timbro.riga_recapiti' in modello
+    assert 'Trattazione scritta' in modello and 'OGGETTO:' in modello and 'CONCLUSIONI' in modello
+    assert '<table' in modello and 'data-iu-date-format="dots"' in modello
+    assert all(testo not in modello.casefold() for testo in ('cliente precedente', 'studio precedente', '22/12/2026'))
+    compilato = client.get(f'/api/editor/F2/modelli-personali/{identifier}/compila').json['html']
+    assert '25/01/2027 entro le ore 10:30' in compilato and 'Recapiti del nuovo studio' in compilato
+    monkeypatch.setattr('web.services.riscontri_processuali_runtime.risultato_materializzato', lambda fid, pannello: None)
+    monkeypatch.setattr('web.services.pannelli_pronti_runtime.pannello_del_profilo',
+                        lambda fid, pannello, precedente: json.dumps({'bozzeNote': {chiave: proposta}}).encode() if precedente else None)
+    assert client.post('/api/editor/modelli-personali', json=payload).json == prima.json
+    fonte.hash_contenuto_sha256 = 'fonte-sostituita'
+    assert client.post('/api/editor/modelli-personali', json={**payload, 'command_id': str(uuid4())}).status_code == 409
+    assert len(repo.list_templates()) == 1
+
+
 def test_shared_model_available_to_two_studios_and_private_models_isolated(tmp_path):
     shared = GestioneTemplateRepository(str(tmp_path / 'shared.db'))
     studios = [GestioneTemplateRepository(str(tmp_path / f'studio-{n}.db')) for n in (1, 2)]

@@ -10,6 +10,7 @@ Due invarianti coperte qui:
 
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from tests.test_web_bootstrap import _cfg_web
@@ -103,3 +104,37 @@ def test_payload_di_errore_controllato_non_finge_dati_reali():
     assert payload["warning"]
     assert payload["stats"]["urgentActions"] == 0
     assert payload["contracts"]["mock_fallback"] is False
+
+
+def test_dashboard_riusa_indice_salvato_e_urgenze_correnti(monkeypatch):
+    import web.blueprints.api_v1_react as api
+
+    reads = []
+    case = dict(id="A", numero="2026/0001", titolo="Procedimento", stato="APERTO")
+    def read_snapshot():
+        reads.append("snapshot")
+        return {
+            "generated_at": adesso_rome().isoformat(),
+            "case_index": [case],
+            "overview": {"summary": {"scadenze_urgenti": 5}, "actions": [
+                {"href": "/scadenziario", "description": "Cinque scadenze precedenti"},
+                {"href": "/fascicoli/A", "title": "Controllo salvato"},
+            ]},
+        }
+
+    term = SimpleNamespace(id="TERMINE", titolo="Termine corrente")
+    monkeypatch.setattr(api, "_workspace_snapshot", read_snapshot)
+    monkeypatch.setattr(api, "esito_udienza_da_registrare", lambda _term: False)
+    monkeypatch.setattr(api, "get_scadenziario", lambda: SimpleNamespace(
+        imminenti=lambda **_: [term], scadenze_da_notificare=lambda: [],
+    ))
+    with api.contesto_costruzione_panoramica():
+        overview = api._workspace_overview()
+        assert api._count_fascicoli_attivi() == 1
+        assert api._fascicoli_preview()[0]["id"] == "A"
+        assert api._notiziario_case_options() == [{"id": "A", "label": "2026/0001 - Procedimento"}]
+    assert reads == ["snapshot"]
+    assert overview["summary"]["scadenze_urgenti"] == 1
+    assert overview["urgent_deadlines"] == [term]
+    assert overview["actions"][0]["description"].startswith("Un termine")
+    assert overview["actions"][1]["href"] == "/fascicoli/A"

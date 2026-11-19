@@ -449,11 +449,15 @@ def riconcilia_modalita_note(fascicolo: Any, registro: RegistroLetture, tenant: 
     return {"dry_run": not applica, "da_rettificare": piano, "rettificate": len(piano) if applica else 0}
 
 
-def riconcilia_adempimenti(fascicolo: Any, registro: RegistroLetture, tenant: str, *, applica: bool = True) -> dict[str, Any]:
+def riconcilia_adempimenti(
+    fascicolo: Any, registro: RegistroLetture, tenant: str, *, applica: bool = True,
+    lettura: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Aggiorna solo scadenze automatiche con prova documentale concordante.
 
-    La chiusura delle note richiede sia l'attestazione del giudice sia un
-    deposito delle note accettato dalla cancelleria nella finestra pertinente.
+    Le note possono essere riscontrate dalla Lettura, che collega il decreto,
+    l'atto depositato, la conferma di consegna e l'accettazione della stessa busta.
+    L'archivio conserva anche il riscontro dei provvedimenti che attestano il deposito.
     Conserva note, riferimenti e audit. Nessun cambiamento al flusso deposito.
     """
     import json
@@ -461,9 +465,19 @@ def riconcilia_adempimenti(fascicolo: Any, registro: RegistroLetture, tenant: st
     from pct.agenda import StatoAppuntamento
     from web.helpers import get_agenda, get_scadenziario
     fid = _testo(fascicolo.id)
-    oggetti = {(o.tipo, o.oggetto_id): o for o in registro.oggetti(tenant, fid)}
-    fatti = [f for f in registro.fatti(tenant, fid, verifiche=("verificata", "corretta")) if (f.tipo, f.oggetto_id) in oggetti and f.sha256 == oggetti[(f.tipo, f.oggetto_id)].impronta]
-    prove = prove_note_depositate(fatti)
+    fatti = []
+    prove = []
+    conclusioni = []
+    if lettura is None:
+        oggetti = {(o.tipo, o.oggetto_id): o for o in registro.oggetti(tenant, fid)}
+        fatti = [f for f in registro.fatti(tenant, fid, verifiche=("verificata", "corretta"))
+                 if (f.tipo, f.oggetto_id) in oggetti and f.sha256 == oggetti[(f.tipo, f.oggetto_id)].impronta]
+        prove = prove_note_depositate(fatti)
+    else:
+        conclusioni = [v for v in (lettura.get("ragionamento") or {}).get("conclusioni") or []
+                       if v.get("codice") == "note_127ter"]
+        if not any(v.get("stato") == "fatto" and v.get("prova_deposito") for v in conclusioni):
+            return {"completate": [], "perentorieta": []}
     scadenziario, agenda = get_scadenziario(), get_agenda()
     scadenze = list(scadenziario.tutte(id_fascicolo=fid, solo_aperte=False))
     esito = {"completate": [], "perentorieta": []}
@@ -475,12 +489,24 @@ def riconcilia_adempimenti(fascicolo: Any, registro: RegistroLetture, tenant: st
         if not automatica:
             continue
         giorno = _giorno(s.data_scadenza)
-        precedenti = [_giorno(x.data_scadenza) for x in scadenze if _modalita_termine(_testo(x.titolo)) == "deposito_note" and _giorno(x.data_scadenza) < giorno]
-        limite = max(precedenti, default="0001-01-01")
-        depositi = [d for d in list(getattr(fascicolo, "depositi_pct", []) or []) if _stato(d) == "ACCETTATO_CANCELLERIA" and _modalita_termine("deposito " + _testo(getattr(d, "nome_atto_principale", ""))) == "deposito_note" and limite < _giorno(getattr(d, "timestamp", "")) <= giorno]
+        letture_del_giorno = [v for v in conclusioni if (v.get("termine") or {}).get("scadenza_iso") == giorno]
+        esatte = [v for v in letture_del_giorno if v.get("stato") == "fatto" and v.get("prova_deposito")]
+        scadenze_del_giorno = [x for x in scadenze if _giorno(x.data_scadenza) == giorno and _stato(x) == "APERTO"
+                              and _modalita_termine(_testo(x.titolo)) == "deposito_note"] if esatte else []
         prova = next((p for p in prove if p["giorno"] == giorno), None)
+        depositi = []
+        if prova:
+            precedenti = [_giorno(x.data_scadenza) for x in scadenze if _modalita_termine(_testo(x.titolo)) == "deposito_note" and _giorno(x.data_scadenza) < giorno]
+            limite = max(precedenti, default="0001-01-01")
+            depositi = [d for d in list(getattr(fascicolo, "depositi_pct", []) or []) if _stato(d) == "ACCETTATO_CANCELLERIA" and _modalita_termine("deposito " + _testo(getattr(d, "nome_atto_principale", ""))) == "deposito_note" and limite < _giorno(getattr(d, "timestamp", "")) <= giorno]
         tipo_rettifica = ""
-        if prova and depositi:
+        if len(esatte) == len(letture_del_giorno) == len(scadenze_del_giorno) == 1:
+            voce = esatte[0]
+            tipo_rettifica = "note_depositate"
+            evidenza = {**voce["prova_deposito"], "decreto_id": (voce.get("letto") or {}).get("documento_id")}
+            nota = voce["prova_o_motivo"]
+            esito["completate"].append(s.id)
+        elif prova and depositi:
             tipo_rettifica = "note_depositate"
             evidenza = {**prova, "depositi_accettati": sorted(d.id for d in depositi)}
             nota = "Adempimento riscontrato: il provvedimento dà atto del deposito delle note scritte; la cancelleria ne ha accettato il deposito. Fonte: " + prova["tipo"] + ":" + prova["oggetto_id"] + "; SHA-256: " + prova["sha256"] + "; fatti: " + ", ".join(prova["fatti"]) + "; depositi: " + ", ".join(evidenza["depositi_accettati"]) + "."
@@ -512,6 +538,58 @@ def riconcilia_adempimenti(fascicolo: Any, registro: RegistroLetture, tenant: st
         from web.services.lettura_cache import invalida_lettura
         invalida_lettura(fid)
     return esito
+
+
+def riconcilia_notifiche_ordinate(fascicolo: Any, lettura: dict[str, Any]) -> list[str]:
+    """Chiude proposte e termini automatici della stessa ordinanza già eseguita."""
+    from pct.agenda import StatoAppuntamento
+    from pct.scadenziario import StatoTermine
+    from web.helpers import get_agenda, get_scadenziario
+
+    fid = str(fascicolo.id)
+    prove = {}
+    for voce in (lettura.get("ragionamento") or {}).get("conclusioni") or ():
+        if voce.get("codice") != "notifica_ordinata" or voce.get("stato") != "fatto" or not voce.get("prova_notifica"):
+            continue
+        oid = (voce.get("letto") or {}).get("documento_id")
+        giorno = (voce.get("termine") or {}).get("scadenza_iso")
+        if oid and giorno:
+            prove[(oid, giorno)] = voce
+    if not prove:
+        return []
+    scadenziario, agenda = get_scadenziario(), get_agenda()
+    marcatori = re.compile(
+        rf"(?m)^(?:PEC_DOCUMENT_PRESIDIO|PEC_AUDIT):docpresidio:{re.escape(fid)}:([^:\s]+):termine:"
+        r"(\d{4}-\d{2}-\d{2})(?::[^\s]+)?\s*$"
+    )
+    completate = []
+    for scadenza in scadenziario.tutte(id_fascicolo=fid, solo_aperte=False):
+        if scadenza.stato not in {StatoTermine.APERTO, StatoTermine.SCADUTO, StatoTermine.BOZZA, StatoTermine.COMPLETATO}:
+            continue
+        if not re.search(r"\b(?:notificare|notifica|notificazione|rinnovazione)\b", str(scadenza.titolo or ""), re.I):
+            continue
+        ancore = set(marcatori.findall(str(scadenza.note or "")))
+        if len(ancore) != 1:
+            continue
+        chiave = next(iter(ancore))
+        prova = prove.get(chiave)
+        if not prova or chiave[1] != _giorno(scadenza.data_scadenza):
+            continue
+        riscontro = prova["prova_o_motivo"]
+        fonti = prova["prova_notifica"]
+        nota = f"{riscontro}\nOrdinanza {chiave[0]}, PEC {fonti['invio_id']}, accettazione {fonti['accettazione_id']}, consegne {', '.join(fonti['consegne_ids'])}."
+        if scadenza.stato != StatoTermine.COMPLETATO:
+            scadenziario.completa(scadenza.id, note=nota)
+            completate.append(scadenza.id)
+        appuntamento = agenda.get(scadenza.id_appuntamento) if scadenza.id_appuntamento else None
+        tipo_appuntamento = getattr(appuntamento, "tipo", "")
+        if (appuntamento and _stato(appuntamento) == "PROGRAMMATO"
+                and _testo(getattr(tipo_appuntamento, "value", tipo_appuntamento)).upper() == "SCADENZA"
+                and _giorno(appuntamento.data_ora) == chiave[1] and chiave in marcatori.findall(appuntamento.note or "")):
+            agenda.modifica(appuntamento.id, stato=StatoAppuntamento.COMPLETATO, note=(appuntamento.note + "\n" + nota).strip())
+            if scadenza.id not in completate:
+                completate.append(scadenza.id)
+    return completate
 
 
 def consegna_fascicolo(fascicolo: Any, *, registro: RegistroLetture | None = None, applica_riconciliazioni: bool = True) -> dict[str, Any]:

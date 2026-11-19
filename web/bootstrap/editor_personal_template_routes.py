@@ -70,31 +70,47 @@ def register_editor_personal_template_routes(app, *, audit, get_repository=None,
                 raise ValueError('Richiesta del modello non valida.')
             title = str(payload.get('titolo') or '').strip()
             html = str(payload.get('html') or '')
+            origine = payload.get('origine', '')
             command = str(UUID(str(payload.get('command_id') or '')))
-            if not title or len(title) > 100 or any(ord(char) < 32 for char in title) or not html.strip() or len(html.encode('utf-8')) > 2_000_000:
+            if origine not in ('', 'provvedimento_note'):
+                raise ValueError('Origine del modello non valida.')
+            da_provvedimento = origine == 'provvedimento_note'
+            if not title or len(title) > 100 or any(ord(char) < 32 for char in title) or len(html.encode('utf-8')) > 2_000_000:
                 raise ValueError('Indica il titolo e un documento entro i limiti consentiti.')
-            template, _ = template_linked_html(html)
+            if not da_provvedimento:
+                if not html.strip():
+                    raise ValueError('Indica il contenuto del modello.')
+                template, _ = template_linked_html(html)
+            elif not payload.get('source_document') or html:
+                raise ValueError('Indica la bozza di origine del modello.')
         except ValueError as error:
             return jsonify(ok=False, errore=str(error)), 400
         try:
             from web.services.editor_template_fonts import font_only_package, template_font_source
             repo = repository()
-            source = template_font_source(html, repo)
+            source = template_font_source(html, repo) if not da_provvedimento else None
             if payload.get('source_document'):
                 if not authorized():
                     return jsonify(ok=False, errore='Non sei autorizzato a leggere la fonte del modello.'), 403
-                if not get_fascicoli or not decrypt_doc:
+                if not get_fascicoli or (not da_provvedimento and not decrypt_doc):
                     raise ValueError('Fonte del modello non disponibile.')
                 source_ids = payload['source_document']
-                if not isinstance(source_ids, dict) or set(source_ids) != {'matter', 'document'}:
+                if (not isinstance(source_ids, dict) or set(source_ids) != {'matter', 'document'}
+                        or not all(isinstance(value, str) and value for value in source_ids.values())):
                     raise ValueError('Fonte del modello non valida.')
                 matters = get_fascicoli()
                 matter = matters.get(source_ids['matter'])
                 document = next((doc for doc in matter.documenti if doc.id == source_ids['document']), None) if matter else None
                 if document is None:
                     raise ValueError('Fonte del modello non trovata nello studio.')
-                from web.services.editor_word_source import editor_word_source
-                source = editor_word_source(matters, matter.id, document, decrypt_doc, html=html)
+                if da_provvedimento:
+                    from web.services.passaggi_runtime import modello_da_bozza_note
+
+                    template, _ = template_linked_html(modello_da_bozza_note(matter, document))
+                else:
+                    from web.services.editor_word_source import editor_word_source
+
+                    source = editor_word_source(matters, matter.id, document, decrypt_doc, html=html)
             identifier = repo.create_editor_template({'id': command, 'titolo': title, 'categoria': 'Altro', 'corpo': template, 'collezione': 'Editor personale', 'builtin': False}, font_source=font_only_package(source))
             audit('editor.modello_personale.crea', 'template_atti', identifier, dettagli='Modello editor con campi riutilizzabili; valori collegati precedenti rimossi.')
             return jsonify(ok=True, id=identifier, titolo=title), 201

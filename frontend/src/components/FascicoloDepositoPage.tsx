@@ -4574,7 +4574,7 @@ function DepositPreparePage({ id }:{id:string}) {
               {recentDeposits.map((dep) => (
                 <article className="iu-fas-comm-row" key={dep.id}>
                   <Badge tone={dep.tone}>{depositStatusLabel(dep.status)}</Badge>
-                  <strong>{dep.message || dep.actType || 'Comunicazione deposito'}</strong>
+                  <strong>{dep.mainFile || dep.message || dep.actType || 'Comunicazione deposito'}</strong>
                   <span>{depositMetaLine(dep)}</span>
                   <DepositStateSummary dep={dep}/>
                   <DepositReceiptSteps dep={dep}/>
@@ -5859,7 +5859,7 @@ function DepositReceiptSteps({ dep }:{dep:FascicoloDeposit}) {
       {dep.receiptSteps.map((step) => (
         <span className={step.done ? 'is-done' : ''} key={`${dep.id}-${step.id}`}>
           {step.done ? <CheckCircle2 size={13}/> : <Clock3 size={13}/>}
-          {step.label}
+          {step.sourceHref ? <a href={step.sourceHref} className="underline">{step.label}</a> : step.label}
         </span>
       ))}
     </div>

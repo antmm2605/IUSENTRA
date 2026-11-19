@@ -1,3 +1,7 @@
+## 2.489.32 — Lettura operativa condivisa per Panoramica e Notizie utili
+
+- Lo scheduler salva l’indice dei fascicoli assieme al riepilogo dello studio. Panoramica e Notizie utili consultano lo stesso risultato; le urgenze in Panoramica provengono dallo scadenziario corrente.
+
 ## 2.489.31 — Riconoscimento dei documenti già letti nel fascicolo
 
 - Riconosce avvisi di pubblicazione, note di trasmissione e di difesa della PA, memorie di costituzione, decreti di assegnazione e inviti a correggere l’autocertificazione.

@@ -20,6 +20,8 @@ from types import SimpleNamespace
 from typing import Any
 
 from pct.proposte_decorse import SUPERATA, classifica, e_127_ter
+from pct.pec_legal_event_understanding import ricevuta_pec_strutturata
+from pct.pec_oggetti_ufficiali import classifica_ricevuta_pec
 
 from ._testo import data_da, data_it, dataora_it, pulisci
 
@@ -98,20 +100,52 @@ def _leggi_udienza(udienza: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def leggi_messaggio(messaggio: dict[str, Any], *, oggi: date | None = None, evento_riscontrato: bool = False) -> dict[str, Any]:
+def pec_con_valutazione_notifica(ragionamento: dict[str, Any], fonti_provvedimenti: dict[str, str]) -> set[str]:
+    sentenze_per_pec: dict[str, set[str]] = {}
+    for atto in ragionamento.get("atti") or ():
+        if atto.get("sentenza") and atto.get("appartenenza") == "causa":
+            for documento in (atto["id"], *atto.get("copie", ())):
+                if fonte := fonti_provvedimenti.get(documento):
+                    sentenze_per_pec.setdefault(fonte, set()).add(atto["id"])
+    sentenze_con_conclusione = {
+        (voce.get("letto") or {}).get("oggetto_id")
+        for voce in ragionamento.get("conclusioni") or () if voce.get("codice") == "notifica_sentenza"
+    }
+    return {fonte for fonte, ids in sentenze_per_pec.items() if len(ids) == 1 and ids <= sentenze_con_conclusione}
+
+
+def leggi_messaggio(messaggio: dict[str, Any], *, oggi: date | None = None, evento_riscontrato: bool = False,
+                   sentenza_riscontrata: bool = False, notifica_valutata: bool = False) -> dict[str, Any]:
     qualita = pulisci(messaggio.get("quality_status")).lower()
     firma = pulisci(messaggio.get("signature_status")).lower()
+    daticert = messaggio.get("pec_receipt") or {}
+    tipo_ricevuta, _ = classifica_ricevuta_pec(messaggio.get("subject"), daticert_tipo=daticert.get("type"), usa_corpo=False)
+    ricevuta = ricevuta_pec_strutturata(daticert) or bool(tipo_ricevuta)
+    evento_ricevuta = {"accettazione": "ricevuta_accettazione_pec", "avvenuta_consegna": "ricevuta_consegna_pec"}.get(tipo_ricevuta)
     eventi = [
         {
             "evento": pulisci(voce.get("primary_event")).replace("_", " "),
             "famiglia": pulisci(voce.get("family")).replace("_", " "),
             "priorita": pulisci(voce.get("priority")).lower(),
-            "da_rivedere": bool(voce.get("human_review_required")),
+            "da_rivedere": bool(voce.get("human_review_required")) and not (
+                evento_riscontrato
+                or evento_ricevuta and voce.get("primary_event") == evento_ricevuta
+                or sentenza_riscontrata and voce.get("primary_event") in {"sentenza_a_verbale", "deposito_sentenza"}
+            ),
         }
         for voce in list(messaggio.get("eventi") or [])
     ]
-    termini = [_leggi_termine(voce, oggi) for voce in list(messaggio.get("termini") or [])]
-    udienze = [_leggi_udienza(voce) for voce in list(messaggio.get("udienze") or [])]
+    termini = [_leggi_termine(voce, oggi) for voce in list(messaggio.get("termini") or [])
+               if not ricevuta or voce.get("scadenziario_id")]
+    if notifica_valutata:
+        # Le vecchie proposte PEC sono promemoria senza termine, anteriori alla conclusione condivisa.
+        termini = [termine for termine in termini if termine["registrato"] or termine["scadenza"]
+                   or termine["perentorio"] or termine["tipo"].casefold() not in {
+                       "valutare/preparare notifica sentenza",
+                       "esame sentenza e valutazione notifica senza termine breve automatico",
+                   }]
+    udienze = [_leggi_udienza(voce) for voce in list(messaggio.get("udienze") or [])
+               if not ricevuta or voce.get("agenda_id")]
     motivi: list[str] = []
     for issue in messaggio.get("issues") or []:
         if issue.get("blocking"):
@@ -151,9 +185,13 @@ def leggi_messaggio(messaggio: dict[str, Any], *, oggi: date | None = None, even
 def pec(
     messaggi: list[dict[str, Any]], *, oggi: date | None = None,
     eventi_riscontrati: frozenset[str] = frozenset(),
+    sentenze_riscontrate: frozenset[str] = frozenset(),
+    pec_sentenze_gia_lette: set[str] | None = None,
 ) -> dict[str, Any]:
     letti = [
-        leggi_messaggio(voce, oggi=oggi, evento_riscontrato=pulisci(voce.get("id")) in eventi_riscontrati)
+        leggi_messaggio(voce, oggi=oggi, evento_riscontrato=pulisci(voce.get("id")) in eventi_riscontrati,
+                       sentenza_riscontrata=pulisci(voce.get("id")) in sentenze_riscontrate,
+                       notifica_valutata=pulisci(voce.get("id")) in (pec_sentenze_gia_lette or ()))
         for voce in messaggi
     ]
     letti.sort(key=lambda voce: voce["ordine"])

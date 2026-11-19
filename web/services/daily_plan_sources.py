@@ -28,6 +28,8 @@ from web.services.daily_plan_source_cards import (
     scadenza_sources,
 )
 
+from web.services.notification_presidia_fascicolo_reconciliation import _notification_document_role
+
 _SECTION_LABELS = {
     "pec": "Comunicazioni / Cancelleria",
     "documenti": "Documenti",
@@ -173,6 +175,58 @@ def _case_presidio_sources(
     ]
 
 
+def _notification_sources(
+    ev: SignalEvidence, item: DailyWorkItem, *, paths: Any, tenant_label: str
+) -> list[dict[str, Any]]:
+    from web.services.notification_presidia_payloads import _detail_rows
+    from web.services.notification_presidia_runtime import (
+        build_notification_presidio_repository,
+        presidio_permissions,
+    )
+
+    if not presidio_permissions()["can_view_evidence"] or not ev.source_id:
+        return []
+    repo = build_notification_presidio_repository(read_only=True)
+    row, documents, _ = _detail_rows(repo, ev.source_id)
+    fascicolo_id = str(row.get("fascicolo_id") or "")
+    if fascicolo_id != item.fascicolo_id:
+        return []
+    sources = []
+    conflicts = []
+    if row.get("resolution_code") == "SOURCE_CONTENT_REVIEW":
+        conflicts.append(str(row.get("resolution_reason") or "Il registro ha rilevato una discordanza fra le fonti."))
+    for document in documents:
+        document_id = str(document.get("fascicolo_document_id") or "")
+        if document.get("document_role") == "portal_original" and document.get("authoritative") and fascicolo_id and document_id:
+            expected, found = _notification_document_role(fascicolo_id, document)
+            if not found or found != expected:
+                if found:
+                    conflicts.append(f"L’originale collegato riporta il R.G. {found}. Il fascicolo ha R.G. {expected}.")
+                else:
+                    conflicts.append("Il ruolo dell’originale collegato resta da riscontrare sul testo del documento.")
+                continue
+            href = f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(document_id, safe='')}/visualizza"
+            sources.append(fonte(
+                tipo="documento", etichetta=document.get("original_filename") or "Originale del fascicolo d’ufficio",
+                href=href, apri_href=href, verificata=True,
+            ))
+    message_id = str(row.get("source_message_id") or "")
+    if message_id:
+        pec = pec_message_source(message_id, paths=paths, tenant_label=tenant_label)
+        if pec:
+            if conflicts:
+                pec["href"] = ""
+                pec["verificata"] = False
+                pec["nota"] = " ".join(conflicts)
+            sources.append(pec)
+    href_presidio = f"/notifiche-legali?section=presidi&presidio={quote(ev.source_id, safe='')}"
+    sources.append(fonte(
+        tipo="scheda", etichetta="Stato e prove nel registro notifiche",
+        apri_href=href_presidio, verificata=True, nota=" ".join(conflicts),
+    ))
+    return sources
+
+
 def _evidence_sources(
     ev: SignalEvidence, item: DailyWorkItem, *, paths: Any, tenant_label: str, today: date
 ) -> list[dict[str, Any]]:
@@ -186,6 +240,8 @@ def _evidence_sources(
     if ev.source_type == "agenda":
         ids = [part for part in _text(ev.source_id).split("+") if part]
         return [s for part in ids for s in agenda_sources(part, paths=paths, tenant_label=tenant_label)]
+    if ev.source_type == "notification":
+        return _notification_sources(ev, item, paths=paths, tenant_label=tenant_label)
     if item.href:
         return [
             fonte(

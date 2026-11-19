@@ -37,3 +37,10 @@ def editor_stamp_lines(stamp: StudioTimbro):
         else:
             result.append(row)
     return result
+
+
+def editor_stamp_payload(stamp: StudioTimbro | None) -> dict:
+    if stamp is None or not stamp.to_lines():
+        return {"ok": False, "errore": "Configura il timbro dello studio nelle impostazioni prima di inserirlo."}
+    return {"ok": True, "righe": editor_stamp_lines(stamp),
+            "interlinea": float(stamp.payload.get("layout", {}).get("interlinea", 1.22))}

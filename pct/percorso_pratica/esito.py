@@ -37,7 +37,7 @@ _ESITI = (
 )
 _MASSIMO_DISPOSITIVO = 6000
 # Le frasi del dispositivo finiscono con «;» o con un punto seguito da spazio (non i punti delle cifre, «1.234,00»).
-_FINE_FRASE = re.compile(r";|\.(?=\s|$)")
+_FINE_FRASE = re.compile(r";|(?<!\bD\.M)\.(?=\s|$)", re.IGNORECASE)
 
 _ETICHETTE = {
     "difetto_giurisdizione": "Difetto di giurisdizione", "incompetenza": "Incompetenza", "inammissibile": "Domanda o impugnazione inammissibile",
@@ -77,7 +77,7 @@ def spese(dispositivo_testo: str) -> dict[str, Any]:
         parziale = bool(re.search(r"\b(?:in\s+parte|per\s+(?:la\s+)?(?:metà|un\s+terzo|\d+/\d+))", compensazione, re.IGNORECASE))
         voce.update(regolazione="compensazione_parziale" if parziale else "compensazione", frase=compensazione)
     condanna = next((f for f in frasi if re.search(
-        r"\b(?:condanna|pone\s+in\s+capo)\b.*?\bspese\b", f, re.IGNORECASE | re.DOTALL,
+        r"\b(?:condanna|pone\s+(?:in\s+capo|a\s+carico))\b.*?\bspese\b", f, re.IGNORECASE | re.DOTALL,
     )), "")
     if condanna:
         importo, _ = estrai_spese_liquidate(condanna)
@@ -118,10 +118,14 @@ def improcedibile_per_interesse(dispositivo: str) -> bool:
     return bool(_DIFETTO_SOPRAVVENUTO.search(dispositivo))
 
 
+def codice_esito_dispositivo(testo: str) -> str:
+    return next((chiave for chiave, schema in _ESITI if re.search(schema, testo, re.IGNORECASE)), "non_riconosciuto")
+
+
 def esito_sentenza(testo: str, *, nostra_parte: str = "") -> dict[str, Any]:
     """Esito, spese e ragioni; ``nostra_parte`` = «attore»/«ricorrente»/«appellante» oppure «convenuto»/«resistente»/«appellato»."""
     disp = dispositivo(testo)
-    codice = next((chiave for chiave, schema in _ESITI if re.search(schema, disp, re.IGNORECASE)), "non_riconosciuto")
+    codice = codice_esito_dispositivo(disp)
     promotore = (nostra_parte or "").lower() in {"attore", "ricorrente", "appellante", "opponente", "reclamante"}
     difensore = (nostra_parte or "").lower() in {"convenuto", "resistente", "appellato", "opposto", "reclamato"}
     per_noi = "da_valutare"

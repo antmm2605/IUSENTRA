@@ -537,6 +537,93 @@ def test_deposito_note_richiede_conferma_con_data_e_ora_italiana():
     assert "13:58" in tempestiva.prova_o_motivo and "PEC2" in tempestiva.prova_o_motivo
 
 
+def test_note_collegate_alla_busta_usano_la_ricevuta_gia_registrata():
+    note = doc("NOT", "Note in sostituzione udienza.pdf", "atto_difensivo", "Note di trattazione scritta",
+               "TRIBUNALE DI BRESCIA\nRG 1028/2026\n09.02.2027 Note di trattazione scritta")
+    deposito = {
+        "id": "B1", "tipo_atto": "ATTO_GENERICO", "stato": "ACCETTATO_CANCELLERIA",
+        "data": "2027-02-08", "documenti_ids": ["NOT"], "nome_atto_principale": note["nome"],
+        "ricevuta_consegna": "Message-ID ricevuta: pct-1\nData esito: 08/02/2027 11:27:00",
+        "ricevuta_cancelleria": True,
+    }
+
+    def stato(documento, dati_deposito):
+        fonti_caso = fonti(LAVORO, [RICORSO_LAVORO, DECRETO_415, documento], depositi=[dati_deposito])
+        fonti_caso.oggi = date(2027, 2, 10)
+        return conclusione(ragiona(fonti_caso), "note_127ter")
+
+    fatto = stato(note, deposito)
+    assert fatto.stato == "fatto"
+    assert "08/02/2027 alle 11:27" in fatto.prova_o_motivo
+    assert "deposito B1" in fatto.prova_o_motivo
+    assert fatto.prova_deposito["documento_id"] == "NOT"
+    from pct.fascicolo_lettura.ragionamento import vista
+    proiettato = vista({"conclusioni": [fatto.come_dizionario()]})["conclusioni"][0]
+    assert proiettato["termine"]["situazione"] == "adempiuto"
+    assert not proiettato["termine"]["rimedi"]
+    assert "art. 196-sexies disp. att. c.p.c." in norme_di(fatto)
+    assert stato({**note, "testo": note["testo"].replace("09.02", "16.02")}, deposito).stato != "fatto"
+    assert stato(note, {**deposito, "ricevuta_cancelleria": False}).stato != "fatto"
+    assert stato(note, {**deposito, "documenti_ids": ["ALTRO"]}).stato != "fatto"
+
+
+def test_scadenziario_riusa_la_prova_esatta_solo_per_il_termine_automatico(monkeypatch):
+    from types import SimpleNamespace
+
+    import web.helpers
+    from web.services.consegna_presidi_runtime import riconcilia_adempimenti
+
+    automatico = SimpleNamespace(
+        id="S1", titolo="Deposito note scritte ex art. 127-ter c.p.c.",
+        data_scadenza="2027-02-09", stato="APERTO", deadline_profile_code="PEC_AUTO_PRESIDIO",
+        note="PEC_AUDIT:msg-resoconto", perentorio=True, trace_json="[]",
+    )
+    manuale = SimpleNamespace(**{**vars(automatico), "id": "S2", "deadline_profile_code": "", "note": ""})
+    righe = [automatico, manuale]
+    completate = []
+    monkeypatch.setattr(web.helpers, "get_scadenziario", lambda: SimpleNamespace(
+        tutte=lambda **_: righe, aggiorna=lambda *_a, **_kw: None,
+        completa=lambda sid, **_kw: completate.append(sid),
+    ))
+    monkeypatch.setattr(web.helpers, "get_agenda", lambda: SimpleNamespace(get=lambda _id: None))
+    monkeypatch.setattr("web.services.lettura_cache.invalida_lettura", lambda _id: None)
+    conclusione = {
+        "codice": "note_127ter", "stato": "fatto", "termine": {"scadenza_iso": "2027-02-09"},
+        "prova_deposito": {"deposito_id": "B1", "documento_id": "D1", "consegna": "2027-02-08T11:27:00+01:00"},
+        "letto": {"documento_id": "ORD1"}, "prova_o_motivo": "Ricevuta e accettazione della stessa busta.",
+    }
+    lettura = {"ragionamento": {"conclusioni": [conclusione]}}
+    fascicolo = SimpleNamespace(id="F1", depositi_pct=[])
+
+    # Se due termini aperti competono per la prova, il motore conserva entrambi.
+    assert riconcilia_adempimenti(fascicolo, None, "studio", lettura=lettura)["completate"] == []
+    righe.pop()
+    assert riconcilia_adempimenti(fascicolo, None, "studio", lettura=lettura)["completate"] == ["S1"]
+    assert completate == ["S1"]
+
+
+def test_bozza_editabile_dello_studio_non_diventa_un_atto_processuale(monkeypatch):
+    from types import SimpleNamespace
+
+    from pct.fascicolo_lettura.modello import DatiLettura
+    from web.services.ragionamento_raccolta import fonti_da_lettura
+
+    fascicolo = SimpleNamespace(id="F1", documenti=[
+        SimpleNamespace(id="BOZZA", fonte_documento="BOZZA_NOTE_127_TER"),
+        SimpleNamespace(id="DEPOSITATO", fonte_documento="PST"),
+    ])
+    dati = DatiLettura(documenti=[
+        {"id": "BOZZA", "nome": "note.html"},
+        {"id": "DEPOSITATO", "nome": "note.pdf"},
+    ])
+    monkeypatch.setattr("web.services.archivio_letture_runtime.testi_indice_archivio", lambda _: {})
+    fatti = [{"tipo": "documento", "oggetto_id": oid} for oid in ("BOZZA", "DEPOSITATO")]
+    raccolte = fonti_da_lettura(fascicolo, dati, fatti)
+    assert [d["id"] for d in raccolte.documenti] == ["DEPOSITATO"]
+    assert [f["oggetto_id"] for f in raccolte.fatti] == ["DEPOSITATO"]
+    assert len(dati.documenti) == 2
+
+
 def test_note_accettate_senza_atto_identificato_restano_da_correlare(monkeypatch):
     from pct.fascicolo_lettura.ragionamento import vista
     from web.services import riscontri_processuali_runtime as riscontri
@@ -670,10 +757,24 @@ def test_tar_ottemperanza_legge_il_proprio_dispositivo_e_usa_il_cpa():
     fascicolo = {"tipo": "AMMINISTRATIVO", "tribunale": "TAR Calabria", "numero_rg": "425", "anno_rg": "2025"}
     causa = ragiona(fonti(fascicolo, [doc("TAR", "sentenza.pdf", "provvedimento", "Sentenza", testo)]))
     termine = conclusione(causa, "termine_impugnazione")
-    assert termine.termine is None and termine.stato == "non_dovuto"
+    assert termine.termine is None and termine.stato == "dubbio"
     assert "art. 92 c.p.a." in norme_di(termine)
     assert not any("c.p.c." in norma for norma in norme_di(termine))
     assert "sopravvenuto difetto di interesse" in conclusione(causa, "esito_rito").cosa
+
+    pubblicata = "Pubblicato il 25/07/2026\nN. 00543/2026 REG.PROV.COLL.\n" + testo
+    causa = ragiona(fonti(fascicolo, [doc("TAR", "sentenza.pdf", "provvedimento", "Sentenza", pubblicata)]))
+    appello = conclusione(causa, "termine_impugnazione")
+    assert appello.stato == "dubbio"
+    assert appello.termine is not None and appello.termine.scadenza == "2026-11-25"
+    assert appello.termine.decorrenza == "2026-07-25"
+    assert "art. 54, comma 2, c.p.a." in norme_di(appello)
+    estratto_indice = {**doc("TAR", "sentenza.pdf", "provvedimento", "Sentenza", testo), "sha256": "a" * 64}
+    timbro = {**fatto("TAR", "pubblicazione_pat", "2026-07-25", categoria="data"), "sha256": "a" * 64}
+    for atteso, documento in (("2026-11-25", estratto_indice), ("", dict(estratto_indice, sha256="b" * 64))):
+        causa = ragiona(fonti(fascicolo, [documento], fatti=[timbro]))
+        esito = conclusione(causa, "termine_impugnazione").termine
+        assert (esito.scadenza if esito else "") == atteso
 
 
 def test_riscontro_storico_congiunto_individua_la_notifica_gia_consegnata():
@@ -715,7 +816,9 @@ def test_copie_della_sentenza_riconosciute_dal_dispositivo_e_dalla_data():
         "oltre accessori di legge e con distrazione. Vicenza, 7/11/2025. Il giudice"
     )
     a = Atto("A", "Sentenza", "sentenza", "sentenza", rg="1506/2025",
-             sentenza=True, testo="Sentenza n. 605/2025 pubblicata il 10/11/2025. " + contenuto)
+             sentenza=True, testo="Sentenza n. 605/2025 pubblicata il 10/11/2025. " + contenuto.replace(
+                 "e condanna", "Firmato Da: Nome Cognome Emesso Da: CA DI FIRMA QUALIFICATA Serial#: abcdef123456"
+                 " Sentenza n. 605/2025 pubbl. il 10/11/2025 R.G. n. 1506/2025 e condanna"))
     b = Atto("B", "Copia", "sentenza", "sentenza", rg="1506/2025",
              sentenza=True, testo="Sentenza del Tribunale. " + contenuto.replace("rifusione delle spese", "*rifusione delle spese*"))
     c = Atto("C", "Altro", "sentenza", "sentenza", rg="1506/2025",
@@ -744,3 +847,47 @@ def test_copie_della_sentenza_senza_data_di_decisione_richiedono_testo_integrale
              testo=intestazione + "Parte diversa. " + motivazione + dispositivo)
     _copie_della_sentenza([a, b, c])
     assert a.copie == ["B"] and b.copie == ["A"] and not c.copie
+
+
+def test_distrazione_condizionata_richiede_un_atto_dello_studio_dello_stesso_rg():
+    from pct.ragionamento.modello import Atto
+    from pct.ragionamento.regole.economia import _richiesta_antistataria
+    from dataclasses import replace
+
+    sentenza = Atto("S", "Sentenza", "sentenza", "", data="2026-10-07", rg="2539/2025")
+    nota = Atto("N", "Note scritte", "atto_difensivo", "", autore="studio", data="2025-12-18", rg="2539/2025",
+                testo="Spese da distrarsi al sottoscritto, il quale dichiara di aver anticipato le prime e non ancora riscosso le seconde.")
+    assert _richiesta_antistataria([nota], sentenza)["id"] == "N"
+    assert not _richiesta_antistataria([replace(nota, rg="2538/2025"), replace(nota, autore="controparte"),
+                                       replace(nota, data="2026-10-08")], sentenza)
+
+
+def test_copie_della_stessa_busta_pec_sono_un_solo_invio_senza_attribuire_accettazione():
+    from pct.ragionamento.eventi import depositi_eseguiti
+    from pct.ragionamento.modello import Atto
+
+    nome = "DEPOSITO TELEMATICO: Note scritte RG: 2539/2025 [RefID_001_example].eml"
+    busta = Atto("P1", nome, "comunicazione", "", testo=f"Oggetto: {nome[:-4]}\nData: 09/12/2025")
+    copia = Atto("P2", "COPIA NON CRITTOGRAFATA " + nome, "comunicazione", "")
+    altro_invio = Atto("P3", nome.replace("example", "altro"), "comunicazione", "")
+    esiti = depositi_eseguiti([copia, altro_invio, busta], [])
+    assert {(e.fonte_id, e.data, e.accettato) for e in esiti} == {
+        ("P1", "2025-12-09", False), ("P3", "", False),
+    }
+
+
+def test_copia_in_chiaro_identifica_le_note_dell_udienza_senza_inventare_la_ricevuta():
+    from pct.ragionamento.eventi import depositi_eseguiti
+    from pct.ragionamento.modello import Atto
+
+    oggetto = "DEPOSITO TELEMATICO: Note scritte RG: 54/2025 [RefID_001_prova]"
+    busta = Atto("P1", oggetto + ".eml", "comunicazione", "",
+                 testo=f"Oggetto: {oggetto}\nData: 09/12/2025\n[Allegato: Atto.enc]")
+    copia = Atto("P2", "COPIA NON CRITTOGRAFATA " + oggetto + ".eml", "comunicazione", "",
+                 testo=f"Oggetto: COPIA NON CRITTOGRAFATA {oggetto}\nData: 09/12/2025\n"
+                       "[Allegato: DatiAtto.xml.p7m; parte 1.2]\nMetadati\n"
+                       "[Allegato: Note scritte.PDF; parte 1.3]\nUdienza del 16.12.2025\n"
+                       "[Allegato: Estratto.PDF; parte 1.4]\nUdienza del 20.12.2025")
+    esito, = depositi_eseguiti([busta, copia], [])
+    assert (esito.copia_in_chiaro_id, esito.udienza_note) == ("P2", "2025-12-16")
+    assert not esito.accettato and not esito.prova_consegna

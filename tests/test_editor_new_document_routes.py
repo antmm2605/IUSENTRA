@@ -144,6 +144,14 @@ def test_final_pdf_native_sql_retry_preserves_source(environment, monkeypatch):
     monkeypatch.setattr('pct.editor_export.esporta_documento_editor', convert)
     endpoint = f'/api/editor/{matter}/{source}/pdf-fascicolo'
     payload = {'html': request['html'], 'command_id': str(uuid4())}
+    for html in (
+        '<p><span data-iu-linked-field="cliente.codice_fiscale">[Codice fiscale]</span></p>',
+        '<p><span data-iu-linked-field="cliente.codice_fiscale" data-iu-linked-matter="ALTRO">CF PRECEDENTE</span></p>',
+    ):
+        incomplete = client.post(endpoint, json={**payload, 'html': html})
+        assert incomplete.status_code == 409
+        assert 'codice fiscale' in incomplete.json['errore']
+    assert not calls
     first = client.post(endpoint, json=payload)
     assert first.status_code == 201
     assert client.post(endpoint, json=payload).json == first.json
@@ -174,3 +182,35 @@ def test_bozza_note_riaperta_anche_con_nuovo_comando(environment, monkeypatch):
     riaperta = client.post(url, json={**richiesta, "command_id": str(uuid4())})
     assert riaperta.json == prima.json
     assert len(repo().get(matter).documenti) == 1
+
+
+def test_pdf_note_richiede_i_dati_mancanti_e_usa_la_data_italiana(environment, monkeypatch):
+    from pct.fascicoli import TipoDocumento
+
+    client, repo, matter, _, _ = environment
+    manager = repo()
+    assert manager.get(matter) is not None
+    source = manager.aggiungi_documento(
+        matter, 'note_2026-12-22.html', TipoDocumento.ALLEGATO,
+        b'<p>[Indicare il difensore costituito]</p>',
+        fonte_documento='BOZZA_NOTE_127_TER', salvataggio_mirato=True,
+    )
+    chiamate = []
+
+    def converti(html, **kwargs):
+        chiamate.append(html)
+        return b'%PDF-1.7\nTest conversione'
+
+    monkeypatch.setattr('pct.editor_export.esporta_documento_editor', converti)
+    url = f'/api/editor/{matter}/{source.id}/pdf-fascicolo'
+    payload = {'html': '<p>[Indicare il difensore costituito]</p>', 'command_id': str(uuid4())}
+    incompleto = client.post(url, json=payload)
+    assert incompleto.status_code == 409
+    assert 'difensore costituito' in incompleto.json['errore']
+    assert not chiamate and len(repo().get(matter).documenti) == 1
+
+    completo = client.post(url, json={**payload, 'html': '<p>Note da depositare il 22/12/2026.</p>'})
+    assert completo.status_code == 201
+    assert completo.json['nome'].startswith('note_22-12-2026 - finale ')
+    assert completo.json['nome'].endswith('.pdf')
+    assert len(chiamate) == 1 and len(repo().get(matter).documenti) == 2

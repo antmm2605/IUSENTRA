@@ -78,12 +78,13 @@ class ArchivioPannelli:
 
     @contextmanager
     def _conn(self, *, timeout: float = 10) -> Iterator[sqlite3.Connection]:
+        if self.percorso not in _PREPARATI:
+            Path(self.percorso).parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(self.percorso, timeout=timeout, isolation_level=None)
         try:
             if self.percorso not in _PREPARATI:
                 with _LOCK:
                     if self.percorso not in _PREPARATI:
-                        Path(self.percorso).parent.mkdir(parents=True, exist_ok=True)
                         conn.execute("PRAGMA journal_mode=WAL")
                         for istruzione in _SCHEMA:
                             conn.execute(istruzione)
@@ -275,9 +276,12 @@ class ArchivioPannelli:
         return bytes(riga[0]) if riga else None
 
     def elimina_vecchie(self, *, giorni: int = 30) -> int:
-        """Le voci non richieste da più di ``giorni`` si tolgono: nessuno le aprirà."""
+        """Elimina le richieste abbandonate prive di un risultato consultabile."""
         soglia = (datetime.now(UTC) - timedelta(days=int(giorni))).isoformat(timespec="milliseconds")
         with self._conn() as conn:
-            tolte = conn.execute("DELETE FROM pannelli WHERE richiesto_il<?", (soglia,)).rowcount
+            tolte = conn.execute(
+                "DELETE FROM pannelli WHERE richiesto_il<? AND (corpo IS NULL OR stato<>200)",
+                (soglia,),
+            ).rowcount
             conn.execute("DELETE FROM aperture WHERE aperto_il<?", (soglia,))
         return int(tolte or 0)

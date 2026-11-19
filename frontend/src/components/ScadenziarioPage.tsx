@@ -1016,21 +1016,22 @@ function DeadlineFocusDetail({
   const completed = row.status === 'COMPLETATO'
   const historical = row.status === 'STORICO'
   const closed = historical || completed || row.status === 'ANNULLATO'
-  const detailHeading = historical ? 'Riscontro storico' : row.reconciliationReason ? 'Motivo della rettifica' : completed ? 'Adempimento registrato' : closed ? 'Adempimento annullato' : 'Cosa fare'
+  const dateStatus = row.dateStatus === 'prudenziale' ? 'Data prudenziale' : row.dateStatus === 'da_verificare' ? 'Data da verificare' : ''
+  const detailHeading = historical ? 'Riscontro storico' : row.reconciliationReason ? 'Motivo della rettifica' : completed ? 'Adempimento registrato' : closed ? 'Adempimento annullato' : dateStatus ? 'Verifica della pubblicazione' : 'Cosa fare'
   return (
     <section className="iu-scad-focus-card" data-iusentra-sequence-slot="operational-subtitle" aria-label="Scadenza selezionata">
       <header className="iu-scad-focus-summary">
         <div className="iu-scad-focus-badges">
           <Badge tone={row.tone}>{row.statusLabel}</Badge>
           {closed ? null : <Badge tone={row.priority === 'CRITICA' ? 'danger' : row.priority === 'ALTA' ? 'warning' : 'neutral'}>Priorità {row.priorityLabel.toLowerCase()}</Badge>}
-          {row.peremptory && !historical ? <Badge tone="danger">Perentoria</Badge> : null}
+          {row.peremptory && !historical && !dateStatus ? <Badge tone="danger">Perentoria</Badge> : null}
         </div>
-        <div className={`iu-scad-focus-when${closed ? '' : row.overdue ? ' is-overdue' : row.dueToday ? ' is-today' : ''}`}>
+        <div className={`iu-scad-focus-when${closed || dateStatus ? '' : row.overdue ? ' is-overdue' : row.dueToday ? ' is-today' : ''}`}>
           <CalendarDays size={20}/>
           <div>
-            <span>{closed ? 'Data del termine' : notificationPresidio ? 'Da presidiare' : 'Scadenza'}</span>
+            <span>{dateStatus || (closed ? 'Data del termine' : notificationPresidio ? 'Da presidiare' : 'Scadenza')}</span>
             <strong>{row.dateLabel}</strong>
-            {!closed && row.daysLabel && row.daysLabel !== row.dateLabel ? <small>{row.daysLabel}</small> : null}
+            {!closed && !dateStatus && row.daysLabel && row.daysLabel !== row.dateLabel ? <small>{row.daysLabel}</small> : null}
           </div>
         </div>
       </header>

@@ -26,3 +26,12 @@ def test_udienza_remota_gia_tenuta_non_genera_verifiche(monkeypatch):
 def test_udienza_remota_futura_resta_da_verificare_con_la_data(monkeypatch):
     azioni = _azioni(monkeypatch, "2026-10-07", "2027-01-20")
     assert len(azioni) == 1 and "20/01/2027" in azioni[0]["reason"]
+
+
+def test_orari_di_udienza_distinguono_date_puntate_e_orari():
+    from pct.pec_pipeline import _time_label_from_text
+
+    assert _time_label_from_text("Ordinanza rinvio udienza 07.10.2026.PDF") == ""
+    assert _time_label_from_text("Udienza 01.04.2026 ore 09.45") == "09:45"
+    assert _time_label_from_text("01.04.2026 09.45") == "09:45"
+    assert _time_label_from_text("09:45") == "09:45"

@@ -33,6 +33,18 @@
   cursor: pointer;
 }
 
+.iu-fas-riscontri--riga {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.iu-fas-riscontri--riga details {
+  padding: 0;
+  border: 0;
+}
+
 .iu-fas-riscontri dl {
   display: grid;
   grid-template-columns: minmax(75px, auto) minmax(0, 1fr);

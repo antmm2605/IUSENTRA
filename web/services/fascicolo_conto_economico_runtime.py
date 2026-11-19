@@ -102,7 +102,7 @@ def _lato_del_cliente(fascicolo: Any) -> str:
     return "" if attivo is None else ("attivo" if attivo else "passivo")
 
 
-def sentenze_dall_archivio(fascicolo: Any) -> list[dict[str, Any]]:
+def sentenze_dall_archivio(fascicolo: Any, *, lettura: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Le spese regolate dalla sentenza della causa, lette dal motore documenti e conservate nell'archivio.
 
     Serve quando il controllo economico non ha registrato né eventi né liquidazione (identità della parte non
@@ -116,9 +116,18 @@ def sentenze_dall_archivio(fascicolo: Any) -> list[dict[str, Any]]:
     fid = _testo(getattr(fascicolo, "id", ""))
     numero, anno = _testo(getattr(fascicolo, "numero_rg", "")), _testo(getattr(fascicolo, "anno_rg", ""))
     rg = f"{numero}/{anno}" if numero and anno not in {"", "0"} else numero
+    identita_verificate = None
+    tipo = getattr(fascicolo, "tipo", "")
+    if _testo(getattr(tipo, "value", tipo)).casefold() == "amministrativo":
+        from web.services.riscontri_processuali_runtime import lettura_materializzata
+
+        corrente = lettura if lettura is not None else lettura_materializzata(fid)
+        ids = frozenset(voce["id"] for voce in ((corrente or {}).get("documenti") or {}).get("sentenze") or () if voce.get("id"))
+        if ids:
+            identita_verificate = ids
     fatti = [f for f in registro_corrente().fatti(tenant_corrente(), fid, verifiche=None)
              if f.tipo == "documento" and (f.categoria == "ruolo" or f.campo in {"spese_sentenza", "data_atto", "impronta_testo_atto"})]
-    lette = spese_lette(fatti, rg=rg)
+    lette = spese_lette(fatti, rg=rg, sentenze_pertinenti=identita_verificate)
     if not lette:
         return []
     nomi = {_testo(getattr(d, "id", "")): _testo(getattr(d, "nome", "")) for d in getattr(fascicolo, "documenti", []) or []}
@@ -143,6 +152,15 @@ def crediti_dalle_sentenze_lette(sentenze: list[dict[str, Any]]) -> list[dict[st
              "esborsi_contributo": voce.get("esborsi_contributo", False)}
             for voce in sentenze
             if voce["regolazione"] == "condanna" and voce["importo"] and voce.get("a_favore_del_cliente") is not False]
+
+
+def crediti_pertinenti(fascicolo: Any, crediti: list[dict[str, Any]], sentenze: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collega i crediti registrati alla decisione amministrativa della stessa causa."""
+    tipo = getattr(fascicolo, "tipo", "")
+    if _testo(getattr(tipo, "value", tipo)).casefold() != "amministrativo" or not sentenze:
+        return crediti
+    fonti = {f["href"] for s in sentenze for f in s.get("fonti") or () if f.get("href")}
+    return [c for c in crediti if any(f.get("href") in fonti for f in c.get("fonti") or ())]
 
 
 def crediti_da_provvedimenti(fascicolo: Any) -> list[dict[str, Any]]:
@@ -214,18 +232,16 @@ def parcelle_del_fascicolo(fascicolo_id: str) -> list[dict[str, Any]]:
     return righe
 
 
-def _esecuzione_pa(fascicolo_id: str) -> dict[str, Any] | None:
+def _esecuzione_pa(lettura: dict[str, Any] | None) -> dict[str, Any] | None:
     """Riprende i 120 giorni dalla Lettura preparata per la notifica provata del titolo alla P.A."""
-    from web.services.riscontri_processuali_runtime import lettura_materializzata
-
-    quadro = ((lettura_materializzata(fascicolo_id) or {}).get("ragionamento") or {})
+    quadro = (lettura or {}).get("ragionamento") or {}
     date = [v["termine"]["scadenza_iso"] for v in quadro.get("conclusioni") or ()
             if v.get("codice") == "esecuzione_pa" and not v.get("dubbi")
             and (v.get("termine") or {}).get("scadenza_iso")]
     return {"deadline": date[0]} if len(date) == 1 else None
 
 
-def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
+def conto_economico_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None = None) -> dict[str, Any]:
     from pct.fascicolo_conto_economico import conto_economico
     from pct.percorso_pratica.giurisdizioni import AMMINISTRATIVO, giurisdizione_e_grado
     from web.services.sentenza_economic_runtime import _fascicoli_repository_mirato
@@ -243,17 +259,19 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
         if documento_id:
             voce["href"] = _href_documento(fascicolo_id, documento_id)
         voci[chiave] = voce
-    crediti = crediti_da_sentenza(fascicolo_id) or credito_da_liquidazione_registrata(fascicolo)
-    sentenze = sentenze_dall_archivio(fascicolo)
-    crediti = crediti or crediti_dalle_sentenze_lette(sentenze)
-    if not crediti and not sentenze:
-        crediti = crediti_da_provvedimenti(fascicolo)
     from web.helpers import regime_fiscale_studio
 
     from web.services.contributo_stato_runtime import stato_contributo_fascicolo
     from web.services.riscontri_processuali_runtime import lettura_materializzata, stato_contributo_da_lettura
 
-    contributo = stato_contributo_da_lettura(lettura_materializzata(fascicolo_id))
+    if lettura is None:
+        lettura = lettura_materializzata(fascicolo_id)
+    contributo = stato_contributo_da_lettura(lettura)
+    crediti = crediti_da_sentenza(fascicolo_id) or credito_da_liquidazione_registrata(fascicolo)
+    sentenze = sentenze_dall_archivio(fascicolo, lettura=lettura or {})
+    crediti = crediti_pertinenti(fascicolo, crediti, sentenze) or crediti_dalle_sentenze_lette(sentenze)
+    if not crediti and not sentenze:
+        crediti = crediti_da_provvedimenti(fascicolo)
 
     tipo = getattr(fascicolo, "tipo", "")
     giurisdizione, _ = giurisdizione_e_grado(tipo=getattr(tipo, "value", tipo), ufficio=getattr(fascicolo, "tribunale", ""))
@@ -261,7 +279,7 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     # Lo stesso stato del contributo della card e della finestra del presidio economico (stessa voce, stesso catalogo).
     risultato = conto_economico(voci=voci, crediti=crediti, sentenze=sentenze, regime=regime_fiscale_studio(),
                                 documenti_contributo=[], stato_contributo=contributo or stato_contributo_fascicolo(fascicolo),
-                                parcelle=parcelle_del_fascicolo(fascicolo_id), esecuzione=_esecuzione_pa(fascicolo_id),
+                                parcelle=parcelle_del_fascicolo(fascicolo_id), esecuzione=_esecuzione_pa(lettura),
                                 amministrativo=giurisdizione == AMMINISTRATIVO)
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}
 

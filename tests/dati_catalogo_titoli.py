@@ -53,6 +53,22 @@ CAMPIONI: dict[str, tuple[str, str, str]] = {
     "accertamento_adesione": ("ISTANZA DI ACCERTAMENTO CON ADESIONE\nex art. 6 D.Lgs. 218/1997\nAll'Agenzia delle Entrate - Direzione Provinciale di Bari\nIl contribuente Mario Rossi chiede la formulazione della proposta di adesione in contraddittorio relativamente all'imposta accertata.", "Accertamento con adesione", "atti"),
     # ── Amministrativo ──
     "ricorso_ottemperanza": ("ON. TRIBUNALE AMMINISTRATIVO REGIONALE PER LA PUGLIA - SEDE DI BARI\n- RICORSO PER OTTEMPERANZA\nPer Mario Rossi, rappresentato e difeso dall'avv. Luca Bianchi,\ncontro il Ministero, per l'esecuzione del giudicato nascente dalla sentenza n. 95/2025 del Tribunale di Bari.", "Ricorso per l'ottemperanza (art. 114 c.p.a.)", "atti"),
+    "dichiarazione_esecuzione_cessazione": (
+        "Tribunale Amministrativo Regionale\nR.G. 425/2025\nDichiarazione a seguito di comunicazione\n"
+        "OGGETTO: Ricorso per l'ottemperanza del giudicato nascente dalla sentenza\n"
+        "Dichiara che l'amministrazione ha dato spontanea esecuzione alla sentenza. "
+        "Chiede al TAR di dichiarare la cessazione della materia del contendere.",
+        "Dichiarazione di avvenuta esecuzione e istanza di cessazione della materia del contendere",
+        "atti",
+    ),
+    "istanza_passaggio_decisione_senza_discussione": (
+        "TRIBUNALE AMMINISTRATIVO REGIONALE DELLA CALABRIA\n"
+        "ISTANZA PASSAGGIO IN DECISIONE SENZA DISCUSSIONE\n"
+        "Il sottoscritto difensore nel ricorso n. 425/2025\nCHIEDE\n"
+        "Il passaggio in decisione senza discussione del ricorso in oggetto.",
+        "Istanza di passaggio in decisione senza discussione",
+        "atti",
+    ),
     "ricorso_tar": ("RICORSO\nAl Tribunale Amministrativo Regionale per la Puglia - Bari\nPer Mario Rossi, rappresentato e difeso dall'avv. Luca Bianchi,\ncontro il Comune di Bari, per l'annullamento del provvedimento di diniego del permesso di costruire.", "Ricorso al TAR", "atti"),
     "motivi_aggiunti": ("RICORSO PER MOTIVI AGGIUNTI\nnel giudizio R.G. 100/2026 pendente dinanzi al T.A.R. Puglia\nPer Mario Rossi, contro il Comune di Bari, avverso il nuovo provvedimento impugnato con il ricorso principale.", "Motivi aggiunti", "atti"),
     "istanza_cautelare_amministrativa": ("ISTANZA CAUTELARE\nex art. 55 c.p.a.\nAl T.A.R. Puglia - Bari\nIl ricorrente chiede la sospensione del provvedimento impugnato per il periculum in mora derivante dall'imminente esecuzione.", "Domanda cautelare", "atti"),

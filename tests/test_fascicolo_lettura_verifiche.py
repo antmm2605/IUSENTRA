@@ -297,3 +297,12 @@ def test_lettura_riusa_valore_e_fonte_della_nota_di_iscrizione(tmp_path, monkeyp
     assert lettura.fascicolo["valore_causa"] == 1500
     assert lettura.fascicolo["fonte_valore_causa"] == fonte
     assert "_valore_iscrizione" not in lettura.archivio
+
+
+def test_pec_ricevuta_in_utc_usa_ora_e_giorno_italiani():
+    from pct.fascicolo_lettura.pec import leggi_messaggio
+
+    voce = leggi_messaggio({"received_at": "2026-10-08T23:19:00Z"})
+    assert voce["data"] == "09/10/2026"
+    assert voce["data_ora"] == "09/10/2026 ore 01:19"
+    assert voce["ordine"] == "2026-10-09"

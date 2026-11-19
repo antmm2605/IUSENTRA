@@ -224,6 +224,20 @@ def test_tempo_esaurito_prima_il_fascicolo_piu_recente_di_ogni_serie(tmp_path: P
     esito = esegui_giro(archivio, request_get=_rete(_pagine_complete()), serie=(SG, S1), pausa=0, tempo_massimo=0)
     assert esito["fascicoli_nuovi"] == 0
     assert "ancora da leggere" in esito["esiti"]["SG"]["messaggio"]
+    assert archivio.stato_serie()["SG"]["ultimo_successo"] == ""
+
+
+def test_esito_di_riserva_recente_resta_valido_dopo_un_timeout(archivio: ArchivioGazzetta):
+    from datetime import datetime, timedelta, timezone
+    from web.services.gazzetta_runtime import stato_delle_serie
+
+    ora = datetime(2026, 11, 18, 10, tzinfo=timezone.utc)
+    archivio.registra_esito("SG", ok=False, quando="2026-11-18T09:55:00Z", messaggio="Timeout")
+    archivio.registra_esito("SG", ok=True, quando="2026-11-18T09:50:00Z")
+    stato = stato_delle_serie(archivio, adesso=ora)[0]
+    assert stato["ok"] and stato["message"] == "Timeout"
+    assert stato["lastSuccessAt"] == "2026-11-18T09:50:00Z"
+    assert not stato_delle_serie(archivio, adesso=ora + timedelta(hours=2))[0]["ok"]
 
 
 # --- archivio: ricerca, filtri, paginazione ---

@@ -88,6 +88,7 @@ def test_cache_lettura_persistente_nel_registro_sql_e_invalidata_da_eventi(tmp_p
         LETTURA_CACHE._memory.clear()
 
         assert LETTURA_CACHE.get(key) == b'{"ok":true,"lettura":{"lacune":[]}}'
+        assert all(not path.exists() for path in LETTURA_CACHE._paths(key))
         rows = registro._seleziona("letture_payload_cache", "tenant_id = ? AND fascicolo_id = ?", (tenant, fascicolo_id))
         assert len(rows) == 1 and rows[0]["payload_json"].startswith('{"ok":true')
 

@@ -15,8 +15,20 @@ from pct.percorso_pratica.esito import esito_sentenza, improcedibile_per_interes
 from pct.termine_lungo_sentenza import data_decisione
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_ESITO = "2026.11.16.esito-dispositivo.v9-esborsi-inclusi"
+VERSIONE_ESTRAZIONE_ESITO = "2026.11.17.esito-dispositivo.v10-data-in-calce"
 _SENTENZA = re.compile(r"\bS\s?E\s?N\s?T\s?E\s?N\s?Z\s?A\b", re.IGNORECASE)
+_RICHIAMO_TRATTAZIONE_SCRITTA = re.compile(
+    r"\brichiamat[oa]\s+il\s+(?:proprio\s+)?decreto\s+di\s+sostituzione\s+dell['’]\s*udienza\s+del\s*$",
+    re.IGNORECASE,
+)
+
+
+def _decisa_in_trattazione_scritta(testo: str, decisione) -> bool:
+    from pct.provvedimenti.testo import date_vere, normalizza
+
+    apertura = normalizza(testo[:1500])
+    return any(giorno == decisione and _RICHIAMO_TRATTAZIONE_SCRITTA.search(apertura[max(0, inizio - 120):inizio])
+               for giorno, inizio, _fine, _forma in date_vere(apertura))
 
 
 _ESTINZIONE = re.compile(r"\bdichiara\s+(?:l['’]\s?)?estinzione\b|\bdichiara\s+estinto\s+il\s+(?:processo|giudizio)\b", re.IGNORECASE)
@@ -71,11 +83,15 @@ def estrai_esito(testo: str, *, origine: str) -> list[Fatto]:
             prove=[{"codice": "dispositivo", "esito": "ok", "dettaglio": "motivo di improcedibilità nel dispositivo"}],
         ))
     if decisa := data_decisione(testo):
+        prove = [{"codice": "data_decisione", "esito": "ok", "dettaglio": "data della pronuncia, distinta dalla pubblicazione"}]
+        if _decisa_in_trattazione_scritta(testo, decisa):
+            prove.append({"codice": "trattazione_scritta_decisa", "esito": "ok",
+                          "dettaglio": "la sentenza richiama il decreto di sostituzione dell’udienza della stessa data"})
         fatti.append(Fatto(
             categoria="evento", campo="data_decisione_sentenza", valore=decisa.isoformat(),
             valore_letto=decisa.strftime("%d/%m/%Y"), etichetta="Data della decisione", contesto=testo[-1200:],
             posizione=max(0, len(testo) - 1200), origine=origine, verifica="verificata", confidenza=0.9,
-            prove=[{"codice": "data_decisione", "esito": "ok", "dettaglio": "data della pronuncia, distinta dalla pubblicazione"}],
+            prove=prove,
         ))
     if spese["regolazione"] != "non_indicata":
         importo_atteso = spese["regolazione"] in {"condanna", "compensazione_parziale"}

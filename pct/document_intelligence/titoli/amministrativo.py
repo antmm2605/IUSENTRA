@@ -10,8 +10,27 @@ _AMMINISTRATIVO = r"\btribunale\s+amministrativo\b|\bt\.?\s*a\.?\s*r\.?\b|\bcons
 
 REGOLE = (
     regola(
+        "istanza_passaggio_decisione_senza_discussione",
+        r"istanza\s+(?:di\s+)?passaggio\s+in\s+decisione\s+senza\s+discussione(?:\s+.*)?",
+        r"^(?=.*(?:" + _AMMINISTRATIVO + r"))(?=.*\bchiede\s+(?:il\s+)?passaggio\s+in\s+decisione\s+senza\s+discussione\b)",
+        "Istanza di passaggio in decisione senza discussione",
+        role="istanza", section="atti", tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        fonte="normattiva_cpa_art87_camera_consiglio", deposit_role="atto_principale",
+        evidence="titolo e richiesta del difensore di decidere sugli atti (art. 87 c.p.a. per il rito camerale)",
+    ),
+    regola(
+        "dichiarazione_esecuzione_cessazione",
+        r"dichiarazione\s+(?:a\s+seguito\s+di\s+comunicazione|(?:di\s+)?(?:avvenuta|spontanea)\s+esecuzione)(?:\s+.*)?",
+        r"^(?=.*(?:" + _AMMINISTRATIVO + r"))(?=.*\b(?:avvenuta|spontanea)\s+esecuzione\b)"
+        r"(?=.*\bcessazione\s+della\s+materia\s+del\s+contendere\b)",
+        "Dichiarazione di avvenuta esecuzione e istanza di cessazione della materia del contendere",
+        role="atto_difensivo", section="atti", tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        fonte="normattiva_cpa_art34_cessazione", deposit_role="atto_principale",
+        evidence="titolo della dichiarazione, esecuzione riferita dalla parte e richiesta al giudice (art. 34, comma 5, c.p.a.)",
+    ),
+    regola(
         "ricorso_ottemperanza",
-        r"(?:.*\b)?ricorso\s+per\s+(?:l[’'\s]*)?ottemperanza(?:\s+.*)?",
+        r"(?:atto\s+di\s+)?ricorso\s+per\s+(?:l[’'\s]*)?ottemperanza(?:\s+.*)?",
         _AMMINISTRATIVO + r"|\bgiudicato\b|\b11[24]\b",
         "Ricorso per l'ottemperanza (art. 114 c.p.a.)",
         role="atto_principale", section="atti", tipo=TipoDocumento.RICORSO,

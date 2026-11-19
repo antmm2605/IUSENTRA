@@ -69,6 +69,23 @@ def test_dispositivo_non_riconosciuto_si_segna_e_non_si_riprova():
     assert recupera_esiti(_fascicolo(), registro, "t", sentenze={"S1"}, testo_salvato=lambda d: SENTENZA_GDP)["controllate"] == 0
 
 
+def test_accoda_solo_il_fascicolo_con_data_decisione_incompleta(tmp_path):
+    from pct.registro_letture import Oggetto, RegistroLetture
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services.esito_sentenze_recovery import accoda_decisioni_incomplete
+
+    registro = RegistroLetture(tmp_path / "letture.sqlite")
+    esito = Fatto(categoria="evento", campo="esito_sentenza", valore="accoglimento", verifica="verificata")
+    data = Fatto(categoria="evento", campo="data_decisione_sentenza", valore="2026-10-09", verifica="verificata")
+    for fid, fatti in (("F1", [esito]), ("F2", [esito, data])):
+        oggetto = Oggetto(tipo="documento", oggetto_id=f"{fid}-S1", nome="sentenza.pdf", sha256="b" * 64)
+        registro.registra_inventario("t", fid, [oggetto])
+        registro.registra_fatti("t", fid, oggetto, "documenti", fatti)
+    assert accoda_decisioni_incomplete(registro, "t", prima_di="2099-01-01", limite=10) == 1
+    assert registro.stato_evento("t", "F1") == "pending"
+    assert registro.stato_evento("t", "F2") == "idle"
+
+
 def test_senza_testo_salvato_non_si_apre_il_file():
     registro = _Registro([_ruolo()])
     assert recupera_esiti(_fascicolo(), registro, "t", sentenze={"S1"}, testo_salvato=lambda d: "") == {"controllate": 0, "recuperate": 0}

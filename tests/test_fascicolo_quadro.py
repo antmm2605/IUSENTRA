@@ -38,7 +38,8 @@ def test_conteggio_pec_unico():
     conteggio = conteggio_pec({"totale": 0, "da_controllare": []},
                               {"esiti": {"pec": {"esaminate": 1, "da_confermare": [{"id": "M1"}]}}})
     assert conteggio["collegate"] == 0 and conteggio["da_confermare"] == 1
-    assert conteggio["testo"] == "0 PEC collegate al fascicolo · 1 da confermare il collegamento"
+    assert conteggio["testo"] == "0 PEC collegate dalla casella · 1 da confermare il collegamento"
+    assert conteggio_pec({"totale": 4, "collegate": 2})["collegate"] == 2
 
 
 def test_righe_del_quadro():
@@ -54,7 +55,71 @@ def test_righe_del_quadro():
     assert notifiche["sezione"] == "sezione-comunicazioni"
     assert "da calcolare" in riga_notifiche(None, oggi=OGGI)["testo"]
     documenti = riga_documenti(43, 40, {"collegate": 0, "da_confermare": 1})
-    assert documenti["testo"] == "43 documenti · 40 da classificare · 1 PEC da confermare · 0 PEC collegate"
+    assert documenti["testo"] == "43 documenti · 40 da classificare · 1 PEC da confermare"
+
+
+def test_presidio_storico_riusa_atto_e_non_convoca_da_ricevuta(monkeypatch):
+    import json
+
+    from flask import Flask
+    from web.services import riscontri_processuali_runtime
+    from web.services.pannelli_pronti_catalogo import Pannello
+    from web.services.pannelli_pronti_ricomposizione import allinea_presidio_udienze
+    from web.services.pannelli_pronti_runtime import _ricomponi
+
+    azione = {"historical": True, "type": "udienza_127_bis", "documentId": "BUSTA",
+              "date": "01/04/2026", "dateIso": "2026-04-01", "time": "09:45"}
+    ricevuta = dict(azione, documentId="RICEVUTA", date="15/12/2025",
+                   source="CONSEGNA: Notificazione ai sensi della legge n. 53/1994")
+    manuale = dict(ricevuta, registeredHref="/agenda/1")
+    collegata = dict(azione, registeredHref="/agenda/2")
+    altra_ora = dict(azione, time="10:30")
+    termine = dict(azione, type="termine_documento", dateIso="2026-06-01")
+    dati = {"documentPresidio": {"actions": [azione, collegata, ricevuta, manuale, altra_ora, termine]}}
+    lettura = {
+        "documenti": {"tutti": [{"id": "BUSTA", "etichetta": "Copia non crittografata del deposito telematico"}]},
+        "ragionamento": {"udienze": [{"data": "01/04/2026", "ora": "09:45", "modalita": "da remoto",
+                                     "documento_id": "DECRETO", "documento": "Decreto"}],
+                         "conclusioni": [{"codice": "notifica_ordinata", "stato": "fatto", "prova_o_motivo": "Eseguita",
+                                          "letto": {"documento_id": "ORD", "documento": "Ordinanza"},
+                                          "prova_notifica": {"deposito_inviato": {"copia_in_chiaro_id": "BUSTA"}},
+                                          "termine": {"scadenza_iso": "2026-06-01"}}]},
+    }
+    originale = json.dumps(dati).encode()
+    allinea_presidio_udienze(dati, lettura, "F1")
+    udienza, appuntamento, rinnovazione = dati["documentPresidio"]["actions"]
+    assert udienza["documentId"] == "DECRETO" and udienza["sourceHref"].endswith("/DECRETO/visualizza")
+    assert udienza["registeredHref"] == "/agenda/2"
+    assert appuntamento is manuale
+    assert rinnovazione["documentId"] == "ORD" and rinnovazione["description"] == "Eseguita"
+    monkeypatch.setattr(riscontri_processuali_runtime, "lettura_consultiva", lambda _fid: lettura)
+    pannello = Pannello("dettaglio", "test", ricomponi="lettura_del_dettaglio")
+    app = Flask(__name__)
+    with app.test_request_context("/fascicoli/F1?include=documenti,scadenze&confirm_revision=1"):
+        confermato = json.loads(_ricomponi(pannello, originale, "F1"))
+    assert confermato["documentPresidio"] == dati["documentPresidio"]
+
+
+def test_costituzione_storica_riusa_il_computo_solo_per_il_decreto_o_la_pec_provata():
+    from web.services.pannelli_pronti_ricomposizione import allinea_presidio_udienze
+
+    grezza = {"id": "A1", "historical": True, "date": "06/12/2025", "dateIso": "2025-12-06",
+              "type": "costituzione_resistente", "documentId": "NOTIFICA"}
+    altra = {**grezza, "id": "A2", "documentId": "ALTRA"}
+    manuale = {**grezza, "id": "A3", "registeredHref": "/scadenziario?focus=S1"}
+    dati = {"documentPresidio": {"actions": [grezza, altra, manuale], "nextAction": grezza}}
+    lettura = {"ragionamento": {"conclusioni": [{
+        "codice": "costituzione_convenuto", "onerato_codice": "controparte",
+        "letto": {"documento_id": "DECRETO", "documento": "Decreto di fissazione udienza"},
+        "termine": {"data_grezza": "2025-12-06", "scadenza_iso": "2025-12-05", "scadenza": "05/12/2025",
+                    "fonti_trasmissione": ["NOTIFICA"], "computo": "Anticipo al venerdì (art. 155 c.p.c.)."},
+    }]}}
+    allinea_presidio_udienze(dati, lettura, "F1")
+    corretta, invariata, registrata = dati["documentPresidio"]["actions"]
+    assert corretta["dateIso"] == "2025-12-05" and corretta["sourceHref"].endswith("/DECRETO/visualizza")
+    assert corretta["description"].endswith("Termine della controparte.")
+    assert (invariata, registrata) == (altra, manuale)
+    assert dati["documentPresidio"]["nextAction"] == corretta
 
 
 def test_quadro_notifica_con_data_trascorsa_chiede_la_prova():
@@ -75,6 +140,8 @@ def test_riga_economia_dal_conto_economico():
     riga = riga_economia(contributo, righe, "Preparare la proforma.")
     assert riga["testo"].startswith("Contributo unificato: Esente, da confermare (art. 9, comma 1-bis, D.P.R. 115/2002)")
     assert "liquidate in sentenza € 515,00, distratte in favore dell'avvocato" in riga["testo"]
+    assert "Preparare la proforma." in riga["testo"]
+    assert riga["testo"].lower().count("proforma") == 1
     assert riga["livello"] == "attenzione" and riga["sezione"] == "sezione-economia"
 
 
@@ -90,6 +157,18 @@ def test_economia_richiede_verifica_dispositivo_prima_della_proforma():
     assert riga["livello"] == "attenzione"
     assert "Verificare il dispositivo" in riga["testo"]
     assert "proforma da preparare" not in riga["testo"]
+
+
+def test_quadro_mostra_le_spese_compensate_anche_prima_del_conto(monkeypatch):
+    from web.services import riscontri_processuali_runtime
+    from web.services.fascicolo_quadro_runtime import riga_economia_materializzata
+
+    monkeypatch.setattr(riscontri_processuali_runtime, "risultato_materializzato", lambda *_: None)
+    lettura = {
+        "percorso": {"documento_id": "S1", "spese": {"regolazione": "compensazione"}},
+        "ragionamento": {"economia": {"contributo_unificato": {"codice": "esente", "etichetta": "Esente"}}},
+    }
+    assert riga_economia_materializzata("F1", lettura)["testo"] == "Contributo unificato: Esente · spese compensate"
 
 
 def _fascicolo_esente(tmp_path: Path):
@@ -245,6 +324,24 @@ def test_quadro_riusa_riscontro_storico_solo_per_lo_stesso_atto_e_la_stessa_fina
     assert "Altra sentenza: notifica da verificare" in testo_precedente
     assert "Titolo esecutivo: notifica da verificare" in testo_precedente
     assert riga_notifiche_da_lettura({"obblighi": obblighi[:1]}, precedente, OGGI)["livello"] == "info"
+
+
+def test_quadro_senza_sintesi_mostra_i_soli_riscontri_documentati():
+    from web.services.fascicolo_quadro_runtime import riga_notifiche_da_lettura
+
+    lettura = {"ragionamento": {"versione": "1", "impronta": "fonti", "conclusioni": [
+        {"codice": "notifica_ricorso_decreto_415", "stato": "non_dovuto", "letto": {"documento_id": "D1"}},
+        {"codice": "notifica_sentenza", "stato": "non_dovuto", "letto": {"documento_id": "S1"}},
+        {"codice": "notifica_sentenza", "stato": "da_fare", "letto": {"documento_id": "S2"}},
+    ]}}
+    riga = riga_notifiche_da_lettura(None, lettura, OGGI)
+    assert "adempimento storico" in riga["testo"]
+    assert "riscontro storico del termine breve" in riga["testo"]
+    assert riga["livello"] == "info"
+    assert "Ultima lettura salvata" in riga_notifiche_da_lettura(
+        None, {**lettura, "aggiornamento_pendente": True}, OGGI
+    )["testo"]
+    assert "da calcolare" in riga_notifiche_da_lettura(None, None, OGGI)["testo"]
 
 
 def test_pannello_obblighi_proietta_lettura_senza_riproporre_la_notifica_storica(monkeypatch):

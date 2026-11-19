@@ -1,7 +1,15 @@
 import { apiJson, apiPostJson } from '@/lib/apiClient'
 import type { Correzione, EsitoCorrezione, Passaggio, RegolaStudio } from './types'
 
-export type BozzaNote = { titolo: string; termine: string; documento: string; documento_id: string }
+export type BozzaNote = {
+  titolo: string
+  termine: string
+  documento: string
+  documento_id: string
+  campi_da_completare?: string[]
+  sezione_provvedimento?: string
+  ricorso_da_acquisire?: { atto: string; busta: string; data: string }
+}
 type PassaggiPayload = { ok: boolean; passaggi: Passaggio[]; bozzeNote?: Record<string, BozzaNote>; errore?: string }
 type RegolePayload = { ok: boolean; regole: RegolaStudio[]; errore?: string }
 type RegolaPayload = { ok: boolean; regola?: RegolaStudio; errore?: string }

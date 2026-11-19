@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from uuid import UUID
 from flask import g, jsonify, request
 from pct.prima_nota_transition import prima_nota_source_lock
-from pct.editor_stamp import editor_stamp_lines
+from pct.editor_stamp import editor_stamp_payload
 from web.services.document_edit_policy import motivo_blocco_editor
 from web.services.document_word_fonts import SourceFontCoverageError
 
@@ -23,10 +24,8 @@ def register_editor_finalize_routes(app, *, get_fascicoli, audit, encrypt_doc, g
         try:
             if getattr(g, 'tenant_context_missing', False):
                 raise RuntimeError('Contesto studio mancante')
-            stamp = get_timbro()
-            if stamp is None or not stamp.to_lines():
-                return jsonify(ok=False, errore='Configura il timbro dello studio nelle impostazioni prima di inserirlo.'), 409
-            return jsonify(ok=True, righe=editor_stamp_lines(stamp), interlinea=float(stamp.payload.get('layout', {}).get('interlinea', 1.22)))
+            payload = editor_stamp_payload(get_timbro())
+            return jsonify(payload), 200 if payload["ok"] else 409
         except SourceFontCoverageError as error:
             return jsonify(ok=False, errore=str(error)), 422
         except Exception:
@@ -73,14 +72,28 @@ def register_editor_finalize_routes(app, *, get_fascicoli, audit, encrypt_doc, g
                     document = previous[0]
                 else:
                     from pct.editor_export import esporta_documento_editor
+                    from pct.editor_linked_fields import editor_linked_fields_missing
+                    from pct.note_127_ter.bozza import campi_note_mancanti
                     from pct.fascicoli import TipoDocumento
+                    from lxml.html import fragment_fromstring
                     from web.services.editor_word_source import editor_word_source
                     from pct.document_crypto import decrypt_doc
-                    raw = esporta_documento_editor(html, formato='pdf', titolo=Path(source.nome).stem,
+                    titolo = Path(source.nome).stem
+                    contenuto = fragment_fromstring(html, create_parent=True)
+                    mancanti = list(dict.fromkeys(
+                        editor_linked_fields_missing(contenuto, matter_id=id_fasc)
+                        + campi_note_mancanti(contenuto.text_content())
+                    ))
+                    if mancanti:
+                        return jsonify(ok=False, errore='Completa i campi della bozza prima di salvare il PDF per il deposito: '
+                                       + ', '.join(mancanti) + '.'), 409
+                    if source.fonte_documento == 'BOZZA_NOTE_127_TER':
+                        titolo = re.sub(r'(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)', r'\3-\2-\1', titolo)
+                    raw = esporta_documento_editor(html, formato='pdf', titolo=titolo,
                         fonte_word=editor_word_source(repo, id_fasc, source, decrypt_doc, html=html))
                     if not raw.startswith(b'%PDF-'):
                         raise RuntimeError('PDF non prodotto')
-                    filename = Path(source.nome).stem + ' - finale ' + command[:8] + '.pdf'
+                    filename = titolo + ' - finale ' + command[:8] + '.pdf'
                     document = repo.aggiungi_documento(id_fasc, filename, TipoDocumento.ALLEGATO, encrypt_doc(raw), caricato_da=g.utente_corrente.username,
                         fonte_documento='REDAZIONE_STUDIO', note='PDF finale dall’editor; fonte modificabile ' + id_doc,
                         tags=['pdf-finale-editor', 'editor-fonte:' + id_doc, marker, fingerprint], nome_originale=filename,

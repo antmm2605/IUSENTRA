@@ -77,6 +77,17 @@ def _structured_operational_http_payload(*, user, studio, data, question, attach
     )
 
 
+def _harness_http_payload(question: str, *, attachments, data: dict[str, Any]):
+    """Domande giuridiche (redazione, parere, termine, norma): harness di Lex prima di ogni percorso operativo."""
+    from .http_bounded_bridge import _manual_free_web_enabled
+
+    if attachments or _manual_free_web_enabled(data) or not clean_spaces(question):
+        return None
+    from .harness.http import payload_harness
+
+    return payload_harness(question, risposta_certa=_risposta_certa_http)
+
+
 def _structured_query_stream(payload):
     def generate():
         yield f"data: {json.dumps({'payload': payload})}\n\n"
@@ -296,6 +307,10 @@ def build_context_response(
     )
     if not current_user_message:
         return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
+
+    giuridica = _harness_http_payload(current_user_message, attachments=attachments, data=data)
+    if giuridica is not None:
+        return giuridica, 200
 
     structured = _structured_operational_http_payload(user=user, studio=studio, data=data,
                                               question=current_user_message, attachments=attachments)
@@ -675,10 +690,16 @@ def chat_response(
     attachments = list(data.get("attachments") or [])
     fascicolo_id = str(data.get("fascicolo_id", "") or "")
     mode = clean_spaces(data.get("mode")) or "general"
+    # Il widget manda «messages»; un client che manda solo «question» deve avere lo stesso percorso.
+    ha_messaggio_utente = any(str((m or {}).get("role") or "") == "user" and clean_spaces((m or {}).get("content"))
+                              for m in messages if isinstance(m, dict))
     current_user_message, previous_user_text, history_messages = resolve_messages(
-        explicit_question="",
+        explicit_question="" if ha_messaggio_utente else clean_spaces(data.get("question")),
         messages=messages,
     )
+    giuridica = _harness_http_payload(current_user_message, attachments=attachments, data=data)
+    if giuridica is not None:
+        return _structured_query_stream(giuridica)
     structured = _structured_operational_http_payload(user=user, studio=studio, data=data,
                                               question=current_user_message, attachments=attachments)
     if structured is not None:

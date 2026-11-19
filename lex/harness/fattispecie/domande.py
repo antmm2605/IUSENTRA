@@ -1,0 +1,305 @@
+"""Domande puntuali: procedibilità, competenza, rito, termini di esecuzione, condominio, consumatori, amministrativo e
+penale. Ogni risposta porta la norma vigente e, se l'avvocato indica una data, la scadenza calcolata dal motore."""
+from __future__ import annotations
+
+import re
+
+from ..comprensione import Comprensione
+from ..fatti import Fatti, euro
+from ..modello import Analisi, Punto, Rif
+from ..norme import piano
+from .. import procedura as P
+from ..termini import data_breve, termine_giorni, termine_mesi
+
+
+def _t(f: Fatti) -> str:
+    return piano(f.testo)
+
+
+def _prima_data(f: Fatti):
+    return f.eventi[0].data if f.eventi else None
+
+
+# ---------------------------------------------------------------------------------- negoziazione / mediazione puntuali
+def riconosci_negoziazione(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 3 if "negoziazione" in t and f.importi and not c.racconto and not f.ha("caparra_confirmatoria") else 0
+
+
+def analizza_negoziazione(c: Comprensione, f: Fatti) -> Analisi:
+    valore = max(i.valore for i in f.importi)
+    a = Analisi("negoziazione_obbligatoria", "procedibilità", valore=valore)
+    consumatore = f.ha("consumatore")
+    a.capito = [f"Domanda di pagamento di {euro(valore)}: serve la negoziazione assistita prima della causa?"]
+    a.conclusione = P.negoziazione_pagamento(valore, consumatore=consumatore)
+    a.procedibilita = [
+        Punto("Esclusioni: non si applica alle controversie su obbligazioni contrattuali da contratti fra professionisti e "
+              "consumatori, ai procedimenti per ingiunzione inclusa l'opposizione, alla consulenza tecnica preventiva, alle "
+              "opposizioni nell'esecuzione forzata, ai procedimenti in camera di consiglio e all'azione civile nel processo "
+              "penale; né quando la parte può stare in giudizio personalmente; né nei casi di mediazione obbligatoria.",
+              [Rif("dl132:3", "contratti conclusi tra professionisti e consumatori"),
+               Rif("dl132:3", "procedimenti per ingiunzione, inclusa l'opposizione"),
+               Rif("dl132:3", "articolo 5, comma 1-bis")]),
+        P.improcedibilita_rimedio(),
+    ]
+    return a
+
+
+def riconosci_mediazione(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 2 if "mediazione" in t and re.search(r"obbligatori|serve|occorre|necessari|condizione", t) and not c.racconto else 0
+
+
+def _materia_mediazione(t: str) -> str | None:
+    for nome, parola in (("condominio", "condomin"), ("locazione", "locazion"), ("diritti reali", "servitu|usucapion|proprieta"),
+                         ("successioni ereditarie", "eredit|successi"), ("divisione", "divisione"), ("comodato", "comodato"),
+                         ("contratti assicurativi, bancari e finanziari", "banca|bancari|assicurat|finanziari|mutuo"),
+                         ("responsabilità medica e sanitaria", "medic|sanitari|ospedal")):
+        if re.search(parola, t):
+            return nome
+    return None
+
+
+def analizza_mediazione(c: Comprensione, f: Fatti) -> Analisi:
+    t = _t(f)
+    materia = _materia_mediazione(t)
+    a = Analisi("mediazione_obbligatoria", "procedibilità")
+    a.capito = ["Verifica della mediazione obbligatoria per la controversia descritta."]
+    a.conclusione = P.mediazione_obbligatoria(materia)
+    if materia is None:
+        a.dubbi.append("Materia non riconosciuta fra quelle dell'art. 5, comma 1: indica l'oggetto preciso della lite.")
+    return a
+
+
+# ---------------------------------------------------------------------------------- rito semplificato
+def riconosci_semplificato(c: Comprensione, f: Fatti) -> int:
+    return 3 if re.search(r"rito semplificato|procedimento semplificato|281-?decies", _t(f)) and not c.racconto else 0
+
+
+def analizza_semplificato(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("rito_semplificato", "civile — rito")
+    a.conclusione = [Punto("Il procedimento semplificato di cognizione si usa quando i fatti di causa non sono controversi, "
+                           "oppure la domanda è fondata su prova documentale, è di pronta soluzione o richiede "
+                           "un'istruzione non complessa; nelle cause in cui il tribunale giudica in composizione "
+                           "monocratica la domanda può sempre essere proposta in questa forma. Si introduce con ricorso.",
+                           [Rif("cpc:281decies", "fatti di causa non sono controversi"),
+                            Rif("cpc:281decies", "composizione monocratica"), Rif("cpc:281undecies", "si propone con ricorso")])]
+    return a
+
+
+# ---------------------------------------------------------------------------------- appello lavoro
+def riconosci_appello_lavoro(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 3 if c.tipo == "termine" and re.search(r"appell", t) and re.search(r"lavoro", t) else 0
+
+
+def analizza_appello_lavoro(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("appello_lavoro", "lavoro")
+    d = _prima_data(f)
+    a.conclusione = [Punto("Nel rito del lavoro l'appello si deposita entro trenta giorni dalla notificazione della "
+                           "sentenza (termine breve).", [Rif("cpc:434", "trenta giorni dalla notificazione della sentenza")])]
+    a.termini = [Punto("La sospensione feriale dei termini non si applica alle controversie di lavoro.",
+                       [Rif("l742:3", "429")])]
+    if d:
+        scad = termine_giorni(d, 30, sospensione_feriale=False)
+        a.conclusione.append(Punto(f"Sentenza notificata il {data_breve(d)}: appello entro {data_breve(scad)} (senza "
+                                   "sospensione feriale).", [Rif("cpc:434", "trenta giorni dalla notificazione della sentenza")]))
+    return a
+
+
+# ---------------------------------------------------------------------------------- esecuzione
+def riconosci_precetto(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 3 if "precett" in t else 0
+
+
+def analizza_precetto(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("precetto", "esecuzione", modello="ESE_001")
+    a.inquadramento = [
+        Punto("Il precetto è l'intimazione di adempiere l'obbligo risultante dal titolo esecutivo entro un termine non "
+              "minore di dieci giorni, con l'avvertimento che, in mancanza, si procederà a esecuzione forzata.",
+              [Rif("cpc:480", "termine non minore di dieci giorni")]),
+        Punto("Prima che sia decorso il termine indicato nel precetto non si può iniziare l'esecuzione forzata.",
+              [Rif("cpc:482", "prima che sia decorso il termine indicato nel precetto")]),
+    ]
+    a.conclusione = [Punto("Il precetto diventa inefficace se entro novanta giorni dalla notificazione non è iniziata "
+                           "l'esecuzione.", [Rif("cpc:481", "novanta giorni")])]
+    d = _prima_data(f)
+    if d and re.search(r"notificat", _t(f)):
+        a.conclusione.append(Punto(f"Precetto notificato il {data_breve(d)}: esecuzione da iniziare dopo dieci giorni e "
+                                   f"entro {data_breve(termine_giorni(d, 90))}.", [Rif("cpc:481", "novanta giorni")]))
+    if c.tipo == "redazione":
+        from ..bozze import ricorso_generico
+
+        cred = f.importi[0].valore if f.importi else None
+        a.bozza = ricorso_generico(
+            "Atto di precetto (art. 480 c.p.c.)", "", f, "intimazione di pagamento in forza di titolo esecutivo",
+            ["Titolo esecutivo: [sentenza/decreto, ufficio, numero, data] spedito in forma esecutiva e notificato il [da completare].",
+             "Somme dovute: capitale " + (euro(cred) if cred else "[da completare]") + ", interessi, spese liquidate e "
+             "successive, compensi del precetto: [da completare].",
+             "Avvertimento: il debitore può porre rimedio alla situazione di sovraindebitamento con un accordo di "
+             "composizione della crisi o un piano del consumatore, con l'ausilio di un organismo di composizione della crisi."],
+            "si intima di pagare entro dieci giorni dalla notificazione del presente atto le somme indicate, con "
+            "l'avvertimento che in mancanza si procederà a esecuzione forzata.", "titolo esecutivo in forma esecutiva.",
+            "artt. 479 e 480 c.p.c.")
+    return a
+
+
+def riconosci_opposizione_atti(c: Comprensione, f: Fatti) -> int:
+    return 3 if re.search(r"opposizione agli atti esecutivi|617", _t(f)) else 0
+
+
+def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("opposizione_atti_esecutivi", "esecuzione")
+    a.conclusione = [Punto("L'opposizione agli atti esecutivi si propone entro venti giorni dalla notificazione del titolo "
+                           "o del precetto, oppure dal compimento dell'atto esecutivo contestato o dalla sua conoscenza.",
+                           [Rif("cpc:617", "venti giorni")])]
+    d = _prima_data(f)
+    if d:
+        a.conclusione.append(Punto(f"Dal {data_breve(d)}: scadenza {data_breve(termine_giorni(d, 20))}.", [Rif("cpc:617", "venti giorni")]))
+    return a
+
+
+# ---------------------------------------------------------------------------------- condominio
+def riconosci_delibera(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 3 if re.search(r"delibera|deliberazion", t) and "condomin" in t else 0
+
+
+def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("impugnazione_delibera", "condominio")
+    a.conclusione = [Punto("La delibera contraria alla legge o al regolamento si impugna davanti all'autorità giudiziaria "
+                           "nel termine perentorio di trenta giorni, che decorre dalla data della deliberazione per i "
+                           "dissenzienti o astenuti e dalla data di comunicazione per gli assenti.",
+                           [Rif("cc:1137", "termine perentorio di trenta giorni"), Rif("cc:1137", "comunicazione")])]
+    a.procedibilita = P.mediazione_obbligatoria("condominio")
+    d = _prima_data(f)
+    if d:
+        a.conclusione.append(Punto(f"Dal {data_breve(d)}: trenta giorni scadono {data_breve(termine_giorni(d, 30))} "
+                                   "(calcolo con sospensione feriale e proroga dei festivi; verifica se il tuo caso è "
+                                   "termine sostanziale).", [Rif("cc:1137", "termine perentorio di trenta giorni")]))
+    a.dubbi.append("La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: "
+                   "depositala entro i trenta giorni.")
+    return a
+
+
+def riconosci_lite_condominio(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 2 if "condomin" in t and re.search(r"mediazione|infiltraz|lastrico|danni", t) and not re.search(r"delibera", t) else 0
+
+
+def analizza_lite_condominio(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("lite_condominio", "condominio")
+    a.conclusione = P.mediazione_obbligatoria("condominio")
+    return a
+
+
+# ---------------------------------------------------------------------------------- consumatori
+def riconosci_consumatore(c: Comprensione, f: Fatti) -> int:
+    return 3 if f.ha("consumatore") and f.importi and re.search(r"giudice|foro|competen|negoziazione", _t(f)) else 0
+
+
+def analizza_consumatore(c: Comprensione, f: Fatti) -> Analisi:
+    valore = max(i.valore for i in f.importi)
+    a = Analisi("consumatore", "consumatori", valore=valore)
+    giudice, punti = P.giudice_per_valore(valore)
+    a.competenza = punti + [Punto("Foro del consumatore: è inderogabilmente competente il giudice del luogo di residenza "
+                                  "o di domicilio del consumatore.", [Rif("dlgs206:66bis", "residenza o di domicilio del consumatore")])]
+    a.procedibilita = P.negoziazione_pagamento(valore, consumatore=True)
+    a.conclusione = [Punto(f"{giudice} del luogo di residenza o domicilio del consumatore; negoziazione assistita non "
+                           "obbligatoria per i contratti fra professionisti e consumatori.",
+                           (punti[0].rif if punti else []) + [Rif("dlgs206:66bis", "residenza o di domicilio del consumatore"),
+                                                              Rif("dl132:3", "contratti conclusi tra professionisti e consumatori")])]
+    a.giudice = giudice
+    return a
+
+
+# ---------------------------------------------------------------------------------- amministrativo
+def riconosci_straordinario(c: Comprensione, f: Fatti) -> int:
+    return 3 if re.search(r"ricorso straordinario", _t(f)) else 0
+
+
+def analizza_straordinario(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("ricorso_straordinario", "amministrativo")
+    a.conclusione = [Punto("Il ricorso straordinario al Presidente della Repubblica si propone entro centoventi giorni "
+                           "dalla notificazione o comunicazione dell'atto impugnato o da quando l'interessato ne ha avuto "
+                           "piena conoscenza.", [Rif("dpr1199:9", "centoventi giorni")])]
+    return a
+
+
+# ---------------------------------------------------------------------------------- penale
+def riconosci_querela(c: Comprensione, f: Fatti) -> int:
+    return 3 if "querel" in _t(f) and re.search(r"termin|entro|quando|tempo", _t(f)) else 0
+
+
+def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("termine_querela", "penale")
+    a.conclusione = [Punto("Salvo che la legge disponga altrimenti, il diritto di querela si esercita entro tre mesi dal "
+                           "giorno della notizia del fatto che costituisce il reato.", [Rif("cp:124", "tre mesi")])]
+    d = _prima_data(f)
+    if d:
+        a.conclusione.append(Punto(f"Notizia del fatto il {data_breve(d)}: querela entro {data_breve(termine_mesi(d, 3, sospensione_feriale=False))}.",
+                                   [Rif("cp:124", "tre mesi")]))
+    a.dubbi.append("Alcuni reati hanno termini diversi stabiliti dalla legge: verifica la norma del reato specifico.")
+    return a
+
+
+def riconosci_appello_penale(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 3 if re.search(r"appell|impugnazion", t) and re.search(r"penal|imputat|reato", t) and c.tipo in {"termine", "parere"} else 0
+
+
+def analizza_appello_penale(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("impugnazione_penale", "penale")
+    a.conclusione = [Punto("Il termine per l'impugnazione penale è di quindici giorni se la motivazione è contestuale, di "
+                           "trenta giorni se la motivazione è depositata entro il quindicesimo giorno, di quarantacinque "
+                           "giorni se il giudice fissa un termine più lungo per la motivazione.",
+                           [Rif("cpp:585", "quindici giorni"), Rif("cpp:585", "trenta giorni"), Rif("cpp:585", "quarantacinque giorni")])]
+    a.dubbi.append("Per il difensore dell'imputato giudicato in assenza i termini sono aumentati di quindici giorni: "
+                   "verifica il caso concreto sul testo dell'art. 585 c.p.p.")
+    return a
+
+
+# ---------------------------------------------------------------------------------- TAR e tributario
+def riconosci_tar(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 3 if re.search(r"\btar\b|tribunale amministrativo", t) and re.search(r"impugn|ricors|termin|entro", t) else 0
+
+
+def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("ricorso_tar", "amministrativo")
+    a.conclusione = [Punto("L'azione di annullamento davanti al TAR si propone nel termine di decadenza di sessanta giorni, "
+                           "che decorre dalla notificazione, comunicazione o piena conoscenza del provvedimento.",
+                           [Rif("cpa:29", "termine di decadenza di sessanta giorni"),
+                            Rif("cpa:41", "piena conoscenza")])]
+    a.termini = [Punto("La sospensione feriale dei termini (1-31 agosto) si applica anche ai termini del processo "
+                       "amministrativo.", [Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")])]
+    d = _prima_data(f)
+    if d:
+        a.conclusione.append(Punto(f"Provvedimento notificato il {data_breve(d)}: ricorso da notificare entro "
+                                   f"{data_breve(termine_giorni(d, 60))} (sessanta giorni con la sospensione feriale).",
+                                   [Rif("cpa:29", "sessanta giorni"), Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")]))
+    a.dubbi.append("Riti speciali (appalti, accesso agli atti, silenzio) hanno termini dimezzati o diversi: verifica il rito.")
+    return a
+
+
+def riconosci_tributario(c: Comprensione, f: Fatti) -> int:
+    t = _t(f)
+    return 3 if re.search(r"avviso di accertamento|cartella|tributar|agenzia delle entrate|intimazione di pagamento fiscal", t) and re.search(r"ricors|impugn|termin|entro", t) else 0
+
+
+def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("ricorso_tributario", "tributario")
+    a.conclusione = [Punto("Il ricorso alla Corte di giustizia tributaria di primo grado si propone, a pena di "
+                           "inammissibilità, entro sessanta giorni dalla notificazione dell'atto impugnato.",
+                           [Rif("dlgs546:21", "entro sessanta giorni dalla data di notificazione")])]
+    a.termini = [Punto("Il termine è sospeso dal 1° al 31 agosto.", [Rif("l742:1", "31 agosto")])]
+    d = _prima_data(f)
+    if d:
+        a.conclusione.append(Punto(f"Atto notificato il {data_breve(d)}: ricorso da notificare entro "
+                                   f"{data_breve(termine_giorni(d, 60))} (sessanta giorni con la sospensione feriale).",
+                                   [Rif("dlgs546:21", "entro sessanta giorni dalla data di notificazione")]))
+    a.dubbi += ["L'istanza di accertamento con adesione sospende il termine per novanta giorni: verifica se è stata presentata.",
+                "Il testo unico della giustizia tributaria (d.lgs. 175/2024) sostituirà il d.lgs. 546/1992: verifica sull'archivio "
+                "la data da cui si applica prima di citarlo nell'atto."]
+    return a

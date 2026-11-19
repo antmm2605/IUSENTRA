@@ -28,13 +28,17 @@ TIPI_ATTO: tuple[tuple[str, str, str, str | None], ...] = (
     (r"legge|l\.", "LEGGE", "L.", "stato:legge"),
 )
 _MESI = "gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre"
-_LATINI = r"(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies)"
+# Dal più lungo: «terdecies» non va letto come «ter», «undecies» non va perso (art. 281-undecies, 281-terdecies c.p.c.).
+_LATINI = (r"(?:quinquiesdecies|sexiesdecies|septiesdecies|octiesdecies|quaterdecies|terdecies|duodecies|undecies|"
+           r"quinquies|septies|sexies|octies|novies|decies|quater|bis|ter)")
+# Articoli con numerazione a punto del rito di famiglia («473-bis.11»).
+_PUNTO = r"(?:\.\d{1,2}(?!\d))?"
 _TIPO = "|".join(f"(?:{espr})" for espr, *_ in TIPI_ATTO)
 _ATTO_BREVE = re.compile(rf"(?<![\w.])(?P<tipo>{_TIPO})\s*(?:n\.?\s*)?(?P<numero>\d{{1,5}})\s*(?:/|\s|del\s+)\s*(?P<anno>(?:18|19|20)\d{{2}})(?!\d)",
                          re.IGNORECASE)
 _ATTO_ESTESO = re.compile(rf"(?<![\w.])(?P<tipo>{_TIPO})\s+(?:del\s+)?\d{{1,2}}\s+(?:{_MESI})\s+(?P<anno>(?:18|19|20)\d{{2}}),?\s*n\.?\s*(?P<numero>\d{{1,5}})",
                           re.IGNORECASE)
-_ARTICOLO = re.compile(rf"\bart(?:icolo|t?\.)?\s*(?P<articolo>\d{{1,4}}(?:\s*-?\s*{_LATINI})?)\b", re.IGNORECASE)
+_ARTICOLO = re.compile(rf"\bart(?:icolo|t?\.)?\s*(?P<articolo>\d{{1,4}}(?:\s*-?\s*{_LATINI}{_PUNTO})?)\b", re.IGNORECASE)
 _COMMA = re.compile(rf"\bcomm[ai]\s*(?P<comma>\d{{1,4}}(?:\s*-?\s*{_LATINI})?)\b", re.IGNORECASE)
 
 
@@ -107,9 +111,23 @@ def _documento(conn: sqlite3.Connection, e: Mapping[str, str]) -> dict | None:
         f"WHERE numero=? AND data_atto>=? AND data_atto<? AND ({filtro})",
         (e["numero"], f"{e['anno']}-01-01", f"{int(e['anno']) + 1}-01-01",
          *(p.replace("_", "\\_") + "\\_%" for p in prefissi)))]
+    candidati = _documenti_ordinati(righe)
+    return candidati[0] if candidati else None
+
+
+def _stesso_atto(conn: sqlite3.Connection, documento: Mapping[str, Any]) -> list[dict]:
+    prefisso = str(documento.get("xml_entry") or "").split("/", 1)[0]
+    return [dict(r) for r in conn.execute(
+        "SELECT id, numero, data_atto, titolo, vigenza, xml_entry, zip_path FROM normative_documents "
+        "WHERE numero=? AND data_atto=? AND xml_entry LIKE ? ESCAPE '\\'",
+        (documento["numero"], documento["data_atto"], prefisso.replace("_", "\\_") + "/%"))]
+
+
+def _documenti_ordinati(righe: list[dict]) -> list[dict]:
+    """Edizioni dello stesso atto, dalla vigente più recente; atti diversi con stesso numero e anno: nessuna scelta."""
     if len({r["data_atto"] for r in righe}) != 1:
-        return None  # nessun atto o atti diversi con lo stesso numero e anno: non si sceglie
-    return max(righe, key=lambda r: ((r.get("vigenza") or "").upper() == "VIGENTE", _vigenza_file(r), r["id"]))
+        return []  # nessun atto o atti diversi con lo stesso numero e anno: non si sceglie
+    return sorted(righe, key=lambda r: ((r.get("vigenza") or "").upper() == "VIGENTE", _vigenza_file(r), r["id"]), reverse=True)
 
 
 def _vigenza_file(documento: Mapping[str, Any]) -> str:
@@ -118,7 +136,7 @@ def _vigenza_file(documento: Mapping[str, Any]) -> str:
 
 
 def _numero_articolo(etichetta: str) -> tuple[str, tuple[int, int] | None]:
-    trovato = re.match(rf"\s*art(?:icolo|\.)?\s*(\d{{1,4}}(?:\s*-?\s*{_LATINI})?)", etichetta or "", re.IGNORECASE)
+    trovato = re.match(rf"\s*art(?:icolo|\.)?\s*(\d{{1,4}}(?:\s*-?\s*{_LATINI}{_PUNTO})?)", etichetta or "", re.IGNORECASE)
     commi = re.search(r"\(commi\s+(\d+)\s*-\s*(\d+)\)", etichetta or "", re.IGNORECASE)
     return (_normale(trovato[1]) if trovato else "", (int(commi[1]), int(commi[2])) if commi else None)
 
@@ -204,6 +222,14 @@ def norma_citata(db: Path, e: Mapping[str, str]) -> dict[str, Any] | None:
                 e["articolo"] = _numero_articolo(articolo["article_number"])[0]
                 e["dedotto"] = "1"
         articolo = articolo or _articolo(conn, documento["id"], e)
+        if articolo is None and e["articolo"]:
+            # L'edizione più recente può contenere solo il decreto di approvazione (2-3 articoli, es. R.D. 262/1942
+            # importato l'11/11/2026): si legge l'articolo dall'edizione vigente precedente che lo contiene.
+            for altro in _documenti_ordinati(_stesso_atto(conn, documento))[1:]:
+                articolo = _articolo(conn, altro["id"], e)
+                if articolo is not None:
+                    documento = altro
+                    break
         if articolo is None:
             return None
         comma = testo_del_comma(articolo["article_text"], e["comma"]) if e["comma"] else ""

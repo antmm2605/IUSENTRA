@@ -12,7 +12,15 @@ I lavori hanno code distinte:
   volta in tutto il processo);
 * ``notturna``: coordinatore della sequenza notturna, un passo alla volta. I motori conservano il semaforo;
 * ``pec_acquisizione``: acquisizione, classificazione e OCR PEC, con una sola istanza;
-* ``infrastruttura``: i giri tecnici di pochi millisecondi che consegnano gli eventi alle proiezioni.
+* ``infrastruttura``: i giri tecnici di pochi millisecondi che consegnano gli eventi alle proiezioni;
+* ``giurisprudenza``: l'alimentazione dell'archivio di giurisprudenza (SentenzeWeb e lettura delle citazioni), che
+  lavora su archivi propri e può durare quasi un'ora: nella corsia lunga la occupava e faceva saltare gli altri lavori.
+
+Verifica del 18/11/2026: un lavoro della corsia lunga a orario fisso che parte con più di cinque minuti di ritardo
+(la tolleranza predefinita) viene scartato da APScheduler. Con la corsia occupata dal piano del giorno (11 minuti
+ogni 15) e dall'alimentazione della giurisprudenza, i controlli operativi delle 7:00, 13:30 e 19:30 e il time
+tracking delle 20:30 risultavano «saltati dal worker» ogni giorno, senza nessuna esecuzione completata. Per questi
+lavori ``TOLLERANZA_RITARDO_SECONDI`` dice fino a quanto ritardo il giro si esegue comunque.
 
 Un lavoro che arriva mentre la sua corsia è occupata aspetta in coda e parte appena la corsia si libera: con
 ``max_instances=1`` e ``coalesce`` non si accumulano più copie dello stesso lavoro.
@@ -27,6 +35,7 @@ CORSIA_RAPIDA = "rapida"
 CORSIA_INFRASTRUTTURA = "infrastruttura"
 CORSIA_ACQUISIZIONE_PEC = "pec_acquisizione"
 CORSIA_NOTTURNA = "notturna"
+CORSIA_GIURISPRUDENZA = "giurisprudenza"
 
 THREAD_PER_CORSIA = {
     CORSIA_LUNGA: 1,
@@ -34,6 +43,27 @@ THREAD_PER_CORSIA = {
     CORSIA_ACQUISIZIONE_PEC: 1,
     CORSIA_NOTTURNA: 1,
     CORSIA_INFRASTRUTTURA: 3,
+    CORSIA_GIURISPRUDENZA: 1,
+}
+
+# Acquisizione SentenzeWeb e lettura delle citazioni: stesso blocco ``acquisizione.lock``, archivi propri.
+LAVORI_GIURISPRUDENZA = frozenset({
+    "giurisprudenza_alimentazione_continua",
+    "cassazione_sentenzeweb_nightly",
+})
+
+# Ritardo massimo (secondi) con cui un giro in attesa della corsia si esegue ancora, invece di essere scartato.
+# Resta sotto la cadenza del lavoro, così due giri non si sommano (``coalesce`` li unisce comunque).
+TOLLERANZA_RITARDO_SECONDI = {
+    "operational_crash_morning": 2 * 3600,
+    "operational_crash_midday": 2 * 3600,
+    "operational_crash_evening": 2 * 3600,
+    "time_tracking_passivo": 3600,
+    "legal_monitor_pst": 3600,
+    "calendar_sync_engine_webcal": 45 * 60,
+    "giurisprudenza_alimentazione_continua": 45 * 60,
+    "local_ai_maintenance": 25 * 60,
+    "archivio_letture_automatico": 8 * 60,
 }
 
 # Termini legali, PEC, avvisi e calendari: brevi e frequenti.
@@ -75,6 +105,8 @@ def corsia_del_lavoro(job_id: str) -> str:
         return CORSIA_ACQUISIZIONE_PEC
     if lavoro in LAVORI_INFRASTRUTTURA:
         return CORSIA_INFRASTRUTTURA
+    if lavoro in LAVORI_GIURISPRUDENZA:
+        return CORSIA_GIURISPRUDENZA
     if lavoro in LAVORI_RAPIDI:
         return CORSIA_RAPIDA
     return CORSIA_LUNGA
@@ -87,12 +119,24 @@ def esecutori() -> dict[str, Any]:
     return {nome: ThreadPoolExecutor(max_workers=thread) for nome, thread in THREAD_PER_CORSIA.items()}
 
 
+_ASSENTE = object()
+
+
 def assegna_corsie(scheduler: Any) -> dict[str, int]:
-    """Mette ogni lavoro già registrato nella sua corsia; restituisce quanti lavori per corsia."""
+    """Mette ogni lavoro già registrato nella sua corsia e con la sua tolleranza di ritardo; conta i lavori per corsia."""
     conteggio = dict.fromkeys(THREAD_PER_CORSIA, 0)
     for job in list(scheduler.get_jobs()):
         corsia = corsia_del_lavoro(job.id)
+        modifiche: dict[str, Any] = {}
         if getattr(job, "executor", CORSIA_LUNGA) != corsia:
-            scheduler.modify_job(job.id, executor=corsia)
+            modifiche["executor"] = corsia
+        tolleranza = TOLLERANZA_RITARDO_SECONDI.get(job.id)
+        # Prima di ``scheduler.start()`` un lavoro senza tolleranza propria non ha ancora l'attributo (APScheduler
+        # applica i ``job_defaults`` all'avvio); ``None`` esplicito vuol dire «nessun limite» e resta così.
+        attuale = getattr(job, "misfire_grace_time", _ASSENTE)
+        if tolleranza and (attuale is _ASSENTE or (attuale is not None and attuale < tolleranza)):
+            modifiche["misfire_grace_time"] = tolleranza
+        if modifiche:
+            scheduler.modify_job(job.id, **modifiche)
         conteggio[corsia] += 1
     return conteggio

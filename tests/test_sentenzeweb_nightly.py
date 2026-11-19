@@ -66,3 +66,74 @@ def test_lotto_con_testi_senza_riscontro_segnala_esito_parziale(tmp_path, monkey
     assert result["status"] == "parziale"
     assert result["recovery"] == counters and result["recovery_pending"] == 1
     assert not result["downloaded"]
+
+
+def _corpus_minimo(tmp_path):
+    import sqlite3
+
+    with sqlite3.connect(tmp_path / "giurisprudenza_corpus.db") as db:
+        db.executescript("""
+            CREATE TABLE sentenzeweb_progress(id,seen,expected,status);
+            INSERT INTO sentenzeweb_progress VALUES (1,0,0,'complete');
+            CREATE TABLE sentenzeweb_recovery_queue(status);
+            INSERT INTO sentenzeweb_recovery_queue VALUES ('pending');
+        """)
+
+
+def test_lotto_configurato_oltre_il_massimo_resta_nel_limite_del_recupero(tmp_path, monkeypatch):
+    """Verifica del 18/11/2026: con 1500 il recupero rifiutava la richiesta e il giro falliva sempre."""
+    import json
+    from types import SimpleNamespace
+
+    from pct.sentenzeweb_nightly import recuperi_per_giro
+    from pct.sentenzeweb_recovery import MASSIMO_RECUPERI_PER_GIRO
+
+    assert recuperi_per_giro({"IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO": "1500"}) == MASSIMO_RECUPERI_PER_GIRO == 1000
+    assert recuperi_per_giro({"IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO": "0"}) == 1
+    assert recuperi_per_giro({"IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO": "x"}) == 25
+    _corpus_minimo(tmp_path)
+    comandi = []
+    counters = {"processed": 0, "recovered": 0, "needs_evidence": 0, "already_available": 0}
+
+    def esegui(command, **kwargs):
+        comandi.append(command)
+        return SimpleNamespace(returncode=0, stdout=json.dumps(counters))
+
+    monkeypatch.setattr("pct.sentenzeweb_nightly.subprocess.run", esegui)
+    run_nightly({"IUSENTRA_SENTENZEWEB_DIRECTORY": str(tmp_path), "IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO": "1500"})
+    recupero = comandi[-1]
+    assert recupero[recupero.index("--max-records") + 1] == "1000"
+
+
+def test_recupero_oltre_il_tempo_resta_parziale_senza_far_fallire_il_giro(tmp_path, monkeypatch):
+    import subprocess
+    from types import SimpleNamespace
+
+    _corpus_minimo(tmp_path)
+
+    def esegui(command, **kwargs):
+        if any(str(parte).endswith("sentenzeweb_recupera.py") for parte in command):
+            raise subprocess.TimeoutExpired(command, kwargs.get("timeout"))
+        return SimpleNamespace(returncode=0, stdout="")
+
+    monkeypatch.setattr("pct.sentenzeweb_nightly.subprocess.run", esegui)
+    result = run_nightly({"IUSENTRA_SENTENZEWEB_DIRECTORY": str(tmp_path)})
+    assert result["ok"] is True and result["status"] == "parziale"
+    assert result["recovery_status"] == "timeout" and result["recovery_pending"] == 1
+
+
+def test_la_lettura_delle_citazioni_procede_anche_se_sentenzeweb_fallisce(tmp_path, monkeypatch):
+    from pct import giurisprudenza_alimentazione as alimentazione
+
+    def guasto(config):
+        raise RuntimeError("Public recovery failed; native queue and preserved originals retained")
+
+    monkeypatch.setattr("pct.sentenzeweb_nightly.run_nightly", guasto)
+    letti = []
+    monkeypatch.setattr(alimentazione, "leggi_citazioni", lambda owner, scadenza=None: letti.append(owner) or {"lette": 0})
+    studio = tmp_path / "studio.db"
+    studio.write_bytes(b"")
+    esito = alimentazione.esegui_giro({"IUSENTRA_ALIMENTAZIONE_GIURISPRUDENZA": "continua"}, archivi_studi=[str(studio)])
+    assert esito["status"] == "parziale" and esito["sentenzeweb"]["ok"] is False
+    assert "Public recovery failed" in esito["sentenzeweb"]["error"]
+    assert letti, "la lettura delle citazioni degli studi deve proseguire"

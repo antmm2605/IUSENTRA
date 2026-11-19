@@ -30,6 +30,23 @@ def tls_bundle(directory):
     return path
 
 
+def recuperi_per_giro(config):
+    """Decisioni da recuperare in un giro, entro il lotto massimo accettato da ``recover_pending``.
+
+    Verifica del 18/11/2026: sul PC la variabile valeva 1500, oltre il massimo di 1000; il recupero si chiudeva
+    subito con «Recovery request outside bounded rate or batch» e l'alimentazione della giurisprudenza falliva a
+    ogni giro dal 12/11 (nessuna esecuzione completata), senza arrivare alla lettura delle citazioni.
+    """
+    from pct.sentenzeweb_recovery import MASSIMO_RECUPERI_PER_GIRO
+
+    valore = config.get("IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO") or os.getenv("IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO") or 25
+    try:
+        richiesti = int(valore)
+    except (TypeError, ValueError):
+        richiesti = 25
+    return min(MASSIMO_RECUPERI_PER_GIRO, max(1, richiesti))
+
+
 def run_nightly(config):
     value = str(
         config.get("IUSENTRA_SENTENZEWEB_DIRECTORY") or os.getenv("IUSENTRA_SENTENZEWEB_DIRECTORY") or ""
@@ -67,14 +84,18 @@ def run_nightly(config):
         )
     recovery_command = [sys.executable,
         str(Path(__file__).resolve().parents[1] / "tools/sentenzeweb_recupera.py"),
-        "--directory", str(directory), "--max-records",
-        str(max(1, int(config.get("IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO") or os.getenv("IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO") or 25)))]
-    recovery = subprocess.run(recovery_command, capture_output=True, text=True,
-                              timeout=max(1200, 3 * int(recovery_command[-1])), check=False, env=environment)
-    if recovery.returncode not in (0, 75):
+        "--directory", str(directory), "--max-records", str(recuperi_per_giro(config))]
+    try:
+        recovery = subprocess.run(recovery_command, capture_output=True, text=True,
+                                  timeout=max(1200, 3 * int(recovery_command[-1])), check=False, env=environment)
+    except subprocess.TimeoutExpired:
+        # Il recupero salva una decisione alla volta: allo scadere del tempo il lavoro fatto resta e il resto
+        # rimane in coda per il giro successivo.
+        recovery = None
+    if recovery is not None and recovery.returncode not in (0, 75):
         raise RuntimeError("Public recovery failed; native queue and preserved originals retained")
     report = {}
-    if recovery.returncode == 0:
+    if recovery is not None and recovery.returncode == 0:
         try:
             report = json.loads(recovery.stdout.strip().splitlines()[-1])
             counters = ("processed", "recovered", "needs_evidence", "already_available")
@@ -88,6 +109,18 @@ def run_nightly(config):
     with sqlite3.connect((directory / "giurisprudenza_corpus.db").as_uri() + "?mode=ro", uri=True) as connection:
         pending = connection.execute("SELECT count(*) FROM sentenzeweb_recovery_queue WHERE status='pending'").fetchone()[0]
     unresolved = report.get("needs_evidence", 0)
+    if recovery is None:
+        return {
+            "ok": True,
+            "status": "parziale",
+            "message": f"Recupero dei testi interrotto allo scadere del tempo: {pending} ancora da esaminare.",
+            "recovery_status": "timeout",
+            "recovery": report,
+            "recovery_pending": pending,
+            "source_records": progress["seen"],
+            "expected": progress["expected"],
+            "downloaded": progress["seen"] > 0,
+        }
     return {
         "ok": True,
         "status": "parziale" if unresolved else progress["status"],

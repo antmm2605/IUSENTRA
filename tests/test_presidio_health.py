@@ -247,3 +247,49 @@ def test_presidio_senza_target_riporta_un_guasto(_scheduler_multitenant_senza_st
     assert esito.get("targets") == 0
     # La riga deve dire da dove arriva il giudizio.
     assert esito["source_of_truth"]
+
+
+def test_giro_saltato_perche_il_precedente_e_in_corso_non_degrada_il_presidio(tmp_path):
+    """Verifica del 18/11/2026: con il PC carico il container restava «unhealthy» mentre i presidi lavoravano."""
+    from pct.scheduler_health import _RegistroSoloLettura
+    from pct.scheduler_registry import SchedulerRegistryRepository
+
+    db_path = tmp_path / "scheduler_registry.sqlite"
+    repo = SchedulerRegistryRepository(db_path)
+    repo.init_db()
+    messaggio = "Esecuzione non avviata: istanza precedente ancora in corso."
+    repo.record_scheduler_event("pec_audit_pipeline_workers", status="running", scheduled_at="2026-11-18T22:00:00+01:00",
+                                message="Accodata al worker: in attesa del turno o in corso.", result={"ok": True})
+    repo.record_scheduler_event("pec_audit_pipeline_workers", status="missed", scheduled_at="2026-11-18T22:05:00+01:00",
+                                message=messaggio)
+    # Saltato senza nessun giro avviato o concluso: il degrado resta.
+    repo.record_scheduler_event("mailbox_sync_runtime", status="missed", scheduled_at="2026-11-18T22:15:00+01:00",
+                                message=messaggio)
+    jobs = tuple(riga for riga in PRESIDIO_JOBS if riga[0] in {"pec_audit_pipeline_workers", "mailbox_sync_runtime"})
+
+    report = presidio_heartbeat(_RegistroSoloLettura(db_path), jobs=jobs)
+
+    voci = {voce["job"]: voce for voce in report["presidi"]}
+    assert voci["pec_audit_pipeline_workers"]["problem"] == ""
+    assert voci["pec_audit_pipeline_workers"]["status"] == "running"
+    assert voci["mailbox_sync_runtime"]["problem"] == "ultima esecuzione: missed"
+    assert report["degraded"] == 1
+
+
+def test_giro_saltato_con_il_precedente_fermo_oltre_la_tolleranza_resta_degradato(tmp_path):
+    from pct.scheduler_health import _RegistroSoloLettura
+    from pct.scheduler_registry import SchedulerRegistryRepository
+
+    db_path = tmp_path / "scheduler_registry.sqlite"
+    repo = SchedulerRegistryRepository(db_path)
+    repo.init_db()
+    repo.record_scheduler_event("agenda_scadenziario_notifications", status="running", scheduled_at="2026-11-18T22:02:00+01:00",
+                                message="Accodata.", result={"ok": True})
+    repo.record_scheduler_event("agenda_scadenziario_notifications", status="missed", scheduled_at="2026-11-18T22:07:00+01:00",
+                                message="Esecuzione non avviata: istanza precedente ancora in corso.")
+    jobs = tuple(riga for riga in PRESIDIO_JOBS if riga[0] == "agenda_scadenziario_notifications")
+
+    report = presidio_heartbeat(_RegistroSoloLettura(db_path), jobs=jobs, now=datetime.now(timezone.utc) + timedelta(hours=3))
+
+    assert report["presidi"][0]["problem"].startswith("ultima esecuzione ")
+    assert report["degraded"] == 1

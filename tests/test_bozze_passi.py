@@ -114,20 +114,21 @@ def test_contributo_da_chiarire_non_produce_bozze():
 
 def test_spese_distratte_contro_la_pa_richiesta_di_pagamento_e_precetto_dopo_120_giorni():
     lettura = _lettura(stato_passi={"attivi": False, "motivo": "Credito di € 515,00 liquidato dal giudice non ancora incassato"},
-                       economico={"liquidazione": {"stato": "da_incassare", "importo": 515.0, "fonte": "Sentenza del 17/04/2026", "pagato": False}})
+                       economico={"liquidazione": {"stato": "da_incassare", "importo": 515.0, "fonte": "Sentenza del 17/04/2026", "pagato": False,
+                                                   "nota": "che liquida in € 515,00 per compenso di avvocato, oltre rimborso forfettario"}})
     lettura["intestazione"].update(controparte="MIM", ufficio="TRIBUNALE DI REGGIO DI CALABRIA", rg="161/2026",
                                    parti={"difensore controparte": ["Avvocatura Distrettuale Di Stato Di Reggio Calabria",
                                                                     "Avvocatura Distrettuale dello Stato di Reggio Calabria"]})
     conto = {"righe": [{"voce": "sentenza", "stato": "Distratte in favore dell'avvocato",
                         "dettaglio": "Oltre all'importo spettano gli accessori (senza IVA per il regime forfetario dello studio)"}]}
-    richiesta, precetto = bozze_del_fascicolo(lettura, oggi=OGGI, conto=conto)
+    richiesta, precetto = bozze_del_fascicolo(lettura, oggi=OGGI, conto=conto, studio={"regime_fiscale": "RF19"})
     assert richiesta.modello == "STR_020" and precetto.modello == "ESE_003"
     for bozza in (richiesta, precetto):
         assert "€ 515,00" in bozza.testo and "€ 77,25" in bozza.testo and "€ 23,69" in bozza.testo and "€ 615,94" in bozza.testo
         assert "non dovuta (regime forfetario dello studio)" in bozza.testo
     assert "antistatario (art. 93 c.p.c.)" in richiesta.testo and "Avvocatura Distrettuale dello Stato di Reggio Calabria" in richiesta.testo
     assert "art. 14, comma 1, D.L. 669/1996" in richiesta.testo
-    assert "art. 480, secondo comma, c.p.c." in precetto.testo and "Giudice competente per l'esecuzione" in precetto.testo
+    assert "art. 480, secondo comma, c.p.c." in precetto.testo and "Elegge domicilio in [da completare:" in precetto.testo
     assert any("centoventi giorni" in voce for voce in precetto.segnaposti)
     assert "data della notificazione del titolo esecutivo" in precetto.segnaposti
 
@@ -150,7 +151,9 @@ def test_precetto_su_decreto_ingiuntivo_esecutivo_menziona_l_esecutorieta_art_65
     assert "decreto ingiuntivo n. 1109/2024" in bozza.testo
     assert "dichiarato esecutivo con decreto n. cronol. 1243/2025 del 12/03/2025 (art. 654, secondo comma, c.p.c.)" in bozza.testo
     assert "(C.F. 92043820791)" in bozza.testo and "(C.F. 03021420801)" in bozza.testo
-    assert "sorte capitale: € 2.400,00" in bozza.testo and "€ 45,00" in bozza.testo and "€ 13,80" in bozza.testo
+    assert "sorte capitale: € 2.400,00" in bozza.testo and "compenso liquidato: € 300,00" in bozza.testo
+    # «oltre accessori di legge» non dice il rimborso forfettario: niente 15% supposto, segnaposto (19/11/2026).
+    assert "€ 45,00" not in bozza.testo and any("rimborso forfettario" in voce for voce in bozza.segnaposti)
     assert "I.V.A. sul compenso, se dovuta, secondo il regime fiscale" in bozza.segnaposti  # regime non letto: segnaposto
 
 
@@ -401,3 +404,85 @@ def test_l_editor_apre_il_testo_della_bozza_e_non_il_pdf(ambiente_pdf, monkeypat
     assert "pdfOverlay" not in payload["endpoints"] and any("rigenera" in w for w in payload["warnings"])
     [vista] = runtime.payload_bozze("F1")["bozze"]
     assert vista["pdf"] == f"/fascicoli/F1/documenti/{documento.id}/visualizza"
+
+
+
+# --- Correzioni del precetto dopo la rilettura da avvocato (19/11/2026) -----------------------------------------
+
+def _lettura_credito_pa(nota="oltre rimborso forfettar", conclusioni=()):  # troncato come nella Lettura reale di 9A681FDF
+    lettura = _lettura(stato_passi={"attivi": False},
+                       economico={"liquidazione": {"stato": "da_incassare", "importo": 515.0, "fonte": "Sentenza del 17/04/2026",
+                                                   "pagato": False, "nota": f"che liquida in € 515,00 per compenso, {nota}"}})
+    lettura["intestazione"].update(controparte="MIM", ufficio="TRIBUNALE DI REGGIO DI CALABRIA", rg="161/2026",
+                                   parti={"difensore controparte": ["Avvocatura Distrettuale dello Stato di Reggio Calabria"]})
+    lettura["ragionamento"]["conclusioni"] = list(conclusioni)
+    return lettura
+
+
+_CONTO_DISTRATTE = {"righe": [{"voce": "sentenza", "stato": "Distratte in favore dell'avvocato", "dettaglio": ""}]}
+_STUDIO = {"regime_fiscale": "RF19", "citta": "Taurianova", "indirizzo_completo": "Via Nino Bixio 4, 89029 Taurianova (RC)"}
+
+
+def test_precetto_elegge_domicilio_nel_comune_del_giudice_dell_esecuzione_art_480_terzo_comma():
+    from pct.bozze_passi import testi
+    from pct.bozze_passi.contesto import Contesto
+
+    _richiesta, precetto = bozze_del_fascicolo(_lettura_credito_pa(), oggi=OGGI, conto=_CONTO_DISTRATTE, studio=_STUDIO)
+    assert "Elegge domicilio in [da completare: indirizzo nel comune sede del giudice dell’esecuzione" in precetto.testo
+    assert "(art. 480, terzo comma, c.p.c.)" in precetto.testo and "Giudice competente per l'esecuzione" not in precetto.testo
+    # Comune certo e uguale alla sede dello studio: il domicilio è lo studio, senza segnaposto.
+    ctx = Contesto(studio=_STUDIO)
+    assert testi.elezione_domicilio(ctx, {"comune_esecuzione": "Taurianova"}) == (
+        "Elegge domicilio presso lo studio del difensore in Via Nino Bixio 4, 89029 Taurianova (RC) (art. 480, terzo comma, c.p.c.).")
+    assert "[da completare:" in testi.elezione_domicilio(ctx, {"comune_esecuzione": "Reggio Calabria"})
+
+
+def test_il_ministero_si_indica_per_esteso_in_persona_del_ministro():
+    from pct.bozze_passi.amministrazioni import denominazione, rappresentante
+
+    richiesta, precetto = bozze_del_fascicolo(_lettura_credito_pa(), oggi=OGGI, conto=_CONTO_DISTRATTE, studio=_STUDIO)
+    assert "**Ministero dell'Istruzione e del Merito, in persona del Ministro pro tempore**" in precetto.testo
+    assert "Spett.le **Ministero dell'Istruzione e del Merito**" in richiesta.testo
+    assert "MIM" not in precetto.testo and "legale rappresentante" not in precetto.testo
+    assert denominazione("MINISTERO DELL'ECONOMIA E DELLE FINANZE") == "Ministero dell'Economia e delle Finanze"
+    assert rappresentante("Istituto Nazionale della Previdenza Sociale") == "in persona del legale rappresentante pro tempore"
+    assert "[da completare: denominazione per esteso" in denominazione("ASP")  # sigla ignota: non si indovina
+
+
+def test_notifica_del_titolo_provata_riempie_la_data_e_i_centoventi_giorni():
+    esecuzione = {"codice": "esecuzione_pa", "stato": "da_fare", "onerato_codice": "noi",
+                  "termine": {"decorrenza": "2026-04-20", "scadenza": "2026-08-18", "natura": "attesa minima prima del precetto"}}
+    richiesta, precetto = bozze_del_fascicolo(_lettura_credito_pa(conclusioni=[esecuzione]), oggi=OGGI, conto=_CONTO_DISTRATTE, studio=_STUDIO)
+    assert "notificato il 20/04/2026" in precetto.testo and "notificato il 20/04/2026" in richiesta.testo
+    assert "decorso il termine di centoventi giorni dalla notificazione del titolo, scaduto il 18/08/2026" in precetto.testo
+    assert not any("centoventi" in voce or "notificazione del titolo" in voce for voce in precetto.segnaposti)
+    assert precetto.dati["precetto_dal"] == "19/08/2026"
+    # Notifica non provata (dubbio): la data resta da completare.
+    dubbio = {**esecuzione, "stato": "dubbio", "termine": None}
+    _r, precetto = bozze_del_fascicolo(_lettura_credito_pa(conclusioni=[dubbio]), oggi=OGGI, conto=_CONTO_DISTRATTE, studio=_STUDIO)
+    assert "data della notificazione del titolo esecutivo" in precetto.segnaposti
+
+
+def test_rimborso_forfettario_e_iva_solo_se_risultano_da_sentenza_e_scheda_dello_studio():
+    # Liquidato «oltre rimborso forfettario» e regime forfetario dichiarato nella scheda: importi scritti.
+    _r, precetto = bozze_del_fascicolo(_lettura_credito_pa(), oggi=OGGI, conto=_CONTO_DISTRATTE, studio=_STUDIO)
+    assert "rimborso forfettario delle spese generali (15%): € 77,25" in precetto.testo and "€ 615,94" in precetto.testo
+    assert "I.V.A.: non dovuta (regime forfetario dello studio)" in precetto.testo
+    # La sentenza non lo liquida e la scheda non dichiara il regime: segnaposti, nessuna supposizione.
+    _r, precetto = bozze_del_fascicolo(_lettura_credito_pa(nota="oltre accessori"), oggi=OGGI, conto=_CONTO_DISTRATTE,
+                                       studio={"citta": "Taurianova"})
+    assert "€ 77,25" not in precetto.testo and "€ 615,94" not in precetto.testo and "regime forfetario" not in precetto.testo
+    assert any("rimborso forfettario" in voce for voce in precetto.segnaposti)
+    assert "I.V.A. sul compenso, se dovuta, secondo il regime fiscale" in precetto.segnaposti
+
+
+def test_il_regime_fiscale_vale_solo_se_dichiarato_nella_scheda_dello_studio(tmp_path):
+    import json
+
+    from web.services.bozze_passi_runtime import _regime_dichiarato
+
+    scheda = tmp_path / "studio.json"
+    scheda.write_text(json.dumps({"studio": {}, "fatturazione": {"regime_fiscale": "rf19"}}))
+    assert _regime_dichiarato(str(scheda)) == "RF19"
+    scheda.write_text(json.dumps({"studio": {}}))
+    assert _regime_dichiarato(str(scheda)) == ""  # il predefinito RF01 non è un dato dello studio

@@ -80,7 +80,19 @@ def dati_studio() -> dict[str, str]:
     return {"avvocato": _testo(studio.avvocato), "cf_avvocato": _testo(studio.codice_fiscale_avvocato or studio.cf),
             "indirizzo": _testo(studio.indirizzo), "cap": _testo(studio.cap), "citta": citta,
             "provincia": _testo(studio.province), "indirizzo_completo": completo,
-            "pec": _testo(getattr(config.pec, "indirizzo", "")), "iban": _testo(studio.iban)}
+            "pec": _testo(getattr(config.pec, "indirizzo", "")), "iban": _testo(studio.iban),
+            "regime_fiscale": _regime_dichiarato(percorso)}
+
+
+def _regime_dichiarato(percorso: str) -> str:
+    """Il regime fiscale solo se la scheda dello studio lo dichiara: il valore predefinito (RF01) non è un dato letto."""
+    try:
+        with open(percorso, encoding="utf-8") as file:
+            grezzo = json.load(file)
+    except (OSError, ValueError):
+        return ""
+    fatturazione = grezzo.get("fatturazione") if isinstance(grezzo, dict) else None
+    return _testo((fatturazione or {}).get("regime_fiscale")).upper() if isinstance(fatturazione, dict) else ""
 
 
 def _cliente_cf(fascicolo: Any) -> str:

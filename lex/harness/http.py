@@ -22,17 +22,26 @@ _NOTA_LAVORO = ("Se la sentenza è resa in una controversia di lavoro o previden
                 "l. 742/1969): dimmi se è una causa di lavoro e ricalcolo.")
 
 
+_SUL_FASCICOLO = (r"entro quando|quando scade|scadenz|termine|prossim\w* (?:udienz|pass|adempiment)|udienz|"
+                  r"cosa (?:devo|dobbiamo) fare|che cosa resta|note scritte|memori")
+
+
+def _domanda_sul_fascicolo(domanda: str) -> bool:
+    return re.search(_SUL_FASCICOLO, normalizza(domanda)) is not None
+
+
 def _etichetta(valore: float) -> str:
     return "alta" if valore >= 0.8 else "media" if valore >= 0.55 else "bassa"
 
 
-def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None = None) -> dict[str, Any] | None:
+def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None = None, fascicolo_id: str = "",
+                    causa: Callable[[str], Any] | None = None) -> dict[str, Any] | None:
     try:
         c = comprendi(domanda)
     except Exception:
         _log.exception("harness: comprensione della domanda non riuscita")
         return None
-    if not c.per_harness:
+    if not c.per_harness and not (fascicolo_id and _domanda_sul_fascicolo(domanda)):
         return None
     try:
         esito = rispondi(domanda, comprensione=c)
@@ -44,6 +53,17 @@ def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None
                         "Non do una risposta parziale: l'errore è registrato nel log e va corretto; nel frattempo la "
                         "questione va esaminata senza Lex.", 0.0, f"Errore interno dell'harness: {type(exc).__name__}.",
                         [], "errore_harness", {"rule": "errore_harness", "errore": type(exc).__name__})
+    # Dentro un fascicolo i fatti vengono dal modello della causa (pct/ragionamento), con documento e data.
+    from .causa import fatti_del_fascicolo
+
+    dal_fascicolo = fatti_del_fascicolo(fascicolo_id, costruttore=causa) if fascicolo_id else None
+    if esito is None and dal_fascicolo is not None and (c.tipo in {"termine", "parere"} or _domanda_sul_fascicolo(domanda)):
+        return _payload(domanda, "**Cosa ho capito**\n- Domanda sul fascicolo aperto: rispondo con il modello della causa, "
+                        "che ha già letto atti, notifiche, udienze e termini.\n\n" + dal_fascicolo.sezione()
+                        + "\n\n_Fonte: modello della causa di IUSENTRA; ogni punto indica il documento e la data da cui è "
+                        "letto. Nessun atto è stato salvato, firmato o inviato._", 0.85,
+                        "Modello della causa del fascicolo (pct/ragionamento).", [], "modello_causa",
+                        {"rule": "modello_causa", "2_fatti": {"origine": "modello_causa", **dal_fascicolo.to_dict()}})
     if esito is None:
         if c.tipo not in {"termine", "norma", "parere", "calcolo"} or risposta_certa is None:
             return None
@@ -55,6 +75,10 @@ def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None
             testo += "\n\n" + _NOTA_LAVORO
         return _payload(domanda, testo, 0.9, "Calcolo e testo dai motori certi di IUSENTRA (termini, archivio Normattiva).",
                         [], "motori_certi")
+    if dal_fascicolo is not None:
+        esito.testo = esito.testo.replace("**Norme applicate**", dal_fascicolo.sezione() + "\n\n**Norme applicate**", 1) \
+            if "**Norme applicate**" in esito.testo else esito.testo + "\n\n" + dal_fascicolo.sezione()
+        esito.registro.setdefault("2_fatti", {})["dal_fascicolo"] = dal_fascicolo.to_dict()
     from .scrittura import scrivi
 
     stesura = scrivi(esito.testo)

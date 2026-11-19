@@ -85,7 +85,8 @@ def _harness_http_payload(question: str, *, attachments, data: dict[str, Any]):
         return None
     from .harness.http import payload_harness
 
-    return payload_harness(question, risposta_certa=_risposta_certa_http)
+    return payload_harness(question, risposta_certa=_risposta_certa_http,
+                           fascicolo_id=clean_spaces(data.get("fascicolo_id")))
 
 
 def _structured_query_stream(payload):

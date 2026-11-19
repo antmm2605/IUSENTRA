@@ -18,7 +18,7 @@ def build_sql_list_payload(repository, *, page=1, page_size=5, query='', client_
                            type_filter='', status_filter='', court='', sort='rg', secondary_sort='', group_by='',
                            view='', alerts_only=False, communications_only=False, payments_only=False,
                            missing_rg_only=False, duplicates_only=False, payment_filters=None, field_filters=None,
-                           enrich_economic=None):
+                           enrich_economic=None, compact=False):
     normalized_payments = {(_normalise_payment_kind(key) or key): value for key, value in (payment_filters or {}).items()}
     selection = dict(query=query, client=client_filter, rg=rg_filter, type_filter=type_filter, status=status_filter,
         court=court, alerts_only=alerts_only, communications_only=communications_only, payments_only=payments_only,
@@ -31,7 +31,9 @@ def build_sql_list_payload(repository, *, page=1, page_size=5, query='', client_
     summary = _summary_values(repository.aggregates(**selection), archived)
     card_selection = dict(query=query, client=client_filter, rg=rg_filter, type_filter=type_filter,
                           court=court, field_filters=field_filters)
-    card_summary = _summary_values(repository.aggregates(**card_selection), archived)
+    card_summary = (_summary_values(repository.aggregates(**card_selection), archived)
+        if status_filter or alerts_only or communications_only or payments_only or missing_rg_only
+        or duplicates_only or any(normalized_payments.values()) else dict(summary))
     overview = repository.deadline_overview()
     summary.update({key: overview[key] for key in ('deadlines7', 'deadlines30', 'overdueDeadlines', 'urgentDeadlines')})
     facets = _facets([])
@@ -46,6 +48,10 @@ def build_sql_list_payload(repository, *, page=1, page_size=5, query='', client_
         if enrich_economic is None:
             raise RuntimeError('Proiezione della vista economica non disponibile.')
         items = enrich_economic(items)
+    elif compact:
+        # I filtri e i conteggi economici sono già risolti dalla proiezione
+        # SQL. L'elenco operativo non apre le prove contabili di ogni pratica.
+        items = [{key: value for key, value in item.items() if key != 'paymentSummary'} for item in items]
     repository._ready()
     return dict(source='repository_reali', generatedAt=_now(), contracts=_contracts(), summary=summary,
                 cardSummary=card_summary, items=items, pagination=result['pagination'], facets=facets,

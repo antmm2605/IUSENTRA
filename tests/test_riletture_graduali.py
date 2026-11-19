@@ -63,6 +63,29 @@ def test_un_fascicolo_in_errore_con_versione_corrente_torna_in_coda(tmp_path):
     assert runtime.fascicoli_da_aggiornare(registro, TENANT, limite=10) == ["F-LOCK"]
 
 
+def test_regola_economica_accoda_solo_le_fonti_liquidate_e_correnti(tmp_path):
+    from pct.archivio_letture.riletture_mirate import REGOLA_IDENTITA_LIQUIDAZIONE
+    from pct.registro_letture import Fatto
+
+    registro = _registro(tmp_path)
+    precedente = VERSIONE_MOTORE_DOCUMENTI.removesuffix("+" + REGOLA_IDENTITA_LIQUIDAZIONE)
+    for fid, oggetto, ha_liquidazione in (("F-ATTO", _oggetto(1), True), ("F-NORMALE", _oggetto(2), False)):
+        registro.registra_inventario(TENANT, fid, [oggetto], tipi=("documento",))
+        registro.segna_fascicolo(TENANT, fid, "motore_documenti", impronta="i", oggetti_totali=1, oggetti_letti=1,
+                                 versione=precedente)
+        registro.segna_letto(TENANT, fid, oggetto, "motore_documenti", versione=precedente)
+        if ha_liquidazione:
+            registro.registra_fatti(TENANT, fid, oggetto, "documenti", [
+                Fatto(categoria="importo", campo="liquidazione_giudice", valore="500.00", verifica="verificata"),
+            ], versione=precedente)
+    assert runtime.fascicoli_da_aggiornare(registro, TENANT, limite=10) == ["F-ATTO"]
+    riga = {"stato": "completa", "versione_lettore": precedente}
+    assert runtime.stato_lettura_fascicolo(riga, {}) == "fermo"
+    assert runtime.stato_lettura_fascicolo(riga, {}, rilettura_mirata=True) == "da_aggiornare"
+    registro.segna_letto(TENANT, "F-ATTO", _oggetto(1), "motore_documenti", versione=VERSIONE_MOTORE_DOCUMENTI)
+    assert runtime.fascicoli_da_aggiornare(registro, TENANT, limite=10) == []
+
+
 def test_accodamento_che_fallisce_non_ferma_il_giro():
     class Guasto:
         def righe_fascicoli(self, *a, **k):

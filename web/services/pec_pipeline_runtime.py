@@ -145,21 +145,31 @@ def run_workers_for_paths(
         # Best-effort: il controllo economico è un'anteprima aggiuntiva; un suo
         # errore non deve fermare il presidio PEC (parse/classify/link restano validi).
         pass
+    touched_fascicoli: set[str] = set()
+    touched_messages: set[str] = set()
+    for job in report.get("jobs") or []:
+        message_id = str(job.get("message_id") or "").strip()
+        if message_id:
+            touched_messages.add(message_id)
+        result = job.get("result") if isinstance(job.get("result"), dict) else {}
+        fascicolo_id = str(result.get("fascicolo_id") or "").strip()
+        if fascicolo_id:
+            touched_fascicoli.add(fascicolo_id)
+    if touched_fascicoli:
+        try:
+            from web.services.pannelli_pronti_runtime import archivio_per_percorsi
+
+            archivio = archivio_per_percorsi(paths)
+            if archivio is not None and Path(archivio.percorso).is_file():
+                for fascicolo_id in sorted(touched_fascicoli):
+                    # Le revisioni PEC sono già nella transazione della fonte.
+                    # Il segnale consente di trovare i pannelli superati anche per una pratica chiusa da tempo.
+                    archivio.segnala_fonti_aggiornate(fascicolo_id)
+        except Exception:
+            logger.exception("Segnalazione PEC ai pannelli del fascicolo non riuscita")
     try:
-        # Segnala al piano del giorno le entità toccate dal presidio PEC:
-        # il refresh incrementale rielabora solo queste, mai tutto lo studio.
         from web.services.daily_plan_runtime import mark_dirty_for_paths
 
-        touched_fascicoli: set[str] = set()
-        touched_messages: set[str] = set()
-        for job in list(report.get("jobs") or []):
-            message_id = str(job.get("message_id") or "").strip()
-            if message_id:
-                touched_messages.add(message_id)
-            result = job.get("result") if isinstance(job.get("result"), dict) else {}
-            fascicolo_id = str(result.get("fascicolo_id") or "").strip()
-            if fascicolo_id:
-                touched_fascicoli.add(fascicolo_id)
         if touched_fascicoli:
             mark_dirty_for_paths(
                 paths,

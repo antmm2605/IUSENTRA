@@ -7,6 +7,8 @@ from html import unescape
 from datetime import date, datetime
 from typing import Any
 
+from pct.ora_italiana import in_ora_italiana, ora_italiana
+
 MESI = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre")
 
 
@@ -20,11 +22,14 @@ def data_da(valore: Any) -> date | None:
     if not testo:
         return None
     if isinstance(valore, datetime):
-        return valore.date()
+        momento = in_ora_italiana(valore)
+        return momento.date() if momento else None
     if isinstance(valore, date):
         return valore
     corrispondenza = re.match(r"^(\d{4})-(\d{2})-(\d{2})", testo)
     if corrispondenza:
+        if len(testo) > 10 and (momento := in_ora_italiana(testo)):
+            return momento.date()
         try:
             return date(int(corrispondenza.group(1)), int(corrispondenza.group(2)), int(corrispondenza.group(3)))
         except ValueError:
@@ -48,8 +53,8 @@ def dataora_it(valore: Any) -> str:
     giorno = data_da(testo)
     if not giorno:
         return ""
-    ora = re.search(r"T(\d{2}):(\d{2})", testo)
-    return f"{giorno.strftime('%d/%m/%Y')} ore {ora.group(1)}:{ora.group(2)}" if ora else giorno.strftime("%d/%m/%Y")
+    ora = ora_italiana(testo)
+    return f"{giorno:%d/%m/%Y} ore {ora}" if ora else giorno.strftime("%d/%m/%Y")
 
 
 def euro(valore: Any) -> str:

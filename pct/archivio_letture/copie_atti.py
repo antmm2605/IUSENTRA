@@ -8,6 +8,31 @@ import re
 from pct.registro_letture.fatti_repository import Fatto
 
 VERSIONE_COPIE_ATTI = '2026.10.01.copie-atti-v3'
+_ENFASI_TESTO_ESTRATTO = re.compile(r"(?<![\w*])(\*{1,2})([^\s*](?:[^*\n]*[^\s*])?)\1(?![\w*])")
+_TIMBRO_FIRMA_E_PUBBLICAZIONE = re.compile(
+    r"\s+firmato da: [\w '.-]{2,100} emesso da: [\w '.&/-]{2,130} serial#:\s*[0-9a-f]{8,64}"
+    r"(?:\s+sentenza n\.\s*(?P<numero>\d+/\d{4}) pubbl\. il \d{1,2}/\d{1,2}/\d{4}"
+    r"\s+r\.g\. n\.\s*\d+/\d{4}(?:\s+sentenza a verbale \(art\. 127[ -]ter c\.p\.c\.\) del \d{1,2}/\d{1,2}/\d{4})?(?=\s|$)|$)"
+)
+
+
+def identita_dispositivo_sentenza(testo: str) -> tuple[str, str]:
+    """Impronta del dispositivo e numero ufficiale dall'intestazione o dal timbro."""
+    from pct.percorso_pratica.esito import dispositivo
+    from pct.ragionamento.testo import semplice
+    from pct.termine_lungo_sentenza import numero_sentenza
+
+    contenuto = dispositivo(testo)
+    if len(contenuto.split()) < 30 or len(contenuto) >= 5900:
+        return "", ""
+    normalizzato = semplice(_ENFASI_TESTO_ESTRATTO.sub(r"\2", contenuto))
+    numeri = {numero_sentenza(testo[:1300])}
+    numeri.update(timbro["numero"] for timbro in _TIMBRO_FIRMA_E_PUBBLICAZIONE.finditer(normalizzato))
+    numeri.difference_update(("", None))
+    if len(numeri) > 1:
+        return "", ""
+    normalizzato = " ".join(_TIMBRO_FIRMA_E_PUBBLICAZIONE.sub(" ", normalizzato).split()).rstrip(" .:;,")
+    return hashlib.sha256(normalizzato.encode("utf-8")).hexdigest(), next(iter(numeri), "")
 
 
 def messaggio_strutturato(testo: str) -> bool:

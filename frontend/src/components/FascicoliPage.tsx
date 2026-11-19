@@ -1756,7 +1756,7 @@ type CatalogAssignmentView = {
 }
 
 function catalogProfileLabel(assignment: CatalogAssignmentView): string {
-  return assignment.legal_subfamily || assignment.legal_branch || assignment.legal_area || 'Profilo da definire'
+  return assignment.legal_subfamily || assignment.legal_branch || assignment.legal_area || (assignment.profile_id ? '' : 'Profilo da definire')
 }
 
 function catalogEvidenceTitle(type: string): string {
@@ -2148,8 +2148,8 @@ function CatalogazioneDocumentalePanel({
           <p>Il contenuto identifica il documento; i dati del fascicolo e le fonti ufficiali ne motivano la collocazione. Ogni proposta resta verificabile e correggibile.</p>
         </div>
         <div className="iu-fas-catalog__header-actions">
-          <Badge tone={summary?.errors ? 'danger' : summary?.review_required ? 'warning' : summary?.total ? 'success' : 'neutral'}>{summary?.errors ? 'Aggiornamento parziale' : summary?.review_required ? 'Revisione richiesta' : summary?.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge>
-          <button type="button" disabled={busy} onClick={() => void update()} title="Riesegui la catalogazione sul contenuto SQL corrente"><RefreshCw size={15}/> {busy ? 'Catalogazione in corso…' : 'Aggiorna catalogazione'}</button>
+          {summary ? <Badge tone={summary.errors ? 'danger' : summary.review_required ? 'warning' : summary.total ? 'success' : 'neutral'}>{summary.errors ? 'Aggiornamento parziale' : summary.review_required ? 'Revisione richiesta' : summary.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge> : null}
+          <button type="button" disabled={busy || loading || !summary} onClick={() => void update()} title="Riesegui la catalogazione sul contenuto SQL corrente"><RefreshCw size={15}/> {busy ? 'Catalogazione in corso…' : 'Aggiorna catalogazione'}</button>
           <button type="button" disabled={busy || !summary?.proposed} onClick={() => { setBulkOpen((current) => !current); setBulkAttested(false) }} title={summary?.proposed ? `Conferma in blocco le ${summary.proposed} proposte con prova letta dal contenuto` : 'Nessuna proposta da confermare'} aria-expanded={bulkOpen}><CheckCircle2 size={15}/> Conferma tutte le proposte{summary?.proposed ? ` (${summary.proposed})` : ''}</button>
           <button
             type="button"
@@ -2177,17 +2177,17 @@ function CatalogazioneDocumentalePanel({
             </div>
           </div>
         ) : null}
-        <dl>
-          <div><dt>Documenti</dt><dd>{summary?.source_documents ?? documents.length}</dd></div>
-          <div><dt>Catalogati</dt><dd>{summary?.total ?? 0}</dd></div>
-          <div><dt>Automatici</dt><dd>{summary?.catalogued ?? 0}</dd></div><div><dt>Proposti</dt><dd>{summary?.proposed ?? 0}</dd></div>
-          <div><dt>Confermati</dt><dd>{summary?.confirmed ?? 0}</dd></div>
-          <div><dt>Da verificare</dt><dd>{summary?.review_required ?? 0}</dd></div>
-          <div><dt>In attesa indice</dt><dd>{summary?.waiting_for_index ?? 0}</dd></div>
-        </dl>
+        {summary ? <dl>
+          <div><dt>Documenti</dt><dd>{summary.source_documents ?? documents.length}</dd></div>
+          <div><dt>Catalogati</dt><dd>{summary.total}</dd></div>
+          <div><dt>Automatici</dt><dd>{summary.catalogued}</dd></div><div><dt>Proposti</dt><dd>{summary.proposed}</dd></div>
+          <div><dt>Confermati</dt><dd>{summary.confirmed}</dd></div>
+          <div><dt>Da verificare</dt><dd>{summary.review_required}</dd></div>
+          <div><dt>In attesa indice</dt><dd>{summary.waiting_for_index}</dd></div>
+        </dl> : null}
         {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error} <button type="button" className="iu-fas-catalog__retry" disabled={loading || busy} onClick={() => void load()}><RefreshCw size={14}/> Riprova</button></p> : null}
         {payload?.run.errors?.length ? <div className="iu-fas-catalog__warnings"><strong>Elaborazioni da riesaminare</strong><ul>{payload.run.errors.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
-        {documentEntries.length ? <DocumentListToolbar controls={listControls} sections={documentListSectionOptions} visibleCount={listControls.visible.length}/> : null}
+        {documentEntries.length ? <DocumentListToolbar controls={listControls} sections={documentListSectionOptions} visibleCount={listControls.visible.length} catalogoDisponibile={Boolean(summary)}/> : null}
         <div className="iu-fas-catalog__list">
           {documentEntries.length && !listControls.visible.length ? (
             <div className="iu-doclist-empty" role="status">
@@ -2209,7 +2209,7 @@ function CatalogazioneDocumentalePanel({
                 <FolderSearch2 size={17}/>
                 <div className="iu-fas-catalog__copy">
                   {!document ? <strong>{item.filename || 'Documento del fascicolo'}</strong> : null}
-                  {assignment ? <span>{catalogProfileLabel(assignment)}{assignment.source_state === 'manual_override' ? ' · confermata manualmente' : ` · confidenza ${assignment.confidence}%`}</span> : <span>{document?.actions.acquire ? 'Censito dal portale: acquisisci il file nel fascicolo per leggerne e catalogarne il contenuto.' : item.supported ? 'Lettura e catalogazione della versione corrente da aggiornare.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
+                  {assignment ? <span>{[catalogProfileLabel(assignment), assignment.source_state === 'manual_override' ? 'Confermata manualmente' : `Confidenza ${assignment.confidence}%`].filter(Boolean).join(' · ')}</span> : <span>{document?.actions.acquire ? 'Censito dal portale: acquisisci il file nel fascicolo per leggerne e catalogarne il contenuto.' : item.supported ? 'Lettura e catalogazione della versione corrente da aggiornare.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
                   {assignment ? <small>{assignment.reason}</small> : null}
                   {assignment?.evidence?.length ? <em>{catalogSourceLabel(assignment.source_state)} · {assignment.evidence.filter((entry) => entry.type === 'legal_source').length} fonti collegate</em> : null}
                   {needsConfirmation && hasEvidence && !evidenceReviewed ? <small className="iu-fas-catalog__review-hint">Prima apri “Prova e fonti”: la conferma registra anche l’avvenuta lettura delle evidenze.</small> : null}
@@ -3553,6 +3553,7 @@ function FascicoliListPage() {
   const [missingRgOnly, setMissingRgOnly] = useState(() => initialUrlBool('missing_rg_only', 'missingRgOnly'))
   const [duplicatesOnly, setDuplicatesOnly] = useState(() => initialUrlBool('duplicates_only', 'duplicatesOnly'))
   const [view, setView] = useState<ListView>(initialListView)
+  const [resolvedView, setResolvedView] = useState<ListView>(initialListView)
   const [displayMode, setDisplayMode] = useState<FascicoliDisplayMode>(initialDisplayMode)
   const [groupBy, setGroupBy] = useState<FascicoliGroupMode>(initialGroupMode)
   const [visibleColumns, setVisibleColumns] = useState<FascicoliTableColumnKey[]>(() => [...defaultFascicoliTableColumns])
@@ -3638,7 +3639,7 @@ function FascicoliListPage() {
       if (running) return running
     }
     const generation = pageCacheGenerationRef.current
-    const request = getFascicoliPage(params).then((payload) => {
+    const request = getFascicoliPage({ ...params, compact: params.view === 'operativa' }).then((payload) => {
       if (generation === pageCacheGenerationRef.current) pageCacheRef.current.set(key, payload)
       return payload
     }).finally(() => {
@@ -3672,6 +3673,7 @@ function FascicoliListPage() {
       .then((payload) => {
         if (latestListKeyRef.current !== requestKey) return false
         resolvedListKeyRef.current = requestKey
+        setResolvedView(params.view === 'economica' ? 'economica' : 'operativa')
         setData(payload)
         setPendingPage(null)
         setToast((current) => current?.message.startsWith('Aggiornamento in attesa:') ? null : current)
@@ -3686,7 +3688,9 @@ function FascicoliListPage() {
       .finally(() => { if (latestListKeyRef.current === requestKey) setLoading(false) })
   }
 
-  useOperationalRefresh(['fascicoli'], () => refresh(true))
+  useOperationalRefresh(['fascicoli'], () => refresh(true), {
+    pacing: { minLiveIntervalMs: 10000, pauseWhenHidden: true },
+  })
 
   useEffect(() => {
     if (explicitListPreferenceParamsRef.current) return
@@ -3750,9 +3754,14 @@ function FascicoliListPage() {
       setPage(1)
       setDebouncedQuery(query.trim())
       setDebouncedCourt(court.trim())
-      setDebouncedFieldFilters(Object.fromEntries(
+      const normalized = Object.fromEntries(
         Object.entries(fieldFilters).map(([key, value]) => [key, value.trim()]).filter(([, value]) => value),
-      ) as FascicoliFieldFilters)
+      ) as FascicoliFieldFilters
+      setDebouncedFieldFilters(current =>
+        Object.keys(current).length === Object.keys(normalized).length
+        && Object.entries(current).every(([key, value]) => normalized[key as FascicoliFieldFilterKey] === value)
+          ? current : normalized,
+      )
     }, 350)
     return () => window.clearTimeout(timer)
   }, [court, fieldFilters, query])
@@ -3770,6 +3779,7 @@ function FascicoliListPage() {
       .then((payload) => {
         if (!active) return
         resolvedListKeyRef.current = fascicoliListCacheKey(params)
+        setResolvedView(params.view === 'economica' ? 'economica' : 'operativa')
         setData(payload)
         setPendingPage(null)
       })
@@ -3885,6 +3895,7 @@ function FascicoliListPage() {
     setPage(target)
     if (cached) {
       setData(cached)
+      setResolvedView(view)
       setLoading(false)
       setPendingPage(null)
     }
@@ -4164,7 +4175,7 @@ function FascicoliListPage() {
             </div>
           ) : null}
           {listLoadError ? <section role="alert"><ErrorState title="Aggiornamento non confermato" message={listLoadError}/><ActionButton onClick={() => { void refresh() }}>Riprova</ActionButton></section> : null}
-          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} pendingPage={pendingPage} view={view} displayMode={displayMode} groupBy={groupBy} visibleColumns={visibleColumns} rowDensity={rowDensity} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
+          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} pendingPage={pendingPage} view={resolvedView} displayMode={displayMode} groupBy={groupBy} visibleColumns={visibleColumns} rowDensity={rowDensity} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
         </IusentraMainSurface>
         <InsightPanel data={data} visible={visible}/>
       </IusentraMainArea>
@@ -5603,6 +5614,7 @@ const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
 function conservaSezioniCaricate(payload: FascicoloDetailData, current: FascicoloDetailData, loaded: Set<FascicoloDetailSection>): FascicoloDetailData {
   if (!loaded.size) return payload
   const next: FascicoloDetailData = { ...payload, quickCounts: { ...current.quickCounts, ...payload.quickCounts } }
+  next.notificationCommunicationIds ??= current.notificationCommunicationIds
   if (loaded.has('documenti')) { next.documents = current.documents; next.lexIndexing = current.lexIndexing }
   if (loaded.has('attivita')) { next.activities = current.activities; next.technicalEvents = current.technicalEvents; next.requests = current.requests }
   if (loaded.has('scadenze')) { next.deadlines = current.deadlines; next.appointments = current.appointments; next.documentPresidio = current.documentPresidio }
@@ -7105,6 +7117,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, defaultOpen = fa
   const depositPhaseActive = recordBool(h.depositPhase, 'inDeposito')
   const lastDeposit = (deposit.lastDeposit && typeof deposit.lastDeposit === 'object' ? deposit.lastDeposit : {}) as Record<string, unknown>
   const depositAcquired = recordText(lastDeposit, 'statoOperativo') === 'ACQUISITO' || recordText(deposit, 'status') === 'ACQUISITO'
+  const depositoStorico = depositAcquired && (!depositPhaseActive || regia.validation.status === 'NON_IN_DEPOSITO')
   const depositTone: FascicoloRow['tone'] = depositAcquired ? 'success' : blocked ? 'danger' : ready ? 'success' : recordBool(lastDeposit, 'presente') ? 'primary' : 'warning'
   const completionDetail = h.completionDetail
   // La percentuale conta solo ciò che il software misura: le voci lasciate
@@ -7129,12 +7142,16 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, defaultOpen = fa
           : 'neutral'
   const depositPhaseCode = recordText(h.depositPhase, 'codice')
   const depositPhaseReason = recordText(h.depositPhase, 'motivo')
+  const depositNotRequired = depositPhaseCode === 'non_richiesta'
+  const praticaConclusa = ['definito', 'da_archiviare', 'archiviato'].includes(data.fascicolo.status)
+  const mostraPreparazione = !depositoStorico && !(praticaConclusa && depositNotRequired)
+  const mostraStatoBusta = mostraPreparazione || depositAcquired || recordBool(lastDeposit, 'presente') || Boolean(evidenceHref)
   // Lo stato del presidio parla del deposito, non della pratica: lo stato della pratica è uno solo, nella testata.
   const depositStateLabel = depositPhaseCode === 'non_richiesta' && !depositAcquired
     ? 'Nessun deposito da preparare'
     : regiaOperationalStateLabel(h.operationalState)
   return (
-    <DetailSection id="presidio-fascicolo" title="Presidio del deposito" icon={<ClipboardCheck size={17}/>} count={regia.checklist.length + regia.documentSlots.length} defaultOpen={defaultOpen} onOpen={onOpen}>
+    <DetailSection id="presidio-fascicolo" title="Presidio del deposito" icon={<ClipboardCheck size={17}/>} count={mostraPreparazione ? regia.checklist.length + regia.documentSlots.length : undefined} defaultOpen={defaultOpen} onOpen={onOpen}>
       <span id="cabina-regia" className="iu-fas-anchor-alias" aria-hidden="true"/>
       <span id="regia-operativa" className="iu-fas-anchor-alias" aria-hidden="true"/>
       {loading ? <p className="iu-empty">Caricamento del presidio del deposito...</p> : null}
@@ -7143,13 +7160,14 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, defaultOpen = fa
           <div>
             <Badge tone={statusTone}>{depositStateLabel}</Badge>
             <h3>{h.practiceType || fLabel(data.fascicolo.title)}</h3>
-            <p>{depositPhaseCode === 'non_richiesta' && depositPhaseReason ? depositPhaseReason : h.nextAction || 'Completa i controlli del deposito.'}</p>
+            <p>{depositoStorico ? 'Le ricevute del deposito accettato sono consultabili nel fascicolo.'
+              : depositPhaseCode === 'non_richiesta' && depositPhaseReason ? depositPhaseReason : h.nextAction || 'Completa i controlli del deposito.'}</p>
           </div>
-          <div className="iu-fas-regia__progress" aria-label="Completamento del presidio del deposito">
+          {mostraPreparazione ? <div className="iu-fas-regia__progress" aria-label="Completamento del presidio del deposito">
             <strong>{h.completion}%</strong>
             <span>verifiche disponibili</span>
             <small>{completionNote}</small>
-          </div>
+          </div> : null}
         </header>
         {metaItems.length ? (
           <div className="iu-fas-regia__meta">
@@ -7157,18 +7175,18 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, defaultOpen = fa
           </div>
         ) : null}
         <ProceduralProfileChange data={data} onDone={onDone} onError={onError}/>
-        <div className="iu-fas-regia__grid">
+        {mostraPreparazione ? <div className="iu-fas-regia__grid">
           <article>
             <h4>Validazione</h4>
             <Badge tone={statusTone}>{regiaValidationStatusLabel(regia.validation.status)}</Badge>
             <p>{validationMessage}</p>
             <div className="iu-fas-regia__actions">
-              {predepositAction ? <PostAction action={predepositAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={15}/> Verifica operativa</PostAction> : null}
-              {prepareAction ? <PostAction action={prepareAction} tone="secondary" onDone={onDone} onError={onError}><ClipboardCheck size={15}/> Prepara deposito</PostAction> : null}
+              {!depositNotRequired && predepositAction ? <PostAction action={predepositAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={15}/> Verifica operativa</PostAction> : null}
+              {!depositNotRequired && prepareAction ? <PostAction action={prepareAction} tone="secondary" onDone={onDone} onError={onError}><ClipboardCheck size={15}/> Prepara deposito</PostAction> : null}
             </div>
           </article>
-        </div>
-        <div className="iu-fas-regia__columns">
+        </div> : null}
+        {mostraPreparazione ? <div className="iu-fas-regia__columns">
           <section>
             <h4>Checklist dinamica</h4>
             <div className="iu-fas-regia-list">
@@ -7197,19 +7215,25 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, defaultOpen = fa
               {!regia.documentSlots.length ? <div className="iu-fas-regia-empty-card"><strong>Documenti da impostare</strong><span>Carica o classifica i documenti, poi aggiorna la Regia per creare le scelte richieste.</span><a href="#documenti"><FileText size={15}/> Vai ai documenti</a></div> : null}
             </div>
           </section>
-        </div>
-        <div className="iu-fas-regia__deposit">
+        </div> : null}
+        {mostraStatoBusta ? <div className="iu-fas-regia__deposit">
           <div>
-              <Badge tone={depositTone}>{recordText(deposit, 'statusLabel') || depositStatusLabel(recordText(deposit, 'status', 'Da preparare'))}</Badge>
+            <Badge tone={depositNotRequired && !depositAcquired ? 'neutral' : depositTone}>
+              {depositNotRequired && !depositAcquired ? depositStateLabel : recordText(deposit, 'statusLabel') || depositStatusLabel(recordText(deposit, 'status', 'Da preparare'))}
+            </Badge>
             <strong>{recordText(deposit, 'label', 'Deposito')}</strong>
             <p>{recordText(deposit, 'message') || blockReasons[0] || 'Stato deposito non avviato.'}</p>
-            {blockReasons.length ? <ul>{blockReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}
+            {!depositoStorico && blockReasons.length ? <ul>{blockReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}
           </div>
           <div className="iu-fas-regia__actions">
-            {ready && sendAction ? <PostAction action={sendAction} tone="primary" onDone={onDone} onError={onError} confirm="Inviare il deposito con il canale configurato?" confirmTitle="Invia deposito"><Send size={15}/> Invia deposito</PostAction> : prepareAction ? <PostAction action={prepareAction} tone="secondary" onDone={onDone} onError={onError}><ClipboardCheck size={15}/> Prepara deposito</PostAction> : <a href="#documenti"><FileText size={15}/> Controlla documenti</a>}
+            {!depositoStorico && !depositNotRequired && (
+              ready && sendAction ? <PostAction action={sendAction} tone="primary" onDone={onDone} onError={onError} confirm="Inviare il deposito con il canale configurato?" confirmTitle="Invia deposito"><Send size={15}/> Invia deposito</PostAction>
+                : prepareAction ? <PostAction action={prepareAction} tone="secondary" onDone={onDone} onError={onError}><ClipboardCheck size={15}/> Prepara deposito</PostAction>
+                  : <a href="#documenti"><FileText size={15}/> Controlla documenti</a>
+            )}
             {evidenceHref ? <a className="iu-fas-side-link" href={evidenceHref}><FileArchive size={15}/> Evidence pack</a> : null}
           </div>
-        </div>
+        </div> : null}
         {regia.timeline.length ? (
           <section>
             <h4>Timeline ricevute</h4>
@@ -7314,16 +7338,17 @@ function NotificationRelataMonitor({ data }:{data:FascicoloDetailData}) {
   const monitor = data.notificationRelata
   const proofDeposited = monitor.proofDeposited || monitor.status === 'prova_depositata'
   const legacyHandled = monitor.legacyAssumedHandled || monitor.status === 'storico_gestito'
+  const historicalEvidence = monitor.status === 'riscontri_storici'
   const alreadySent = proofDeposited || legacyHandled || monitor.notificationAlreadySent || ['ricevute_da_completare', 'prova_raccolta'].includes(monitor.status)
   const canPrepareNotification = !alreadySent && ['monitoraggio', 'nessuna_notifica', 'da_preparare', 'da_firmare', 'pronta_invio'].includes(monitor.status)
+  const canDepositProof = !legacyHandled && !historicalEvidence && (alreadySent || monitor.proofDocuments > 0 || monitor.proofComplete)
   const actions = [
     { label: monitor.primaryLabel || 'Apri presidio', href: monitor.primaryHref, icon: monitor.status === 'da_acquisire' ? <FileDown size={15}/> : <FileSignature size={15}/>, show: true },
     { label: 'Acquisisci dal portale', href: monitor.acquisitionHref, icon: <FileDown size={15}/>, show: monitor.releaseDetected },
     { label: 'Prepara relata', href: monitor.prepareHref, icon: <FileSignature size={15}/>, show: canPrepareNotification },
-    { label: alreadySent ? 'Deposita prova' : 'Prepara deposito prova', href: monitor.depositHref, icon: <Send size={15}/>, show: !proofDeposited && !legacyHandled && (alreadySent || monitor.proofDocuments > 0 || monitor.proofComplete) },
+    { label: monitor.depositLabel || (alreadySent ? 'Deposita prova' : 'Prepara deposito prova'), href: monitor.depositHref, icon: monitor.depositLabel ? <FileCheck2 size={15}/> : <Send size={15}/>, show: !proofDeposited && (Boolean(monitor.depositLabel) || canDepositProof) },
   ].filter((item, index, rows) => item.href && rows.findIndex((row) => row.href === item.href) === index)
     .filter((item) => item.show)
-  const total = Math.max(monitor.pendingPortalDocuments, monitor.relataDocuments, monitor.signedRelataDocuments, monitor.proofDocuments, monitor.documents.length)
   return (
     <div className={`iu-fas-relata-monitor iu-fas-relata-monitor--${monitor.tone}`}>
       <header>
@@ -7332,7 +7357,6 @@ function NotificationRelataMonitor({ data }:{data:FascicoloDetailData}) {
           <h3>Presidio notifica e prova</h3>
           <p>{monitor.systemNotification || 'Il fascicolo resta monitorato per documenti d\'ufficio, relata, firma, invio e prova.'}</p>
         </div>
-        <strong>{total}</strong>
       </header>
       <div className="iu-fas-relata-actions">
         {actions.map((action) => <a href={action.href} key={`${action.label}-${action.href}`}>{action.icon}{action.label}</a>)}
@@ -7448,6 +7472,7 @@ function isCommunicationDocument(doc: FascicoloDocument): boolean {
 type NotificationProofKind = 'atto_notificato' | 'relata' | 'pec' | 'rac' | 'rdac' | 'attestazione' | ''
 
 function notificationProofKind(doc: FascicoloDocument): NotificationProofKind {
+  if (/^(?:copia\s+non\s+crittografata\s+)?deposito\s+telematico\s*:/i.test(doc.name.trim())) return ''
   const text = documentSearchText(doc)
   const notificationContext = /(notifica|notificaz|originale notificato|legge n\.?\s*53|l\.?\s*53|notifica[_\s-]*id)/.test(text)
   if (notificationContext && /relata/.test(text)) return 'relata'
@@ -7478,9 +7503,11 @@ function notificationProofLabel(doc: FascicoloDocument): string {
   return 'Prova notifica'
 }
 
-function notificationCommunicationDetail(doc: FascicoloDocument): string {
+function notificationCommunicationDetail(doc: FascicoloDocument, storico: boolean): string {
   const kind = notificationProofKind(doc)
-  if (kind === 'atto_notificato') return 'Atto notificato: il documento firmato allegato alla PEC di notifica (art. 3-bis L. 53/1994), da depositare con RAC e RdAC; non sostituirlo con la copia arrivata da una comunicazione di cancelleria.'
+  if (kind === 'atto_notificato') return storico
+    ? 'Atto notificato conservato nel fascicolo. Le relative ricevute sono consultabili nello storico.'
+    : 'Atto notificato: documento allegato alla PEC di notifica. Per la prova usa l’originale con RAC e RdAC (art. 3-bis L. 53/1994).'
   if (kind === 'rac') return 'Ricevuta di accettazione della notifica PEC conservata nel fascicolo.'
   if (kind === 'rdac') return 'Ricevuta di avvenuta consegna della notifica PEC conservata nel fascicolo.'
   if (kind === 'pec') return 'Messaggio PEC di invio notifica collegato al documento notificato.'
@@ -8174,7 +8201,7 @@ function DepositReceiptSteps({ dep }:{dep:FascicoloDeposit}) {
       {dep.receiptSteps.map((step) => (
         <span className={step.done ? 'is-done' : ''} key={`${dep.id}-${step.id}`}>
           {step.done ? <CheckCircle2 size={13}/> : <Clock3 size={13}/>}
-          {step.label}
+          {step.sourceHref ? <a href={step.sourceHref} className="underline">{step.label}</a> : step.label}
         </span>
       ))}
     </div>
@@ -9649,20 +9676,19 @@ function documentPresidioDeadlineHref(action: FascicoloDocumentPresidioAction, f
 function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, onDone, onError }:{data:FascicoloDetailData; fascicoloId:string; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const presidio = data.documentPresidio
   const actions = presidio.actions || []
-  const next = presidio.nextAction || actions[0]
+  const [mostraTutte, impostaMostraTutte] = useState(false)
   return (
     <section className={`iu-fas-document-presidio iu-fas-document-presidio--${presidio.tone}`}>
       <header>
         <div>
-          <Badge tone={presidio.tone}>{actions.length ? `${actions.length} date lette` : 'Nessuna data rilevata'}</Badge>
-          <strong>{next?.title || 'Presidio documenti fascicolo'}</strong>
-          {next?.date ? <span>{next.date}</span> : null}
+          {actions.length > 0 ? <Badge tone={presidio.tone}>{actions.length}</Badge> : null}
+          <strong>{actions.length && actions.every((action) => action.historical) ? 'Udienze e termini storici' : 'Date rilevate nei documenti'}</strong>
         </div>
         <FileCheck2 size={20}/>
       </header>
       {actions.length ? (
         <div className="iu-fas-presidio-actions">
-          {actions.slice(0, 6).map((action) => {
+          {(mostraTutte ? actions : actions.slice(0, 6)).map((action) => {
             const sourceDocument = data.documents.find((document) => document.id === action.documentId)
             const canPrepareDeadline = Boolean(action.dateIso) && !action.requiresCommunicationDate && !action.requiresConfirmation && !action.historical && !action.registeredHref
             return (
@@ -9696,6 +9722,11 @@ function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, 
           })}
         </div>
       ) : <p className="iu-empty">{presidio.summary}</p>}
+      {actions.length > 6 ? (
+        <button type="button" className="iu-fas-inline-link" aria-expanded={mostraTutte} onClick={() => impostaMostraTutte(!mostraTutte)}>
+          {mostraTutte ? 'Mostra meno date' : `Mostra tutte le date (${actions.length})`}
+        </button>
+      ) : null}
       {presidio.warnings.length ? (
         <div className="iu-fas-presidio-warnings">
           {presidio.warnings.slice(0, 3).map((warning) => <span key={warning}><AlertTriangle size={13}/>{warning}</span>)}
@@ -9906,6 +9937,8 @@ function DetailPage({ id }:{id:string}) {
   const [ctuMediazioneRichieste, setCtuMediazioneRichieste] = useState(() => ['ctu', 'mediazione'].includes(currentDetailHashSectionId()))
   const quadro = useQuadroFascicolo(id)
   const revisioneLettura = useRef({ fascicoloId: '', impronta: '' })
+  const quadroCorrente = useRef(quadro.lettura)
+  quadroCorrente.current = quadro.lettura
   const presenzaCtuMediazione = usePresenzaCtuMediazione(!loading && data.fascicolo.id === id && quadro.lettura.fase !== 'caricamento' ? id : '')
   const requestedRefreshSections = useRef(new Set<FascicoloDetailSection>())
   const requestedDetailRefresh = useRef(false)
@@ -9977,18 +10010,21 @@ function DetailPage({ id }:{id:string}) {
   const signedDocuments = data.documents.filter((doc) => doc.signed).length
   const documentsCount = data.quickCounts.documenti || data.documents.length
   const unsignedDocuments = Math.max(0, documentsCount - signedDocuments)
-  const notificationRelata = data.notificationRelata
-  const notificationRelataCount = data.quickCounts.relata_notifica || notificationRelata.pendingPortalDocuments || notificationRelata.relataDocuments || notificationRelata.signedRelataDocuments || notificationRelata.proofDocuments || 0
   const qualityIssues = data.quality.filter((item) => !item.ok).length + (Number(f.alerts) || 0)
   const nextDeadline = prossimaScadenza(data.deadlines)
   const nextAppointment = data.appointments.find((app) => !app.past)
   const preventivo = data.workflow.find((item) => /preventiv/i.test(item.label))
   const conferimento = data.workflow.find((item) => /conferiment|incaric/i.test(item.label))
-  const notificationCommunicationDocuments = unaVoltaPerContenuto(data.documents.filter(isNotificationCommunicationDocument))
+  const communicationIds = data.notificationCommunicationIds && new Set(data.notificationCommunicationIds)
+  const notificationCommunicationDocuments = communicationIds
+    ? data.documents.filter((doc) => communicationIds.has(doc.id))
+    : unaVoltaPerContenuto(data.documents.filter(isNotificationCommunicationDocument))
   const comunicazioniRows = data.deposits.filter((dep) => !isCancelleriaCommunication(dep))
   const cancelleriaRows = data.deposits.filter(isCancelleriaCommunication)
   const communicationTotal = notificationCommunicationDocuments.length + comunicazioniRows.length + cancelleriaRows.length
-  const displayedCommunicationTotal = communicationTotal || data.quickCounts.comunicazioni || 0
+  const displayedCommunicationTotal = lazyStatus.depositi === 'loaded' && lazyStatus.documenti === 'loaded'
+    ? communicationTotal
+    : data.quickCounts.comunicazioni ?? communicationTotal
   const shouldAutoOpenCommunications =
     activeHashSection === 'cancelleria'
     || activeHashSection === 'comunicazioni-notifica'
@@ -9999,7 +10035,7 @@ function DetailPage({ id }:{id:string}) {
       ? { value: '…', label: 'Caricamento registro audit' }
       : lazyStatus.audit === 'error'
         ? { value: '!', label: 'Registro audit da ricaricare' }
-        : { value: '—', label: 'Registro audit non ancora caricato' }
+        : { value: '—', label: 'Audit del fascicolo' }
   const loadLazySection = (section: FascicoloDetailSection) => {
     const pending = lazyPendingSections.current
     const valida = () => lazyPendingSections.current === pending && refreshWorkspaceId.current === id
@@ -10012,6 +10048,7 @@ function DetailPage({ id }:{id:string}) {
         setData((current) => ({
           ...current,
           quickCounts: { ...current.quickCounts, ...payload.quickCounts },
+          notificationCommunicationIds: payload.notificationCommunicationIds ?? current.notificationCommunicationIds,
           documents: section === 'documenti' || (section === 'depositi' && payload.documents.length) ? payload.documents : current.documents,
           activities: section === 'attivita' ? payload.activities : current.activities,
           technicalEvents: section === 'attivita' ? payload.technicalEvents : current.technicalEvents,
@@ -10214,6 +10251,7 @@ function DetailPage({ id }:{id:string}) {
       throw error
     }
     setData(current => ({ ...payload,
+      notificationCommunicationIds: payload.notificationCommunicationIds ?? current.notificationCommunicationIds,
       documents: include.includes('documenti') ? payload.documents : current.documents,
       activities: include.includes('attivita') ? payload.activities : current.activities,
       technicalEvents: include.includes('attivita') ? payload.technicalEvents : current.technicalEvents,
@@ -10251,7 +10289,13 @@ function DetailPage({ id }:{id:string}) {
     ))
     const impronta = lettura.ragionamento?.impronta || ''
     if (revisioneLettura.current.fascicoloId === id && revisioneLettura.current.impronta === impronta) return
+    const primaLettura = revisioneLettura.current.fascicoloId !== id
     revisioneLettura.current = { fascicoloId: id, impronta }
+    // Alla prima Lettura del fascicolo il Quadro appena ricevuto (o in arrivo) è già ricomposto dalla stessa
+    // Lettura salvata: si ricarica solo se dichiarava una Lettura in preparazione o superata.
+    const statoQuadro = quadroCorrente.current
+    if (primaLettura && (statoQuadro.fase === 'caricamento' || (statoQuadro.fase === 'pronto'
+      && !statoQuadro.dati.letturaInPreparazione && !statoQuadro.dati.letturaPrecedente && !statoQuadro.dati.quadroInAggiornamento))) return
     ricaricaQuadro()
   }, [id, ricaricaQuadro])
   const handleDetailPaymentSaved = useCallback((savedId: string, paymentSummary: FascicoloRow['paymentSummary'], message?: string) => {
@@ -10291,7 +10335,7 @@ function DetailPage({ id }:{id:string}) {
     'sezione-andamento': data.quickCounts.attivita || 0,
     'sezione-termini': data.quickCounts.udienze_scadenze || 0,
     'sezione-documenti': data.quickCounts.documenti || 0,
-    'sezione-comunicazioni': displayedCommunicationTotal + notificationRelataCount,
+    'sezione-comunicazioni': displayedCommunicationTotal,
     'sezione-deposito': faseDeposito === 'preparazione' || faseDeposito === 'in_corso' ? data.regia.checklist.length + data.regia.documentSlots.length : 0,
   }
   const openSection = (sectionId: string, lazySection?: FascicoloDetailSection) => (event: MouseEvent<HTMLAnchorElement>) => {
@@ -10300,7 +10344,7 @@ function DetailPage({ id }:{id:string}) {
     openDetailSectionById(sectionId)
   }
   const quadroFascicolo = (
-    <QuadroFascicolo lettura={quadro.lettura} onRiprova={quadro.riprova} onApriSezione={(sezione) => {
+    <QuadroFascicolo fascicoloId={f.id || id} lettura={quadro.lettura} onRiprova={quadro.riprova} onApriSezione={(sezione) => {
       const destinazione = sezione === 'sezione-andamento' ? 'lettura-fascicolo' : sezione === 'sezione-economia' ? 'conto-economico' : sezione
       // Il Quadro può essere visibile prima che siano montate le sezioni del fascicolo.
       setActiveHashSection(destinazione)
@@ -10327,7 +10371,7 @@ function DetailPage({ id }:{id:string}) {
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <Suspense fallback={null}>
-            <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
+            <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title} valoreFascicolo={f.caseValue}/>
           </Suspense>
         </aside>
         <div className="iu-fas-detail-content-column">
@@ -10419,10 +10463,15 @@ function DetailPage({ id }:{id:string}) {
           </DetailSection>
         </SezioneFascicolo>
         <SezioneFascicolo id="sezione-comunicazioni">
-          <DetailSection id="comunicazioni-notifica" title="Comunicazioni, PEC e notifica" icon={<Mail size={17}/>} count={displayedCommunicationTotal + notificationRelataCount} defaultOpen={shouldAutoOpenCommunications} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti'); loadLazySection('relata') }}>
+          <DetailSection id="comunicazioni-notifica" title="Comunicazioni, PEC e notifica" icon={<Mail size={17}/>} count={displayedCommunicationTotal} defaultOpen={shouldAutoOpenCommunications} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti'); loadLazySection('relata') }}>
             <span id="cancelleria" className="iu-fas-anchor-alias" aria-hidden="true"/>
             <span id="relata-notifica" className="iu-fas-anchor-alias" aria-hidden="true"/>
-            <NotificationRelataMonitor data={data}/>
+            {lazyStatus.relata === 'loaded' ? <NotificationRelataMonitor data={data}/> : lazyStatus.relata === 'error' ? (
+              <div role="alert">
+                <p>Lo stato della notifica non è disponibile.</p>
+                <button type="button" className="iu-fas-catalog__retry" onClick={() => loadLazySection('relata')}>Riprova</button>
+              </div>
+            ) : <p className="iu-empty" role="status">Apertura del presidio notifica…</p>}
             <div className="iu-fas-comm-dep-grid">
               <div className="iu-fas-comm-column">
                 <Panel title="Comunicazioni" icon={<Mail size={17}/>} count={notificationCommunicationDocuments.length + comunicazioniRows.length}>
@@ -10433,7 +10482,7 @@ function DetailPage({ id }:{id:string}) {
                         <Badge tone="info">{notificationProofLabel(doc)}</Badge>
                         <strong>{doc.name}</strong>
                         <span>{[doc.portalDate || doc.documentDate || doc.uploadedAt, doc.source, doc.size].filter(Boolean).join(' - ')}</span>
-                        <small>{notificationCommunicationDetail(doc)}</small>
+                        <small>{notificationCommunicationDetail(doc, data.notificationRelata.status === 'riscontri_storici')}</small>
                         {doc.actions.preview ? <a className="iu-fas-inline-link" href={doc.actions.preview} onClick={(event) => { event.preventDefault(); setPreviewDoc({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download }) }}><Eye size={14}/> Visualizza</a> : null}
                       </article>
                     ))}
@@ -10464,7 +10513,7 @@ function DetailPage({ id }:{id:string}) {
                     {cancelleriaRows.map((dep) => (
                       <article className="iu-fas-comm-row" key={`canc-${dep.id}`}>
                         <Badge tone={dep.tone}>{depositStatusLabel(dep.status)}</Badge>
-                        <strong>{dep.message || dep.actType || 'PEC di accettazione deposito'}</strong>
+                        <strong>{dep.mainFile || dep.message || dep.actType || 'PEC di accettazione deposito'}</strong>
                         <span>{depositMetaLine(dep)}</span>
                         {dep.actType ? <small>{dep.actType}</small> : null}
                         <DepositStateSummary dep={dep}/>

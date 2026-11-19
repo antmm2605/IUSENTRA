@@ -130,6 +130,27 @@ def test_stessa_sentenza_documento_pec_unica_voce_con_due_prove(altra_sentenza):
     assert raw == prima
 
 
+def test_liquidazioni_concordanti_richiedono_lo_stesso_dispositivo_e_numero():
+    from dataclasses import replace
+    from pct.archivio_letture.presidi import importi_letti
+    from pct.registro_letture import Fatto
+
+    prova = {"codice": "identita_dispositivo_sentenza", "esito": "ok",
+             "impronta": "a" * 64, "data": "2026-10-12", "numero": "789/2026"}
+    base = Fatto(id="A", fascicolo_id="F1", tipo="documento", oggetto_id="DOC", sha256="b" * 64,
+                 categoria="importo", campo="liquidazione_giudice", valore="1300.00",
+                 verifica="verificata", prove=[prova])
+    copia = replace(base, id="B", tipo="allegato_pec", oggetto_id="PEC", sha256="c" * 64,
+                    verifica="plausibile", prove=[{**prova, "numero": ""}])
+    voce = importi_letti([base, copia])["liquidazione_giudice"]
+    assert voce["importo"] == 1300 and voce["verifica"] == "verificata"
+    assert [p["documento_id"] for p in voce["copie_concordanti"]] == ["DOC", "PEC"]
+    for variante in ({"numero": "790/2026"}, {"impronta": "d" * 64}, {"data": "2026-10-13"}):
+        diversa = replace(copia, prove=[{**prova, **variante}])
+        voce = importi_letti([base, diversa])["liquidazione_giudice"]
+        assert voce["richiede_conferma"] and voce["importo"] is None
+
+
 SENTENZA_TEXT = """
 Tribunale di Palmi
 Sentenza n. 230/2024 pubbl. il 07/05/2024
@@ -1122,6 +1143,10 @@ def test_voce_unica_apre_originale_documentale_e_copia_pec(monkeypatch):
     assert len(prove) == 2
     assert prove[0]["previewHref"] == "/fascicoli/F1/documenti/DOC/visualizza"
     assert prove[1]["previewHref"] == "/api/v1/ui/email/source/PEC-1?name=copia.pdf&sha256=" + "b" * 64
+    assert voce["fonteImportoVerificata"] == prove[0]
+    oggetti["DOC"].impronta = "c" * 64
+    scaduta = bridge._importi_dall_archivio(fascicolo, {})["liquidazione_giudice"]
+    assert "fonteImportoVerificata" not in scaduta and scaduta["verificheMancanti"]
 
 
 def test_liquidazione_sentenza_automatica_senza_parcella_imposta(tmp_path: Path):

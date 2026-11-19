@@ -37,12 +37,12 @@ from .modello import DatiLettura
 from .narrativa import componi, narrativa
 from .notifiche import notifiche
 from .oggetto import oggetto
-from .pec import pec
+from .pec import pec, pec_con_valutazione_notifica
 from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.16.lettura-fascicolo.v41"
+VERSIONE_LETTURA = "2026.11.18.lettura-fascicolo.v63"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -116,16 +116,39 @@ def _letture_in_corso(archivio_letto: dict[str, Any], documenti_letti: dict[str,
     return {"totale": totale, "fonti": list(fonti.values())}
 
 
+def pec_lette_dal_modello(documenti: list[dict[str, Any]], ragionamento: dict[str, Any] | None) -> frozenset[str]:
+    """Le PEC il cui contenuto il modello della causa ha già letto come atto certo: il provvedimento del giudice o la
+    comunicazione di cancelleria allegati (art. 136 c.p.c.; art. 45 disp. att. c.p.c.). L'evento è quello dell'atto
+    letto, con la sua prova: non si chiede all'avvocato di confermare la classificazione del presidio."""
+    atti = {}
+    for atto in (ragionamento or {}).get("atti") or []:
+        for oid in (atto.get("id"), *(atto.get("copie") or ())):
+            atti.setdefault(str(oid), atto)
+    lette = set()
+    for documento in documenti or []:
+        origine = pulisci(documento.get("pec_origine"))
+        atto = atti.get(str(documento.get("id") or ""))
+        if (origine.startswith("pec_") and atto and atto.get("appartenenza") == "causa"
+                and atto.get("autore") in {"giudice", "cancelleria"} and atto.get("natura") not in {"", "da_verificare"}):
+            lette.add(origine)
+    return frozenset(lette)
+
+
 def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     """La lettura completa del fascicolo, come dati e come testo."""
     oggi = dati.oggi or datetime.now(ROME_TZ).date()
     testata = intestazione(dati.fascicolo, dati.parti, dati.catalogo)
     fonti_documenti = list((dati.archivio or {}).get("fonti_documenti", []) or [])
+    ragionamento = dati.ragionamento or {}
     if not testata.get("rg"):
-        # Il numero di ruolo indicato nel deposito telematico dello studio (deposito integrativo) quando la scheda non lo porta.
-        if (rg_letto := ruolo_dagli_atti(fonti_documenti)):
+        if testata.get("tipo") == "amministrativo" and ragionamento.get("rg"):
+            testata["rg"] = ragionamento["rg"]
+            testata["rg_fonte"] = "letto nell’intestazione del provvedimento amministrativo"
+        elif testata.get("tipo") != "amministrativo" and (rg_letto := ruolo_dagli_atti(fonti_documenti)):
             testata["rg"], testata["rg_fonte"] = rg_letto, "letto nel deposito telematico conservato nel fascicolo"
-    documenti_letti = documenti(dati.documenti, dati.catalogo, rg=testata.get("rg", ""), fonti=fonti_documenti)
+    documenti_letti = documenti(dati.documenti, dati.catalogo, rg=testata.get("rg", ""), fonti=fonti_documenti,
+                               dispositivi=(dati.ragionamento or {}).get("dispositivi"),
+                                amministrativo=testata.get("tipo") == "amministrativo")
     depositi_letti = depositi(dati.depositi, pulisci(dati.fascicolo.get("canale_operativo")))
     depositi_letti["messaggi_archiviati"] = (
         depositi_dalle_copie_pec(documenti_letti["tutti"], fonti_documenti)
@@ -135,11 +158,32 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         doc["id"]: doc["pec_origine"] for doc in dati.documenti
         if doc.get("id") and pulisci(doc.get("pec_origine")).startswith("pec_")
     }
-    notifiche_lette = notifiche(dati.notifiche, dati.attivita, fonti_provvedimenti=fonti_provvedimenti)
+    notifiche_lette = notifiche(
+        dati.notifiche, dati.attivita, fonti_provvedimenti=fonti_provvedimenti,
+        conclusioni=(dati.ragionamento or {}).get("conclusioni"),
+    )
     notifiche_lette["prove_documentali"] = int((dati.archivio or {}).get("prove_notifica_documentali") or 0)
-    pec_letto = pec(dati.pec, oggi=oggi, eventi_riscontrati=frozenset(notifiche_lette["eventi_pec_riscontrati"]))
+    sentenze_riscontrate = frozenset(
+        fonti_provvedimenti[atto["id"]] for atto in (dati.ragionamento or {}).get("atti", [])
+        if atto.get("sentenza") and atto.get("appartenenza") == "causa" and atto.get("id") in fonti_provvedimenti
+    )
+    pec_sentenze_gia_lette = pec_con_valutazione_notifica(ragionamento, fonti_provvedimenti)
+    pec_letto = pec(dati.pec, oggi=oggi, eventi_riscontrati=frozenset(notifiche_lette["eventi_pec_riscontrati"])
+                    | pec_lette_dal_modello(dati.documenti, dati.ragionamento),
+                    sentenze_riscontrate=sentenze_riscontrate, pec_sentenze_gia_lette=pec_sentenze_gia_lette)
     pec_letto["conteggio"] = conteggio_pec(pec_letto, dati.verifiche)
-    economico_letto = economico(dati.economico, oggi)
+    liquidazione_causa = None
+    if testata.get("tipo") == "amministrativo" and ragionamento.get("ruolo_cliente") == "attiva":
+        sentenze_pertinenti = {voce["id"] for voce in documenti_letti["sentenze"]}
+        spese = [voce for voce in (ragionamento.get("economia") or {}).get("liquidazioni") or ()
+                 if sentenze_pertinenti.intersection((voce["atto"], *voce.get("copie", ()))) and voce.get("compensi")]
+        if len(spese) == 1:
+            voce = spese[0]
+            liquidazione_causa = {
+                "importo": voce["compensi"], "documentoFonte": voce["nome"], "pagato": bool(voce.get("incassato")),
+                "status": "letta", "statusLabel": "Da dispositivo della sentenza",
+            }
+    economico_letto = economico(dati.economico, oggi, liquidazione_causa=liquidazione_causa)
     archivio_letto = archivio(dati.archivio) if getattr(dati, "archivio", None) else {}
     stato_documenti = (archivio_letto.get("lettura_automatica") or {}).get("documenti") or {}
     documenti_letti["errori_lettura"] = int(stato_documenti.get("errori") or 0)
@@ -157,7 +201,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         documenti_letti=documenti_letti, scadenze=dati.scadenze, conformita=dati.conformita, regia=dati.regia,
         economico_letto=economico_letto, pec_letto=pec_letto, verifiche=dati.verifiche, oggi=oggi,
         appuntamenti=dati.appuntamenti, fascicolo_id=pulisci(dati.fascicolo.get("id")),
-        ragionamento=dati.ragionamento or None,
+        ragionamento=dati.ragionamento or None, documenti=dati.documenti, pec_sentenze_gia_lette=pec_sentenze_gia_lette,
     )
     # Le schede procedurali pertinenti: rito, canale di deposito, canali di notifica usati.
     conoscenza = schede_per_fascicolo(
@@ -176,11 +220,16 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         riferimenti=[f"{pulisci(voce.get('titolo'))} {pulisci(voce.get('descrizione'))}" for voce in dati.scadenze]
         + [pulisci(termine.get("norma")) for voce in pec_letto["tutte"] for termine in voce.get("termini", [])],
     )
-    scadenze_aperte = [s for s in dati.scadenze if pulisci(s.get("stato")).upper() in {"APERTO", "APERTA", "IN_CORSO"}]
+    from pct.scadenze_stato import APERTA, SCADUTA, stato_operativo
+
+    stati_scadenze = [(s, stato_operativo(s, oggi)) for s in dati.scadenze
+                     if pulisci(s.get("stato")).upper() in {"APERTO", "APERTA", "IN_CORSO", "SCADUTO"}]
+    scadenze_aperte = [s for s, stato in stati_scadenze if stato == APERTA]
     giorni_scadenza = [d for s in scadenze_aperte if (d := data_da(s.get("data_scadenza") or s.get("data")))]
+    scadute = sum(stato == SCADUTA for _, stato in stati_scadenze)
     riepilogo_scadenze = {
-        "totale": len(scadenze_aperte),
-        "scadute": sum(d < oggi for d in giorni_scadenza),
+        "totale": len(scadenze_aperte) + scadute,
+        "scadute": scadute,
         "prossimi30": sum(0 <= (d - oggi).days <= 30 for d in giorni_scadenza),
         "successive": sum((d - oggi).days > 30 for d in giorni_scadenza),
     }

@@ -44,9 +44,23 @@ def _termine_e_udienza(udienze: list[Udienza], termini: list[TermineAssegnato]) 
     return esito
 
 
-def _scadenzario(scadenze: Iterable[dict[str, Any]], conclusioni: list[Conclusione], ctx: Contesto) -> list[Contraddizione]:
+def _presenze_scritte(fatti: Iterable[dict[str, Any]]) -> dict[str, str]:
+    """Le udienze che il provvedimento o il registro dichiarano in presenza («… 09:00 in presenza»), dai fatti collaudati."""
+    from pct.archivio_letture.rettifica_termini import _RE_IN_PRESENZA
+
+    esito: dict[str, str] = {}
+    for fatto in fatti or ():
+        if (fatto.get("categoria") == "data" and fatto.get("campo") == "udienza" and fatto.get("tipo") in {"documento", "allegato_pec"}
+                and fatto.get("verifica") in {"verificata", "corretta"} and _RE_IN_PRESENZA.search(pulito(fatto.get("contesto")))):
+            esito.setdefault(pulito(fatto.get("valore"))[:10], pulito(fatto.get("contesto"))[:200])
+    return esito
+
+
+def _scadenzario(scadenze: Iterable[dict[str, Any]], conclusioni: list[Conclusione], ctx: Contesto,
+                 fatti: Iterable[dict[str, Any]] = ()) -> list[Contraddizione]:
     """Il confronto con le scadenze e l'agenda già registrate: ciò che il modello direbbe diversamente."""
     esito = []
+    presenze = _presenze_scritte(fatti)
     termini_modello = {c.termine.scadenza: c for c in conclusioni if c.termine and c.termine.scadenza}
     udienze_modello = {u.data: u for u in ctx.udienze}
     for voce in scadenze:
@@ -58,6 +72,18 @@ def _scadenzario(scadenze: Iterable[dict[str, Any]], conclusioni: list[Conclusio
         if ctx.posizione == "attiva" and "costituzione del convenuto" in titolo:
             esito.append(Contraddizione("termine_altra_parte", f"In scadenziario «{pulito(voce.get('titolo'))}» del {data_it(giorno)}.",
                                         True, "è il termine della controparte (art. 416 c.p.c.): non è un nostro adempimento"))
+        udienza = udienze_modello.get(giorno)
+        in_presenza = (udienza and udienza.modalita == "presenza") or giorno in presenze
+        if titolo.startswith("opposizione alla trattazione scritta") and in_presenza:
+            # Il termine di opposizione decorre dalla comunicazione (art. 127-ter, secondo comma, c.p.c.): il giorno
+            # dell'udienza fissata in presenza non è quel termine.
+            dove = (f"il registro dice «{presenze[giorno]}»" if giorno in presenze else
+                    f"il provvedimento «{udienza.fonte.nome if udienza.fonte else ''}» fissa per il {data_it(giorno)} un'udienza in presenza")
+            esito.append(Contraddizione(
+                "udienza_detta_opposizione", f"In scadenziario «{pulito(voce.get('titolo'))}» del {data_it(giorno)}.", False,
+                f"{dove}: il {data_it(giorno)} è un'udienza in presenza; l'opposizione alla trattazione scritta decorre dalla "
+                "comunicazione (art. 127-ter, secondo comma, c.p.c.); correggere la scadenza",
+                udienza.fonte if udienza else None))
         e_udienza = titolo.startswith("udienza") or titolo.startswith("comparizione")
         if e_udienza and giorno not in udienze_modello and giorno in termini_modello:
             esito.append(Contraddizione("termine_non_udienza", f"In agenda «{pulito(voce.get('titolo'))}» del {data_it(giorno)}.",
@@ -147,10 +173,10 @@ def _decadenze_416(ctx: Contesto) -> list[Contraddizione]:
 
 
 def controlla(ctx: Contesto, conclusioni: list[Conclusione], errori_materiali: list[tuple[str, Fonte]], *,
-              pagamenti: list[dict[str, Any]], parcelle: list[dict[str, Any]], scadenze: list[dict[str, Any]]
-              ) -> tuple[list[Contraddizione], list[Dubbio]]:
+              pagamenti: list[dict[str, Any]], parcelle: list[dict[str, Any]], scadenze: list[dict[str, Any]],
+              fatti: list[dict[str, Any]] | None = None) -> tuple[list[Contraddizione], list[Dubbio]]:
     contraddizioni = _termine_e_udienza(ctx.udienze, ctx.termini) + _prove_notifica(ctx) + _rito(ctx) + _decadenze_416(ctx)
-    contraddizioni += _scadenzario(scadenze, conclusioni, ctx)
+    contraddizioni += _scadenzario(scadenze, conclusioni, ctx, fatti)
     dubbi: list[Dubbio] = []
     for giorno, fonte in errori_materiali:
         contraddizioni.append(Contraddizione("data_anteriore_atto", f"Il provvedimento del {data_it(fonte.data)} indica il "

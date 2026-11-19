@@ -8,7 +8,10 @@ Norme (testo vigente nell'archivio Normattiva del software, aggiornamento del 15
 - art. 13, comma 3: metà per i processi speciali del libro IV, titolo I, c.p.c. (procedimento monitorio e sua
   opposizione, cautelari, possessori, convalida di sfratto) e per le controversie individuali di lavoro o di
   pubblico impiego, salvo l'art. 9, comma 1-bis;
-- art. 30: l'anticipazione forfettaria di € 27 non è contributo unificato.
+- art. 30: l'anticipazione forfettaria di € 27 non è contributo unificato;
+- art. 10 D.P.R. 115/2002 e art. 46-bis disp. att. c.c.: nella volontaria giurisdizione l'importo della lett. b) vale solo
+  per i processi non esenti (tutela, prole, misure di protezione, assenza e morte presunta sono esenti): la verifica è in
+  ``pct/contributo_esenzioni``, che chi calcola il dovuto chiama prima.
 
 Gli scaglioni sono la tabella versionata ``contributo_unificato_civile`` di ``pct.normative_tables``; la natura
 del procedimento viene dal codice oggetto PST del fascicolo (area e voce padre del catalogo ministeriale XSD,
@@ -97,6 +100,8 @@ def _scaglione(valore: float) -> tuple[float, str]:
 def contributo_dovuto(cat: str, valore: float | None, *, giudice_pace: bool = False) -> Dovuto | None:
     """Il contributo dovuto per la categoria e il valore dichiarato; None se non si può dire con certezza."""
     if cat == VOLONTARIA:
+        # Solo se il processo non è esente: le esenzioni (art. 10, commi 1-3, D.P.R. 115/2002; art. 46-bis disp. att.
+        # c.c.: tutela, prole, misure di protezione, assenza) si verificano prima con pct/contributo_esenzioni.
         return Dovuto(98.0, "art. 13, comma 1, lett. b), D.P.R. 115/2002", "processo di volontaria giurisdizione")
     if cat == PREVIDENZA:
         return Dovuto(43.0, "art. 13, comma 1, lett. a), D.P.R. 115/2002", "controversia di previdenza e assistenza obbligatorie")

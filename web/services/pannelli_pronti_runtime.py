@@ -29,15 +29,17 @@ from flask import current_app, g, has_request_context, request, session
 
 from pct.pannelli_pronti import impronta as impronta_fonti
 from pct.pannelli_pronti.archivio import NOME_FILE, ArchivioPannelli, Voce, chiave as chiave_voce
-from web.services.pannelli_pronti_catalogo import DIPENDENTI, PARAMETRI_IGNORATI_SEMPRE, PER_ENDPOINT, VERSIONE_PANNELLI, Pannello
+from web.services.pannelli_pronti_catalogo import (
+    DIPENDENTI, PANNELLI_SENZA_DATA_DI_CONSULTAZIONE, PARAMETRI_IGNORATI_SEMPRE, PER_ENDPOINT, VERSIONE_PANNELLI,
+    Pannello, impronta_del_pannello,
+)
 
 logger = logging.getLogger(__name__)
 INTESTAZIONE = "X-Iusentra-Pannello"
 SECONDI_TRA_RICHIESTE = 30
-# Conto economico e inventario dei documenti si leggono dagli archivi locali.
-# Su cache mancante, il pannello legge subito l'inventario già registrato.
+# Su cache mancante l'inventario legge subito i documenti già registrati.
 _PANNELLI_IN_SFONDO = frozenset({"quadro", "lettura", "obblighi-notifica",
-                               "scadenze", "letture", "catalogazione-documentale", "passaggi"})
+                               "scadenze", "letture", "catalogazione-documentale", "passaggi", "conto-economico"})
 _INTESTAZIONE_ASINCRONA = "X-Iusentra-Preparazione"
 AMBIENTE_RICALCOLO = "iusentra.pannelli_pronti.ricalcolo"
 CHIAVI_SESSIONE = ("user_id", "auth_scope", "auth_tenant_slug", "tenant_slug", "superadmin_user_id")
@@ -69,13 +71,14 @@ def archivio_per_percorsi(data_paths: dict) -> ArchivioPannelli | None:
 
 
 def fonti_per_percorsi(data_paths: dict) -> impronta_fonti.FontiTenant | None:
+    from web.services.pannelli_pronti_fonti import percorso_pec
     from web.services.registro_letture_runtime import percorso_registro
 
     studio_db = str((data_paths or {}).get("STUDIO_DB") or "")
     if not studio_db:
         return None
     return impronta_fonti.FontiTenant(studio_db=studio_db, registro_db=percorso_registro(data_paths),
-                                      file=file_fonti(data_paths))
+                                      file=file_fonti(data_paths), pec_db=percorso_pec(data_paths))
 
 
 def _profilo(utente: Any, tenant: str) -> str:
@@ -122,11 +125,12 @@ def parametri_normalizzati(pannello: Pannello) -> str:
     return urlencode(coppie)
 
 
-def impronta_attuale(contesto: Contesto, fascicolo_id: str) -> str | None:
+def impronta_attuale(contesto: Contesto, fascicolo_id: str, pannello: str = "") -> str | None:
     # Quadro, Lettura e Conto economico consultati nello stesso GET devono
     # riferirsi alla medesima revisione. Il worker verifica di nuovo prima di salvare.
     cache = None
-    chiave = (contesto.fonti, contesto.archivio.percorso, fascicolo_id)
+    dipende_dal_giorno = pannello not in PANNELLI_SENZA_DATA_DI_CONSULTAZIONE
+    chiave = (contesto.fonti, contesto.archivio.percorso, fascicolo_id, dipende_dal_giorno)
     if (has_request_context() and request.method == "GET"
             and not request.environ.get(AMBIENTE_RICALCOLO) and not calcolo_in_corso()):
         cache = g.get("_impronte_pannelli_correnti")
@@ -136,7 +140,8 @@ def impronta_attuale(contesto: Contesto, fascicolo_id: str) -> str | None:
             return cache[chiave]
     try:
         generazione = contesto.archivio.generazione(fascicolo_id)
-        impronta = impronta_fonti.impronta(contesto.fonti, fascicolo_id, generazione=generazione, versione=VERSIONE_PANNELLI)
+        impronta = impronta_fonti.impronta(contesto.fonti, fascicolo_id, generazione=generazione, versione=VERSIONE_PANNELLI,
+                                          dipende_dal_giorno=dipende_dal_giorno)
     except Exception as exc:
         logger.warning("Impronta delle fonti del fascicolo %s non calcolata: %s", fascicolo_id, exc)
         return None
@@ -162,7 +167,7 @@ def richiedi_pannello_consultivo(fascicolo_id: str, nome: str) -> bool:
     contesto = contesto_corrente()
     if contesto is None or not contesto.sessione:
         return False
-    impronta = impronta_attuale(contesto, fascicolo_id)
+    impronta = impronta_del_pannello(nome, impronta_attuale(contesto, fascicolo_id, nome))
     if impronta is None:
         return False
     tenant = str(getattr(g, "tenant_context_slug", "") or "single-studio")
@@ -253,20 +258,65 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
         return json.dumps(dati, ensure_ascii=False).encode("utf-8") if prima != bool(
             (lettura.get("verifiche") or {}).get("in_corso")
         ) else corpo
+    if pannello.ricomponi == "fase_della_guida":
+        if request.args.get("vista") != "scheda":
+            return corpo
+        from web.services.guida_fase_runtime import fase_per_la_guida
+        from web.services.react_guida_pratica_bridge import collega_normativa_guida
+
+        dati = json.loads(corpo)
+        if dati.get("ok"):
+            collega_normativa_guida(dati.get("guida"))
+            dati["faseReale"] = fase_per_la_guida(fascicolo_id, consultiva=True)
+            return json.dumps(dati, ensure_ascii=False).encode("utf-8")
+        return corpo
     if pannello.ricomponi == "lettura_del_dettaglio":
         sezioni = request.args.get("include", "").lower().replace(";", " ").replace(",", " ").split()
         dati = json.loads(corpo)
-        lettura = None
-        if not sezioni or {"all", "lettura"}.intersection(sezioni):
-            # Il dettaglio e il Quadro mostrano lo stesso esito consultivo mentre
-            # le nuove fonti vengono elaborate.
-            from web.services.riscontri_processuali_runtime import aggiorna_stato_presidi, lettura_consultiva
+        from web.services.riscontri_processuali_runtime import aggiorna_stato_presidi, lettura_consultiva
 
-            lettura = lettura_consultiva(fascicolo_id)
+        # Il dettaglio e il Quadro mostrano lo stesso esito consultivo mentre le nuove fonti vengono elaborate.
+        lettura = lettura_consultiva(fascicolo_id) if not sezioni or {"all", "lettura"}.intersection(sezioni) else None
+        if {"all", "lettura"}.intersection(sezioni):
+            # La Lettura (fino a centinaia di KB) viaggia nel dettaglio solo se richiesta: alla prima apertura la
+            # sezione è chiusa e, quando l'avvocato la apre, il pannello la chiede dal pronto (/lettura).
             if lettura is not None:
                 aggiorna_stato_presidi(lettura, fascicolo_id)
             dati["initialLettura"] = lettura
+        include_scadenze = not sezioni or bool({"all", "scadenze"}.intersection(sezioni))
+        if dati.get("activities") or "relata" in sezioni or include_scadenze:
+            from web.services.pannelli_pronti_ricomposizione import (
+                allinea_attivita_udienze, allinea_presidio_udienze, allinea_relata_al_riscontro,
+            )
+
+            if lettura is None:
+                from web.services.riscontri_processuali_runtime import lettura_consultiva
+
+                lettura = lettura_consultiva(fascicolo_id)
+            allinea_attivita_udienze(dati, lettura)
+            if include_scadenze:
+                allinea_presidio_udienze(dati, lettura, fascicolo_id)
+            if "relata" in sezioni:
+                allinea_relata_al_riscontro(dati, lettura, fascicolo_id)
         corrente = lettura if lettura and not lettura.get("aggiornamento_pendente") else {}
+        from pct.fascicolo_lettura._testo import data_da
+
+        udienze = (corrente.get("ragionamento") or {}).get("udienze") or []
+        prime_date = [(data, voce) for voce in udienze if voce.get("documento_id") and (data := data_da(voce.get("data")))]
+        prima = min(prime_date, key=lambda voce: voce[0], default=None)
+        if prima and isinstance(dati.get("profile"), list):
+            from urllib.parse import quote
+            from pct.formatting import format_date_it
+
+            data_prima = format_date_it(prima[0])
+            if data_prima:
+                profilo = dati["profile"]
+                indice = next((i for i, voce in enumerate(profilo)
+                               if voce.get("label") in {"Prima udienza", "Prima udienza fissata"}), len(profilo))
+                profilo[indice:indice + 1] = [{
+                    "label": "Prima udienza fissata", "value": data_prima, "mono": False,
+                    "href": f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(prima[1]['documento_id'], safe='')}/visualizza",
+                }]
         valore = (corrente.get("intestazione") or {}).get("fonte_valore_causa") or {}
         if not valore and (dati.get("fascicolo") or {}).get("id") == fascicolo_id:
             from web.services.valore_causa_archivio import valore_iscrizione_corrente
@@ -362,6 +412,14 @@ def _risposta_consultiva_salvata(pannello: Pannello, voce: Voce | None, fascicol
         ultimo = json.loads(corpo)
         ultimo["lettura"]["aggiornamento_pendente"] = True
         return _risposta_salvata(200, "application/json", json.dumps(ultimo, ensure_ascii=False).encode("utf-8"), "precedente")
+    if pannello.nome == "conto-economico" and request.headers.get("X-Iusentra-Solo-Corrente") != "1":
+        ultimo = json.loads(corpo)
+        if (ultimo.get("riscontriProcessuali") or {}).get("stato") == "pronto":
+            ultimo["aggiornamentoPendente"] = True
+            ultimo["percorso"]["prossimoPasso"] = ""
+            for passo in ultimo["percorso"]["passi"]:
+                passo.pop("azione", None)
+            return _risposta_salvata(200, "application/json", json.dumps(ultimo, ensure_ascii=False).encode("utf-8"), "precedente")
     return None
 
 
@@ -392,7 +450,8 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
         istantanea = _istantanea_revisione(pannello) if conferma and not ricalcolo else None
     except Exception:
         return vista(*args, **kwargs)
-    impronta = impronta_attuale(contesto, fascicolo_id)
+    impronta_fonti_correnti = impronta_attuale(contesto, fascicolo_id, pannello.nome)
+    impronta = impronta_del_pannello(pannello.nome, impronta_fonti_correnti)
     if impronta is None:
         return vista(*args, **kwargs)
     differibile = (bool(contesto.sessione) and pannello.nome in _PANNELLI_IN_SFONDO
@@ -462,7 +521,10 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                                 except (OSError, sqlite3.Error):
                                     logger.debug("Richiesta Quadro rinviata per %s", fascicolo_id, exc_info=True)
                             if prepara_lettura:
-                                _accoda_pannello_consultivo(contesto, tenant, fascicolo_id, "lettura", impronta)
+                                _accoda_pannello_consultivo(
+                                    contesto, tenant, fascicolo_id, "lettura",
+                                    impronta_del_pannello("lettura", impronta_fonti_correnti),
+                                )
                             else:
                                 from web.services.pannelli_pronti_calcolatore import sveglia_calcolatore
 
@@ -488,6 +550,12 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                 return _risposta_salvata(503, "application/json",
                                         b'{"ok":false,"message":"Preparazione del pannello non riuscita. Riprova tra poco."}', "errore")
             if differibile:
+                if pannello.nome == "conto-economico":
+                    from web.services.riscontri_processuali_runtime import lettura_materializzata
+
+                    if lettura_materializzata(fascicolo_id) is None:
+                        richiedi_lettura_dal_quadro(fascicolo_id)
+                        return _risposta_consultiva_salvata(pannello, voce, fascicolo_id) or _in_preparazione()
                 from web.services.pannelli_pronti_calcolatore import sveglia_calcolatore
 
                 try:
@@ -521,7 +589,7 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
             except Exception:
                 logger.debug("Tentativo del pannello %s non registrato", pannello.nome)
         return risposta
-    if ricalcolo and impronta_attuale(contesto, fascicolo_id) != impronta:
+    if ricalcolo and impronta_del_pannello(pannello.nome, impronta_attuale(contesto, fascicolo_id, pannello.nome)) != impronta:
         return risposta
     try:
         salvato = contesto.archivio.salva(chiave_voce=chiave, fascicolo_id=fascicolo_id, pannello=pannello.nome,
@@ -536,7 +604,9 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                                               motivo="payload troppo grande")
     except Exception as exc:
         logger.warning("Pannello %s del fascicolo %s non salvato: %s", pannello.nome, fascicolo_id, exc)
-    if pannello.ricomponi == "lettura_del_dettaglio" or (pannello.ricomponi == "obblighi_da_lettura" and not ricalcolo):
+    if pannello.ricomponi == "lettura_del_dettaglio" or (
+        not ricalcolo and pannello.ricomponi in {"obblighi_da_lettura", "attivita_da_lettura", "relata_da_lettura", "fase_della_guida"}
+    ):
         risposta.set_data(_ricomponi(pannello, risposta.get_data(), fascicolo_id))
     elif pannello.ricomponi == "quadro_da_lettura":
         dati = json.loads(corpo)
@@ -575,7 +645,7 @@ def fascicolo_della_richiesta() -> str:
     return corrispondenza.group(1) if corrispondenza else ""
 
 
-def impronta_fascicolo_corrente(fascicolo_id: str) -> str | None:
+def impronta_fascicolo_corrente(fascicolo_id: str, pannello: str = "") -> str | None:
     """L'impronta delle fonti del fascicolo nello studio della richiesta (anche senza utente, per le cache derivate)."""
     if not has_request_context() or not fascicolo_id:
         return None
@@ -585,14 +655,15 @@ def impronta_fascicolo_corrente(fascicolo_id: str) -> str | None:
         return None
     try:
         generazione = archivio.generazione(fascicolo_id) if Path(archivio.percorso).exists() else 0
-        return impronta_fonti.impronta(fonti, str(fascicolo_id), generazione=generazione, versione=VERSIONE_PANNELLI)
+        return impronta_fonti.impronta(fonti, str(fascicolo_id), generazione=generazione, versione=VERSIONE_PANNELLI,
+                                      dipende_dal_giorno=pannello not in PANNELLI_SENZA_DATA_DI_CONSULTAZIONE)
     except Exception:
         return None
 
 
 def pannello_valido(fascicolo_id: str, pannello: str) -> bytes | None:
     """Il payload salvato di un pannello del fascicolo ancora valido per le fonti attuali (per i pannelli che lo leggono)."""
-    impronta = impronta_fascicolo_corrente(fascicolo_id)
+    impronta = impronta_del_pannello(pannello, impronta_fascicolo_corrente(fascicolo_id, pannello))
     archivio = archivio_per_percorsi(dict(getattr(g, "data_paths", {}) or {})) if impronta else None
     if archivio is None or not Path(archivio.percorso).exists():
         return None
@@ -613,7 +684,7 @@ def voce_del_profilo(fascicolo_id: str, pannello: str, *, precedente: bool = Fal
     contesto = contesto_corrente()
     if contesto is None or not Path(contesto.archivio.percorso).exists():
         return None
-    impronta = None if precedente else impronta_attuale(contesto, fascicolo_id)
+    impronta = None if precedente else impronta_del_pannello(pannello, impronta_attuale(contesto, fascicolo_id, pannello))
     if impronta is None and not precedente:
         return None
     try:
@@ -634,7 +705,12 @@ def segnala_scrittura_fascicolo(fascicolo_id: str) -> None:
         archivio = archivio_per_percorsi(dict(getattr(g, "data_paths", {}) or {}))
         if archivio is not None:
             archivio.invalida_fascicolo(fascicolo_id)
-            archivio.segnala_fonti_aggiornate(fascicolo_id)
+            if (archivio.segnala_fonti_aggiornate(fascicolo_id) and not request.environ.get(AMBIENTE_RICALCOLO)
+                    and not current_app.config.get("TESTING")):
+                # Il fascicolo appena scritto torna pronto subito, senza attendere il controllo al minuto.
+                from web.services.pannelli_pronti_calcolatore import sveglia_calcolatore
+
+                sveglia_calcolatore()
     except Exception as exc:
         logger.warning("Invalidazione dei pannelli dopo la scrittura non riuscita: %s", exc)
 

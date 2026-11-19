@@ -8,6 +8,7 @@ type Proposta = {
   id: string
   titolo: string
   dataEtichetta: string
+  dataGiorniPieni?: string
   perentorio: boolean
   spiegazione: string
   confermaHref: string
@@ -185,8 +186,9 @@ export function AgendaScheda({ event, azioni, onOpenSource, onChanged }: Props) 
               const esito = esiti[proposta.id]
               return (
                 <div key={proposta.id} className={`iu-ruolo-proposta ${esito === 'confermata' ? 'is-confermata' : esito === 'scartata' ? 'is-scartata' : ''}`}>
-                  <div className="iu-ruolo-proposta__riga"><strong>{proposta.titolo}</strong><span className="iu-ruolo-proposta__data">{proposta.dataEtichetta}</span></div>
-                  {proposta.spiegazione ? <div className="iu-ruolo-proposta__perche">{proposta.perentorio ? 'Termine perentorio. ' : ''}{proposta.spiegazione}</div> : null}
+                  <div className="iu-ruolo-proposta__riga"><strong>{proposta.titolo}</strong><span className="iu-ruolo-proposta__data">{proposta.dataGiorniPieni ? 'Prudenziale · ' : ''}{proposta.dataEtichetta}</span></div>
+                  {proposta.dataGiorniPieni ? <div className="iu-ruolo-proposta__perche">Computo a giorni pieni · {proposta.dataGiorniPieni}</div> : null}
+                  {proposta.spiegazione ? <div className="iu-ruolo-proposta__perche">{proposta.perentorio && !proposta.dataGiorniPieni ? 'Termine perentorio. ' : ''}{proposta.spiegazione}</div> : null}
                   <NotificaDaEseguire scheda={proposta.notifica} />
                   {esito === 'confermata' ? <div className="iu-ruolo-azioni"><span className="iu-ruolo-esito is-ok">Confermato: la scadenza è operativa in agenda</span></div>
                     : esito === 'scartata' ? <div className="iu-ruolo-azioni"><span className="iu-ruolo-esito is-no">Scartato, con il motivo registrato</span></div>

@@ -1291,6 +1291,8 @@ _DOCUMENT_SOURCE_LABELS = {
     "CTU_LIQUIDAZIONE": "Liquidazione CTU",
     "DOCUMENTI_AI_SERVER": "Documenti dello studio",
     "EDITOR_AI_LEX": "Editor con Lex",
+    "BOZZA_PASSO": "Bozza da rivedere e firmare",
+    "BOZZA_NOTE_127_TER": "Bozza da rivedere e firmare",
     "NOTIFICA_LEGALE": "Notifica legale",
     "PAGOPA_RT_PEC": "Ricevuta PagoPA via PEC",
     "PEC_AUDIT_NOTIFICATION_RECEIPT": "Ricevuta PEC di notifica",
@@ -1417,6 +1419,13 @@ def _notification_context_present(text: str) -> bool:
 
 
 def _notification_proof_kind_for_document(doc: Any) -> str:
+    from pct.procedura_fasi.ruolo_dagli_atti import oggetto_messaggio_deposito
+
+    if _text(getattr(doc, "fonte_documento", "")).upper() == "PEC_CANCELLERIA":
+        # La provenienza d'ufficio non documenta una notifica in proprio dello studio.
+        return ""
+    if any(oggetto_messaggio_deposito(getattr(doc, campo, "")) for campo in ("nome", "nome_originale", "nome_portale")):
+        return ""
     text = _notification_document_haystack(doc)
     has_context = _notification_context_present(text)
     if _notification_proof_deposit_confirmed(doc):
@@ -1464,7 +1473,6 @@ def _notification_proof_deposit_confirmed(doc: Any) -> bool:
             "esito",
             "data deposito",
             "copia informatica scaricata dal polisweb",
-            "refid",
         )
     )
 
@@ -1635,11 +1643,18 @@ def _notification_status_label(status: str) -> str:
 
 
 def _notification_proof_key(doc: Any, kind: str) -> str:
+    digest = _text(getattr(doc, "hash_sha256", "")).lower()
+    # Il codice di notifica è comune alle consegne di tutti i destinatari.
+    # Senza impronta, tieni distinte le ricevute registrate con identità diverse.
+    if kind in {"rac", "rdac"}:
+        if digest:
+            return f"{kind}|sha:{digest}"
+        if documento_id := _document_id(doc):
+            return f"{kind}|documento:{documento_id}"
     text = _notification_document_haystack(doc)
     match = re.search(r"notifica[_\s-]*id[:_\s-]*([a-z0-9_-]+)", text, flags=re.IGNORECASE)
     if match:
         return f"{kind}|notifica:{match.group(1).casefold()}"
-    digest = _text(getattr(doc, "hash_sha256", "")).lower()
     if digest:
         return f"{kind}|sha:{digest}"
     name = _normalise_office_document_name(
@@ -3769,6 +3784,7 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
             continue  # Il verificatore comune decide anche su fonti discordanti.
         voce = letti.get(campo)
         discordanze = list(voce.get("discordanze") or []) if voce else []
+        copie_concordanti = list(voce.get("copie_concordanti") or []) if voce else []
         resolved = bool(discordanze and _economic_discordance_resolved(fascicolo, kind))
         if not voce:
             continue
@@ -3819,7 +3835,7 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
                     "tipo": tipo, "sha256": sha, "nome": _text(getattr(originale, "nome", "")) or "Fonte non disponibile",
                     "contesto": _italian_dates_in_text(fonte.get("estratto")), "previewHref": href,
                     "riscontri": ["Copia concordante della stessa fonte economica; importo registrato una sola volta."]})
-        for candidata in discordanze:
+        for candidata in discordanze or copie_concordanti:
             candidate_fact = next((f for f in fatti_importo if f.id == candidata.get("fatto_id")), None)
             if candidate_fact is None or any(f.get("fattoId") == candidate_fact.id for f in fonti_importo):
                 continue
@@ -3834,7 +3850,10 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
                 "nome": _text(getattr(candidate_object, "nome", "")) or "Fonte non disponibile",
                 "sha256": candidate_fact.sha256, "contesto": _italian_dates_in_text(candidate_fact.contesto),
                 "previewHref": candidate_preview,
-                "riscontri": [f"Importo letto: {_euro(candidata.get('importo'))}; natura: {etichetta}."]})
+                "riscontri": [(
+                    "Stesso dispositivo e importo. La fonte resta consultabile."
+                    if copie_concordanti else f"Importo letto: {_euro(candidata.get('importo'))}; natura: {etichetta}."
+                )]})
         verification_issues = [] if preview else ["La fonte corrente dell'importo non è disponibile con la stessa impronta; il collegamento verrà riprovato automaticamente."]
         if discordanze and not resolved:
             verification_issues.append("Fonti economiche distinte o discordanti: " + ", ".join(_euro(value) for value in voce.get("importi_letti") or []) + ". Nessuna sostituzione o somma automatica.")
@@ -3858,6 +3877,9 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
             "richiedeConferma": da_confermare,
             "fattoId": _text(voce.get("fatto_id")),
         }
+        if (kind == "liquidazione_giudice" and not discordanze and preview
+                and voce.get("verifica") in {"verificata", "corretta"}):
+            esito[kind]["fonteImportoVerificata"] = fonti_importo[0]
     for fact in _fatti_archivio(fascicolo, categoria="evento", canonico=False):
         if fact.campo != "importi_identita_non_verificata":
             continue
@@ -3929,6 +3951,8 @@ def _payments_with_automatic_sources(
     for key, value in list(base.items()):
         if not _normalise_payment_kind(key) or not isinstance(value, dict):
             continue
+        if "fonteImportoVerificata" in value:
+            base[key] = value = {k: v for k, v in value.items() if k != "fonteImportoVerificata"}
         origin = _text(value.get("origine") or value.get("origin")).casefold()
         machine_document = any(marker in origin for marker in ("document ai", "archivio delle letture"))
         human = any(
@@ -3945,8 +3969,19 @@ def _payments_with_automatic_sources(
         if automatic.get("richiedeConferma") and automatic.get("importiLetti"):
             raw = raw or _payment_source_for_kind(payments, kind)
             retained = raw if raw and (not _payment_source_is_empty_placeholder(raw) or _raw_payment_is_manual(raw)) else automatic
+            fonti = list(automatic.get("fontiVerifica") or [])
+            identificate = {(fonte.get("documentoId"), fonte.get("sha256")) for fonte in fonti}
+            for fonte in raw.get("fontiVerifica") or []:
+                if not isinstance(fonte, dict):
+                    continue
+                identita = fonte.get("documentoId"), fonte.get("sha256")
+                if all(identita):
+                    if identita in identificate:
+                        continue
+                    identificate.add(identita)
+                fonti.append(fonte)
             base[kind] = {**retained, "richiedeConferma": True,
-                          "fontiVerifica": list(raw.get("fontiVerifica") or []) + automatic.get("fontiVerifica", []),
+                          "fontiVerifica": fonti,
                           "verificheMancanti": list(dict.fromkeys([*list(raw.get("verificheMancanti") or []), *automatic.get("verificheMancanti", [])])),
                           "importiLetti": automatic["importiLetti"]}
             continue
@@ -3958,6 +3993,10 @@ def _payments_with_automatic_sources(
                           "richiedeConferma": bool(automatic.get("richiedeConferma")),
                           "verificheMancanti": automatic.get("verificheMancanti", []),
                           "importiLetti": automatic.get("importiLetti", [])}
+        if (fonte := automatic.get("fonteImportoVerificata")) and (
+            _payment_amount_value(base[kind].get("importo")) == automatic.get("importo")
+        ):
+            base[kind]["fonteImportoVerificata"] = fonte
     return base
 
 
@@ -4094,6 +4133,7 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
         "documentoFonte": source_visible,
         "documentoFonteRaw": source_raw,
         "fontiVerifica": raw.get("fontiVerifica") if isinstance(raw.get("fontiVerifica"), list) else [],
+        **({"fonteImportoVerificata": raw["fonteImportoVerificata"]} if raw.get("fonteImportoVerificata") else {}),
         "verificheMancanti": raw.get("verificheMancanti") if isinstance(raw.get("verificheMancanti"), list) else [],
         "importiLetti": [_amount_label(_payment_amount_value(value)) for value in (raw.get("importiLetti") if isinstance(raw.get("importiLetti"), list) else [])],
         "richiedeConferma": bool(raw.get("richiedeConferma")),
@@ -4178,6 +4218,10 @@ def _apply_sentenza_discordanze(items: dict[str, dict[str, Any]], fascicolo: Any
     for kind, item in items.items():
         if item.get("richiedeConferma"):
             item["discordanzaVersione"] = _economic_discordance_signature(fascicolo, kind)
+        if item.get("richiedeConferma") or item.get("verificheMancanti"):
+            item.pop("fonteImportoVerificata", None)
+        elif item.get("fonteImportoVerificata") and item["status"] == "da_registrare":
+            item["statusLabel"] = "Importo da provvedimento"
 
 
 def _apply_document_analysis_to_payment_items(items: dict[str, dict[str, Any]], analysis: dict[str, Any]) -> None:
@@ -7068,6 +7112,7 @@ def build_react_fascicoli_payload(
     duplicates_only: bool = False,
     payment_filters: dict[str, str] | None = None,
     field_filters: dict[str, str] | None = None,
+    compact: bool = False,
 ) -> dict[str, Any]:
     base_cache_key = _fascicoli_base_cache_key(
         query=query,
@@ -7205,6 +7250,9 @@ def build_react_fascicoli_payload(
     pagination = _pagination(page, page_size, len(sorted_items))
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
+    if compact:
+        # Come l'elenco SQL (fascicoli_list_payload): l'elenco operativo non porta le prove contabili di ogni pratica.
+        items = [{key: value for key, value in item.items() if key != "paymentSummary"} for item in items]
     # Vista economica e operativa usano le stesse righe: riepilogo e prossima scadenza hanno una sola regola.
     return {
         "source": "repository_reali",
@@ -8194,10 +8242,15 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         if historical_pending_releases
         else "Nessuna PEC d'ufficio pendente."
     )
-    acquisition_step_status = "superato" if office_documents or legacy_assumed_handled else "da_completare"
+    acquisition_step_status = (
+        "da_acquisire" if pending_releases else
+        "superato" if office_documents or proof_deposited or legacy_assumed_handled else "da_completare"
+    )
     acquisition_step_detail = (
         f"{len(office_documents)} documento/i già nei Documenti e atti."
         if office_documents
+        else "Gli atti della notifica risultano nella prova di deposito collegata."
+        if proof_deposited and not pending_releases
         else "Storico notifiche chiuso dallo studio fino al 19/07/2026."
         if legacy_assumed_handled
         else "Integra solo il provvedimento indicato dalla PEC senza duplicare gli atti già presenti."
@@ -8222,12 +8275,18 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         if notification_already_sent or proof_complete or proof_deposited or legacy_assumed_handled
         else "Nessun invio automatico senza revisione finale."
     )
-    proof_step_status = "superato" if proof_complete or proof_deposited or legacy_assumed_handled else "da_completare" if signed_relata or notification_already_sent else "in_attesa"
+    proof_step_status = (
+        "superato" if status in {"prova_depositata", "storico_gestito"}
+        else "da_completare" if proof_documents or signed_relata or notification_already_sent
+        else "in_attesa"
+    )
     proof_step_detail = (
-        f"{len(proof_documents)} documenti candidati alla prova; verificare a quale notifica si riferiscono."
+        "Deposito della prova registrato. Apri il documento collegato."
+        if status == "prova_depositata"
+        else "Storico notifiche chiuso dallo studio fino al 19/07/2026."
+        if status == "storico_gestito"
+        else f"{len(proof_documents)} documenti candidati alla prova. Da riscontrare il collegamento alla notifica e il deposito."
         if proof_documents
-        else "Storico notifiche chiuso fino al 19/07/2026: nessuna nuova notifica da preparare."
-        if legacy_assumed_handled
         else "Dopo l'invio PEC collega RAC e RdAC originali, senza creare una nuova notifica."
     )
     steps = [
@@ -9200,16 +9259,19 @@ def _activities(
     return out
 
 
-def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = ()) -> list[dict[str, Any]]:
+def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = (), documenti: Iterable[Any] = ()) -> list[dict[str, Any]]:
     """Scadenze del fascicolo: prima le prossime (dalla più vicina), poi le trascorse (dalla più recente).
 
     Verifica del 03/11/2026: il riquadro «Udienze e scadenze» del presidio prende la prima voce e mostrava
     come prossima udienza un rinvio già trascorso. Il giorno di riferimento è quello di Roma.
     """
     from pct.agenda_eventi_equivalenti import titolo_note_127_ter
+    from pct.procedura_fasi.notifica_ordinata import proposte_notifica_415_equivalenti
     from web.services.pec_source_links import pec_audit_message_ids
 
     oggi = oggi_rome()
+    scadenze = list(scadenze)
+    notifiche_equivalenti = proposte_notifica_415_equivalenti(scadenze, documenti)
     appuntamenti = list(appuntamenti)
     giorni_appuntamenti = {
         _text(getattr(appuntamento, "id", "")): _parse_date(getattr(appuntamento, "data_ora", ""))
@@ -9247,6 +9309,8 @@ def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = ()) -> 
             }
         )
         profile = _text(getattr(item, "deadline_profile_code", ""))
+        if sid in notifiche_equivalenti:
+            out[-1]["representedByDeadlineId"] = notifiche_equivalenti[sid]
         if giorno and out[-1]["status"] in {"APERTO", "BOZZA"}:
             if profile == "NOTE_127_TER":
                 termini_note.setdefault(giorno.isoformat(), []).append((out[-1], item))
@@ -9403,10 +9467,18 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
         seen.add(dedupe_key)
         tone = "success" if status in {"ACCETTATO_CANCELLERIA", "CONTROLLI_SUPERATI", "CONSEGNATO", "ACCETTATO_PEC"} else "danger" if "ERRORE" in status or "RIFIUTATO" in status else "warning" if "WARN" in status else "primary"
         message = _deposit_display_message(dep, portal_docs)
+        if reinvio := getattr(dep, "reinvio_accettato", None):
+            message = f"Rifiuto storico. Reinvio accettato dalla cancelleria · busta {reinvio['nuova_busta']}"
         simulated = is_simulated_deposit(dep)
         next_phase = next_receipt_phase(dep)
         accepted = status == "ACCETTATO_CANCELLERIA"
-        accepted_at = _datetime_label(_deposit_receipt_field(dep, "Data esito", source="ricevuta_cancelleria")) if accepted else ""
+        accepted_at = _datetime_label(getattr(dep, "data_accettazione", "") or
+                                      _deposit_receipt_field(dep, "Data esito", source="ricevuta_cancelleria")) if accepted else ""
+        steps = receipt_steps(dep)
+        fonti_ricevute = getattr(dep, "fonti_ricevute", {})
+        for step in steps:
+            if fonte := fonti_ricevute.get(step["id"]):
+                step["sourceHref"] = f"/email/?audit_id={quote(fonte, safe='')}"
         role_number = _deposit_receipt_field(dep, "Numero ruolo") or _fascicolo_role_number(fascicolo)
         timestamp = getattr(dep, "timestamp", "")
         if getattr(dep, "fonte_portale", "") == "PEC_PCT":
@@ -9443,7 +9515,7 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
                 "documentsCount": len(getattr(dep, "documenti_ids", []) or []) + len(portal_docs),
                 "portalDocuments": portal_docs,
                 "simulated": simulated,
-                "receiptSteps": receipt_steps(dep),
+                "receiptSteps": steps,
                 "checkReceiptsAction": f"/api/fascicoli/{fid}/depositi/{encoded_did}/controlla" if fid and encoded_did else "",
                 "nextSimulationAction": f"/api/fascicoli/{fid}/depositi/{encoded_did}/simula-ricevuta" if simulated and next_phase != "completo" and fid and encoded_did else "",
                 "tone": tone,
@@ -9987,7 +10059,7 @@ def build_react_fascicolo_detail_payload(
     visible_requests = [item for item in visible_activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
     requests = visible_requests if load_activities else []
     visible_deposits = _deposits(fascicolo)
-    notification_communication_count = len(_notification_communication_documents(fascicolo))
+    notification_communication_ids = [_document_id(doc) for doc in _notification_communication_documents(fascicolo)]
     notification_relata = _notification_relata(fascicolo) if load_relata else _notification_relata(fascicolo, [])
     relata_count = max(
         int(notification_relata.get("pendingPortalDocuments") or 0),
@@ -10005,7 +10077,7 @@ def build_react_fascicolo_detail_payload(
         "attivita": len(visible_activity_records),
         "eventi_tecnici": len(technical_activity_records),
         "udienze_scadenze": len(scadenze) + len(apps),
-        "comunicazioni": len(visible_deposits) + notification_communication_count,
+        "comunicazioni": len(visible_deposits) + len(notification_communication_ids),
         "istanze": len(visible_requests),
         "relata_notifica": relata_count,
     }
@@ -10074,7 +10146,8 @@ def build_react_fascicolo_detail_payload(
             "sources": [],
         }
     )
-    scadenze_proiettate = _deadlines(scadenze, appuntamenti=apps) if load_deadlines or not include else []
+    scadenze_proiettate = _deadlines(scadenze, appuntamenti=apps,
+                                   documenti=getattr(fascicolo, "documenti", ()) or ()) if load_deadlines or not include else []
     if document_presidio.get("actions") and scadenze_proiettate:
         _allinea_azioni_documentali_note(document_presidio, fid, scadenze, scadenze_proiettate)
     quick_counts["presidio_documenti"] = len(document_presidio.get("actions") or [])
@@ -10254,7 +10327,7 @@ def build_react_fascicolo_detail_payload(
 
     initial_lettura = (
         _safe("initial_lettura", lambda: _initial_lettura_fascicolo(fid), None)
-        if (not include or include_all or "lettura" in include) and not calcolo_in_corso()
+        if (include_all or "lettura" in include) and not calcolo_in_corso()
         else None
     )
     return {
@@ -10273,6 +10346,7 @@ def build_react_fascicolo_detail_payload(
             payment_summary=payment_summary_detail,
         ),
         "quickCounts": quick_counts,
+        "notificationCommunicationIds": notification_communication_ids,
         "depositPhaseSummary": {"codice": fase_deposito_corrente.codice},
         "lex_indexing": lex_indexing,
         "profile": _profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),

@@ -21,6 +21,25 @@ def test_un_atto_che_non_e_una_sentenza_non_ha_esito():
     assert estrai_esito("RICORSO EX ART. 414 C.P.C. ... P.Q.M. si chiede che il giudice accolga", origine="nativo") == []
 
 
+def test_data_in_calce_e_udienza_cartolare_richiamata_nella_sentenza():
+    from pct.archivio_letture.estrazione_ruolo import estrai_ruoli
+
+    testo = (
+        "Richiamato il proprio decreto di sostituzione dell’udienza del 9.10.2026;\n"
+        "SENTENZA nel procedimento iscritto al n. 2848 del R.G. dell’anno 2026.\n"
+        "P.Q.M. definitivamente pronunciando, accoglie il ricorso. "
+        "Pone a carico dell’Amministrazione l’onere di rifusione delle spese di lite, che si liquidano "
+        "ex D.M. 55/2014 in complessivi € 350,00 oltre accessori, con distrazione in favore del difensore. "
+        "*Così deciso in Reggio Calabria, in data 9.10.2026*\nIL GIUDICE DEL LAVORO"
+    )
+    assert [f.valore for f in estrai_ruoli(testo, origine="indice")] == ["2848/2026"]
+    fatti = {f.campo: f for f in estrai_esito(testo, origine="indice")}
+    decisione = fatti["data_decisione_sentenza"]
+    assert decisione.valore == "2026-10-09"
+    assert any(prova["codice"] == "trattazione_scritta_decisa" for prova in decisione.prove)
+    assert fatti["spese_sentenza"].valore == "condanna;importo=350,00;distrazione"
+
+
 def test_riconosce_compensazione_anche_se_la_formula_di_merito_non_e_classificata():
     testo = (
         "TRIBUNALE — SENTENZA — RG 123/2024\nP.Q.M.\n"

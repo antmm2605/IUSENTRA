@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.esito_udienza import MARCATORE, esito_dalle_fonti, registra_esiti
 from pct.scadenze_stato import ESITO_UDIENZA, SCADUTA, stato_operativo
 from pct.scadenziario import GestioneScadenziario, Scadenza, StatoTermine, TipoTermine
@@ -54,3 +55,27 @@ def test_registra_con_fonte_certa_una_sola_volta(tmp_path):
     assert gestione.get(memoria.id).stato == StatoTermine.APERTO  # gli adempimenti non si chiudono da soli
     assert registra_esiti(gestione, fascicolo_id="F1", eventi=eventi, oggi=OGGI) == 0
     assert gestione.get(precedente.id).stato == StatoTermine.COMPLETATO
+
+
+def test_registra_in_agenda_solo_la_voce_collegata_alla_trattazione_decisa(tmp_path):
+    gestione = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    termine = gestione.nuova(
+        "Deposito delle note scritte", TipoTermine.DEPOSITO_ATTO, "2026-10-09", id_fascicolo="F1",
+        deadline_profile_code="NOTE_127_TER", source_message_id="pec_decreto",
+        note="SUPERATA_DA_SENTENZA:TRATTAZIONE_SCRITTA:2026-10-09:D1",
+    )
+    agenda = Agenda(str(tmp_path / "agenda.json"))
+    note = f"PEC_AUDIT:pec_decreto\nScadenza: {termine.id}"
+    trattazione = agenda.aggiungi("Deposito note", TipoAppuntamento.UDIENZA, "2026-10-09T10:00:00", note=note)
+    altra = agenda.aggiungi(
+        "Udienza di altra pratica", TipoAppuntamento.UDIENZA, "2026-10-09T11:00:00",
+        note=note, id_fascicolo="F2",
+    )
+    manuale = agenda.aggiungi("Altra udienza", TipoAppuntamento.UDIENZA, "2026-10-09T12:00:00")
+
+    assert registra_esiti(gestione, fascicolo_id="F1", eventi=[], oggi=OGGI, agenda=agenda) == 1
+    assert agenda.get(trattazione.id).stato == StatoAppuntamento.COMPLETATO
+    assert f"{MARCATORE}:decisa:2026-10-09:D1" in agenda.get(trattazione.id).note
+    assert all(agenda.get(voce.id).stato == StatoAppuntamento.PROGRAMMATO for voce in (altra, manuale))
+    assert gestione.get(termine.id).stato == StatoTermine.APERTO
+    assert registra_esiti(gestione, fascicolo_id="F1", eventi=[], oggi=OGGI, agenda=agenda) == 0

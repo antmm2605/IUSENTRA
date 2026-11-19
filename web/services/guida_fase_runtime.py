@@ -8,6 +8,7 @@ documenti nella richiesta. Senza Lettura pronta la guida resta quella della sche
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,8 @@ def applica_fase_reale(payload: dict[str, Any], lettura: dict[str, Any] | None) 
             voce = candidati[0] if len(candidati) == 1 else {}
             fonte = voce.get("letto") or {}
             modello = voce.get("template") if (
-                voce.get("stato") == "da_fare" and voce.get("onerato_codice") in {"noi", "tutte_le_parti"}
+                not lettura.get("aggiornamento_pendente") and voce.get("stato") == "da_fare"
+                and voce.get("onerato_codice") in {"noi", "tutte_le_parti"}
                 and fonte.get("documento_id") and not passo.get("scaduto") and not voce.get("dubbi")
             ) else ""
             operativi.append({
@@ -85,15 +87,18 @@ def applica_fase_reale(payload: dict[str, Any], lettura: dict[str, Any] | None) 
     return payload
 
 
-def _calcola_fase(fascicolo_id: str) -> dict[str, Any]:
-    from web.services.riscontri_processuali_runtime import contesto_operativo_da_lettura
+def _calcola_fase(fascicolo_id: str, *, consultiva: bool = False) -> dict[str, Any]:
+    from web.services.riscontri_processuali_runtime import contesto_operativo_da_lettura, lettura_precedente
 
     lettura = lettura_pronta(fascicolo_id)
+    if lettura is None and consultiva:
+        lettura = lettura_precedente(fascicolo_id)
     risultato = applica_fase_reale({"guida": {}, "checklist": {"nota_fase": "scheda"}}, lettura)
     if risultato["checklist"].get("nota_fase") == "scheda":
         risultato["checklist"]["nota_fase"] = ""
     fase = {
         "ok": True,
+        "aggiornamento_pendente": bool((lettura or {}).get("aggiornamento_pendente")),
         "contesto_operativo": contesto_operativo_da_lettura(lettura, fascicolo_id),
         "nota_fase": risultato["checklist"].get("nota_fase", ""),
         "fase": risultato["checklist"].get("fase_lettura", ""),
@@ -103,14 +108,31 @@ def _calcola_fase(fascicolo_id: str) -> dict[str, Any]:
     for chiave in ("passi_operativi", "motivo_stato_passi"):
         if chiave in risultato:
             fase[chiave] = risultato[chiave]
+    passi_note = [
+        passo for passo in fase.get("passi_operativi", ())
+        if passo.get("modello_atto") == "builtin-tmp-civ-012" and passo.get("entro")
+    ]
+    if passi_note:
+        from web.services.passaggi_runtime import chiave_bozza_note
+        from web.services.riscontri_processuali_runtime import risultato_materializzato
+
+        pannello = risultato_materializzato(fascicolo_id, "passaggi") or {}
+        for passo in passi_note:
+            try:
+                termine = datetime.strptime(passo["entro"], "%d/%m/%Y").date().isoformat()
+            except ValueError:
+                continue
+            documento_id = passo["documento"]["documento_id"]
+            if chiave := chiave_bozza_note(pannello, documento_id, termine):
+                passo["bozza_note"] = {"chiave": chiave, "documento_id": documento_id}
     return fase
 
 
-def fase_per_la_guida(fascicolo_id: str, *, in_sfondo: bool = True) -> dict[str, Any]:
+def fase_per_la_guida(fascicolo_id: str, *, in_sfondo: bool = True, consultiva: bool = False) -> dict[str, Any]:
     """Espone la fase disponibile; la Lettura viene preparata dai suoi job."""
-    risultato = _calcola_fase(fascicolo_id)
+    risultato = _calcola_fase(fascicolo_id, consultiva=consultiva)
     if in_sfondo and not risultato.get("fase"):
-        return {"ok": True, "in_preparazione": True}
+        return {"ok": True, "in_preparazione": True, "contesto_operativo": risultato["contesto_operativo"]}
     return risultato
 
 

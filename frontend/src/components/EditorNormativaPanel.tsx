@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { BookOpen, Copy, ExternalLink, Search, X } from 'lucide-react'
 import { ensureJson } from '../api/client'
-import { matchesCatalogueAct } from './codiciLeggiSearch'
+import { matchesCatalogueAct, matchesCatalogueAlias } from './codiciLeggiSearch'
 import './EditorNormativaPanel.css'
 
 /**
@@ -45,14 +45,25 @@ export function EditorNormativaPanel({ onClose }: { onClose: () => void }) {
     return () => controller.abort()
   }, [])
 
-  const attiVisibili = useMemo(() => (filtroAtto ? acts.filter((a) => matchesCatalogueAct(a, filtroAtto)) : acts).slice(0, 60), [acts, filtroAtto])
+  const attiCorrispondenti = useMemo(() => filtroAtto.trim() ? acts.filter(a => matchesCatalogueAct(a, filtroAtto)) : acts, [acts, filtroAtto])
+  const attiVisibili = attiCorrispondenti.slice(0, 60)
 
   async function cerca(event: FormEvent) {
     event.preventDefault()
-    if (!atto && !articolo.trim() && !parole.trim()) { setErrore('Indica un codice o una legge, un articolo o alcune parole.'); return }
+    const filtro = filtroAtto.trim()
+    const attiConSigla = filtro ? attiCorrispondenti.filter(a => matchesCatalogueAlias(a, filtro)) : []
+    const candidati = attiConSigla.length ? attiConSigla : attiCorrispondenti
+    const attoRicercato = atto || (filtro && candidati.length === 1 ? String(candidati[0].id) : '')
+    if (filtro && !attoRicercato) {
+      setRisultati(null); setScelto(null)
+      setErrore(attiCorrispondenti.length ? 'Seleziona il codice o la legge dall’elenco.' : 'Non risulta un atto corrispondente al filtro.')
+      return
+    }
+    if (!attoRicercato && !articolo.trim() && !parole.trim()) { setErrore('Indica un codice o una legge, un articolo o alcune parole.'); return }
+    if (attoRicercato !== atto) setAtto(attoRicercato)
     setOccupato(true); setErrore(''); setScelto(null)
     try {
-      const params = new URLSearchParams({ act: atto, article: articolo.trim(), q: parole.trim(), offset: '0' })
+      const params = new URLSearchParams({ act: attoRicercato, article: articolo.trim(), q: parole.trim(), offset: '0' })
       const data = await ensureJson<{ items: Article[] }>(`${base}/articoli?${params}`)
       setRisultati(data.items || [])
       if (data.items?.length === 1) await apri(data.items[0].id)
@@ -81,7 +92,7 @@ export function EditorNormativaPanel({ onClose }: { onClose: () => void }) {
       </header>
       <form className="iu-normativa-panel__form" onSubmit={cerca}>
         <label><span>Codice o legge</span>
-          <input value={filtroAtto} placeholder="es. c.c., c.p.c., 53/1994" onChange={(e) => setFiltroAtto(e.target.value)}/>
+          <input value={filtroAtto} placeholder="es. c.c., c.p.c., 53/1994" onChange={(e) => { setFiltroAtto(e.target.value); setAtto('') }}/>
         </label>
         <select aria-label="Atto normativo" value={atto} onChange={(e) => setAtto(e.target.value)}>
           <option value="">Tutti i codici e le leggi</option>
@@ -100,7 +111,8 @@ export function EditorNormativaPanel({ onClose }: { onClose: () => void }) {
           <h4>Art. {scelto.number} — {scelto.act_label || scelto.act_title}</h4>
           {scelto.title ? <p className="iu-normativa-panel__rubrica">{scelto.title}</p> : null}
           <p className="iu-normativa-panel__meta">
-            {dataIt(scelto.consolidated_at || scelto.updated_at) ? `Testo aggiornato al ${dataIt(scelto.consolidated_at || scelto.updated_at)}` : 'Data di aggiornamento non indicata'}
+            {dataIt(scelto.consolidated_at) ? `Testo consolidato al ${dataIt(scelto.consolidated_at)}`
+              : dataIt(scelto.updated_at) ? `Edizione della biblioteca del ${dataIt(scelto.updated_at)}` : 'Data dell’edizione non indicata'}
             {scelto.source_url ? <> · <a href={scelto.source_url} target="_blank" rel="noopener noreferrer">{scelto.source_label || 'Fonte ufficiale'} <ExternalLink size={11}/></a></> : null}
           </p>
           {scelto.only_heading ? <p className="iu-normativa-panel__meta">Nell’archivio c’è solo la rubrica: consulta la fonte ufficiale.</p> : null}

@@ -186,6 +186,16 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
         contributo = next(n for n in letti if n != 27.0)  # l'altro importo è il contributo (vedi avviso_importo)
         if importo in {None, 27.0, round(contributo + 27.0, 2)}:
             importo = contributo
+    if confronto.get("esito") == "esente_per_legge":
+        # Processo esente per legge (pct/contributo_esenzioni: art. 10 D.P.R. 115/2002, art. 46-bis disp. att. c.c.):
+        # la ricevuta presente è quella dell'anticipazione forfettaria dell'art. 30, non del contributo.
+        stato = _esito("esente_da_confermare" if confronto.get("dubbio") else "esente", importo=None,
+                       norma=str(confronto.get("norma") or ""), fonti=[_documento(d) for d in versamenti],
+                       ruolo_fonti="ricevuta dell'anticipazione forfettaria (art. 30 D.P.R. 115/2002)" if versamenti else "",
+                       dettaglio=str(confronto.get("dettaglio") or "")
+                       + (f" Da chiarire: {confronto['dubbio']}." if confronto.get("dubbio") else ""))
+        stato["esenzioneLegge"] = {k: confronto.get(k) for k in ("norma", "motivo", "anticipazione", "dettaglio", "dubbio")}
+        return stato
     if versamenti and esenzioni and verificata.get("certa"):
         versamenti = []  # esenzione certa: la ricevuta proposta non prevale
     if versamenti:

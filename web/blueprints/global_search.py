@@ -141,7 +141,7 @@ def api_search():
             limit=limit,
             user=g.get("utente_corrente"),
         )
-        payload["stats"] = service.stats(ctx)
+        payload["stats"] = stats
         return jsonify(payload)
     except Exception as exc:
         current_app.logger.exception("Errore Ricerca Studio API: %s", exc)

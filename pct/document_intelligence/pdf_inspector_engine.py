@@ -11,7 +11,7 @@ from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
-ENGINE_VERSION = 'pdf-inspector:1.17.0:iusentra-v9-risoluzione-misurata-per-pagina'
+ENGINE_VERSION = 'pdf-inspector:1.17.0:iusentra-v10-ruolo-frontespizio'
 
 
 def _safe_page_scale(width: float, height: float, preferred: float = 3.0) -> float:
@@ -287,6 +287,7 @@ def _small_box_values(image, existing: str) -> tuple[list[str], list[str]]:
 
 
 def extract_pdf_inspected(content: bytes, *, identity_scan: bool = False):
+    from pct.ragionamento.testo import rg_frontespizio
     from .extraction import ExtractionResult
     from .models import DocumentAIPageText
     from .pdf_quality import has_only_signature_text
@@ -426,6 +427,15 @@ def extract_pdf_inspected(content: bytes, *, identity_scan: bool = False):
                             warnings.extend(f'Pagina {page_number}: {warning}' for warning in recovery_warnings)
                     if uncertain:
                         warnings.append(f'Pagina {page_number}: lettura incerta, verificare l’originale; nessun invio a servizi esterni.')
+                    if page_number == 1 and not identity_scan and not corrupt:
+                        ruolo = rg_frontespizio(raw)
+                        ruolo_intestazione_letta = rg_frontespizio(plain_markdown(text))
+                        if ruolo and ruolo != ruolo_intestazione_letta:
+                            if ruolo_intestazione_letta:
+                                text = raw
+                                warnings.append('Pagina 1: intestazioni discordanti. Recuperata la pagina dal livello testuale originale.')
+                            else:
+                                text = f'N. R.G. {ruolo}\n\n{text}'
                     pages.append(DocumentAIPageText(page_number=page_number, text=plain_markdown(text),
                         identity_sources=[dict(item) for item in identity_sources if item['page_number'] == page_number]))
                 finally:

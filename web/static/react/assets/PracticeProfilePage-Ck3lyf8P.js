@@ -1,0 +1,1 @@
+import{rn as e}from"./lettura-fascicolo-_A6b--0B.js";import{t}from"./LegalSkillsProfilePage-4R9k-m75.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as PracticeProfilePage};

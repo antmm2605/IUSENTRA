@@ -7,14 +7,17 @@ import { LoadingState } from '../ui/LoadingState'
 import '../ui/activity.css'
 import './EditorPersonalTemplates.css'
 
-export function EditorPersonalTemplates({ open, onClose, serialize, matterId, options, onMatterChange, onApply, mattersLoading, mattersError, sourceDocument, onUsageChange }: {
+export function EditorPersonalTemplates({ open, onClose, serialize, matterId, options, onMatterChange, onApply, mattersLoading, mattersError, sourceDocument, bozzaNote, onUsageChange }: {
   open: boolean; onClose: () => void; serialize: () => string; matterId: string; options: FascicoloOption[];
   onMatterChange?: (id: string) => void; onApply: (html: string, title: string, missing: string[]) => void;
   mattersLoading?: boolean; mattersError?: string; sourceDocument?: {matter: string; document: string};
+  bozzaNote?: boolean;
   onUsageChange?: (usingModel: boolean) => void;
 }) {
   const [mode, setMode] = useState<'save' | 'use'>('save')
   const [title, setTitle] = useState('')
+  const [riusaProvvedimento, setRiusaProvvedimento] = useState(true)
+  const daProvvedimento = Boolean(bozzaNote && sourceDocument && riusaProvvedimento)
   const [models, setModels] = useState<Array<{id: string; titolo: string; ambito?: string}>>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState('')
@@ -23,11 +26,15 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [ready, setReady] = useState<{html: string; titolo: string; mancanti: string[]} | null>(null)
-  const intent = useRef<{titolo: string; html: string; command_id: string; source_document?: {matter: string; document: string}} | null>(null)
+  const [compiled, setCompiled] = useState<{model: string; matterId: string; html: string; titolo: string; mancanti: string[]} | null>(null)
+  const [compiling, setCompiling] = useState(false)
+  const [compileError, setCompileError] = useState('')
+  const [compileRetry, setCompileRetry] = useState(0)
+  const ready = compiled?.model === model && compiled.matterId === matterId ? compiled : null
+  const intent = useRef<{titolo: string; html?: string; origine?: 'provvedimento_note'; command_id: string; source_document?: {matter: string; document: string}} | null>(null)
   useBusyActivity(open && mode === 'use' && catalogLoading, 'Caricamento modelli…')
-  useBusyActivity(open && busy, mode === 'save' ? 'Salvataggio modello…' : 'Compilazione del modello…')
-  useEffect(() => { setReady(null) }, [model, matterId])
+  useBusyActivity(open && busy, 'Salvataggio modello…')
+  useBusyActivity(open && mode === 'use' && compiling, 'Compilazione del modello…')
   useEffect(() => { onUsageChange?.(open && mode === 'use') }, [open, mode, onUsageChange])
   useEffect(() => {
     // Saving the current document does not need the catalog of other models.
@@ -43,7 +50,10 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
   }, [open, mode, success, catalogReload])
   const save = async () => {
     setBusy(true); setError(''); setSuccess('')
-    intent.current ||= { titolo: title.trim(), html: serialize(), command_id: crypto.randomUUID(), source_document: sourceDocument }
+    intent.current ||= {
+      titolo: title.trim(), command_id: crypto.randomUUID(), source_document: sourceDocument,
+      ...(daProvvedimento ? { origine: 'provvedimento_note' } : { html: serialize() }),
+    }
     try {
       const response = await fetch('/api/editor/modelli-personali', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(intent.current) })
       const data = await response.json()
@@ -52,21 +62,37 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
     } catch (error) { setError(error instanceof Error ? error.message : 'Salvataggio non confermato.') }
     finally { setBusy(false) }
   }
-  const prepare = async () => {
-    setBusy(true); setError(''); setSuccess(''); setReady(null)
-    try {
-      const response = await fetch(`/api/editor/${encodeURIComponent(matterId)}/modelli-personali/${encodeURIComponent(model)}/compila`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+  useEffect(() => {
+    setCompiled(null)
+    setCompileError('')
+    if (!open || mode !== 'use' || !model || !matterId) {
+      setCompiling(false)
+      return
+    }
+    const controller = new AbortController()
+    setCompiling(true)
+    fetch(`/api/editor/${encodeURIComponent(matterId)}/modelli-personali/${encodeURIComponent(model)}/compila`, {
+      credentials: 'same-origin', signal: controller.signal, headers: { Accept: 'application/json' },
+    }).then(async response => {
       const data = await response.json()
-      if (!response.ok || !data.ok) throw new Error(data.errore || 'Compilazione non riuscita.')
-      setReady(data)
-    } catch (error) { setError(error instanceof Error ? error.message : 'Compilazione non riuscita.') }
-    finally { setBusy(false) }
-  }
+      if (!response.ok || !data.ok || data.matterId !== matterId) throw new Error(data.errore || 'Compilazione non riuscita.')
+      if (!controller.signal.aborted) setCompiled({ ...data, model, matterId })
+    }).catch(error => {
+      if (!controller.signal.aborted) setCompileError(error instanceof Error ? error.message : 'Compilazione non riuscita.')
+    }).finally(() => {
+      if (!controller.signal.aborted) setCompiling(false)
+    })
+    return () => controller.abort()
+  }, [open, mode, model, matterId, compileRetry])
   return <Modal title="Modelli" open={open} onClose={() => { if (!busy) onClose() }}>
     <div className="iu-de-personal-templates">
     <div className="iu-de-template-actions"><button type="button" aria-pressed={mode === 'save'} disabled={busy} onClick={() => { setMode('save'); setError(''); setSuccess('') }}>Salva modello personale</button><button type="button" aria-pressed={mode === 'use'} disabled={busy || intent.current !== null} onClick={() => { setMode('use'); setError(''); setSuccess('') }}>Usa modello</button></div>
     {mode === 'save' ? <>
-      <p>I campi collegati diventano segnaposto riutilizzabili. Il testo scritto liberamente rimane nel modello: controlla che non contenga dati del precedente cliente.</p>
+      {bozzaNote && <label className="iu-de-template-origin"><input type="checkbox" checked={riusaProvvedimento} disabled={busy || intent.current !== null}
+        onChange={event => setRiusaProvvedimento(event.target.checked)}/> Crea il modello dal provvedimento collegato</label>}
+      <p>{daProvvedimento
+        ? 'Salva lo schema delle note con campi del fascicolo, riferimento normativo e timbro configurato. Le aggiunte alla bozza restano nel documento originale.'
+        : 'I campi collegati diventano segnaposto riutilizzabili. Il testo scritto liberamente rimane nel modello: controlla che non contenga dati del precedente cliente.'}</p>
       <label>Nome del modello<input aria-label="Nome del modello personale" value={title} maxLength={100} disabled={busy || intent.current !== null} onChange={event => setTitle(event.target.value)}/></label>
       <button type="button" disabled={busy || !title.trim()} onClick={() => void save()}>{busy ? 'Salvataggio…' : intent.current ? 'Riprova salvataggio' : 'Salva modello personale'}</button>
     </> : <>
@@ -77,8 +103,9 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
       {onMatterChange && <FascicoloSearchSelect options={options} value={matterId} onChange={onMatterChange} disabled={busy} selectionLabel="Fascicolo del modello"/>}
       {onMatterChange && mattersLoading && <LoadingState title="Caricamento fascicoli" message="Lettura dei fascicoli selezionabili in corso."/>}
       {onMatterChange && mattersError && <p role="alert">{mattersError}</p>}
-      <button type="button" disabled={busy || catalogLoading || Boolean(catalogError) || !model || !matterId} onClick={() => void prepare()}>Compila con i dati del fascicolo</button>
-      {ready && <><p>La compilazione sostituirà il contenuto attuale del documento. Puoi annullarla con il comando Annulla.</p>{ready.mancanti.length > 0 && <p role="status">Da compilare: {ready.mancanti.join(', ')}.</p>}<button type="button" onClick={() => { onApply(ready.html, ready.titolo, ready.mancanti); onClose() }}>Applica modello compilato</button></>}
+      {compiling && <LoadingState title="Compilazione del modello" message="Inserimento dei dati collegati al fascicolo."/>}
+      {compileError && <p role="alert">{compileError} <button type="button" onClick={() => setCompileRetry(value => value + 1)}>Riprova compilazione</button></p>}
+      {ready && !compiling && <><p>Il modello compilato sostituirà il contenuto del documento. Puoi annullare la modifica.</p>{ready.mancanti.length > 0 && <p role="status">Da compilare: {ready.mancanti.join(', ')}.</p>}<button type="button" onClick={() => { onApply(ready.html, ready.titolo, ready.mancanti); onClose() }}>Applica modello compilato</button></>}
     </>}
     {error && <p role="alert">{error}</p>}{success && <p role="status">{success}</p>}
     </div>

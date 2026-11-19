@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pct.email_mailbox_repository import EmailMailboxRepository
 from web.services.email_storage_runtime import _context_for_path
+from web.services.storage_runtime import get_request_storage_runtime
 from web.services.studio_readonly import request_studio_reader, worker_studio_writer
 
 
@@ -30,6 +31,16 @@ def _mailbox_connection(db_path, *, expected_tenant: str, writable=False):
 @contextmanager
 def mailbox_reader(db_path, *, expected_tenant: str):
     with _mailbox_connection(db_path, expected_tenant=expected_tenant) as repository:
+        yield repository
+
+
+@contextmanager
+def dashboard_mailbox_reader(db_path, *, expected_tenant: str):
+    profile = get_request_storage_runtime(db_path)
+    if profile.effective_mode == 'JSON' and profile.selected_mode == 'JSON':
+        yield None
+        return
+    with mailbox_reader(db_path, expected_tenant=expected_tenant) as repository:
         yield repository
 
 

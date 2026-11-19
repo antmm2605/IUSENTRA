@@ -119,6 +119,9 @@ def test_memoria_difensiva_titolo_unito_all_ufficio_e_alla_sezione():
     assert esito.status == "proposed"
     assert esito.document_label == "Memoria difensiva ex art. 416 c.p.c."
     assert esito.deposit_role == "atto_principale"
+    fonti = [voce.locator for voce in esito.evidence if voce.evidence_type == "legal_source"]
+    assert fonti[0] == "normattiva_cpc_art416_memoria_difensiva"
+    assert not any("licenziament" in voce.excerpt.lower() for voce in esito.evidence if voce.evidence_type == "legal_source")
     testo = testo.replace("MEMORIA DIFENSIVA", "Il ricorrente replica alla memoria difensiva")
     assert _cataloga(testo, {"tipo_fascicolo": "lavoro"}).document_label != esito.document_label
 

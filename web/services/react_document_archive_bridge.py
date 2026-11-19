@@ -47,6 +47,7 @@ _SOURCE_LABELS = {
     "NOTIFICA_LEGALE": "Notifica legale",
     "REDAZIONE_STUDIO": "Redazione dello studio",
     "EDITOR_AI_LEX": "Editor con Lex",
+    "BOZZA_PASSO": "Bozza da rivedere e firmare",
     "DOCUMENTI_AI_SERVER": "Lettura assistita",
     "APERTURA_FASCICOLO_VELOCE": "Apertura del fascicolo",
     "COPIA_RUOTATA_DA_LETTORE": "Copia ruotata dal lettore",

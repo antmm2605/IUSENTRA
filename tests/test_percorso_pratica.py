@@ -26,7 +26,9 @@ def test_dispositivo_si_legge_dopo_pqm_senza_la_firma():
 def test_accoglimento_contro_la_pa_con_spese_e_distrazione():
     esito = esito_sentenza(ACCOLTA_CONTRO_PA, nostra_parte="ricorrente")
     assert esito["esito"] == "accoglimento" and esito["per_il_cliente"] == "favorevole"
-    assert esito["spese"] == {"regolazione": "condanna", "importo": "250,00", "distrazione": True, "frase": esito["spese"]["frase"]}
+    # Versione dell'8080 (18/11/2026): la condanna dice anche se il liquidato comprende gli esborsi e il contributo.
+    assert esito["spese"] == {"regolazione": "condanna", "importo": "250,00", "distrazione": True, "frase": esito["spese"]["frase"],
+                              "esborsi_inclusi": None, "esborsi_contributo": False}
     percorso = rimedi(esito, rito="lavoro", controparte_pa=True)
     assert percorso["strada"] == "realizzazione"
     norme = [n for passo in percorso["passi"] for n in passo["norme"]]

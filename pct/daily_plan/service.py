@@ -118,6 +118,11 @@ def _segnali_operativi(
     oggi = ctx.planning_date or ctx.clock.today()
     revoche = {(fid, giorno.isoformat()) for fid, giorno in ctx.udienze_revocate_da_cancelleria}
     for signal in signals:
+        if signal.source_type == "notification" and ctx.aggiorna_segnale_notifica:
+            aggiornato = ctx.aggiorna_segnale_notifica(signal)
+            if aggiornato is not None:
+                yield aggiornato
+            continue
         if signal.source_type == "pec" and signal.kind == "hearing_attend":
             giorno = normalize_due_date(signal.due_at, ctx.clock)
             if (signal.fascicolo_id, giorno) in revoche and signal.metadata.get("fascicolo_match") != "weak":

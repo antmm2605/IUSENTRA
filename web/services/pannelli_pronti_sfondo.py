@@ -1,9 +1,15 @@
-"""Ricalcolo in sfondo dei pannelli pronti: i pannelli dei fascicoli aperti di recente la cui impronta è cambiata.
+"""Ricalcolo in sfondo dei pannelli pronti.
 
-Si ricalcolano solo i pannelli già richiesti almeno una volta, più quelli della prima apertura (dettaglio, quadro,
-scadenze, documenti, Lettura, regia, obblighi di notifica) per i profili che hanno aperto il fascicolo. Il calcolo
-rifà la stessa richiesta GET dell'avvocato dentro l'app (stessi controlli di accesso, stesso motore, stesso
-salvataggio): nessun documento si rilegge, i motori consultano i dati già consolidati.
+Due livelli, nell'ordine:
+1. ``da_ricalcolare``: i pannelli dei fascicoli aperti di recente o appena chiesti dall'avvocato la cui impronta è
+   cambiata (più quelli della prima apertura per i profili che hanno aperto il fascicolo);
+2. ``copertura``: tutti i fascicoli non archiviati, per i profili attivi, tutti i pannelli del catalogo nella forma in
+   cui l'interfaccia li chiede: prima i fascicoli con una fonte appena cambiata, poi gli aperti di recente, poi i
+   termini più vicini, poi gli altri. Così anche un fascicolo non aperto da giorni si apre dal pronto.
+
+Il calcolo rifà la stessa richiesta GET dell'avvocato dentro l'app (stessi controlli di accesso, stesso motore, stesso
+salvataggio): nessun documento si rilegge, i motori consultano i dati già consolidati. Il sistema non conosce il
+contenuto dei pannelli: elenco, percorsi e dipendenze vengono dal catalogo.
 
 Il controllo (quali voci sono superate) è leggero e gira nel lavoro dello scheduler; il calcolo gira in un
 processo separato a bassa priorità (``web.services.pannelli_pronti_calcolatore``), un lotto alla volta.
@@ -13,23 +19,47 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 from urllib.parse import urlsplit
 
 from pct.pannelli_pronti import impronta as impronta_fonti
 from pct.pannelli_pronti.archivio import ArchivioPannelli
-from web.services.pannelli_pronti_catalogo import PANNELLI, PRIMA_APERTURA, VERSIONE_PANNELLI
+from web.services.pannelli_pronti_catalogo import (
+    PANNELLI, PANNELLI_SENZA_DATA_DI_CONSULTAZIONE, PRIMA_APERTURA, VERSIONE_PANNELLI, impronta_del_pannello,
+)
 
 logger = logging.getLogger(__name__)
 ORE_APERTURA_RECENTE = 72.0
+# Profili che hanno consultato i pannelli di recente: i fascicoli si preparano con i loro permessi.
+GIORNI_PROFILI_ATTIVI = 30.0
+VARIANTI_PER_PANNELLO = 2
 MINUTI_ATTESA_LETTURA = 5.0
-PANNELLI_PRIORITARI = ("lettura", "passaggi", "quadro", "obblighi-notifica", "scadenze")
+PANNELLI_PRIORITARI = ("lettura", "passaggi", "conto-economico", "quadro", "obblighi-notifica", "scadenze")
 _NOMI_PANNELLI = frozenset(pannello.nome for pannello in PANNELLI)
-# I pannelli che leggono la Lettura o la sintesi delle notifiche seguono le loro fonti.
-_ORDINE = {nome: indice for indice, nome in enumerate(dict.fromkeys(
-    ["dettaglio", "lettura", "passaggi", "obblighi-notifica", "quadro", "scadenze", "documenti", "regia"]
-    + [p.nome for p in PANNELLI]))}
+# Ordine di calcolo: preferenza della prima apertura, ma ogni pannello dopo i pannelli che legge (``dipende_da`` del
+# catalogo). Così nello stesso giro una fonte si calcola prima di chi la legge e il dipendente non va ricalcolato.
+_PREFERENZA = ["dettaglio", "lettura", "passaggi", "conto-economico", "obblighi-notifica", "quadro", "scadenze",
+               "documenti", "regia"]
 
+
+def _ordine_con_dipendenze() -> dict[str, int]:
+    dipendenze = {p.nome: set(p.dipende_da) for p in PANNELLI}
+    da_ordinare = list(dict.fromkeys(_PREFERENZA + [p.nome for p in PANNELLI]))
+    ordinati: list[str] = []
+    while da_ordinare:
+        pronto = next((n for n in da_ordinare if dipendenze.get(n, set()) <= set(ordinati)), da_ordinare[0])
+        ordinati.append(pronto)
+        da_ordinare.remove(pronto)
+    return {nome: indice for indice, nome in enumerate(ordinati)}
+
+
+_ORDINE = _ordine_con_dipendenze()
+
+
+# Percorso senza parametri e parametri della forma canonica (per esempio la scheda della guida, ``?vista=scheda``).
+_PERCORSI = {p.nome: p.percorso.split("?", 1)[0] for p in PANNELLI if p.percorso}
+_PARAMETRI_CANONICI = {p.nome: urlsplit(p.percorso).query for p in PANNELLI if p.percorso}
+_PRIMA_APERTURA_NOMI = frozenset(p.nome for p in PRIMA_APERTURA)
 
 
 @dataclass(frozen=True)
@@ -72,10 +102,12 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
         in_attesa = archivio.fascicoli_in_attesa_di_lettura(minuti=MINUTI_ATTESA_LETTURA, pannelli=PANNELLI_PRIORITARI)
         fascicoli = in_attesa if solo_pannelli_prioritari else dict.fromkeys([*in_attesa, *archivio.fascicoli_aperti_dal(ore)])
     for fascicolo_id in fascicoli:
-        attuale = impronta_fonti.impronta(fonti, fascicolo_id, generazione=archivio.generazione(fascicolo_id),
-                                          versione=VERSIONE_PANNELLI)
-        if attuale is None:
+        componenti = impronta_fonti.componenti(fonti, fascicolo_id, generazione=archivio.generazione(fascicolo_id),
+                                               versione=VERSIONE_PANNELLI)
+        if componenti is None:
             return []  # trigger non preparati: nessun pannello si salva, niente da ricalcolare
+        per_giorno = impronta_fonti.impronta_componenti(componenti)
+        senza_giorno = impronta_fonti.impronta_componenti(componenti, dipende_dal_giorno=False)
         inizio = len(risultato)
         voci = archivio.voci_del_fascicolo(fascicolo_id)
         # Una vecchia versione della chiave può convivere con quella attuale.
@@ -90,7 +122,9 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
                 continue
             chiave_attuale = _chiave_pannello(fascicolo_id, pannello, urlsplit(percorso).query, profilo)
             impronta_salvata, tentata = stati.get(chiave_attuale, precedente)
-            if impronta_salvata != attuale and tentata != attuale:
+            attuale = senza_giorno if pannello in PANNELLI_SENZA_DATA_DI_CONSULTAZIONE else per_giorno
+            attesa = impronta_del_pannello(pannello, attuale)
+            if impronta_salvata != attesa and tentata != attesa:
                 risultato.append(DaRicalcolare(fascicolo_id, pannello, percorso, profilo,
                                                "mai calcolato" if not impronta_salvata else "fonti cambiate"))
         if solo_pannelli_prioritari:
@@ -101,7 +135,9 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
         for profilo in archivio.profili_del_fascicolo(fascicolo_id):
             for pannello in PRIMA_APERTURA:
                 percorso = pannello.percorso.format(fid=fascicolo_id)
-                if (pannello.nome, profilo) not in presenti:
+                gia_richiesto = ((pannello.nome, percorso, profilo) in per_richiesta if urlsplit(percorso).query
+                                 else (pannello.nome, profilo) in presenti)
+                if not gia_richiesto:
                     risultato.append(DaRicalcolare(fascicolo_id, pannello.nome, percorso, profilo, "prima apertura"))
         risultato[inizio:] = sorted(
             risultato[inizio:],
@@ -112,14 +148,99 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
     return risultato[:limite]
 
 
-def ricalcola(app, archivio: ArchivioPannelli, voci: list[DaRicalcolare]) -> dict[str, int]:
-    """Rifà le richieste GET con la sessione del profilo: la vista calcola e salva come per l'avvocato."""
+def copertura(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant, *, limite: int = 8,
+              giorni_profili: float = GIORNI_PROFILI_ATTIVI) -> list[DaRicalcolare]:
+    """Tutti i fascicoli non archiviati: i pannelli mancanti o superati per i profili attivi, in ordine di urgenza.
+
+    Prima i fascicoli con una fonte appena cambiata (avevano un pannello pronto e ora non vale più), poi quelli
+    aperti di recente, poi i termini o le udienze più vicini, infine gli altri. Le voci si leggono dall'archivio a
+    ogni giro: un'interruzione riprende dal primo pannello non ancora pronto, senza stato da conservare.
+    """
+    from web.services.pannelli_pronti_priorita import fascicoli_per_priorita
+    from web.services.pannelli_pronti_runtime import _chiave_pannello
+
+    profili = [p for p in archivio.profili_attivi(giorni=giorni_profili) if archivio.sessione(p)]
+    if not profili:
+        return []
+    ordine = fascicoli_per_priorita(fonti, archivio.fascicoli_aperti_dal(ORE_APERTURA_RECENTE))
+    if not ordine:
+        return []
+    generazioni = archivio.generazioni()
+    componenti = impronta_fonti.componenti_di_tutti(fonti, {f: generazioni.get(f, 0) for f in ordine},
+                                                    versione=VERSIONE_PANNELLI)
+    if not componenti:
+        return []  # trigger non preparati
+    attese: dict[tuple[str, str], str | None] = {}
+
+    def attesa(fascicolo_id: str, nome: str) -> str | None:
+        """L'impronta che il pannello salva (``servi``): con o senza il giorno e con la revisione del suo motore."""
+        if (fascicolo_id, nome) not in attese:
+            fonti_correnti = impronta_fonti.impronta_componenti(
+                componenti[fascicolo_id], dipende_dal_giorno=nome not in PANNELLI_SENZA_DATA_DI_CONSULTAZIONE)
+            attese[fascicolo_id, nome] = impronta_del_pannello(nome, fonti_correnti)
+        return attese[fascicolo_id, nome]
+
+    stati = archivio.stati()
+    con_pronto_superato: set[str] = set()
+    for _chiave, (fid, salvata, _tentata, nome) in stati.items():
+        if salvata and fid in componenti and nome in _PERCORSI and salvata != attesa(fid, nome):
+            con_pronto_superato.add(fid)
+    ordine = [f for f in ordine if f in con_pronto_superato] + [f for f in ordine if f not in con_pronto_superato]
+    richieste = {profilo: _richieste_del_profilo(archivio, profilo) for profilo in profili}
+    risultato: list[DaRicalcolare] = []
+    # Prima i pannelli della prima apertura di tutti i fascicoli, poi gli altri pannelli.
+    giri = [(prima, fascicolo_id, profilo) for prima in (True, False) for fascicolo_id in ordine for profilo in profili]
+    for prima_apertura, fascicolo_id, profilo in giri:
+        if fascicolo_id not in componenti:
+            continue
+        for nome, parametri in richieste[profilo]:
+            if (nome in _PRIMA_APERTURA_NOMI) != prima_apertura:
+                continue
+            _fid, salvata, tentata, _nome = stati.get(_chiave_pannello(fascicolo_id, nome, parametri, profilo),
+                                                      ("", "", "", ""))
+            attuale = attesa(fascicolo_id, nome)
+            if salvata == attuale or tentata == attuale:
+                continue
+            percorso = _PERCORSI[nome].format(fid=fascicolo_id) + (f"?{parametri}" if parametri else "")
+            risultato.append(DaRicalcolare(fascicolo_id, nome, percorso, profilo,
+                                           "fonti cambiate" if salvata else "copertura"))
+            if len(risultato) >= limite:
+                return risultato
+    return risultato
+
+
+def _richieste_del_profilo(archivio: ArchivioPannelli, profilo: str) -> list[tuple[str, str]]:
+    """Le richieste da preparare: ogni pannello del catalogo nella forma in cui l'interfaccia lo chiede davvero.
+
+    Le varianti con parametri si prendono da quelle già chieste dal profilo (per esempio ``include`` del dettaglio);
+    senza consultazioni si prepara la forma canonica. L'ordine segue la prima apertura della pagina.
+    """
+    viste: dict[str, list[str]] = {}
+    for nome, parametri in archivio.varianti_richieste(profilo):
+        if nome in _PERCORSI and len(viste.setdefault(nome, [])) < VARIANTI_PER_PANNELLO:
+            viste[nome].append(parametri)
+    richieste = []
+    for nome in sorted(_PERCORSI, key=lambda n: _ORDINE.get(n, 99)):
+        for parametri in viste.get(nome) or [_PARAMETRI_CANONICI.get(nome, "")]:
+            richieste.append((nome, parametri))
+    return richieste
+
+
+def ricalcola(app, archivio: ArchivioPannelli, voci: list[DaRicalcolare], *,
+              interrompi: Callable[[], bool] | None = None) -> dict[str, int]:
+    """Rifà le richieste GET con la sessione del profilo: la vista calcola e salva come per l'avvocato.
+
+    ``interrompi`` (copertura in sfondo) si consulta prima di ogni pannello: una consultazione dell'avvocato in attesa
+    ferma il lotto, il resto si riprende al giro successivo.
+    """
     from web.services.pannelli_pronti_runtime import AMBIENTE_RICALCOLO
 
     esiti = {"calcolati": 0, "non_salvati": 0, "errori": 0}
     client = app.test_client()
     sessione_corrente = None
     for voce in voci:
+        if interrompi is not None and interrompi():
+            break
         sessione = archivio.sessione(voce.profilo)
         if not sessione:
             esiti["errori"] += 1

@@ -8,6 +8,24 @@ from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
 from pct.scadenze_superate_sentenza import MARCATORE, segnala_scadenze_superate
 
 
+def test_sentenza_della_stessa_giornata_supera_solo_le_note_cartolari_documentate(tmp_path):
+    from pct.scadenze_stato import SCADUTA, STORICA, stato_operativo
+
+    calendario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    dati = dict(data_scadenza="2026-10-09", id_fascicolo="F1")
+    note = calendario.nuova(titolo="Deposito note scritte ex art. 127-ter c.p.c.",
+                            tipo=TipoTermine.DEPOSITO_MEMORIA, **dati)
+    altro = calendario.nuova(titolo="Deposito memoria", tipo=TipoTermine.DEPOSITO_MEMORIA, **dati)
+    sentenza = dict(fascicolo_id="F1", giorno_sentenza="2026-10-09", origine="dispositivo", documento_conclusivo="DOC")
+    assert segnala_scadenze_superate(calendario, **sentenza) == 0
+    assert segnala_scadenze_superate(calendario, **sentenza, trattazione_scritta_decisa=True) == 1
+    assert segnala_scadenze_superate(calendario, **sentenza, trattazione_scritta_decisa=True) == 0
+    giorno = date(2026, 11, 17)
+    assert stato_operativo(calendario.get(altro.id), giorno) == SCADUTA
+    assert stato_operativo(calendario.get(note.id), giorno) == STORICA
+    assert calendario.get(note.id).stato == StatoTermine.APERTO
+
+
 def test_solo_le_scadenze_procedurali_passate_del_fascicolo_ricevono_l_avviso(tmp_path):
     scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
     note = scadenziario.nuova(titolo="Deposito note scritte ex art. 127-ter c.p.c.", tipo=TipoTermine.DEPOSITO_MEMORIA,

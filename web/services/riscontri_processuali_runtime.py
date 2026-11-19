@@ -95,7 +95,8 @@ def chiarisci_spese_da_sentenza(conto: dict[str, Any], lettura: dict[str, Any] |
     """Distingue una sentenza presente da un dispositivo economico non ancora provato."""
     if not conto.get("ok"):
         return
-    conclusioni = ((lettura or {}).get("ragionamento") or {}).get("conclusioni") or []
+    quadro = (lettura or {}).get("ragionamento") or {}
+    conclusioni = quadro.get("conclusioni") or []
     sentenze = {}
     for voce in conclusioni:
         if voce.get("codice") not in {"notifica_sentenza", "termine_impugnazione"}:
@@ -109,7 +110,24 @@ def chiarisci_spese_da_sentenza(conto: dict[str, Any], lettura: dict[str, Any] |
     from urllib.parse import quote
 
     fid = quote(str(conto.get("fascicoloId") or ""), safe="")
+    base = f"/fascicoli/{fid}/documenti/"
+    distrazioni = {}
+    for voce in (quadro.get("economia") or {}).get("liquidazioni") or ():
+        if voce.get("distrazione_condizionata") and voce.get("richiesta_distrazione"):
+            for oid in [voce.get("atto"), *(voce.get("copie") or [])]:
+                if oid:
+                    distrazioni[f"{base}{quote(oid, safe='')}/visualizza"] = voce["richiesta_distrazione"]
     for riga in conto.get("righe") or []:
+        if riga.get("voce") == "sentenza" and riga.get("stato") == "Distratte in favore dell'avvocato":
+            fonti = riga.get("fonti") or []
+            richieste = {f["href"]: distrazioni[f["href"]] for f in fonti if f.get("href") in distrazioni}
+            if richieste and len(richieste) == len(fonti) and len({r["id"] for r in richieste.values()}) == 1:
+                prova = next(iter(richieste.values()))
+                avviso = "La sentenza distrae le spese «ove richiesto»: verificare che negli atti ci sia la dichiarazione di antistatarietà."
+                riga["dettaglio"] = riga.get("dettaglio", "").replace(
+                    avviso, "La richiesta di distrazione con dichiarazione di antistatarietà è negli atti (art. 93 c.p.c.).")
+                riga["fonti"] = [*fonti, {"label": prova["nome"], "norma": "Richiesta di distrazione · art. 93 c.p.c.",
+                                          "href": f"{base}{quote(prova['id'], safe='')}/visualizza"}]
         if riga.get("voce") != "sentenza" or riga.get("stato") not in {
             "Nessuna sentenza con spese liquidate", "Liquidazione non confermata",
         }:
@@ -168,6 +186,16 @@ def obbligo_di_notifica_storico(voce: dict[str, Any], documenti_storici: set[str
     documenti.add(voce.get("documentoId"))
     documenti.update(fonte.get("documentoId") for fonte in voce.get("fonti_documentali") or ())
     return bool(documenti_storici.intersection(documenti))
+
+
+def stati_obblighi_da_lettura(obblighi: list[dict[str, Any]], lettura: dict[str, Any]) -> list[dict[str, Any]]:
+    conclusioni = (lettura.get("ragionamento") or {}).get("conclusioni") or []
+    storici = documenti_notifica_storica(conclusioni)
+    stato = "riscontro_storico_precedente" if lettura.get("aggiornamento_pendente") else "riscontro_storico"
+    return [
+        {**voce, "stato": stato} if obbligo_di_notifica_storico(voce, storici) else voce
+        for voce in obblighi
+    ]
 
 
 def proietta_obblighi_notifica(payload: dict[str, Any], riscontri: dict[str, Any]) -> dict[str, Any]:

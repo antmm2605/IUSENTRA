@@ -657,3 +657,32 @@ def test_pec_estinzione_collegiale_usa_ricezione_in_agenda_e_decorrenza_del_recl
     assert reclamo.deadline_profile_code == "CIV_RECLAMO_ESTINZIONE_308"
     assert reclamo.data_decorrenza == ricezione.date().isoformat()
     assert reclamo.data_decorrenza != pubblicazione.isoformat()
+def test_un_allegato_giudiziale_di_altro_ruolo_non_puo_attribuire_termini_alla_pec():
+    from pct.pec_pipeline import _ruolo_diverso_in_allegato_cancelleria
+
+    report = {
+        "event_type": "comunicazione_cancelleria",
+        "procedural_profile": {"numero_rg": "0001084/2026"},
+    }
+    estraneo = {
+        "filename": "provvedimento.pdf.zip",
+        "ocr_text": "[provvedimento.pdf] N. R.G. 627/2026 TRIBUNALE ORDINARIO DI VICENZA DECRETO FISSAZIONE",
+    }
+    pertinente = {**estraneo, "ocr_text": estraneo["ocr_text"].replace("627/2026", "1084/2026")}
+    assert _ruolo_diverso_in_allegato_cancelleria(report, [estraneo]) == ("1084/2026", "627/2026")
+    assert _ruolo_diverso_in_allegato_cancelleria(report, [pertinente]) is None
+    assert _ruolo_diverso_in_allegato_cancelleria(report, [estraneo, pertinente]) is None
+    assert _ruolo_diverso_in_allegato_cancelleria({**report, "event_type": "deposito"}, [estraneo]) is None
+
+
+def test_la_rettifica_della_fonte_riapre_la_proposta_ma_lo_scarto_dell_avvocato_resta():
+    from pct.provvedimenti.scadenziario import scadenza_equivalente
+    from pct.scadenze_stato import MARCATORE_FONTE_ESTRANEA
+
+    giorno = date(2026, 12, 16)
+    for codice in ("NOTE_127_TER", "LAV_416_COSTITUZIONE"):
+        storico = {"id_fascicolo": "F", "data_scadenza": giorno.isoformat(),
+                    "deadline_profile_code": codice, "stato": "ANNULLATO"}
+        fonte_rettificata = {**storico, "note": f"{MARCATORE_FONTE_ESTRANEA}:pec_estranea"}
+        assert scadenza_equivalente([fonte_rettificata], fascicolo_id="F", giorno=giorno, codice=codice) is None
+        assert scadenza_equivalente([storico], fascicolo_id="F", giorno=giorno, codice=codice) == storico

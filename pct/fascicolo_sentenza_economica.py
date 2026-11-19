@@ -1336,8 +1336,23 @@ def _contributo_document_amount_has_direct_context(compact: str, match: re.Match
     )
 
 
+def richiesta_autocertificazione_esenzione(text: str) -> str:
+    """Riconosce l'invito dell'ufficio a trasmettere una dichiarazione."""
+    richiamo = re.search(
+        r"\b(?:trasmettere|depositare|produrre|inviare)\s+"
+        r"(?:entro\s+(?:\d{1,2}|[a-z]+)\s+giorni\s+)?"
+        r"(?:(?:una|la|l['’])\s*)?autocertificazione\s+"
+        r"(?:(?:ai fini|in materia)\s+(?:dell['’]|di\s+))?(?:di\s+)?esenzione\s+"
+        r"(?:(?:dal|del)\s+)?(?:contributo\s+unificato|c\.?\s*u\.?)\b",
+        _compact(text), re.IGNORECASE,
+    )
+    return richiamo[0] if richiamo else ""
+
+
 def _extract_contributo_exemption_evidence(compact: str, metadata: dict[str, Any]) -> dict[str, Any]:
     if _CONTRIBUTO_DOCUMENT_NOT_EXEMPT_RE.search(compact):
+        return {}
+    if richiesta_autocertificazione_esenzione(compact):
         return {}
     match = _CONTRIBUTO_DOCUMENT_EXEMPT_RE.search(compact)
     if not match:

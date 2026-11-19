@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from pct.provvedimenti.collettivi import testo_per_il_ruolo
-from pct.provvedimenti.termine_scritto import rischio_estinzione
+from pct.provvedimenti.termine_scritto import parte_dispositiva, rischio_estinzione
 
 from .modello import Atto, Fonte, TermineAssegnato, Udienza
 from .testo import date_nel_testo, frasi, giorno, pulito, semplice
@@ -28,6 +28,9 @@ from .testo import date_nel_testo, frasi, giorno, pulito, semplice
 _NUMERI = {"cinque": 5, "dieci": 10, "quindici": 15, "venti": 20, "trenta": 30, "quaranta": 40, "sessanta": 60, "novanta": 90}
 _PARTE_ATTIVA = ("creditrice", "creditore", "procedente", "istante", "ricorrente", "attore", "attrice", "parte ricorrente")
 _PARTE_PASSIVA = ("debitrice", "debitore", "convenuto", "convenuta", "resistente", "parte resistente", "esecutato")
+_ORDINE_RINNOVAZIONE = re.compile(
+    r"\b(?:dispone|ordina)\s+(?:procedersi\s+alla\s+|la\s+)?rinnovazione\s+della\s+notificazion[ei]\b",
+)
 
 
 @dataclass
@@ -68,7 +71,9 @@ def periodi_della_causa(testo: str, rg: str) -> tuple[list[str], bool]:
 
 
 def _modalita(frase: str) -> str:
-    s = semplice(frase)
+    # «Visto l'art. 127-ter c.p.c. …» in premessa non sostituisce l'udienza: conta la parte che dispone
+    # (regola unica di pct/provvedimenti/termine_scritto.parte_dispositiva).
+    s = semplice(parte_dispositiva(frase))
     if re.search(r"127[\s-]*ter|note scritte|trattazione scritta|scambio di note", s):
         return "note_scritte"
     if re.search(r"127[\s-]*bis|collegamento audiovisivo|da remoto", s):
@@ -94,16 +99,21 @@ def _onerato(frase: str) -> str:
         return "parte_passiva"
     if soggetto.startswith("terz"):
         return "terzo"
+    if _ORDINE_RINNOVAZIONE.search(s) and re.search(r"\bnei confronti della parte convenuta\b", s):
+        return "parte_attiva"
     return ""
 
 
 def _adempimento(frase: str) -> tuple[str, str]:
     """Il codice e il testo dell'adempimento scritto nella frase; ("", "") se la frase non lo dice."""
     s = semplice(frase)
-    if re.search(r"127[\s-]*ter|note scritte|scambio di note", s) and re.search(r"deposit|sostitu|scambio", s):
+    dispositiva = semplice(parte_dispositiva(frase))
+    if re.search(r"127[\s-]*ter|note scritte|scambio di note", dispositiva) and re.search(r"deposit|sostitu|scambio", dispositiva):
         return "note_127ter", "Depositare le note scritte ex art. 127-ter c.p.c. (sole istanze e conclusioni)"
     if re.search(r"costituir|costituzione", s) and re.search(r"convenut|resistente", s):
         return "costituzione_convenuto", "Costituirsi in giudizio depositando la memoria difensiva"
+    if _ORDINE_RINNOVAZIONE.search(s):
+        return "notifica_ordinata", "Notificare nuovamente gli atti indicati nell'ordinanza"
     if re.search(r"sia(?:no)? notificat|venga(?:no)? notificat|si notifichi|notificarsi|\bnotificare\b|\bnotifichi\b", s):
         oggetto = re.search(r"(il presente provvedimento|il ricorso[^,;.]{0,40}decreto|il ricorso|il decreto|il provvedimento)", s)
         a_chi = re.search(r"\b(?:alla|al|ai|alle)\s+((?:debitrice|debitore|controparte|terz[oi]|convenut[oa]|resistente)[^,;.]{0,40})", s)
@@ -195,7 +205,8 @@ def leggi_provvedimento(atto: Atto, rg: str) -> LetturaProvvedimento:
         seguente = periodi[periodi.index(periodo) + 1] if periodi.index(periodo) + 1 < len(periodi) else ""
         # «Fissa l'udienza del 26.2.2026. Sostituisce l'udienza con il deposito di note scritte»: la modalità
         # può stare nel periodo che segue, se parla della sostituzione dell'udienza.
-        dove = periodo + (" " + seguente if re.search(r"sostitui|sostituit", semplice(seguente)) else "")
+        modalita_fissata = re.search(r"sostitui|sostituit|l'udienza di cui sopra si terra", semplice(seguente))
+        dove = periodo + (" " + seguente if modalita_fissata else "")
         for valore, ora in trovate:
             lettura.udienze.append(Udienza(valore.isoformat(), ora, _modalita(dove), Fonte(atto.id, atto.nome, pulito(dove)[:400], atto.data)))
     # Rinvio per diserzione delle parti: la prossima diserzione estingue il processo (artt. 631 e 181 c.p.c.),
@@ -228,7 +239,8 @@ def leggi_provvedimento(atto: Atto, rg: str) -> LetturaProvvedimento:
                 continue
             lettura.termini.append(TermineAssegnato(
                 scadenza=valore.isoformat(), adempimento=testo or codice, onerato=onerato or "ignoto", perentorio=perentorio,
-                fonte=fonte_data, norme=["cpc_127ter_testo"] + ([norma_rischio] if norma_rischio else []) if codice == "note_127ter" else [],
+                fonte=fonte_data, norme=(["cpc_127ter_testo"] + ([norma_rischio] if norma_rischio else [])
+                   if codice == "note_127ter" else ["cpc_291"] if _ORDINE_RINNOVAZIONE.search(semplice(periodo)) else []),
                 conseguenza=come if not come.startswith("a_ritroso") else "termine a ritroso dall'udienza", ora=ora,
                 formula=come if come.startswith("a_ritroso") else "data",
             ))
@@ -242,8 +254,12 @@ def leggi_provvedimento(atto: Atto, rg: str) -> LetturaProvvedimento:
             lettura.ordini.append(Ordine(codice, testo, onerato or "ignoto", fonte))
     # La data del differimento e il termine per le note possono stare in periodi distinti.
     contesto = " ".join(periodi)
-    sostituzione = re.search(r"l'udienza\s+sia\s+sostituita\s+dal\s+deposito\s+di\s+note\s+scritte", semplice(contesto))
-    assegnazione = re.search(r"termine perentorio sino alla data della predetta udienza", semplice(contesto))
+    sostituzione = re.search(r"\budienza\s+(?:sia\s+)?sostituita\s+dal\s+deposito\s+di\s+note\s+scritte", semplice(contesto))
+    assegnazione = re.search(
+        r"termine perentorio sino alla data della predetta udienza"
+        r"|entro le ore\s+\d{1,2}[.:,]\d{2}\s+della data in cui si terra la suddetta udienza",
+        semplice(contesto),
+    )
     if sostituzione and assegnazione and not any(t.adempimento.startswith("Depositare le note") for t in lettura.termini):
         date_udienza = {d for d, _ in udienze_atto}
         if len(date_udienza) == 1:
@@ -251,7 +267,7 @@ def leggi_provvedimento(atto: Atto, rg: str) -> LetturaProvvedimento:
             ore = {ora for periodo in periodi if re.search(
                 r"deposito delle note entro le ore.{0,16}del giorno di scadenza", semplice(periodo))
                 and (ora := _ora(periodo))}
-            ora = next(iter(ore)) if len(ore) == 1 else ""
+            ora = _ora(assegnazione.group(0)) or (next(iter(ore)) if len(ore) == 1 else "")
             brano = next((periodo for periodo in periodi if _udienze(periodo, data_atto)), "")
             fonte = Fonte(atto.id, atto.nome, pulito(brano + " " + assegnazione.group(0))[:400], atto.data)
             _, adempimento = _adempimento("deposito di note scritte")

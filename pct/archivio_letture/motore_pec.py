@@ -19,7 +19,9 @@ from pct.registro_letture.fatti_repository import Fatto
 from .ancoraggio import VERSIONE_DATE_PROCESSUALI
 from .collaudo import Contesto, collauda_tutti
 from .motore_documenti import leggi_testo
-from .riletture_mirate import REGOLA_NOTE_ANTECEDENTI, REGOLE_TERMINE_SCRITTO
+from .riletture_mirate import (
+    REGOLA_IDENTITA_LIQUIDAZIONE, REGOLA_NOTE_ANTECEDENTI, REGOLA_PREMESSE_127_TER, REGOLE_TERMINE_SCRITTO,
+)
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA
 from pct.agenda_linguaggio import modalita_legale
@@ -31,6 +33,13 @@ VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO = VERSIONE_MOTORE_PEC
 VERSIONE_MOTORE_PEC += "+" + REGOLE_TERMINE_SCRITTO
 VERSIONE_MOTORE_PEC_PRE_NOTE_ANTECEDENTI = VERSIONE_MOTORE_PEC
 VERSIONE_MOTORE_PEC += "+" + REGOLA_NOTE_ANTECEDENTI
+VERSIONE_MOTORE_PEC_PRE_PREMESSE_127_TER = VERSIONE_MOTORE_PEC
+VERSIONE_MOTORE_PEC += "+" + REGOLA_PREMESSE_127_TER
+VERSIONE_MOTORE_PEC_PRE_IDENTITA_LIQUIDAZIONE = VERSIONE_MOTORE_PEC
+VERSIONE_MOTORE_PEC += "+" + REGOLA_IDENTITA_LIQUIDAZIONE
+# Letture dell'8080 locale (18/11/2026): identità della liquidazione senza le premesse sull'art. 127-ter.
+# Restano compatibili; le premesse si riapplicano con la rilettura mirata (riletture_mirate).
+VERSIONE_MOTORE_PEC_LOCALE_SENZA_PREMESSE = VERSIONE_MOTORE_PEC_PRE_PREMESSE_127_TER + "+" + REGOLA_IDENTITA_LIQUIDAZIONE
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),
@@ -153,6 +162,8 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
             contesto=f"evento della PEC «{oggetto}» del {ricevuta_il}"[:300], origine="presidio_pec", confidenza=0.7 if evento.get("human_review_required") else 0.95,
             verifica="plausibile" if evento.get("human_review_required") else "verificata",
             prove=[
+                *([{"codice": "fonte_evento", "esito": "ok", "dettaglio": "Evento identificato in Comunicazione.xml"}]
+                  if evento.get("fonte_evento") == "Comunicazione.xml" else []),
                 {"codice": "classificazione", "esito": "ok", "dettaglio": f"priorità {_testo(evento.get('priority')) or 'n.d.'}"},
                 {"codice": "data", "esito": "ok" if ricevuta_il else "attenzione", "dettaglio": ricevuta_il or "PEC senza data di ricezione"},
                 {"codice": "base_normativa", "esito": "ok", "dettaglio": _BASE_NORMATIVA_PEC},
@@ -200,14 +211,17 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
             proposta_termine = scadenza_proposta(termine)
             if proposta_termine is not None:
                 collaudati.append(proposta_termine)
+    return collaudati
+
+
+def fatto_esito_deposito(messaggio: dict[str, Any], deposito_id: str, busta: str) -> Fatto:
+    """Proietta un riscontro già correlato agli identificativi della busta."""
     lifecycle = messaggio.get("deposit_lifecycle") or {}
     stage = lifecycle.get("current_stage") or {}
     correlation = lifecycle.get("correlation") or {}
     receipt = lifecycle.get("receipt") or {}
-    deposito_id = messaggio.get("archive_deposito_id")
-    final = stage.get("id") in {"accettazione_deposito", "rifiuto_deposito"}
-    if deposito_id and stage.get("id") and (not final or receipt.get("outcome_code") is not None):
-        collaudati.append(Fatto(
+    riferimento = messaggio.get("archive_receipt_reference") or {}
+    return Fatto(
             categoria="evento", campo="esito_deposito", valore=str(deposito_id),
             etichetta=str(stage.get("label") or "Ricevuta deposito"),
             contesto="Ricevuta collegata all'invio mediante gli identificativi originali.",
@@ -216,10 +230,10 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
                     "message_id":messaggio.get("id"), "mime_sha256":messaggio.get("mime_sha256"),
                     "receipt_message_id":messaggio.get("header_message_id"),
                     "stage":stage.get("id"), "label":stage.get("label"),
-                    "idbusta":correlation.get("idbusta"), "source_message_id":correlation.get("source_message_id"),
-                    "occurred_at":receipt.get("occurred_at") or messaggio.get("received_at"),
-                    "outcome_code":receipt.get("outcome_code"), "reference":messaggio.get("archive_receipt_reference") or {}}]))
-    return collaudati
+                    "idbusta":busta, "source_message_id":correlation.get("source_message_id"),
+                    "occurred_at":riferimento.get("receipt_at") or receipt.get("occurred_at") or messaggio.get("received_at"),
+                    "outcome_code":receipt.get("outcome_code"), "reference":riferimento}],
+    )
 
 
 def fatti_da_allegato(testo: str, *, nome: str, contesto: Contesto, metadata: dict[str, Any] | None = None) -> list[Fatto]:

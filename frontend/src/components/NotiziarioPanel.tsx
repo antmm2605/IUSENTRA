@@ -90,6 +90,7 @@ function filtraNelBrowser(items: NotiziarioItem[], query: NotiziarioQuery): Noti
 
 export function NotiziarioPanel() {
   const [payload, setPayload] = useState<NotiziarioPayload>(notiziarioEmptyPayload)
+  const [notizieDisponibili, setNotizieDisponibili] = useState(false)
   const [loading, setLoading] = useState(true)
   useBusyActivity(loading, 'Caricamento delle Notizie utili…')
   const [loadingMore, setLoadingMore] = useState(false)
@@ -112,6 +113,7 @@ export function NotiziarioPanel() {
   const serverSide = payload.facets.kinds.length > 0
 
   const acceptPayload = (next: NotiziarioPayload, append = false) => {
+    setNotizieDisponibili(true)
     // Le pagine successive portano solo le notizie: filtri, conteggi e fascicoli restano quelli della prima.
     setPayload((current) => (append
       ? { ...current, items: [...current.items, ...next.items], page: next.page, hasMore: next.hasMore, total: next.total }
@@ -266,7 +268,7 @@ export function NotiziarioPanel() {
           <p>Norme, pronunce, prassi e avvisi del processo telematico pubblicati dalle fonti istituzionali, con i fascicoli dello studio a cui possono servire.</p>
         </div>
         <div className="iu-notiziario__summary" aria-label="Stato delle Notizie utili">
-          <span><BellRing size={15} /><strong>{payload.unreadCount}</strong> da leggere</span>
+          {notizieDisponibili ? <span><BellRing size={15} /><strong>{payload.unreadCount}</strong> da leggere</span> : null}
           {serverSide ? <span><Sparkles size={15} /><strong>{payload.newCount}</strong> pubblicate da ieri</span> : null}
           {serverSide ? <span><Briefcase size={15} /><strong>{payload.relevantCount}</strong> per i tuoi fascicoli</span> : null}
           <button type="button" onClick={refresh} disabled={loading} title="Interroga ora le fonti ufficiali">
@@ -360,8 +362,10 @@ export function NotiziarioPanel() {
       <div className="iu-notiziario__workspace">
         <div className="iu-notiziario__feed" aria-label="Elenco delle notizie">
           <div className="iu-notiziario__feed-heading">
-            <strong>{total} {total === 1 ? 'notizia' : 'notizie'}</strong>
-            <span>{payload.unreadCount} da leggere</span>
+            {notizieDisponibili ? <>
+              <strong>{total} {total === 1 ? 'notizia' : 'notizie'}</strong>
+              <span>{payload.unreadCount} da leggere</span>
+            </> : <strong>Notizie</strong>}
           </div>
           {loading ? (
             <div className="iu-notiziario__loading" role="status">

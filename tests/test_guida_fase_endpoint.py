@@ -17,3 +17,17 @@ def test_senza_lettura_nessuna_fase(monkeypatch):
     monkeypatch.setattr(runtime, "lettura_pronta", lambda _fid: None)
     risposta = runtime._calcola_fase("X")
     assert risposta["nota_fase"] == "" and risposta["percorso"] is None
+
+
+def test_guida_consultiva_riusa_la_fase_precedente(monkeypatch):
+    from web.services import riscontri_processuali_runtime as riscontri
+
+    monkeypatch.setattr(runtime, "lettura_pronta", lambda _fid: None)
+    monkeypatch.setattr(riscontri, "lettura_precedente", lambda _fid: {
+        "fase": {"codice": "chiusa", "descrizione": "pratica definita"},
+        "aggiornamento_pendente": True,
+    })
+    assert runtime.fase_per_la_guida("F1")["in_preparazione"]
+    consultiva = runtime.fase_per_la_guida("F1", consultiva=True)
+    assert consultiva["fase"] == "chiusa"
+    assert consultiva["aggiornamento_pendente"] is True

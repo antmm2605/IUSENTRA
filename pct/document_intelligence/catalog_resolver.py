@@ -45,7 +45,7 @@ from .models import (
 # le prove automatiche precedenti senza toccare le correzioni manuali.
 # v33 (10/11/2026): le regole del 01-06/11 non erano mai arrivate al catalogo salvato perché la versione era ferma
 # alla v32; con la v33 il giro automatico ricataloga dai testi salvati, a lotti (catalogo_archivio_runtime).
-RESOLVER_VERSION = "2026.11.16.catalogo-fascicolo.v34-documenti-ufficio"
+RESOLVER_VERSION = "2026.11.17.catalogo-fascicolo.v38-fonti-del-documento"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -147,6 +147,7 @@ _MITTENTE_GIUSTIZIA = re.compile(r"(?im)^\s*(?:mittente|from|da)\s*:.*\bgiustizi
 ETICHETTA_COMUNICAZIONE_CANCELLERIA = "Comunicazione di cancelleria"
 ETICHETTA_COPIA_DEPOSITO = "Copia non crittografata del deposito telematico"
 ETICHETTA_MESSAGGIO_DEPOSITO = "Messaggio di deposito telematico (busta PCT)"
+PROVA_BUSTA_PCT = "Nel messaggio MIME concordano l’oggetto «Deposito telematico», il destinatario dell’ufficio giudiziario e l’allegato cifrato Atto.enc."
 
 
 def _copia_in_chiaro_del_deposito(raw: str) -> bool:
@@ -210,6 +211,9 @@ def _fonte_messaggio(etichetta: str) -> str:
 def _con_fonte_messaggio(identita: "ContentIdentity") -> "ContentIdentity":
     """Il messaggio riconosciuto dall'oggetto porta la norma che lo definisce."""
     fonte = _fonte_messaggio(identita.classification.label)
+    if identita.classification.label == ETICHETTA_MESSAGGIO_DEPOSITO:
+        return replace(identita, fonte=fonte, excerpt=PROVA_BUSTA_PCT,
+                       classification=replace(identita.classification, evidence=PROVA_BUSTA_PCT))
     return replace(identita, fonte=fonte) if fonte else identita
 
 
@@ -645,6 +649,15 @@ def _content_identity(
         return _con_fonte_messaggio(result(role="comunicazione", **_messaggio(raw, "Messaggio PEC" if "messaggio pec" in raw[:100].lower() else "Messaggio email"), confidence=99, evidence="Messaggio MIME originale: intestazioni e corpo separati dagli allegati.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"(?im)^oggetto:.*"))
     if re.search(r"^MIME-Version:", raw, re.I) and all(re.search(rf"\b{h}:", raw[:1500], re.I) for h in ("From", "To", "Subject", "Content-Type")):
         return _con_fonte_messaggio(result(role="comunicazione", **_messaggio(raw, "Messaggio email"), confidence=99, evidence="Intestazioni MIME complete del messaggio originale; gli allegati non cambiano la natura della busta email.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Subject:"))
+    if (re.search(r"(?im)^[ \t*]*sentenza[ \t*]*$", raw[:1600])
+            and re.search(r"\brepubblica italiana\b", head[:1200])
+            and re.search(r"\bha (?:emesso|pronunciato) la seguente sentenza\b", head[:1600])):
+        return result(
+            role="provvedimento", label="Sentenza", section="provvedimenti", confidence=99,
+            evidence="intestazione dell’ufficio e formula che introduce la sentenza del giudice",
+            tipo_documento=TipoDocumento.SENTENZA, deposit_role="allegato", deposit_candidate=True,
+            excerpt_pattern=r"ha\s+(?:emesso|pronunciato)\s+la\s+seguente",
+        )
     if re.search(r"^fissazione udienza", head[:120]) and re.search(r"tribunale", head[:400]) and re.search(r"letto il ricorso.{0,180}fissa", head[:900]):
         return result(role="provvedimento", label="Decreto di fissazione udienza", section="provvedimenti", confidence=99, evidence="Intestazione Fissazione udienza e disposizione FISSA del giudice dopo la lettura del ricorso.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Fissazione udienza")
     # Il decreto con cui il giudice, letto o visto il ricorso, fissa l'udienza (art. 415 c.p.c.; con la sostituzione
@@ -870,7 +883,7 @@ def _content_identity(
                 deposit_candidate=True,
                 excerpt_pattern=r"\bsi\s+costituisc\w*\b",
             ),
-            fonte="normattiva_cpc_rito_lavoro" if rito_lavoro else ("normattiva_cpc" if memoria else "cpc_art_167_comparsa"),
+            fonte="normattiva_cpc_art416_memoria_difensiva" if rito_lavoro else ("normattiva_cpc" if memoria else "cpc_art_167_comparsa"),
         )
     if cita_decreto and not re.search(
         r"\bpedissequ\w*\s+decreto\s+di\s+fissazione\b|\bunitamente\s+al\s+decreto\s+di\s+fissazione\b",
@@ -1344,15 +1357,16 @@ def resolve_document_catalog(
         )
         if identity is None and not procedural_only and classification is content_classification and _solo_parola_nel_corpo(classification):
             classification = _keyword_only_content_classification(classification)
-    source_rows = profile_source_rows(profile_id) if profile_id else []
-    linked_ids = {row["id"] for row in source_rows}
-    extra_ids = document_source_ids(classification.role, classification.section, profile_id)
-    # La norma dichiarata dalla regola d'identità che ha riconosciuto il documento è la prima prova: prima
-    # del 10/11/2026 restava nella regola e non arrivava alle evidenze dell'assegnazione.
+    busta_pct = classification.label == ETICHETTA_MESSAGGIO_DEPOSITO
     fonte_regola = identity.fonte if identity is not None and classification is identity.classification else ""
+    # Le fonti della materia descrivono il profilo del fascicolo. Se il titolo
+    # ha una norma identificativa, le prove della classe seguono quella regola.
+    source_rows = profile_source_rows(profile_id) if profile_id and not busta_pct and not fonte_regola else []
+    linked_ids = {row["id"] for row in source_rows}
+    extra_ids = () if busta_pct else document_source_ids(classification.role, classification.section, profile_id)
     if fonte_regola:
         extra_ids = (fonte_regola, *_FONTI_COLLEGATE.get(fonte_regola, ()), *extra_ids)
-    if context.get("_official_object_code"):
+    if context.get("_official_object_code") and not busta_pct:
         extra_ids += ("catalog_pst_xsd",)
     for source_id in extra_ids:
         if source_id in linked_ids:

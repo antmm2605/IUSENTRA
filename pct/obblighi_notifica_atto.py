@@ -8,10 +8,9 @@ dimostra.
 
 Regole:
 
-1. **Una voce per atto.** Stessa regola (stessa natura dell'atto, stesso
-   procedimento del fascicolo) e date dell'atto compatibili (uguali o una sola
-   letta): una voce con tutte le copie come fonti. Due atti della stessa
-   natura con date diverse restano due voci.
+1. **Una voce per atto.** Le copie delle sentenze sono riunite quando hanno
+   la stessa identità documentale e date compatibili. Per gli altri atti, si
+   usano la regola e le date dell'atto.
 2. **Prova dell'atto.** Una prova verificata in una qualunque copia chiude la
    voce («Notificato»). Una relata o una ricevuta lette in una copia ma non
    ancora complete o confermate non lasciano la voce «Da notificare»: diventa
@@ -66,7 +65,14 @@ def _compatibili(uno: dict[str, Any], altro: dict[str, Any]) -> bool:
     if uno.get("regola") != altro.get("regola"):
         return False
     a, b = str(uno.get("dataAtto") or ""), str(altro.get("dataAtto") or "")
-    return not a or not b or a == b
+    if a and b and a != b:
+        return False
+    if uno.get("regola") != "sentenza_notifica_breve":
+        return True
+    if uno.get("documentoId") and uno["documentoId"] == altro.get("documentoId"):
+        return True
+    impronte = {f["impronta_testo"] for f in uno.get("fonti_documentali") or () if f.get("impronta_testo")}
+    return any(f.get("impronta_testo") in impronte for f in altro.get("fonti_documentali") or ())
 
 
 def _migliore(voci: list[dict[str, Any]]) -> dict[str, Any]:

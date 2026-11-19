@@ -87,7 +87,12 @@ export interface LacunaConoscenza {
   descrizione: string
 }
 
-export type EsitoDispositivo = { sentenza: string; documento_id?: string; data: string; esito: string; per_il_cliente: string; motivo_esito?: string }
+export type EsitoDispositivo = { sentenza: string; documento_id?: string; data: string; esito: string; per_il_cliente: string; motivo_esito?: string; brano_dispositivo?: string }
+
+export function hrefFonteDispositivo(fascicoloId: string, documentoId: string | undefined): string {
+  if (!fascicoloId || !documentoId) return ''
+  return `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(documentoId)}/visualizza`
+}
 
 const ESITI_SENTENZA: Record<string, string> = {
   accoglimento: 'Accoglimento', accoglimento_parziale: 'Accoglimento parziale', rigetto: 'Rigetto',
@@ -118,7 +123,25 @@ export interface LetturaFascicolo {
   }
   oggetto: { oggetto_dichiarato: string; atti_principali: { etichetta: string; nome: string; data: string }[]; domanda: { etichetta: string; data: string; petitum: string } | null }
   cronologia: EventoLettura[]
-  depositi: { totale: number; messaggi_archiviati?: { atto: string; data: string; documento_id: string }[]; importati?: unknown[]; perfezionati: unknown[]; in_corso: unknown[]; falliti: unknown[]; tutti: { atto: string; data: string; fase: string; attesa: string; perfezionato: boolean; fase_procedurale: string; prova_attesa: string }[] }
+  depositi: {
+    totale: number
+    messaggi_archiviati?: { atto: string; data: string; documento_id: string }[]
+    importati?: unknown[]
+    perfezionati: unknown[]
+    in_corso: unknown[]
+    falliti: unknown[]
+    tutti: {
+      atto: string; data: string; fase: string; attesa: string; perfezionato: boolean
+      fase_procedurale: string; prova_attesa: string
+      reinvio_accettato?: {
+        nuova_busta: string
+        pec_richiesta: string
+        pec_rifiuto: string
+        pec_consegna: string
+        pec_accettazione: string
+      } | null
+    }[]
+  }
   scadenze?: { totale: number; scadute: number; prossimi30: number; successive: number }
   notifiche: { prove_documentali?: number; totale: number; perfezionate: unknown[]; aperte: unknown[]; fallite: unknown[]; tutte: { atto: string; data: string; stato_etichetta: string; fase_procedurale: string; destinatari: string[] }[] }
   pec: { conteggio?: ConteggioPec; totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: PecDaControllare[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
@@ -127,7 +150,7 @@ export interface LetturaFascicolo {
     presente: boolean; preventivato_it: string; conferito_it: string; fatturato_it: string; incassato_it: string; saldo_aperto_it: string
     parcelle_scadute: { numero: string; totale_it: string; scadenza: string }[]; importo_scaduto_it: string; ha_incarico: boolean
     liquidato?: number; liquidato_it?: string; liquidazione_incasso?: '' | 'incassata' | 'parziale' | 'non_incassata'
-    liquidazione?: { stato?: string; stato_etichetta?: string; data?: string; fonte?: string }
+    liquidazione?: { stato?: string; stato_etichetta?: string; data?: string; fonte?: string; fonte_href?: string }
     anticipazioni_da_recuperare?: number; anticipazioni_da_recuperare_it?: string
     bonifici?: { numero: string; totale_it: string; pagata_il: string }[]; incassato_bonifico_it?: string
     presidio_stato_etichetta?: string; sentenze_lette?: number
@@ -354,7 +377,7 @@ export function hrefCalcoloTermine(passo: PassoLettura): string {
   return `/strumenti-legali?strumento=termini-processuali&template=${encodeURIComponent(passo.template)}`
 }
 
-export interface RigaEconomica { etichetta: string; valore: string; nota?: string; tono?: TonoLettura }
+export interface RigaEconomica { etichetta: string; valore: string; nota?: string; tono?: TonoLettura; fonte?: { nome: string; href: string } }
 
 // Le righe del presidio economico: la stessa fonte di Fatturazione, letta con gli importi.
 export function righeEconomico(economico: LetturaFascicolo['economico']): RigaEconomica[] {
@@ -364,8 +387,15 @@ export function righeEconomico(economico: LetturaFascicolo['economico']): RigaEc
   if (economico.conferito_it) righe.push({ etichetta: 'Conferito', valore: economico.conferito_it })
   if (economico.liquidato) {
     const stato = economico.liquidazione_incasso === 'incassata' ? 'bonificata sul conto dello studio' : economico.liquidazione_incasso === 'parziale' ? `incassata in parte (${economico.incassato_it})` : 'non ancora bonificata sul conto dello studio'
-    const fonte = [economico.liquidazione?.data ? `sentenza del ${economico.liquidazione.data}` : '', economico.liquidazione?.stato_etichetta ? `${economico.liquidazione.stato_etichetta.toLowerCase()} nel presidio` : ''].filter(Boolean).join(' · ')
-    righe.push({ etichetta: 'Liquidato dal giudice', valore: economico.liquidato_it || '', nota: [fonte, stato].filter(Boolean).join(' · '), tono: economico.liquidazione_incasso === 'incassata' ? 'success' : economico.liquidazione_incasso === 'parziale' ? 'warning' : 'danger' })
+    const fonte = economico.liquidazione?.fonte || (economico.liquidazione?.data ? `sentenza del ${economico.liquidazione.data}` : '')
+    const liquidazione = economico.liquidazione
+    const daRegistrare = liquidazione?.stato === 'da_registrare' || (!liquidazione?.stato && liquidazione?.stato_etichetta === 'Da registrare')
+    const collegamento = fonte && liquidazione?.fonte_href ? { nome: fonte, href: liquidazione.fonte_href } : undefined
+    righe.push({
+      etichetta: 'Liquidato dal giudice', valore: economico.liquidato_it || '', fonte: collegamento,
+      nota: [collegamento ? '' : fonte, daRegistrare ? 'da registrare nel presidio' : '', stato].filter(Boolean).join(' · '),
+      tono: economico.liquidazione_incasso === 'incassata' ? 'success' : economico.liquidazione_incasso === 'parziale' ? 'warning' : 'danger',
+    })
   }
   righe.push({ etichetta: 'Fatturato', valore: economico.fatturato_it || '€ 0,00' })
   righe.push({ etichetta: 'Incassato', valore: economico.incassato_it || '€ 0,00', nota: economico.bonifici?.length ? `di cui ${economico.bonifici.length} bonific${economico.bonifici.length === 1 ? 'o' : 'i'} per ${economico.incassato_bonifico_it}` : undefined })

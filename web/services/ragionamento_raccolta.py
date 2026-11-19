@@ -31,6 +31,16 @@ def _sicuro(funzione, riserva):
         return riserva
 
 
+def _id_bozze_note(fascicolo: Any) -> set[str]:
+    """Le bozze preparate dal software (note 127-ter e bozze dei passi): non sono fatti della causa."""
+    from pct.bozze_passi.modello import e_bozza_del_software
+
+    return {
+        d.id for d in getattr(fascicolo, "documenti", ()) or ()
+        if e_bozza_del_software(d)
+    }
+
+
 def _documenti(fascicolo: Any) -> list[dict[str, Any]]:
     from web.services.archivio_letture_runtime import testi_indice_archivio
     from web.services.react_fascicoli_bridge import _sql_document_catalog_by_id
@@ -38,7 +48,11 @@ def _documenti(fascicolo: Any) -> list[dict[str, Any]]:
     catalogo = _sicuro(lambda: _sql_document_catalog_by_id(fascicolo), {})
     testi = _sicuro(lambda: testi_indice_archivio(fascicolo), {})
     righe = []
+    from pct.bozze_passi.modello import e_bozza_del_software
+
     for documento in list(getattr(fascicolo, "documenti", []) or []):
+        if e_bozza_del_software(documento):
+            continue  # una bozza preparata dal software (passi, note 127-ter) non è un fatto della causa
         oid = _testo(getattr(documento, "id", ""))
         voce = catalogo.get(oid)
         righe.append({
@@ -48,6 +62,7 @@ def _documenti(fascicolo: Any) -> list[dict[str, Any]]:
             "natura": _testo(getattr(voce, "document_nature", "")) if voce else "",
             "etichetta": _testo(getattr(voce, "document_label", "")) if voce else "",
             "testo": testi.get(oid, ""),
+            "pec_origine": _testo(getattr(documento, "msg_id_portale", "")).partition("#")[0],
             "sha256": _testo(getattr(documento, "hash_contenuto_sha256", "") or getattr(documento, "hash_sha256", "")),
         })
     return righe
@@ -69,6 +84,8 @@ def _depositi(fascicolo: Any) -> list[dict[str, Any]]:
              "data_accettazione": _testo(getattr(d, "data_accettazione", "")),
              "id_deposito_esterno": _testo(getattr(d, "id_deposito_esterno", "")),
              "documenti_ids": list(getattr(d, "documenti_ids", []) or []),
+             "ricevuta_consegna": getattr(d, "ricevuta_consegna", ""),
+             "ricevuta_cancelleria": bool(getattr(d, "ricevuta_cancelleria", "")),
              "consegne_archivio": list(getattr(d, "consegne_archivio", ()) or ())} for d in depositi_da_archivio(fascicolo)]
 
 
@@ -103,10 +120,19 @@ def _pagamenti(presidio: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _scadenze(fascicolo_id: str) -> list[dict[str, Any]]:
+    from lex.context.fascicolo_sections_context import _serialize_scadenza
     from web.helpers import get_scadenziario
 
-    return [{"titolo": _testo(s.titolo), "data": _testo(getattr(s, "data_scadenza", "") or getattr(s, "data", ""))[:10],
-             "stato": _enum(getattr(s, "stato", ""))} for s in get_scadenziario().tutte(id_fascicolo=fascicolo_id, solo_aperte=False)]
+    return [_scadenza_per_ragionamento(_serialize_scadenza(s))
+            for s in get_scadenziario().tutte(id_fascicolo=fascicolo_id, solo_aperte=False)]
+
+
+def _scadenza_per_ragionamento(scadenza: dict[str, Any]) -> dict[str, Any]:
+    risultato = {campo: scadenza.get(campo) for campo in ("titolo", "data", "stato")}
+    if scadenza.get("deadline_profile_code") == "CIV_APPELLO_LUNGO":
+        risultato.update({campo: scadenza.get(campo)
+                          for campo in ("source_message_id", "deadline_profile_code", "data_decorrenza", "note")})
+    return risultato
 
 
 def _studio() -> dict[str, Any]:
@@ -187,18 +213,77 @@ def _consegne_verificate(fascicolo_id: str) -> dict[str, dict[str, str]]:
     return {atto: prova for atto, prova in per_atto.items() if atto not in ambigui}
 
 
+_MASSIMO_COLLEGATI = 8
+_DOCUMENTO_DELLA_VICENDA = ("decret", "ingiun", "precett", "pignor", "esecutor", "titolo")
+
+
+def _cliente(fascicolo: Any) -> str:
+    return " ".join(_testo(getattr(fascicolo, "nome_cliente", "") or getattr(fascicolo, "cliente", "")).casefold().split())
+
+
+def _collegati(fascicolo: Any) -> list[dict[str, Any]]:
+    """I fascicoli dello stesso cliente con i soli documenti della vicenda esecutiva (decreto, esecutorietà, precetto,
+    pignoramento), dai testi già salvati: la regola `pct/ragionamento/collegamenti` decide se sono collegati."""
+    from web.helpers import get_fascicoli
+    from web.services.archivio_letture_runtime import testi_indice_archivio
+
+    from pct.ragionamento.rito import rito_da_codice
+
+    def _vicenda_esecutiva(riga: Any) -> bool:
+        # Solo monitorio ed esecuzioni: la regola dei collegamenti non riguarda altri riti (nessuna lettura inutile).
+        rito = rito_da_codice(_testo(getattr(riga, "codice_oggetto_pst", "")))[0]
+        return rito == "monitorio" or rito.startswith("esecuzione")
+
+    cliente = _cliente(fascicolo)
+    if not cliente or not _vicenda_esecutiva(fascicolo):
+        return []
+    repo = get_fascicoli()
+    indice = getattr(repo, "indice_leggero", None)
+    righe = indice() if callable(indice) else repo.tutti()
+    fid = _testo(getattr(fascicolo, "id", ""))
+    candidati = [_testo(getattr(r, "id", "")) for r in righe
+                 if _testo(getattr(r, "id", "")) != fid and _cliente(r) == cliente
+                 and (not getattr(r, "codice_oggetto_pst", None) or _vicenda_esecutiva(r))][:_MASSIMO_COLLEGATI]
+    esito = []
+    for cid in candidati:
+        altro = _sicuro(lambda cid=cid: repo.get(cid), None)
+        if altro is None:
+            continue
+        testi = _sicuro(lambda altro=altro: testi_indice_archivio(altro), {})
+        documenti = []
+        for documento in list(getattr(altro, "documenti", []) or []):
+            oid = _testo(getattr(documento, "id", ""))
+            testo = testi.get(oid, "")
+            nome = _testo(getattr(documento, "nome", "") or getattr(documento, "nome_file", ""))
+            if testo and any(p in (nome + " " + testo[:600]).casefold() for p in _DOCUMENTO_DELLA_VICENDA):
+                documenti.append({"id": oid, "nome": nome, "data": _testo(getattr(documento, "data_documento", ""))[:10],
+                                  "testo": testo})
+        if documenti:
+            numero, anno = _testo(getattr(altro, "numero_rg", "")), _testo(getattr(altro, "anno_rg", ""))
+            esito.append({"id": cid, "rg": f"{numero}/{anno}" if numero and anno else "",
+                          "ufficio": _testo(getattr(altro, "tribunale", "")),
+                          "codice_oggetto": _testo(getattr(altro, "codice_oggetto_pst", "")), "documenti": documenti})
+    return esito
+
+
+def _appuntamenti(righe: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{"tipo": _testo(a.get("tipo")), "data": _testo(a.get("data_ora") or a.get("data"))[:10], "stato": _testo(a.get("stato"))}
+            for a in righe or [] if isinstance(a, dict)]
+
+
 def fonti_da_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, Any]]) -> FontiCausa:
     """Le fonti del ragionamento dai dati che la Lettura ha già raccolto: si aggiungono solo i testi dell'indice."""
     from web.services.archivio_letture_runtime import testi_indice_archivio
 
     testi = _sicuro(lambda: testi_indice_archivio(fascicolo), {})
     catalogo = {str(c.get("document_id")): c for c in dati.catalogo}
-    estranei = set(dati.archivio.get("documenti_ufficio_incompatibile") or ())
+    estranei = set(dati.archivio.get("documenti_ufficio_incompatibile") or ()) | _id_bozze_note(fascicolo)
     documenti = [{
         "id": d["id"], "nome": d.get("nome", ""), "data_documento": d.get("data_documento", ""),
         "natura": _testo((catalogo.get(d["id"]) or {}).get("document_nature")),
         "etichetta": _testo((catalogo.get(d["id"]) or {}).get("document_label")),
         "testo": testi.get(d["id"], ""), "sha256": d.get("content_sha256", ""),
+        "pec_origine": d.get("pec_origine", ""),
     } for d in dati.documenti if d["id"] not in estranei]
     economico = dati.economico or {}
     pagamenti = _pagamenti(economico.get("presidio") or {})
@@ -209,6 +294,8 @@ def fonti_da_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, Any]]) -> 
                  "nome_atto_principale": _testo(d.get("nome_atto_principale")),
                  "id_deposito_esterno": _testo(d.get("id_deposito_esterno")),
                  "documenti_ids": list(d.get("documenti_ids") or []),
+                 "ricevuta_consegna": d.get("ricevuta_consegna"),
+                 "ricevuta_cancelleria": bool(d.get("ricevuta_cancelleria")),
                  "consegne_archivio": list(d.get("consegne_archivio") or [])}
                 for d in dati.depositi]
     return FontiCausa(
@@ -218,18 +305,27 @@ def fonti_da_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, Any]]) -> 
         parcelle=parcelle, pagamenti=pagamenti,
         contributo=_stato_contributo(economico.get("presidio") or {}),
         consegne_verificate=_sicuro(lambda: _consegne_verificate(str(fascicolo.id)), {}),
-        scadenze=[{"titolo": x.get("titolo"), "data": x.get("data"), "stato": x.get("stato")} for x in dati.scadenze],
+        scadenze=[_scadenza_per_ragionamento(x) for x in dati.scadenze],
+        appuntamenti=_appuntamenti(list(getattr(dati, "appuntamenti", []) or [])),
+        collegati=_sicuro(lambda: _collegati(fascicolo), []),
     )
 
 
 def ragionamento_per_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, Any]]) -> dict[str, Any]:
     """Il modello della causa per la Lettura; un errore non ferma la Lettura, che resta con i suoi calcoli."""
+    from pct.percorso_pratica.esito import dispositivo
     from pct.ragionamento import ragiona
 
     try:
         fonti = fonti_da_lettura(fascicolo, dati, fatti)
         modello = ragiona(fonti)
         esito = modello.come_dizionario()
+        sentenze = {f.get("oggetto_id") for f in fonti.fatti
+                    if f.get("campo") == "esito_sentenza" and f.get("verifica") == "verificata"}
+        esito["dispositivi"] = {
+            d["id"]: brano[:1200]
+            for d in fonti.documenti if d["id"] in sentenze and (brano := dispositivo(d.get("testo") or ""))
+        }
         if _enum(getattr(fascicolo, "stato", "")).upper() in STATI_PERCORSO_CONCLUSO:
             esito["stile_ricorsi"] = _stile_ricorsi(fonti, modello)
         return esito
@@ -319,17 +415,20 @@ def raccogli_fonti(fascicolo_id: str, *, oggi: date | None = None) -> FontiCausa
     if fascicolo is None:
         return None
     parcelle, pagamenti, contributo = _sicuro(lambda: _economia(fascicolo), ([], [], {}))
+    bozze = _id_bozze_note(fascicolo)
     return FontiCausa(
         fascicolo=_fascicolo_dict(fascicolo),
         studio=_sicuro(_studio, {}),
         documenti=_documenti(fascicolo),
-        fatti=_sicuro(lambda: _fatti(str(fascicolo.id)), []),
+        fatti=[f for f in _sicuro(lambda: _fatti(str(fascicolo.id)), [])
+               if f.get("tipo") != "documento" or f.get("oggetto_id") not in bozze],
         depositi=_sicuro(lambda: _depositi(fascicolo), []),
         parcelle=parcelle, pagamenti=pagamenti,
         contributo=contributo,
         consegne_verificate=_sicuro(lambda: _consegne_verificate(str(fascicolo.id)), {}),
         scadenze=_sicuro(lambda: _scadenze(str(fascicolo.id)), []),
         oggi=oggi,
+        collegati=_sicuro(lambda: _collegati(fascicolo), []),
     )
 
 

@@ -39,10 +39,17 @@ def test_la_data_della_sentenza_non_e_quella_di_un_precedente_citato():
     fonti = [{"oggetto_id": "S1", "categoria": "ruolo", "campo": "numero_ruolo", "valore": "2539/2025", "verifica": "verificata", "posizione": 300},
              {"oggetto_id": "S1", "campo": "provvedimento", "valore": "2020-04-08", "verifica": "verificata", "posizione": 15459},
              {"oggetto_id": "S1", "campo": "data_atto", "valore": "2026-10-07", "verifica": "verificata", "posizione": 25751},
-             {"oggetto_id": "S1", "campo": "esito_sentenza", "valore": "accoglimento", "verifica": "verificata", "posizione": 25000}]
+             {"oggetto_id": "S1", "campo": "esito_sentenza", "valore": "accoglimento", "verifica": "verificata", "posizione": 25000,
+              "contesto": "Condanna il Ministero all'assegnazione di buoni elettronici da € 500,00 per ciascuno dei tre anni."}]
+    dispositivo = fonti[-1]["contesto"] + " Compensa le spese di lite."
     letti = documenti([{"id": "S1", "nome": "sentenza.pdf"}], [{"document_id": "S1", "document_label": "Sentenza", "status": "proposed"}],
-                      rg="2539/2025", fonti=fonti)
+                      rg="2539/2025", fonti=fonti, dispositivi={"S1": dispositivo})
     assert letti["sentenza"]["data"] == "2026-10-07" and letti["sentenza"]["esito"] == {"esito_sentenza": "accoglimento"}
+    percorso = percorso_dopo_sentenza(INTESTAZIONE, letti)
+    from web.services.fascicolo_quadro_runtime import esito_dispositivo_da_lettura
+
+    assert percorso["brano_dispositivo"] == dispositivo
+    assert esito_dispositivo_da_lettura({"percorso": percorso})["brano_dispositivo"] == percorso["brano_dispositivo"]
 
 
 def test_ruolo_dal_ricorso_dello_studio_se_le_parti_non_lo_dicono():

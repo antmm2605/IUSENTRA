@@ -29,6 +29,11 @@ FONTI_IMPUGNAZIONI: dict[str, dict[str, Any]] = {
         "art. 35, comma 1, lett. c), c.p.a.", "Improcedibilità", _CPA, "35",
         "Fra i casi di improcedibilità rientra il sopravvenuto difetto di interesse delle parti alla decisione.",
     ),
+    "cpa_54": {
+        **_voce("art. 54, comma 2, c.p.a.", "Sospensione feriale", _CPA, "54",
+                "Dal 1° al 31 agosto è sospeso il decorso dei termini processuali."),
+        "riscontro": "Riscontro sul computo del termine lungo, Consiglio di Stato, Adunanza plenaria, settembre 2022.",
+    },
     "cpa_87": _voce(
         "art. 87, commi 2 e 3, c.p.a.", "Procedimenti in camera di consiglio", _CPA, "87",
         "Il giudizio di ottemperanza è trattato in camera di consiglio. I termini sono dimezzati salvo "

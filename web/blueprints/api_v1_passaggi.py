@@ -2,6 +2,7 @@
 
 - ``GET  /fascicoli/<id>/passaggi``: i passaggi del software sul fascicolo, già
   corretti dalle regole dello studio (permesso ``fascicoli.leggi``);
+- ``GET  /fascicoli/<id>/bozze-passi``: le bozze preparate in sfondo per i prossimi passi (``fascicoli.leggi``);
 - ``POST /fascicoli/<id>/passaggi/correzioni``: «Correggi la regola» — la
   correzione diventa regola dello studio o torna rifiutata con la norma
   (permesso ``fascicoli.scrivi``);
@@ -78,6 +79,22 @@ def fascicolo_passaggi(id_fasc: str):
     except Exception as exc:
         current_app.logger.exception("Passaggi del fascicolo %s non disponibili: %s", id_fasc, exc)
         return jsonify({"ok": False, "errore": "Passaggi del software non disponibili in questo momento."}), 200
+
+
+@api_v1_passaggi.get("/fascicoli/<id_fasc>/bozze-passi")
+@_richiedi(PERMESSO_LETTURA)
+def fascicolo_bozze_passi(id_fasc: str):
+    """Le bozze già preparate in sfondo per i prossimi passi, con lo stato (pronta, modificata, dati cambiati).
+
+    Sola lettura del registro delle bozze: nessuna bozza si genera durante la richiesta della pagina.
+    """
+    try:
+        from web.services.bozze_passi_runtime import payload_bozze
+
+        return jsonify(payload_bozze(id_fasc))
+    except Exception as exc:
+        current_app.logger.exception("Bozze dei passi del fascicolo %s non disponibili: %s", id_fasc, exc)
+        return jsonify({"ok": False, "bozze": [], "errore": "Bozze dei passi non disponibili in questo momento."}), 200
 
 
 @api_v1_passaggi.post("/fascicoli/<id_fasc>/passaggi/bozza-note")

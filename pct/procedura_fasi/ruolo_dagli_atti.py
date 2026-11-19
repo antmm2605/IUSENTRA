@@ -30,6 +30,11 @@ def _testo(valore: Any) -> str:
     return " ".join(str(valore or "").split())
 
 
+def oggetto_messaggio_deposito(value: Any) -> bool:
+    """Riconosce l'oggetto della busta PCT o della sua copia in chiaro."""
+    return bool(_RE_COPIA_DEPOSITO.match(_testo(value)))
+
+
 def ruolo_dagli_atti(fonti: Iterable[dict[str, Any]]) -> str:
     """Il numero di ruolo «numero/anno» se tutti i fatti verificati dell'archivio indicano lo stesso; altrimenti vuoto.
 
@@ -53,7 +58,7 @@ def depositi_dalle_copie_pec(documenti: Iterable[dict[str, Any]], fonti: Iterabl
     esito: dict[str, dict[str, str]] = {}
     for documento in documenti or ():
         nome = _testo(documento.get("nome"))
-        if not _RE_COPIA_DEPOSITO.search(nome) and _testo(documento.get("etichetta")).lower() != "pec di deposito telematico":
+        if not oggetto_messaggio_deposito(nome) and _testo(documento.get("etichetta")).lower() != "pec di deposito telematico":
             continue
         oggetto = _RE_COPIA_DEPOSITO.sub("", nome)
         ruolo = _RUOLO_NELL_OGGETTO.search(oggetto)
@@ -74,4 +79,4 @@ def depositi_dalle_copie_pec(documenti: Iterable[dict[str, Any]], fonti: Iterabl
     return sorted(esito.values(), key=lambda voce: voce["data"])
 
 
-__all__ = ["depositi_dalle_copie_pec", "ruolo_dagli_atti"]
+__all__ = ["depositi_dalle_copie_pec", "oggetto_messaggio_deposito", "ruolo_dagli_atti"]

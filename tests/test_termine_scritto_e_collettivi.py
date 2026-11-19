@@ -326,3 +326,113 @@ def test_una_citazione_di_altro_ufficio_non_esclude_il_ricorso():
     intestazione = Fatto(categoria="ruolo", campo="numero_ruolo", valore="1425/2026", tipo="documento",
                          oggetto_id="DECRETO", posizione=98, verifica="respinta", prove=prove)
     assert documenti_ufficio_incompatibile([citazione, intestazione]) == {"DECRETO"}
+
+
+# ---- premesse sull'art. 127-ter (art. 127-ter, primo comma, c.p.c.) ---------------------
+
+PROVVEDIMENTO_DOPO_LE_NOTE = (
+    "TRIBUNALE DI BETA - Controversie in materia di lavoro - N. R.G. 77/2026 - Provvedimento ex art. 127 ter c.p.c. "
+    "Il Giudice del lavoro; Richiamato l'art. 127 c.p.c., secondo cui il giudice può disporre che l'udienza si svolga "
+    "mediante collegamenti audiovisivi a distanza o sia sostituita dal deposito di note scritte; Letto l'art. 127-ter c.p.c. "
+    "che consente lo svolgimento dell'udienza mediante il deposito di note scritte; Visto il decreto con il quale è stata "
+    "disposta la sostituzione dell'udienza con il deposito di note scritte; Lette le note scritte tempestivamente depositate "
+    "dai procuratori costituiti; Dato atto dell'elevato carico del ruolo; rinvia all'udienza del 14.4.2027, ore di rito. "
+    "Manda alla cancelleria. Beta, 10/09/2026"
+)
+DECRETO_415_PREMESSA_E_FISSA = (
+    "Il giudice, Letto il ricorso che precede; visto l'art. 415 c.p.c.; visto l'art. 127 ter c.p.c. che consente la "
+    "sostituzione, con il deposito di note scritte, delle udienze civili, FISSA il termine per il deposito delle note in "
+    "sostituzione dell'udienza nel giorno 06/10/2026, alle ore 14.00. Assegna alla parte ricorrente termine di dieci giorni."
+)
+
+
+def test_premesse_sul_127_ter_non_dispongono_le_note():
+    from pct.provvedimenti.termine_scritto import dispone_note_scritte, dispone_udienza_remota
+
+    assert not dispone_note_scritte(PROVVEDIMENTO_DOPO_LE_NOTE)
+    assert not dispone_udienza_remota(PROVVEDIMENTO_DOPO_LE_NOTE)
+    assert dispone_note_scritte(VERBALE_631)
+    assert dispone_note_scritte("Il giudice dispone che l'udienza del 15/01/2027 sia sostituita dal deposito di note scritte.")
+    # dopo la premessa, il verbo dispositivo apre la parte che dispone
+    assert dispone_note_scritte(DECRETO_415_PREMESSA_E_FISSA)
+
+
+def test_motore_documenti_non_qualifica_note_dalle_premesse():
+    fatti = _date_lette(PROVVEDIMENTO_DOPO_LE_NOTE, _contesto("77", "2026"))
+    assert ("udienza", "2027-04-14") in fatti
+    assert not any("127-ter" in f.etichetta for f in fatti.values())
+
+
+def test_presidio_pec_non_vede_trattazione_scritta_nelle_premesse():
+    from pct.pec_legal_event_understanding import _hearing_mode
+    from pct.pec_pipeline import _unified_hearing_mode
+
+    assert _hearing_mode(PROVVEDIMENTO_DOPO_LE_NOTE, {}, []) != "note_scritte"
+    assert _hearing_mode(DECRETO_415_PREMESSA_E_FISSA, {}, []) == "note_scritte"
+    assert _unified_hearing_mode(PROVVEDIMENTO_DOPO_LE_NOTE.lower(), remote_detected=False) != "note_scritte"
+    assert _unified_hearing_mode(VERBALE_631.lower(), remote_detected=False) == "note_scritte"
+
+
+def test_modello_della_causa_legge_le_premesse_come_premesse():
+    from pct.ragionamento.modello import Atto
+    from pct.ragionamento.provvedimenti import leggi_provvedimento
+
+    dopo = leggi_provvedimento(Atto("P1", "provvedimento.pdf", "provvedimento", "Provvedimento", autore="giudice",
+                                    data="2026-09-10", testo=PROVVEDIMENTO_DOPO_LE_NOTE), "77/2026")
+    assert [u.modalita for u in dopo.udienze if u.data == "2027-04-14"] == ["presenza"]
+    assert not any(t.adempimento.startswith("Depositare le note") for t in dopo.termini)
+    decreto = leggi_provvedimento(Atto("P2", "decreto.pdf", "provvedimento", "Decreto", autore="giudice",
+                                       data="2026-07-01", testo=DECRETO_415_PREMESSA_E_FISSA), "77/2026")
+    assert any(t.adempimento.startswith("Depositare le note") and t.scadenza == "2026-10-06" for t in decreto.termini)
+
+
+def test_rilettura_mirata_delle_note_qualificate_prima_della_regola_sulle_premesse():
+    from pct.archivio_letture.riletture_mirate import REGOLA_PREMESSE_127_TER
+
+    qualificato = [_fatto(etichetta="Deposito note scritte ex art. 127-ter c.p.c. — 14/04/2027", valore="2027-04-14",
+                          contesto="rinvia all'udienza del 14.4.2027, ore di rito",
+                          prove=[{"codice": "istituto", "esito": "ok", "dettaglio": "note_127_ter"}])]
+    gia = "motore+" + REGOLE_TERMINE_SCRITTO + "+note-antecedenti:v1"
+    assert ("documento", "DOC1") in oggetti_da_rileggere(qualificato, {("documento", "DOC1"): gia})
+    assert oggetti_da_rileggere(qualificato, {("documento", "DOC1"): gia + "+" + REGOLA_PREMESSE_127_TER}) == {}
+
+
+# ---- udienze PEC dette «opposizione» e termini PEC smentiti dal provvedimento (da fix-termini, caso reale di Locri) ----
+
+def test_termine_del_presidio_pec_smentito_solo_dalla_presenza_scritta():
+    pec = _fatto(valore="2027-04-14", etichetta="Deposito note in sostituzione udienza del 14/04/2027 (note_scritte)", tipo="pec", id="fat_p",
+                 prove=[{"codice": "modalita_note", "esito": "ok", "dettaglio": "note"}])
+    presenza = _fatto(campo="udienza", valore="2027-04-14", etichetta="Udienza del 14/04/2027", tipo="allegato_pec", id="fat_u",
+                      contesto="RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL 14/04/2027 09:00 in presenza")
+    senza_modalita = _fatto(campo="udienza", valore="2027-04-14", etichetta="Udienza del 14/04/2027", tipo="documento", id="fat_d",
+                            contesto="rinvia all'udienza del 14.4.2027, ore di rito")
+    riga = _riga("Deposito note in sostituzione udienza del 14/04/2027 (note_scritte)", "2027-04-14")
+    assert [r.azione for r in piano_rettifiche([riga], [pec, presenza], oggi=date(2026, 11, 12))] == ["annulla"]
+    # senza la modalità scritta dal giudice il termine resta (mai sparire per una deduzione incerta)
+    assert piano_rettifiche([riga], [pec, senza_modalita], oggi=date(2026, 11, 12)) == []
+
+
+def test_udienza_pec_con_il_titolo_dell_opposizione_si_rinomina():
+    from pct.archivio_letture.rettifica_termini import piano_agenda
+
+    presenza = _fatto(campo="udienza", valore="2027-04-14", etichetta="Udienza del 14/04/2027", tipo="allegato_pec", id="fat_u",
+                      contesto="RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL 14/04/2027 09:00 in presenza")
+    riga = SimpleNamespace(id="sp", titolo="Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)",
+                           data_scadenza="2027-04-14", stato="APERTO", tipo="UDIENZA", id_utente_responsabile="", perentorio=True,
+                           note="PEC_AUDIT:pec_x\nOrario udienza: 09:00")
+    [r] = piano_rettifiche([riga], [presenza], oggi=date(2026, 11, 12))
+    assert r.azione == "aggiorna" and not r.fatto_id
+    assert r.campi == {"titolo": "Udienza del 14/04/2027 in presenza", "perentorio": False, "hearing_mode": "presenza"}
+    # il responsabile scritto dall'automatismo («admin») non rende la riga dell'avvocato
+    con_admin = SimpleNamespace(**{**riga.__dict__, "id_utente_responsabile": "admin"})
+    assert [r.azione for r in piano_rettifiche([con_admin], [presenza], oggi=date(2026, 11, 12))] == ["aggiorna"]
+    # toccata dall'avvocato (registro di audit o nota scritta a mano): non si modifica, si segnala la contraddizione
+    [segnala] = piano_rettifiche([con_admin], [presenza], oggi=date(2026, 11, 12), toccate={"sp"})
+    assert segnala.azione == "segnala" and "09:00 in presenza" in segnala.motivo and not segnala.campi
+    a_mano = SimpleNamespace(**{**riga.__dict__, "note": riga.note + "\nNota dell'avvocato: verificare"})
+    assert [r.azione for r in piano_rettifiche([a_mano], [presenza], oggi=date(2026, 11, 12))] == ["segnala"]
+    appuntamento = SimpleNamespace(id="A1", tipo="UDIENZA", external_provider="pec_audit", hearing_mode="note_scritte",
+                                   luogo="Trattazione scritta", data_ora="2027-04-14T09:00:00", tribunale="Tribunale di Locri",
+                                   titolo="Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)")
+    [modalita] = piano_agenda([appuntamento], [presenza])
+    assert modalita.campi["hearing_mode"] == "presenza" and modalita.campi["titolo"] == "Udienza del 14/04/2027 in presenza"

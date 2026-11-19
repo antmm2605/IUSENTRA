@@ -44,11 +44,14 @@ def register_sync_runtime_routes(
         if not utente:
             return jsonify({"ok": False, "message": "Sessione scaduta."}), 401
         from web.services.operational_read_revision import read_authorized_revision_snapshot
+        from web.services.studio_readonly import borrowed_studio_backend, request_studio_reader
         try:
-            snapshot = read_authorized_revision_snapshot(utente)
+            anchor = _cfg_path("CLIENTI_DB", "./clienti/anagrafica.json")
+            with request_studio_reader(anchor) as backend, borrowed_studio_backend(backend, anchor):
+                snapshot = read_authorized_revision_snapshot(utente)
         except Exception:
             app.logger.exception("Lettura revisioni live non riuscita")
-            return jsonify({"ok": False, "message": "Aggiornamento live interrotto. Riprovo automaticamente."}), 503
+            return jsonify({"ok": False, "message": "Aggiornamenti dello studio temporaneamente indisponibili."}), 503
         response = jsonify({"ok": True, "revisions": snapshot["revisions"], "revisionContext": snapshot["context"]})
         response.headers["Cache-Control"] = "no-store"
         return response

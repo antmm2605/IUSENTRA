@@ -65,6 +65,22 @@ def test_orario_assente_anche_nella_riga_udienza_della_pec():
     assert _structured_detail_value("Udienza", "10/12/2026 14:00") == "10/12/2026 14:00"
 
 
+def test_trattazione_scritta_scaduta_chiede_prova_e_provvedimento(monkeypatch):
+    from datetime import date
+    from web.services import react_agenda_bridge as bridge
+
+    monkeypatch.setattr(bridge, "oggi_roma", lambda: date(2026, 11, 16))
+    row = {"source": "scadenziario", "start": "2026-10-06T14:00:00+02:00",
+           "status": "APERTO", "technicalNotes": "docpresidio:test:termine:note"}
+    titolo = bridge.TITOLO_NOTE_127_TER
+    dettaglio = " ".join(bridge._detail_lines(row, original_title=titolo, legal_label="Trattazione scritta"))
+    assert "ricevuta di consegna" in dettaglio and "provvedimento successivo" in dettaglio
+    assert "confermare se contiene un ordine" not in dettaglio
+    row["start"] = "2026-12-06T14:00:00+01:00"
+    dettaglio = " ".join(bridge._detail_lines(row, original_title=titolo, legal_label="Trattazione scritta"))
+    assert "predisporre le note" in dettaglio
+
+
 def test_ufficio_generico_in_agenda_usa_il_fascicolo_gia_collegato():
     fascicolo = SimpleNamespace(id="f1", tribunale="Tribunale di Palmi", rg_completo="699/2026")
     event = {"matterId": "f1", "court": "Ufficio giudiziario civile"}

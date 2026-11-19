@@ -61,7 +61,10 @@ export function createOperationalRefreshQueue(refresh: (intent: { live: boolean;
       }
     } finally {
       running = false
-      if (!disposed && pending) timer = setTimeout(() => { void run() }, failures ? 1000 * failures : 120)
+      if (!disposed && pending) {
+        const delay = failures ? 1000 * failures : pendingLive ? liveDelay() : 120
+        timer = setTimeout(() => { void run() }, delay)
+      }
     }
   }
   return {

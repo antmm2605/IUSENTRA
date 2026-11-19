@@ -13,13 +13,14 @@ from __future__ import annotations
 import re
 from datetime import date, time
 
+from pct.notifica_atto_l53 import chiave_nome, leggi_relata
 from pct.ora_italiana import in_ora_italiana
 
-from ..eventi import comunicazione_di
+from ..eventi import _intestazione, comunicazione_di
 from ..modello import Atto, Conclusione, Dubbio, Fonte, TermineAssegnato
 from ..notifiche import notifiche_di
 from ..norme import norme
-from ..testo import data_it, date_nel_testo, giorno, semplice
+from ..testo import data_it, date_nel_testo, frasi, giorno, pulito, rg_normale, semplice
 from .calcolo import a_ritroso, esito, in_avanti
 from .contesto import Contesto, chi
 
@@ -32,11 +33,24 @@ _COME = {
     "deposito_ordinato": ("deposito telematico PCT nel fascicolo del ruolo {rg}", ""),
 }
 _NORME = {
-    "note_127ter": ("cpc_127ter_testo", "dispatt_196quater"),
+    "note_127ter": ("cpc_127ter_testo", "dispatt_196quater", "dispatt_196sexies"),
     "notifica_ordinata": ("l53_art3bis",),
     "costituzione_convenuto": ("cpc_416",),
     "deposito_ordinato": ("cc_2697",),
 }
+_TITOLO_NOTE = re.compile(r"\bnote\b.{0,50}\b(?:udienza|trattazione|127 ter)\b")
+
+
+def _radice_pdf(nome: str) -> str:
+    return re.sub(r"(?:[.](?:pdf|p7m))+$", "", semplice(nome))
+
+
+def _note_della_data(atto: Atto, scadenza: date) -> bool:
+    intestazione = semplice(atto.testo[:1200])
+    return any(
+        data == scadenza and _TITOLO_NOTE.search(intestazione[max(0, inizio - 90):fine + 90])
+        for inizio, fine, data in date_nel_testo(intestazione)
+    )
 
 
 def _perche(codice: str, termine: TermineAssegnato) -> str:
@@ -61,16 +75,16 @@ def _perche(codice: str, termine: TermineAssegnato) -> str:
     return ""
 
 
-def _fatto(ctx: Contesto, codice: str, testo: str, dal: str, al: str, ora: str) -> str:
-    """La prova dell'adempimento già eseguito dopo il provvedimento ed entro la scadenza, o stringa vuota."""
+def _fatto(ctx: Contesto, codice: str, testo: str, dal: str, al: str, ora: str) -> tuple[str, dict[str, str]]:
+    """Restituisce la descrizione e gli identificativi della prova da riusare nelle viste."""
     if codice == "notifica_ordinata":
         # La finestra temporale da sola non lega la PEC al destinatario e all'atto dell'ordine.
-        return ""
+        return "", {}
     parole = {"note_127ter": {"note"}}.get(codice) or {p for p in re.findall(r"[a-z]{6,}", semplice(testo))} - {"depositare", "ulteriore"}
     try:
         ora_limite = time.fromisoformat(ora.replace(".", ":")) if ora else None
     except ValueError:
-        return ""
+        return "", {}
     for deposito in ctx.depositi:
         if not deposito.prova_consegna or not deposito.documenti_ids:
             continue
@@ -85,11 +99,93 @@ def _fatto(ctx: Contesto, codice: str, testo: str, dal: str, al: str, ora: str) 
         if deposito.stato_registro in {"rifiutato_cancelleria", "errore_controlli", "rifiutato", "errore"}:
             continue
         documenti = [ctx.atto(oid) for oid in deposito.documenti_ids]
+        if deposito.prova_da_registro:
+            if codice != "note_127ter" or not al:
+                continue
+            scadenza = date.fromisoformat(al)
+            nome_principale = _radice_pdf(deposito.nome_atto)
+            note_esatte = [a for a in documenti if a and a.appartenenza == "causa"
+                           and nome_principale and _radice_pdf(a.nome) == nome_principale
+                           and _TITOLO_NOTE.search(semplice(a.nome)) and _note_della_data(a, scadenza)]
+            if len(note_esatte) == 1:
+                return (
+                    f"Note depositate il {data_it(giorno_consegna)} alle {momento:%H:%M}, "
+                    f"con ricevuta di consegna ed esito di accettazione della cancelleria nel deposito {deposito.fonte_id}.",
+                    {"deposito_id": deposito.fonte_id, "documento_id": note_esatte[0].id, "consegna": momento.isoformat()},
+                )
+            continue
         corrisponde = any(a and a.appartenenza == "causa" and parole & set(re.findall(r"[a-z]+", semplice(a.nome + " " + a.etichetta)))
                           for a in documenti)
         if corrisponde:
-            return f"Trasmissione confermata il {data_it(giorno_consegna)} alle {momento:%H:%M}, ricevuta {deposito.prova_consegna}"
-    return ""
+            return f"Trasmissione confermata il {data_it(giorno_consegna)} alle {momento:%H:%M}, ricevuta {deposito.prova_consegna}", {}
+    return "", {}
+
+
+def _prova_rinnovazione(ctx: Contesto, ordinanza: Atto, ordine: TermineAssegnato, scadenza: date) -> tuple[str, dict]:
+    """Correla l'ordine con gli allegati consegnati nella stessa spedizione."""
+    brano = semplice(ordine.fonte.brano)
+    if "cpc_291" not in ordine.norme or not all(voce in brano for voce in (
+        "il ricorso", "decreto di fissazione della prima udienza", "decreto di rinvio", "presente ordinanza",
+    )):
+        return "", {}
+    pronuncia = giorno(ordinanza.data)
+    for copia in (ordinanza.id, *ordinanza.copie):
+        invio, data = ctx.notifiche_storiche.get(copia, ("", ""))
+        prova = ctx.prove_notifiche_storiche.get(invio)
+        originale = ctx.atto(invio)
+        accettazione = giorno(data)
+        if not prova or not originale or not pronuncia or not accettazione:
+            continue
+        consegne = prova.get("consegne") or ()
+        giorni_consegna = [giorno(r.get("data", "")[:10]) for r in consegne]
+        if not giorni_consegna or not all(
+            d and pronuncia <= accettazione <= d <= min(scadenza, ctx.oggi) for d in giorni_consegna
+        ):
+            continue
+        atti_relata, destinatari = leggi_relata(originale.testo)
+        nomi_pec = {
+            chiave_nome(n) for n in re.findall(r"(?m)^\[Allegato:\s*([^;\]\r\n]+)", originale.testo)
+        }
+        nomi_relata = {chiave_nome(voce["file"]) for voce in atti_relata}
+        if not destinatari or not nomi_relata <= nomi_pec or not any(n.startswith("ricorso ") or n == "ricorso" for n in nomi_relata):
+            continue
+        provvedimenti = [
+            a for a in ctx.della_causa()
+            if a.autore == "giudice" and a.data and giorno(a.data) and giorno(a.data) < pronuncia
+            and any(ctx.notifiche_storiche.get(oid) == (invio, data) for oid in (a.id, *a.copie))
+        ]
+        fissazioni = {a.id for a in provvedimenti if re.search(r"\bfissa(?:re)?\b.{0,65}\budienza\b", semplice(a.testo))}
+        rinvii = {a.id for a in provvedimenti if re.search(r"\b(?:rinvia|differisce|differimento)\b", semplice(a.testo))}
+        if len(fissazioni) != 1 or len(rinvii - fissazioni) != 1:
+            continue
+        distinta = {"invio_id": invio, "accettazione_id": prova["accettazione_id"],
+                    "consegne_ids": [r["documento_id"] for r in consegne]}
+        deposito = _busta_della_rinnovazione(ctx, originale, max(giorni_consegna), len(consegne))
+        if deposito:
+            distinta["deposito_inviato"] = deposito
+        return (
+            f"Rinnovazione eseguita entro il termine. Accettazione PEC del {data_it(data)} e consegna "
+            f"del {data_it(max(giorni_consegna).isoformat())}. La relata elenca il ricorso e i tre provvedimenti "
+            "richiesti nell’ordinanza. Le ricevute sono collegate allo stesso invio.",
+            distinta,
+        )
+    return "", {}
+
+
+def _busta_della_rinnovazione(ctx: Contesto, originale: Atto, consegna: date, numero_consegne: int) -> dict:
+    oggetto, _ = _intestazione(originale.testo)
+    identificativo = re.search(r"\[Notifica_ID:([A-Za-z0-9]+)\]", oggetto, re.I)
+    if not identificativo or not ctx.rg:
+        return {}
+    buste = []
+    for deposito in ctx.depositi:
+        if not deposito.busta_inviata_id or not consegna.isoformat() <= deposito.data <= ctx.oggi.isoformat():
+            continue
+        rg = re.search(r"\brg\s*:\s*(\d+\s*/\s*\d{2,4})\b", deposito.titolo)
+        if rg and rg_normale(rg[1]) == ctx.rg and deposito.ricevute_notifiche.get(identificativo[1]) == (1, numero_consegne):
+            buste.append({"busta_id": deposito.busta_inviata_id, "copia_in_chiaro_id": deposito.copia_prova_notifica_id,
+                          "data": deposito.data})
+    return buste[0] if len(buste) == 1 else {}
 
 
 def _riscontro_notifica_congiunta(ctx: Contesto, decreto: Atto, ordine: TermineAssegnato) -> Dubbio | None:
@@ -175,11 +271,88 @@ def _scadenza(ctx: Contesto, termine: TermineAssegnato, codice: str) -> tuple[da
     return scadenza, {"termine": calcolo}, dubbi
 
 
+_PAROLE_VUOTE = {"depositare", "deposito", "ulteriore", "ulteriori", "parte", "ricorrente", "resistente", "proprio",
+                 "risulti", "nelle", "quali", "della", "delle", "degli", "nella"}
+_SOGGETTO = {"attiva": r"(?:parte\s+)?(?:ricorrente|attric\w*|attore|creditric\w*|istante|opponente)",
+             "passiva": r"(?:parte\s+)?(?:resistente|convenut\w*|debitric\w*|opposta)"}
+
+
+def _parole(testo: str) -> set[str]:
+    return {p for p in re.findall(r"[a-z]{5,}", semplice(testo))} - _PAROLE_VUOTE
+
+
+def _stesso_adempimento(a: TermineAssegnato, b: TermineAssegnato, codice: str) -> bool:
+    """Lo stesso adempimento assegnato da due provvedimenti: stesse note scritte, o deposito con le stesse parole."""
+    if codice == "note_127ter":
+        return True
+    pa, pb = _parole(a.adempimento), _parole(b.adempimento)
+    return bool(pa and pb) and len(pa & pb) / min(len(pa), len(pb)) >= 0.6
+
+
+def _attestato_dal_giudice(ctx: Contesto, codice: str, dal: str, al: str, fonte_id: str) -> str:
+    """Il provvedimento successivo del giudice dà atto dell'adempimento: «la parte ricorrente con le note del 21.10.2026 …
+    ha depositato …». È una fonte certa (il giudice attesta ciò che è nel fascicolo d'ufficio): l'adempimento è fatto,
+    qualunque giudizio il giudice dia poi sul suo contenuto. Solo la parte del cliente, solo date nel termine."""
+    soggetto = _SOGGETTO.get(ctx.posizione)
+    inizio, fine = giorno(dal), giorno(al)
+    if not soggetto or not inizio or not fine:
+        return ""
+    for atto in ctx.della_causa():
+        if atto.autore != "giudice" or atto.id == fonte_id or not atto.testo or not atto.data or atto.data <= dal:
+            continue
+        for _p, frase in frasi(atto.testo):
+            s = semplice(frase)
+            trovato = re.search(soggetto + r"[^.;]{0,60}?(?:con\s+(?:le\s+)?note|ha\s+depositat|ha\s+prodott|depositav)", s)
+            if not trovato:
+                continue
+            if codice == "note_127ter" and "note" not in s:
+                continue
+            for _i, _f, data in date_nel_testo(frase):
+                if inizio <= data <= fine:
+                    return (f"Il giudice dà atto del deposito della parte del {data_it(data)} nel provvedimento «{atto.nome}» "
+                            f"del {data_it(atto.data)}: «{pulito(frase)[trovato.start():][:220]}»")
+    return ""
+
+
+def _superato(ctx: Contesto, termine: TermineAssegnato, codice: str, scadenza: date | None) -> TermineAssegnato | None:
+    """Il termine poi riassegnato da un provvedimento successivo per lo stesso adempimento (artt. 153-154 c.p.c.)."""
+    atto = ctx.atto(termine.fonte.oggetto_id)
+    if not atto or not atto.data:
+        return None
+    for altro in ctx.termini:
+        if altro is termine or altro.fonte.oggetto_id == termine.fonte.oggetto_id:
+            continue
+        successivo = ctx.atto(altro.fonte.oggetto_id)
+        if not successivo or not successivo.data or successivo.data <= atto.data:
+            continue
+        if codice == "note_127ter" and scadenza and successivo.data < scadenza.isoformat():
+            continue  # le note di un'altra udienza: superano le precedenti solo se il giudice ha provveduto dopo
+        codice_altro = _codice_di(altro)
+        if codice_altro == codice and _stesso_adempimento(termine, altro, codice):
+            return altro
+    return None
+
+
+_NON_DEFINITIVA = re.compile(r"\b(?:non\s+definitivament[eo]|sentenza\s+non\s+definitiva)\b", re.I)
+
+
+def _decisa_dopo(ctx: Contesto, atto: Atto | None) -> Atto | None:
+    """La sentenza definitiva della causa pronunciata dopo il provvedimento che ha assegnato il termine."""
+    if not atto or not atto.data:
+        return None
+    return next((a for a in sorted(ctx.della_causa(), key=lambda a: a.data or "")
+                 if a.sentenza and a.data and a.data > atto.data and a.testo and not _NON_DEFINITIVA.search(a.testo)), None)
+
+
+def _codice_di(termine: TermineAssegnato) -> str:
+    return next((k for k in _COME if termine.adempimento.startswith({"note_127ter": "Depositare le note",
+                 "notifica_ordinata": "Notificare", "costituzione_convenuto": "Costituirsi", "deposito_ordinato": "Depositare"}[k])), "")
+
+
 def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
     esito_: list[Conclusione] = []
     for termine in ctx.termini:
-        codice = next((k for k in _COME if termine.adempimento.startswith({"note_127ter": "Depositare le note",
-                       "notifica_ordinata": "Notificare", "costituzione_convenuto": "Costituirsi", "deposito_ordinato": "Depositare"}[k])), "")
+        codice = _codice_di(termine)
         onerato = chi(termine.onerato, ctx.posizione)
         if onerato == "terzo":
             continue
@@ -196,15 +369,53 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
             dubbi.append(Dubbio("parte_onerata_ignota", "Non si sa quale parte sia onerata del termine.",
                                 "la posizione del cliente (attore o convenuto) o la parte nominata nel provvedimento", termine.fonte))
         atto = ctx.atto(termine.fonte.oggetto_id)
-        prova = _fatto(ctx, codice, termine.adempimento, atto.data if atto else "", scadenza.isoformat() if scadenza else "", termine.ora)
+        if calcolato and codice == "costituzione_convenuto" and termine.formula.startswith("a_ritroso:"):
+            calcolato.data_grezza = termine.scadenza
+            if atto:
+                copie = {atto.id, *atto.copie}
+                calcolato.fonti_trasmissione = sorted({
+                    invio for invio, prova in ctx.prove_notifiche_storiche.items()
+                    if copie.intersection(prova["documenti_allegati"])
+                })
+        prova, prova_deposito = _fatto(
+            ctx, codice, termine.adempimento, atto.data if atto else "", scadenza.isoformat() if scadenza else "", termine.ora,
+        )
+        prova_notifica = {}
+        if codice == "notifica_ordinata" and onerato == "noi" and atto and scadenza:
+            prova, prova_notifica = _prova_rinnovazione(ctx, atto, termine, scadenza)
+        if not prova and onerato in {"noi", "tutte_le_parti"} and codice in {"note_127ter", "deposito_ordinato"} and atto and scadenza:
+            prova = _attestato_dal_giudice(ctx, codice, atto.data, scadenza.isoformat(), atto.id)
+        # Solo i depositi e le note si riassegnano (artt. 127-ter e 421 c.p.c.); gli ordini di notifica di provvedimenti
+        # diversi restano distinti, ciascuno con il suo destinatario.
+        riassegnato = (None if prova or onerato == "controparte" or codice not in {"note_127ter", "deposito_ordinato", ""}
+                       else _superato(ctx, termine, codice, scadenza))
+        decisa = None if prova or codice not in {"note_127ter", "deposito_ordinato", "costituzione_convenuto", ""} else _decisa_dopo(ctx, atto)
         if onerato == "controparte":
             stato, motivo = "non_dovuto", f"termine della controparte ({termine.adempimento.lower()}): non è un nostro adempimento"
         elif prova:
             stato, motivo = "fatto", prova
+        elif decisa is not None:
+            # La sentenza che definisce il giudizio chiude l'istruttoria e la trattazione: il termine non è più un adempimento.
+            stato = "non_dovuto"
+            motivo = (f"La causa è stata decisa con «{decisa.nome}» del {data_it(decisa.data)}: il termine istruttorio o di "
+                      "trattazione non è più dovuto")
+            dubbi = []
+        elif riassegnato is not None:
+            # Lo stesso adempimento è stato riassegnato da un provvedimento successivo: vale il nuovo termine
+            # (un solo adempimento nel modello, non due passi quasi uguali).
+            successivo = ctx.atto(riassegnato.fonte.oggetto_id)
+            stato = "non_dovuto"
+            motivo = (f"Termine superato dal provvedimento «{successivo.nome if successivo else riassegnato.fonte.nome}» del "
+                      f"{data_it(successivo.data if successivo else riassegnato.fonte.data)}, che assegna di nuovo lo stesso "
+                      f"adempimento: vale il nuovo termine")
+            dubbi = []
         else:
             stato = "dubbio" if onerato == "ignoto" or (dubbi and not scadenza) else "da_fare"
             motivo = "Nelle fonti esaminate non risulta una prova dell'adempimento."
+            invii_note = []
             if codice == "note_127ter" and atto and scadenza:
+                invii_note = [d for d in ctx.depositi if d.udienza_note == scadenza.isoformat()
+                              and d.copia_in_chiaro_id and atto.data <= d.data <= scadenza.isoformat()]
                 cand = [d for d in ctx.depositi if d.accettato and d.fonte_id and atto.data
                         and atto.data <= d.data <= scadenza.isoformat() and giorno(d.data) <= ctx.oggi
                         and re.search(r"\bnote\b.{0,45}\b(?:udienza|trattazione|127 ter)\b", semplice(d.nome_atto))]
@@ -224,6 +435,15 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
                     dubbi.append(Dubbio("note_depositate_da_correlare", motivo,
                                         "il testo delle note depositate o il relativo evento di cancelleria che le riferisce a questa udienza",
                                         termine.fonte))
+                if len(invii_note) == 1 and not cand and not pendenti:
+                    invio = invii_note[0]
+                    copia = ctx.atto(invio.copia_in_chiaro_id)
+                    if copia:
+                        stato = "dubbio"
+                        motivo = (f"Invio del {data_it(invio.data)} documentato dalla copia in chiaro con le note di questa udienza. "
+                                  "Per riscontrare il deposito occorre la ricevuta di consegna della stessa busta.")
+                        dubbi.append(Dubbio("invio_note_documentato", motivo, "ricevuta di consegna della busta",
+                                            Fonte(copia.id, copia.nome, data=invio.data)))
             if codice == "notifica_ordinata" and atto:
                 riscontro = _riscontro_notifica_congiunta(ctx, atto, termine) if onerato == "noi" else None
                 if riscontro:
@@ -235,7 +455,7 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
                               "Collegare la ricevuta di consegna all'ordine, agli atti richiesti e al destinatario.")
                     dubbi.append(Dubbio("notifica_ordinata_da_correlare", motivo,
                                         "la consegna originale con gli atti e il destinatario indicati nell'ordine", termine.fonte))
-            if scadenza and scadenza < ctx.oggi:
+            if scadenza and scadenza < ctx.oggi and not any(d.codice == "invio_note_documentato" for d in dubbi):
                 dubbi.append(Dubbio("adempimento_non_provato", f"Il termine è scaduto il {data_it(scadenza)} e nel fascicolo non c'è "
                                     "la prova dell'adempimento.", "la ricevuta del deposito o della notifica, se eseguiti", termine.fonte))
         if stato in {"fatto", "non_dovuto"}:
@@ -253,6 +473,8 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
             letto=termine.fonte, norme=norme(*dict.fromkeys(riferimenti)),
             come=come.format(rg=ctx.rg), perche=conseguenza, stato=stato, prova_o_motivo=motivo,
             termine=calcolo.get("termine"), template=template, onerato=onerato, dubbi=dubbi,
+            prova_deposito=prova_deposito if stato == "fatto" else {},
+            prova_notifica=prova_notifica,
         ))
     return esito_
 

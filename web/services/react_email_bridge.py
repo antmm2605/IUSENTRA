@@ -535,6 +535,11 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
         mittente=_safe_text((fields.get("mittente") or {}).get("value") if isinstance(fields.get("mittente"), dict) else ""),
         destinatari=_safe_text((fields.get("destinatari") or {}).get("value") if isinstance(fields.get("destinatari"), dict) else ""),
     )
+    ciclo_deposito = report.get("deposit_lifecycle") if isinstance(report.get("deposit_lifecycle"), dict) else {}
+    if ciclo_deposito:
+        from pct.pec_pipeline import profilo_processuale_per_vista
+
+        procedural_profile = profilo_processuale_per_vista(report, profilo=procedural_profile)
     event_type = _canonical_pec_event_type(report, procedural_profile)
     attachments = summary.get("attachments") if isinstance(summary.get("attachments"), list) else []
     provisional = bool(summary.get("provisional"))
@@ -563,7 +568,7 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
         "validationIssues": list(report.get("issues") or []),
         "validationSeverity": str(report.get("severity") or ""),
         "eventType": event_type,
-        "depositLifecycle": report.get("deposit_lifecycle") if isinstance(report.get("deposit_lifecycle"), dict) else {},
+        "depositLifecycle": ciclo_deposito,
         "semanticContext": semantic_context,
         "proceduralProfile": procedural_profile,
         "lawyerChecklist": list(report.get("lawyer_checklist") or procedural_profile.get("checklist_avvocato") or []),

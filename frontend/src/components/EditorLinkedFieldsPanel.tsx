@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, X, RefreshCw } from 'lucide-react'
-import { OPERATIONAL_REFRESH_EVENT } from '../operationalRefresh'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { csrfToken } from '../formSubmit'
 import { FascicoloSearchSelect, type FascicoloOption } from './FascicoloSearchSelect'
 import './EditorLinkedFieldsPanel.css'
@@ -27,11 +27,9 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
   const recoveryController = useRef<AbortController | null>(null)
   useBusyActivity(loading && !context, 'Caricamento dei dati collegati…')
   const revisionRef = useRef('')
-  useEffect(() => {
-    const refresh = () => setReload(value => value + 1)
-    window.addEventListener(OPERATIONAL_REFRESH_EVENT, refresh)
-    return () => window.removeEventListener(OPERATIONAL_REFRESH_EVENT, refresh)
-  }, [])
+  useOperationalRefresh(['fascicoli', 'clienti', 'soggetti', 'agenda', 'utenti'], () => {
+    if (matterId && !recoveryPending) setReload(value => value + 1)
+  }, { pacing: { minLiveIntervalMs: 8000, pauseWhenHidden: true } })
   useEffect(() => {
     setContext(null); setChanged(false); revisionRef.current = ''
     setRecoveryPending(false); setRecoverySubmitting(false); setRecoveryError('')
@@ -63,14 +61,37 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
   }
   useEffect(() => {
     if (!recoveryPending) return
+    const controller = new AbortController()
     let checks = 0
-    const timer = window.setInterval(() => {
+    let timer: number
+    async function check() {
       if (++checks > 40) {
-        window.clearInterval(timer); setRecoveryPending(false)
+        setRecoveryPending(false)
         setRecoveryError('Il recupero è ancora in coda. Puoi aggiornare i dati; il documento è preservato.')
-      } else setReload(value => value + 1)
-    }, 3000)
-    return () => window.clearInterval(timer)
+        return
+      }
+      try {
+        const response = await fetch(`/api/editor/${encodeURIComponent(matterId)}/recupera-campi`, {
+          credentials: 'same-origin', signal: controller.signal, headers: { Accept: 'application/json' },
+        })
+        const payload = await response.json()
+        if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Stato del recupero non disponibile.')
+        if (controller.signal.aborted) return
+        if (payload.stato === 'pending' || payload.stato === 'running') {
+          timer = window.setTimeout(() => void check(), 3000)
+        } else {
+          setRecoveryPending(false)
+          setReload(value => value + 1)
+        }
+      } catch (requestError) {
+        if (!controller.signal.aborted) {
+          setRecoveryPending(false)
+          setRecoveryError(requestError instanceof Error ? requestError.message : 'Stato del recupero non disponibile.')
+        }
+      }
+    }
+    timer = window.setTimeout(() => void check(), 3000)
+    return () => { window.clearTimeout(timer); controller.abort() }
   }, [matterId, recoveryPending])
   useEffect(() => {
     if (!matterId) return

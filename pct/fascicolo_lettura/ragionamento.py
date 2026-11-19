@@ -11,6 +11,8 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import quote
 
+from pct.note_127_ter.bozza import MODALITA_NOTE
+
 from ._testo import data_it
 from .modello import Passo
 
@@ -19,6 +21,7 @@ HREF = {
     "notifica_ordinata": "#comunicazioni-notifica", "notifica_ricorso_decreto_415": "#comunicazioni-notifica",
     "notifica_sentenza": "#comunicazioni-notifica", "notifica_decreto_ingiuntivo": "#comunicazioni-notifica",
     "esecuzione_pa": "#comunicazioni-notifica",
+    "verifica_ottemperanza": "#comunicazioni-notifica",
     "spese_liquidate": "#economia", "contributo_unificato": "#economia",
 }
 STATI = {"fatto": "già fatto", "da_fare": "da fare", "non_dovuto": "non dovuto", "dubbio": "da chiarire"}
@@ -40,6 +43,8 @@ def _termine(termine: dict[str, Any] | None) -> dict[str, Any] | None:
         situazione = "scadenza non calcolabile"
     return {
         "scadenza_iso": termine.get("scadenza") or "",
+        **({"data_grezza": termine["data_grezza"]} if termine.get("data_grezza") else {}),
+        **({"fonti_trasmissione": termine["fonti_trasmissione"]} if termine.get("fonti_trasmissione") else {}),
         "ora_assegnata": termine.get("ora_assegnata") or "",
         "scadenza": data_it(termine.get("scadenza")), "decorrenza": data_it(termine.get("decorrenza")),
         "evento_decorrenza": termine.get("evento_decorrenza") or "", "computo": termine.get("computo") or "",
@@ -61,11 +66,20 @@ def _azione(voce: dict[str, Any]) -> str:
     return voce["cosa"]
 
 
-def _conclusione(voce: dict[str, Any]) -> dict[str, Any]:
+def _conclusione(voce: dict[str, Any], *, trattazione_conclusa: bool = False) -> dict[str, Any]:
     letto = voce.get("letto") or {}
     termine = _termine(voce.get("termine"))
     stato_etichetta = STATI.get(voce["stato"], voce["stato"])
     perche = voce["perche"]
+    come = voce["come"]
+    if voce["stato"] == "fatto" and (voce.get("prova_deposito") or voce.get("prova_notifica")) and termine:
+        termine.update(situazione="adempiuto", conseguenze="", rimedi="")
+        come = perche = ""
+    if (trattazione_conclusa and voce["codice"] == "note_127ter" and voce["stato"] == "dubbio"
+            and termine and termine["scaduto"]):
+        stato_etichetta = "Riscontro storico"
+        termine.update(situazione="termine storico", conseguenze="", rimedi="")
+        come = perche = ""
     if _notifica_facoltativa(voce):
         stato_etichetta = "Scelta difensiva"
     if voce["codice"] == "notifica_sentenza" and voce["stato"] == "non_dovuto":
@@ -75,7 +89,7 @@ def _conclusione(voce: dict[str, Any]) -> dict[str, Any]:
         perche = "La scadenza indica il limite per impugnare. Prima di attestare il giudicato, verificare a registro le impugnazioni."
         termine["conseguenze"] = "Il decorso del termine senza impugnazione rileva ai fini del giudicato (art. 324 c.p.c.)."
     return {
-        "codice": voce["codice"], "cosa": _azione(voce), "come": voce["come"], "perche": perche,
+        "codice": voce["codice"], "cosa": _azione(voce), "come": come, "perche": perche,
         "stato": voce["stato"], "stato_etichetta": stato_etichetta, "prova_o_motivo": voce.get("prova_o_motivo") or "",
         "onerato_codice": voce.get("onerato") or "",
         "onerato": ONERATI.get(voce.get("onerato") or "", voce.get("onerato") or ""),
@@ -85,8 +99,11 @@ def _conclusione(voce: dict[str, Any]) -> dict[str, Any]:
         "norme": [{"norma": n.get("norma"), "titolo": n.get("titolo"), "url": n.get("url"), "estratto": n.get("estratto"),
                    "verifica": n.get("verifica")} for n in voce.get("norme") or []],
         "termine": termine, "template": voce.get("template") or "",
+        **({"prova_deposito": voce["prova_deposito"]} if voce.get("prova_deposito") else {}),
+        **({"prova_notifica": voce["prova_notifica"]} if voce.get("prova_notifica") else {}),
         "motivo_senza_termine": voce.get("motivo_senza_termine") or "", "guida": voce.get("guida") or "",
-        "dubbi": [{"codice": d.get("codice", ""), "testo": d["testo"], "manca": d["manca"]} for d in voce.get("dubbi") or []],
+        "dubbi": [{"codice": d.get("codice", ""), "testo": d["testo"], "manca": d["manca"],
+                   "fonte": d.get("fonte")} for d in voce.get("dubbi") or []],
     }
 
 
@@ -94,7 +111,9 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
     """La sezione «ragionamento» della Lettura."""
     if not causa:
         return {}
-    conclusioni = [_conclusione(c) for c in causa.get("conclusioni") or []]
+    fase = causa.get("fase") or {}
+    conclusioni = [_conclusione(c, trattazione_conclusa=fase.get("codice") in {"decisa", "giudicato_da_verificare"})
+                   for c in causa.get("conclusioni") or []]
     ordine = {"da_fare": 0, "dubbio": 1, "fatto": 2, "non_dovuto": 3}
     conclusioni.sort(key=lambda c: (ordine.get(c["stato"], 9), (c["termine"] or {}).get("giorni_residui") is None,
                                     (c["termine"] or {}).get("giorni_residui") or 0))
@@ -109,16 +128,24 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
         "percorso": causa.get("percorso") or [],
         "stile_ricorsi": causa.get("stile_ricorsi") or [],
         "udienze": [{"data": data_it(u["data"]), "ora": u.get("ora") or "",
-                     "modalita": {"note_scritte": "sostituita da note scritte (art. 127-ter c.p.c.)", "remota": "da remoto (art. 127-bis c.p.c.)",
+                     "modalita": {"note_scritte": MODALITA_NOTE, "remota": "da remoto (art. 127-bis c.p.c.)",
                                   "presenza": "in presenza"}.get(u.get("modalita"), u.get("modalita")),
                      "documento": (u.get("fonte") or {}).get("nome", ""),
+                     "brano": (u.get("fonte") or {}).get("brano", ""),
                      "documento_id": (u.get("fonte") or {}).get("oggetto_id", "")} for u in causa.get("udienze") or []],
         "economia": {
             "contributo_unificato": economia.get("contributo_unificato"),
-            "liquidazioni": [{k: v[k] for k in ("atto", "copie", "compensi", "distrazione") if k in v}
+            "liquidazioni": [{k: v[k] for k in ("atto", "copie", "compensi", "distrazione",
+                                               "distrazione_condizionata", "richiesta_distrazione") if k in v}
                              for v in economia.get("liquidazioni") or []],
+            "incarico": economia.get("incarico"),
         },
         "conclusioni": conclusioni,
+        # Le udienze trascorse con l'esito già scritto in un provvedimento del giudice, e i fascicoli collegati della
+        # stessa vicenda con la prova del collegamento (aggiunti il 18/11/2026).
+        "esiti_udienze": [{**e, "data_it": data_it(e.get("data")), "data_provvedimento_it": data_it(e.get("data_provvedimento"))}
+                          for e in causa.get("esiti_udienze") or []],
+        "collegati": list(causa.get("collegati") or []),
         "contraddizioni": [{"controllo": x["controllo"], "descrizione": x["descrizione"], "sciolta": x["sciolta"], "come": x["come"]}
                            for x in causa.get("contraddizioni") or []],
         "dubbi": [{"codice": d.get("codice", ""), "testo": d["testo"], "manca": d["manca"], "fonte": d.get("fonte")}
@@ -126,10 +153,32 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+_AMBITI = {"spese_liquidate": "economico", "contributo_unificato": "economico"}
 _PASSI_TRATTAZIONE = frozenset({"note_127ter", "costituzione_convenuto", "costituzione_attore"})
 
 
-def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedimenti_consegnati: frozenset[str] = frozenset()) -> list[Passo]:
+def proseguito_dopo(causa: dict[str, Any], scadenza: Any, fonte_id: Any = "") -> str:
+    """Il procedimento proseguito regolarmente dopo la scadenza: l'udienza tenuta (esito scritto in un provvedimento) o
+    il provvedimento del giudice successivo, diverso da quello che ha assegnato il termine. Stringa vuota se non c'è."""
+    giorno = str(scadenza or "")[:10]
+    if not giorno:
+        return ""
+    udienza = next((e for e in sorted(causa.get("esiti_udienze") or [], key=lambda e: e.get("data") or "")
+                    if (e.get("data") or "") > giorno), None)
+    if udienza:
+        return f"il procedimento è proseguito con l'udienza del {data_it(udienza['data'])} («{udienza.get('nome', '')}»)"
+    atto = next((a for a in sorted(causa.get("atti") or [], key=lambda a: a.get("data") or "")
+                 if a.get("autore") == "giudice" and a.get("appartenenza") == "causa" and (a.get("data") or "") > giorno
+                 and a.get("id") != fonte_id), None)
+    if atto:
+        return f"il procedimento è proseguito con il provvedimento «{atto.get('nome', '')}» del {data_it(atto.get('data'))}"
+    return ""
+
+
+def passi(
+    causa: dict[str, Any], *, trattazione_conclusa: bool = False,
+    provvedimenti_consegnati: frozenset[str] = frozenset(), bozze_deposito: dict[tuple[str, str], str] | None = None,
+) -> list[Passo]:
     """I prossimi passi giuridici: esclude gli adempimenti di trattazione dopo il provvedimento conclusivo."""
 
     esito: list[Passo] = []
@@ -150,8 +199,23 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedi
         motivo = voce["perche"] + (f" — {voce['come']}" if voce.get("come") else "")
         if voce["stato"] == "dubbio":
             motivo = "; ".join(d["testo"] for d in voce.get("dubbi") or []) or motivo
+        if termine.get("scaduto") and termine.get("rimedi"):
+            # Termine scaduto senza prova dell'adempimento: conseguenze e rimedi secondo la natura del termine.
+            motivo = f"termine scaduto il {data_it(termine.get('scadenza'))}, nel fascicolo non risulta l'adempimento — {termine['rimedi']}; {motivo}"
+        if termine.get("scaduto"):
+            seguito = proseguito_dopo(causa, termine.get("scadenza"), (voce.get("letto") or {}).get("oggetto_id"))
+            if seguito:
+                # Il procedimento è andato avanti: indizio dell'adempimento, non prova (resta un dubbio, mai «fatto»).
+                motivo = f"{seguito}: l'adempimento è probabilmente avvenuto, manca la prova nel fascicolo; {motivo}"
         azione = _azione(voce)
         href = HREF.get(voce["codice"], "#udienze")
+        if voce["codice"] == "verifica_ottemperanza" or any(
+            d.get("codice") == "verifica_appello_ottemperanza" for d in voce.get("dubbi") or []
+        ):
+            fid = quote(str(causa.get("fascicolo_id") or ""), safe="")
+            oid = quote(str((voce.get("letto") or {}).get("oggetto_id") or ""), safe="")
+            if fid and oid:
+                href = f"/fascicoli/{fid}/documenti/{oid}/visualizza"
         prova_pec = next((d.get("fonte") for d in voce.get("dubbi") or []
                           if d.get("codice") == "validita_notifica_ordinata"), None)
         if any(d.get("codice") == "note_in_attesa_cancelleria" for d in voce.get("dubbi") or []):
@@ -167,9 +231,23 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedi
             azione = "Verificare se le note già depositate riguardano questa udienza"
         elif voce.get("onerato") == "ignoto":
             azione = "Verificare se il termine riguarda il cliente: " + azione
+        natura = termine.get("natura") if termine.get("natura") in {"perentorio", "ordinatorio"} else (
+            {True: "perentorio", False: "ordinatorio"}.get(termine.get("perentorio"), ""))
+        letto = voce.get("letto") or {}
+        prova = " — ".join(filter(None, (letto.get("nome"), data_it(letto.get("data")))))
+        if voce["codice"] == "deposito_ordinato":
+            chiave = (voce.get("letto") or {}).get("oggetto_id"), termine.get("scadenza")
+            if chiave in (bozze_deposito or {}):
+                nome_atto = (voce.get("letto") or {}).get("nome")
+                motivo += f" — Provvedimento: {nome_atto}." if nome_atto else ""
+                motivo += " La scadenza è in bozza. Aprila nello Scadenziario per confermarla."
+                fid = quote(str(causa.get("fascicolo_id") or ""), safe="")
+                href = f"/scadenziario?id_fascicolo={fid}#proposte" if fid else "/scadenziario#proposte"
         esito.append(Passo(
             urgenza, azione, motivo, data_it(termine.get("scadenza")), "ragionamento sul fascicolo",
             tuple(n["id"] for n in voce.get("norme") or [] if n.get("id")), href,
+            natura=natura, ambito=_AMBITI.get(voce["codice"], "processuale"),
+            stato="da chiarire" if voce["stato"] == "dubbio" else "da fare", prova=prova,
         ))
     prossima = next((u for u in sorted(causa.get("udienze") or [], key=lambda u: u["data"]) if u["data"] >= (causa.get("oggi") or "")), None)
     if prossima and prossima.get("modalita") != "note_scritte":
@@ -180,4 +258,4 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedi
     return esito
 
 
-__all__ = ["passi", "vista"]
+__all__ = ["passi", "proseguito_dopo", "vista"]

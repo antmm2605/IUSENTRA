@@ -58,6 +58,7 @@ class Atto:
     testo: str = ""
     copie: list[str] = field(default_factory=list)  # altri oggetti con lo stesso testo (allegati PEC, depositi)
     sentenza: bool = False
+    pubblicazione_pat: str = ""
 
 
 @dataclass
@@ -112,6 +113,8 @@ class Termine:
     rimedi: str = ""
     natura: str = ""  # finestra procedurale o attesa minima, quando non è un termine per adempiere
     ora_assegnata: str = ""  # Ora espressa nel provvedimento, distinta dall'orario dell'udienza.
+    data_grezza: str = ""  # ISO, data prima degli aggiustamenti del computo.
+    fonti_trasmissione: list[str] = field(default_factory=list)  # Originali PEC che contengono il provvedimento.
 
 
 @dataclass
@@ -132,6 +135,8 @@ class Conclusione:
     onerato: str = "noi"
     dubbi: list[Dubbio] = field(default_factory=list)
     motivo_senza_termine: str = ""
+    prova_deposito: dict[str, str] = field(default_factory=dict)
+    prova_notifica: dict = field(default_factory=dict)
 
     def come_dizionario(self) -> dict[str, Any]:
         return asdict(self)
@@ -181,6 +186,10 @@ class Causa:
     impronta: str = ""
     versione: str = ""
     percorso: list[EventoCausa] = field(default_factory=list)
+    # Le udienze trascorse il cui esito è scritto in un provvedimento del giudice (udienze_esito).
+    esiti_udienze: list[dict[str, str]] = field(default_factory=list)
+    # I fascicoli collegati della stessa vicenda, con la prova del collegamento (collegamenti).
+    collegati: list[dict[str, Any]] = field(default_factory=list)
 
     def come_dizionario(self) -> dict[str, Any]:
         dati = asdict(self)

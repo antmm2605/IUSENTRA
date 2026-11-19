@@ -45,8 +45,9 @@ def _data(documento: dict[str, Any]) -> str:
     return pulisci(documento.get("data_documento") or documento.get("data_caricamento"))[:10]
 
 
-def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, rg: str = "", fonti: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    from pct.atto_della_causa import stesso_numero_ruolo
+def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, rg: str = "", fonti: list[dict[str, Any]] | None = None,
+              amministrativo: bool = False, dispositivi: dict[str, str] | None = None) -> dict[str, Any]:
+    from pct.atto_della_causa import CARATTERI_INTESTAZIONE, stesso_numero_ruolo
 
     per_documento = {pulisci(voce.get("document_id")): voce for voce in catalogo}
     letti: list[dict[str, Any]] = []
@@ -69,6 +70,7 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
             "data_evento": "",
             "data_it": data_it(_data(documento)),
             "firmato": bool(documento.get("firmato")),
+            "bozza_locale": bool(documento.get("bozza_locale")),
             # Letto dal presidio documentale: testo indicizzato o record Document AI indicizzato.
             "indicizzato": bool(documento.get("lex_read")) or bool(voce.get("indexed")),
             # Censito dal portale ma non scaricato: il presidio non può leggerlo finché non è nel fascicolo.
@@ -84,9 +86,19 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
         elif natura == "precedente_giurisprudenziale":
             documento.update(natura=natura, etichetta="Precedente giurisprudenziale", sezione="allegati", data_evento="")
         ruoli = sorted((f for f in prove if f.get("categoria") == "ruolo"), key=lambda f: f.get("posizione", 0))
+        verifiche = {"verificata", "corretta"}
+        if amministrativo:
+            from types import SimpleNamespace
+
+            from pct.pat_formweb.letture import ruolo_amministrativo
+
+            ruoli = [f for f in ruoli if (f.get("posizione") or 0) < CARATTERI_INTESTAZIONE
+                     and ruolo_amministrativo(SimpleNamespace(**f))]
+            verifiche.add("plausibile")
         # È il ruolo dell'intestazione a identificare la causa, non una citazione
         # nel corpo né l'etichetta «Sentenza» di un allegato di giurisprudenza.
-        documento["sentenza_pertinente"] = bool(ruoli and stesso_numero_ruolo(ruoli[0].get("valore"), rg) and ruoli[0].get("verifica") in {"verificata", "corretta"})
+        documento["sentenza_pertinente"] = bool(ruoli and stesso_numero_ruolo(ruoli[0].get("valore"), rg)
+                                                  and ruoli[0].get("verifica") in verifiche)
         date_evento = [f for f in prove if f.get("campo") == "provvedimento" and f.get("verifica") in {"verificata", "corretta"}]
         if date_evento and documento["sezione"] == "provvedimenti" and documento["sentenza_pertinente"]:
             documento["data_evento"] = str(sorted(date_evento, key=lambda f: f.get("posizione", 0))[0]["valore"])[:10]
@@ -105,6 +117,12 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
             documento["esito"] = {f.get("campo"): f.get("valore") for f in prove
                                   if f.get("campo") in {"esito_sentenza", "motivo_esito_sentenza", "spese_sentenza"} and f.get("verifica") in {"verificata", "corretta"}}
             certe = [f for f in prove if f.get("verifica") in {"verificata", "corretta"}]
+            esito_corrente = documento["esito"].get("esito_sentenza")
+            brani = {pulisci(f.get("contesto")) for f in certe
+                     if f.get("campo") == "esito_sentenza" and f.get("valore") == esito_corrente
+                     and f.get("verifica") == "verificata" and f.get("contesto")}
+            if len(brani) == 1:
+                documento["brano_dispositivo"] = (dispositivi or {}).get(documento["id"]) or next(iter(brani))
             # La data della sentenza: quella in calce («Velletri, 7 ottobre 2026»), altrimenti una data di provvedimento
             # dell'intestazione; mai la data di un precedente citato nella motivazione. Una data di caricamento non lo è.
             in_calce = sorted((f for f in certe if f.get("campo") == "data_atto"), key=lambda f: f.get("posizione", 0))
@@ -127,12 +145,12 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
     def ultimo(natura: set[str] | None = None, sezione: str | None = None) -> dict[str, Any] | None:
         candidati = [
             voce for voce in letti
-            if (natura is None or voce["natura"] in natura) and (sezione is None or voce["sezione"] == sezione)
+            if not voce["bozza_locale"] and (natura is None or voce["natura"] in natura) and (sezione is None or voce["sezione"] == sezione)
         ]
         return candidati[-1] if candidati else None
 
     def primo(natura: set[str]) -> dict[str, Any] | None:
-        candidati = [voce for voce in letti if voce["natura"] in natura]
+        candidati = [voce for voce in letti if not voce["bozza_locale"] and voce["natura"] in natura]
         return candidati[0] if candidati else None
 
     return {

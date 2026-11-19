@@ -44,6 +44,15 @@ SENTENZA_CON_CU = (
 )
 
 
+def test_richiesta_di_autocertificazione_non_equivale_ad_esenzione():
+    invito = ("Note: trasmettere entro cinque giorni autocertificazione esenzione cu "
+              "con specifica indicazione dell'ultima dichiarazione dei redditi.")
+    assert classifica_contributo_unificato_pec(invito) is None
+    allegato = {"filename": "Autocertificazione.pdf", "ocr_text": AUTOCERTIFICAZIONE_ESENZIONE}
+    dichiarazione = classifica_contributo_unificato_pec(invito, attachments=[allegato])
+    assert dichiarazione.categoria == CATEGORIA_ESENZIONE
+    assert dichiarazione.fonte == "Autocertificazione.pdf"
+
 def _parsed(subject: str, body: str = "") -> dict:
     return {
         "headers": {"subject": subject, "date": "2026-06-10", "message_id": "<cu-test@example.test>"},

@@ -31,7 +31,9 @@ class _RegistroFinto:
         return self.righe
 
     def accoda_evento(self, tenant_id, fascicolo_id, **_k):
+        # Come il registro vero: vero se l'evento è stato accodato (solo_se_fermo).
         self.accodati.append(fascicolo_id)
+        return True
 
 
 def test_fascicoli_con_letture_mancanti_entrano_in_coda_a_lotti(monkeypatch):

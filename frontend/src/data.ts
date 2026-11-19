@@ -86,9 +86,9 @@ export const emptyDashboard: DashboardData = {
 export const dashboardFallback = emptyDashboard
 const DASHBOARD_MAILBOX_SYNC_TIMEOUT_MS = 18000
 const DASHBOARD_UNREACHABLE_WARNING =
-  'Panoramica non raggiungibile: i valori mostrati non provengono dagli archivi dello studio. Riprova con Aggiorna.'
+  'I dati operativi dello studio non sono disponibili. Riprova con Aggiorna.'
 
-/** Quadro non attendibile: zeri di cortesia dichiarati come tali, mai spacciati per dati reali. */
+/** I valori iniziali servono alla forma delle card. La pagina attende il quadro prima di esporli. */
 function unreachableDashboard(): DashboardData {
   return {...emptyDashboard, status: 'errore', warning: DASHBOARD_UNREACHABLE_WARNING}
 }

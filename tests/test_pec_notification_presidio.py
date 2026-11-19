@@ -747,6 +747,10 @@ def test_due_notifiche_indipendenti_nello_stesso_fascicolo_non_chiudono_un_terzo
 
     documents_a, activities_a = _chain("notifica-a", "atto-c-corrente", "destinatario-a@example.test")
     documents_b, activities_b = _chain("notifica-b", "atto-c-corrente", "destinatario-b@example.test")
+    documents_a.append({
+        "id": "deposito-a", "data_documento": "2026-07-18", "document_role": "proof_deposit_receipt",
+        "notification_id": "notifica-a",
+    })
     with sqlite3.connect(str(studio_db)) as conn:
         conn.execute(
             """
@@ -780,6 +784,18 @@ def test_due_notifiche_indipendenti_nello_stesso_fascicolo_non_chiudono_un_terzo
     )
 
     assert proof == {}
+
+    for recipient, depositi in (("a", ["deposito-a"]), ("b", [])):
+        parameters = dict(
+            fascicolo_id="FASC-DUE-NOTIFICHE",
+            source_effective_at="2026-07-16T13:01:03+02:00",
+            source_message_id="atto-c-corrente",
+            candidate_recipients=[{"pec_address": f"destinatario-{recipient}@example.test"}],
+        )
+        result = audit._notification_complete_proof_from_fascicolo(**parameters)
+        assert result["complete_proof"]
+        assert result["proof_deposit_ids"] == depositi
+        assert bool(audit._notification_complete_proof_from_fascicolo(**parameters, require_deposit=True)) == bool(depositi)
 
 
 def test_stessa_notifica_due_destinatari_con_una_sola_rdac_resta_aperta(tmp_path: Path) -> None:

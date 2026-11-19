@@ -89,12 +89,14 @@ def passi_note_127_ter(
             passi.append(Passo(1, f"Depositare le note entro il {entro}: se nessuna parte le deposita il processo si estingue ({norma})",
                                "il giudice ha già rinviato per la mancata comparizione di tutte le parti; il termine è perentorio "
                                "(art. 127-ter, secondo comma, c.p.c.) e non si proroga (art. 153 c.p.c.)",
-                               entro, "provvedimento di rinvio", (fonte_norma, "cpc_127ter", "cpc_153"), HREF_SCADENZE))
+                               entro, "provvedimento di rinvio", (fonte_norma, "cpc_127ter", "cpc_153"), HREF_SCADENZE,
+                               natura="perentorio", ambito="processuale"))
         for voce in voci:
             if voce.codice == "contenuto":
                 # Il termine è la data scritta dal giudice (art. 127-ter, secondo comma): «entro il …», non «udienza del …».
                 passi.append(Passo(vicino, f"Depositare le note scritte entro il {entro} (termine perentorio): sole istanze e conclusioni",
-                                   voce.dettaglio + bozza, entro, "decreto di trattazione scritta", voce.fonti, HREF_SCADENZE))
+                                   voce.dettaglio + bozza, entro, "decreto di trattazione scritta", voce.fonti, HREF_SCADENZE,
+                                   natura="perentorio", ambito="processuale"))
             elif voce.codice == "indicazioni":
                 # Il decreto qui non è riletto: non si può dire che le chieda proprio lui (collaudo 08/11/2026, Tribunale
                 # di Vicenza: il decreto chiedeva altro). Sono i dati che identificano la causa e l'udienza sostituita.

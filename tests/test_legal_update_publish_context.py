@@ -104,7 +104,9 @@ def test_publish_auto_news_usa_contesto_verifica_per_news_only(tmp_path: Path, m
         },
     )
 
-    report = pipeline.publish_auto_news(limit=10)
+    assert pipeline.publish_auto_news(limit=10, review_ids=())["count"] == 0
+    assert pipeline.publish_auto_news(limit=10, review_ids=(int(review["id"]) + 1,))["count"] == 0
+    report = pipeline.publish_auto_news(limit=10, review_ids=(int(review["id"]),))
     news = pipeline.repository.list_news(limit=5, include_drafts=False)[0]
 
     assert report["count"] == 1

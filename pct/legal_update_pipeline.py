@@ -1588,6 +1588,7 @@ class LegalUpdatePipeline:
         raw_payload: dict[str, Any],
         *,
         direct_only: bool = True,
+        verify_on_ingestion: bool = True,
     ) -> dict[str, Any]:
         raw_saved = self.repository.save_raw_document(
             {
@@ -1674,7 +1675,9 @@ class LegalUpdatePipeline:
                 "priority": decision["priority"],
             }
         )
-        verification_evidence = self._record_ingestion_verification_evidence(review, source, direct_only=direct_only)
+        verification_evidence = {}
+        if verify_on_ingestion:
+            verification_evidence = self._record_ingestion_verification_evidence(review, source, direct_only=direct_only)
         return {
             "raw": raw_saved,
             "normalized": normalized_saved,
@@ -1683,7 +1686,9 @@ class LegalUpdatePipeline:
             "verification_evidence": verification_evidence,
         }
 
-    def analyze_raw_document(self, raw_document_id: int, *, auto_publish: bool = True) -> dict[str, Any]:
+    def analyze_raw_document(
+        self, raw_document_id: int, *, auto_publish: bool = True, verify_on_ingestion: bool = True,
+    ) -> dict[str, Any]:
         raw_saved = self.repository.get_raw_document(raw_document_id)
         if not raw_saved:
             raise ValueError("Documento raw non trovato.")
@@ -1702,7 +1707,7 @@ class LegalUpdatePipeline:
             "fetch_status": raw_saved.get("fetch_status"),
             "http_status": raw_saved.get("http_status"),
         }
-        result = self.process_document(source, raw_payload)
+        result = self.process_document(source, raw_payload, verify_on_ingestion=verify_on_ingestion)
         result["autopublished"] = self.publish_auto_news(limit=20) if auto_publish else {"count": 0, "items": []}
         return result
 
@@ -2406,13 +2411,20 @@ class LegalUpdatePipeline:
                 report["downgraded_to_news"] += 1
         return report
 
-    def publish_auto_news(self, *, limit: int = 20, max_seconds: int = 0) -> dict[str, Any]:
+    def publish_auto_news(
+        self, *, limit: int = 20, max_seconds: int = 0, review_ids: tuple[int, ...] | None = None,
+    ) -> dict[str, Any]:
         deadline = time.monotonic() + max_seconds if max_seconds > 0 else None
         deferred = 0
-        cleanup = self.repository.deduplicate_archive(performed_by="system")
-        reconciliation = self.reconcile_pending_reviews(limit=max(limit * 3, 120), reviewer="system")
+        cleanup = {}
+        reconciliation = {}
+        if review_ids is None:
+            cleanup = self.repository.deduplicate_archive(performed_by="system")
+            reconciliation = self.reconcile_pending_reviews(limit=max(limit * 3, 120), reviewer="system")
         candidate_limit = max(max(1, int(limit or 1)) * 12, 40)
-        items = self.repository.list_review_queue(statuses=("approved", "pending"), limit=candidate_limit)
+        items = self.repository.list_review_queue(
+            statuses=("approved", "pending"), limit=candidate_limit, review_ids=review_ids,
+        )
         published: list[int] = []
         skipped: list[dict[str, Any]] = []
         verification_attempts = 0
@@ -2532,7 +2544,7 @@ class LegalUpdatePipeline:
                 )
                 continue
             published.append(int(row["id"]))
-        if published:
+        if published and review_ids is None:
             self.repository.deduplicate_archive(performed_by="system")
         return {
             "count": len(published),

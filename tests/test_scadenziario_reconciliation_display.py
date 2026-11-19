@@ -1,7 +1,9 @@
 """Una rettifica tecnica non deve diventare un calcolo giuridico."""
 import unittest
 from types import SimpleNamespace
-from web.services.react_scadenziario_bridge import _has_advanced_calculation, _reconciliation_reason, _readable_source_name
+from pct.riconvalida_termine_lungo import DALLA_DECISIONE, NON_CERTA
+from pct.scadenziario import Scadenza, StatoTermine
+from web.services.react_scadenziario_bridge import _has_advanced_calculation, _reconciliation_reason, _readable_source_name, _row
 
 
 class Checks(unittest.TestCase):
@@ -34,6 +36,21 @@ class Checks(unittest.TestCase):
         self.assertEqual(_readable_source_name('documento:abc-123'), 'Documento del fascicolo')
         self.assertEqual(_readable_source_name('pec:abc_123'), 'Messaggio PEC')
         self.assertEqual(_readable_source_name('Provvedimento del giudice.pdf'), 'Provvedimento del giudice.pdf')
+
+    def test_provisional_appeal_date_retains_draft_status_and_explains_its_source(self):
+        draft = Scadenza(
+            id="B1", titolo="Impugnazione sentenza - termine lungo", stato=StatoTermine.BOZZA,
+            data_scadenza="2027-04-09", data_decorrenza="2026-10-09",
+            deadline_profile_code="CIV_APPELLO_LUNGO",
+            note=f"{NON_CERTA}\n{DALLA_DECISIONE} decisione=2026-10-09: pubblicazione da verificare",
+        )
+        row = _row(draft, gestione_fascicoli=None, gestione_utenti=None)
+        self.assertEqual(row["dateStatus"], "prudenziale")
+        self.assertEqual(row["status"], "BOZZA")
+        self.assertIn("09/10/2026", row["detailDescription"])
+        self.assertIn("registro telematico", row["detailDescription"])
+        draft.note = NON_CERTA
+        self.assertEqual(_row(draft, gestione_fascicoli=None, gestione_utenti=None)["dateStatus"], "da_verificare")
 
 
 if __name__ == '__main__':

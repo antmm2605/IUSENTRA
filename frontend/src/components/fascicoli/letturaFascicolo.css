@@ -192,3 +192,14 @@
 .iu-fas-registro__lettori tr.is-warning th{color:#9a5b00}
 .iu-fas-registro__lettori tr.is-danger th{color:#b42318}
 @media(max-width:640px){.iu-fas-registro__lettori thead th:nth-child(4),.iu-fas-registro__lettori td:nth-child(4){display:none}}
+/* Bozze dei prossimi passi preparate in sfondo: «Bozza pronta — apri» e stato della bozza. */
+.iu-fas-lettura__bozza{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:6px;padding:7px 9px;border:1px dashed var(--iu-border);border-radius:10px;background:var(--iu-slate-50,#f8fafc)}
+.iu-fas-lettura__bozza-apri{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 10px;border-radius:8px;background:#10243d;color:#fff;font-size:12px;font-weight:900;text-decoration:none}
+.iu-fas-lettura__bozza-apri:hover,.iu-fas-lettura__bozza-apri:focus-visible{background:#1d3a5f;color:#fff}
+.iu-fas-lettura__bozza small{flex:1 1 100%;color:var(--iu-slate-500);font-size:11px;font-weight:750;line-height:1.4}
+.iu-fas-lettura__bozza details{flex:1 1 100%;font-size:11px;color:#334155}
+.iu-fas-lettura__bozza summary{cursor:pointer;font-weight:850}
+.iu-fas-lettura__bozza ul{margin:4px 0 0;padding-left:18px}
+.iu-fas-lettura__bozze-libere{display:grid;gap:6px}
+.iu-fas-lettura__bozze-libere > p{margin:0;color:var(--iu-slate-500);font-size:12px;font-weight:750}
+@media (max-width:640px){.iu-fas-lettura__bozza-apri{width:100%;justify-content:center}}

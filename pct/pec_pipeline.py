@@ -24,7 +24,7 @@ import threading
 import time
 import uuid
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from contextlib import nullcontext
 from datetime import date, datetime, timedelta, timezone
 from email import policy
@@ -1192,6 +1192,17 @@ def decidi_collegamento(candidates: list[dict[str, Any]], *, threshold: float = 
         }
 
     eligible = [candidate for candidate in candidates if not candidate.get("identity_conflicts")]
+    ricevute_ministeriali = [candidate for candidate in eligible if candidate.get("esito_ministeriale_identifica_fascicolo")]
+    if ricevute_ministeriali:
+        ids = {str(candidate["id"]) for candidate in ricevute_ministeriali}
+        return {
+            "fascicolo_id": next(iter(ids)) if len(ids) == 1 else "",
+            "status": "ruolo_certificato_ufficio" if len(ids) == 1 else "identita_ambigua",
+            "score": 1.0,
+            "reasons": ["R.G. e ufficio coincidenti con l'esito finale di EsitoAtto.xml"],
+            "rg_only": False,
+            "receipt_reference": {},
+        }
     verified = [candidate for candidate in eligible if all(
         (candidate.get("identity_evidence") or {}).get(key)
         for key in ("rg_match", "client_name_match", "office_match")
@@ -1572,6 +1583,23 @@ def build_pct_deposit_receipt_profile(
         status = "technical_error"
     elif outcome_code is not None:
         status = "technical_check"
+    esiti_atto = [
+        testo for nome, testo in sources.items()
+        if nome.rsplit(":", 1)[-1].replace("\\", "/").rsplit("/", 1)[-1].casefold() == "esitoatto.xml"
+    ]
+    esito_ministeriale = {}
+    if len(esiti_atto) == 1:
+        [xml_esito] = esiti_atto
+        correlazione_xml = build_pct_deposit_correlation({}, xml_texts={"EsitoAtto.xml": xml_esito})
+        codice_xml = xml_tag_value(xml_esito, ("CodiceEsito",))
+        ruolo_xml = xml_tag_value(xml_esito, ("NumeroRuolo",))
+        if (codice_xml and codice_xml == outcome_raw and ruolo_xml
+                and correlazione_xml.get("idbusta") and correlazione_xml.get("source_message_id")):
+            esito_ministeriale = {
+                "idbusta": correlazione_xml["idbusta"],
+                "source_message_id": correlazione_xml["source_message_id"],
+                "numero_ruolo": ruolo_xml, "codice_esito": outcome_code,
+            }
     return {
         "outcome_code": outcome_code,
         "outcome_code_raw": str(outcome_raw or ""),
@@ -1582,7 +1610,22 @@ def build_pct_deposit_receipt_profile(
         "document_name": document_name,
         "status": status,
         "requires_redeposit": bool(outcome_code is not None and outcome_code < 0 and not _pct_controls_non_blocking_acceptance(lower_description)),
+        **({"esito_ministeriale": esito_ministeriale} if esito_ministeriale else {}),
     }
+
+
+def esito_finale_xml_pec(profilo: dict[str, Any], ricevuta: dict[str, Any], stage: str,
+                        correlation: dict[str, Any]) -> dict[str, Any]:
+    xml = ricevuta.get("esito_ministeriale") or {}
+    codice = xml.get("codice_esito")
+    finale = ((stage in {"accettazione_deposito", "intervento_cancelleria"} and codice == 2)
+              or (stage == "rifiuto_deposito" and codice == -1))
+    fonte = _normalised_message_id_value(xml.get("source_message_id"))
+    if (profilo.get("fonte_certa") == "giustizia" and finale and xml.get("numero_ruolo")
+            and xml.get("idbusta") and xml["idbusta"] == correlation.get("idbusta")
+            and fonte and fonte == _normalised_message_id_value(correlation.get("source_message_id"))):
+        return xml
+    return {}
 
 
 #: Dopo la data: «l'udienza del 10/12/2026 è revocata», «… del 10/12/2026 è rinviata al …».
@@ -1851,7 +1894,7 @@ def _first_profile_value(text: str, patterns: Iterable[str], *, limit: int = 180
 
 
 def _profile_lines_value(text: str, label: str, *, limit: int = 180) -> str:
-    return _first_profile_value(text, (rf"^\s*{re.escape(label)}\s*:\s*(.+?)\s*$",), limit=limit)
+    return _first_profile_value(text, (rf"^[ \t]*{re.escape(label)}[ \t]*:[ \t]*(.+?)[ \t]*$",), limit=limit)
 
 
 PROFILE_INLINE_LABELS = (
@@ -1890,7 +1933,8 @@ def _profile_value(text: str, labels: str | Iterable[str], *, limit: int = 180) 
     for label in label_values:
         lookahead = "|".join(re.escape(item) for item in PROFILE_INLINE_LABELS if item != label)
         match = re.search(
-            rf"\b{re.escape(label)}\s*:\s*(.+?)(?=\s+(?:{lookahead})\s*:|\s+Notificato\s+alla\s+PEC|\s+--|$)",
+            rf"\b{re.escape(label)}\s*:(?!\s*(?:{lookahead})\s*:)\s*(.+?)"
+            rf"(?=\s+(?:{lookahead})\s*:|\s+Notificato\s+alla\s+PEC|\s+--|$)",
             text or "",
             flags=re.I | re.S,
         )
@@ -1977,14 +2021,28 @@ def build_pec_procedural_profile(
         office = resolved_office
 
     oggetto_xml = ""
+    comunicazione_ministeriale = {}
     if not mittente_incerto:
         # La cancelleria può indicare l'evento solo nel tag, senza ripeterlo
         # come riga «Oggetto:» nel corpo. Il subject della busta è generico.
-        for nome, testo in sources.items():
-            if nome.rsplit(":", 1)[-1].replace("\\", "/").rsplit("/", 1)[-1].casefold() == "comunicazione.xml":
-                oggetto_xml = clean_text(xml_tag_value(testo, ("Oggetto",)), 280)
-                if oggetto_xml:
-                    break
+        comunicazioni = [
+            testo for nome, testo in sources.items()
+            if nome.rsplit(":", 1)[-1].replace("\\", "/").rsplit("/", 1)[-1].casefold() == "comunicazione.xml"
+        ]
+        for testo in comunicazioni:
+            oggetto_xml = clean_text(xml_tag_value(testo, ("Oggetto",)), 280)
+            if oggetto_xml:
+                break
+        if fonte_certa == "giustizia" and len(comunicazioni) == 1 and oggetto_xml:
+            [comunicazione] = comunicazioni
+            ruolo_xml = xml_tag_value(comunicazione, ("NumeroRuolo",))
+            ufficio_xml = xml_tag_value(comunicazione, ("CodiceUG",))
+            contenuto_xml = xml_tag_value(comunicazione, ("Contenuto",))
+            if ruolo_xml and ufficio_xml and contenuto_xml:
+                comunicazione_ministeriale = {
+                    "oggetto": oggetto_xml, "contenuto": contenuto_xml,
+                    "numero_ruolo": ruolo_xml, "codice_ufficio": ufficio_xml,
+                }
 
     profile = {
         "ufficio": office,
@@ -2251,6 +2309,8 @@ def build_pec_procedural_profile(
     profile["messaggio_operativo"] = _procedural_operational_message(profile)
 
     esito = {key: value for key, value in profile.items() if value not in ("", [], {})}
+    if comunicazione_ministeriale:
+        esito["comunicazione_ministeriale"] = comunicazione_ministeriale
     if fonte_certa is not None:
         # Anche vuota: dice che il mittente è stato valutato e non è un ufficio.
         esito["fonte_certa"] = fonte_certa
@@ -2432,6 +2492,33 @@ def tagliato_dal_vecchio_limite(testo: str) -> bool:
 
 def _attachment_ocr_text(item: dict[str, Any]) -> str:
     return clean_text(item.get("ocr_text") or item.get("text") or "", TESTO_ALLEGATO_MAX)
+
+
+def _ruolo_diverso_in_allegato_cancelleria(
+    report: dict[str, Any], attachments: Iterable[dict[str, Any]]
+) -> tuple[str, str] | None:
+    """Una sola copia giudiziale con intestazione di altro ruolo non genera termini."""
+    from pct.atto_della_causa import ruoli_in_intestazione
+
+    profile = report.get("procedural_profile")
+    if not isinstance(profile, dict):
+        return None
+    expected = change_normalize_rg(profile.get("numero_rg"))
+    if report.get("event_type") != "comunicazione_cancelleria" or not expected:
+        return None
+    pdfs = [item for item in attachments if _is_pdf_attachment(item)]
+    if len(pdfs) != 1:
+        return None
+    front = re.sub(r"^\[[^\]]{1,240}\]\s*", "", _attachment_ocr_text(pdfs[0]))[:300]
+    if not re.search(r"\b(?:tribunale|corte\s+(?:di|d['’]))\b", front, flags=re.I):
+        return None
+    if not re.search(r"\b(?:decreto|ordinanza|sentenza)\b", front, flags=re.I):
+        return None
+    roles = ruoli_in_intestazione(front)
+    if len(roles) != 1:
+        return None
+    found = "/".join(roles[0])
+    return (expected, found) if "X" not in found and found != expected else None
 
 
 def _is_remote_hearing_technical_attachment(item: dict[str, Any]) -> bool:
@@ -2796,6 +2883,11 @@ def _unified_hearing_mode(all_text_lower: str, *, remote_detected: bool) -> str:
 
     text = all_text_lower or ""
     is_note = any(str(k).lower() in text for k in REMOTE_HEARING_NEGATIVE_CONTEXT_KEYWORDS)
+    if is_note and "sentenza a verbale" not in text:
+        # Le premesse che richiamano l'art. 127-ter non fanno della prossima udienza una trattazione scritta.
+        from pct.provvedimenti.termine_scritto import dispone_note_scritte
+
+        is_note = dispone_note_scritte(text)
     is_place = any(k in text for k in _HEARING_PLACE_KEYWORDS)
     is_mixed = any(k in text for k in _HEARING_MIXED_KEYWORDS)
     if is_mixed or (remote_detected and is_place):
@@ -2814,6 +2906,9 @@ def _unified_hearing_mode(all_text_lower: str, *, remote_detected: bool) -> str:
 def _authoritative_event_excludes_hearing(parsed_profile: dict[str, Any]) -> bool:
     """Evita che un allegato storico trasformi un provvedimento corrente in udienza."""
 
+    ministeriale = parsed_profile.get("comunicazione_ministeriale") or {}
+    if ministeriale.get("oggetto", "").casefold() in {"iscrizione ruolo generale", "iscrizione a ruolo generale"}:
+        return True
     event_text = clean_text(
         " ".join(
             str(parsed_profile.get(key) or "")
@@ -3457,8 +3552,33 @@ def _remote_hearing_note_lines(
 
 
 def _solo_profilo_processuale(report: dict[str, Any]) -> dict[str, Any]:
-    profilo = report.get("procedural_profile") if isinstance(report, dict) else None
-    return {"procedural_profile": profilo} if isinstance(profilo, dict) and profilo else {}
+    profilo = profilo_processuale_per_vista(report)
+    return {"procedural_profile": profilo} if profilo else {}
+
+
+def profilo_processuale_per_vista(
+    report: dict[str, Any], *, profilo: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Espone l'esito attestato lasciando consultabile l'oggetto originale."""
+    if profilo is None:
+        salvato = report.get("procedural_profile")
+        profilo = salvato if isinstance(salvato, dict) else {}
+    ciclo = report.get("deposit_lifecycle")
+    if report.get("event_type") != "pct_deposito" or not isinstance(ciclo, dict):
+        return profilo
+    ricevuta, fase, correlazione = (ciclo.get(chiave) for chiave in ("receipt", "current_stage", "correlation"))
+    if not all(isinstance(item, dict) for item in (ricevuta, fase, correlazione)):
+        return profilo
+    esito_xml = esito_finale_xml_pec(profilo, ricevuta, str(fase.get("id") or ""), correlazione)
+    if not esito_xml:
+        return profilo
+    return {
+        **profilo,
+        "tipo_evento": ("Deposito rifiutato dalla cancelleria" if esito_xml["codice_esito"] == -1
+                         else "Deposito accettato dalla cancelleria"),
+        "descrizione_evento": clean_text(ricevuta.get("description") or ""),
+        "fonte_evento": "EsitoAtto.xml",
+    }
 
 
 def _legal_deadline_scadenza_fields(proposal: dict[str, Any] | None) -> dict[str, Any]:
@@ -5521,6 +5641,9 @@ def _time_label_from_text(value: str) -> str:
     text = clean_text(value, 240)
     if not text:
         return ""
+    # Un giorno scritto 07.10.2026 nel titolo o nel nome dell'allegato
+    # contiene due cifre valide come ore e minuti, ma non indica un orario.
+    text = re.sub(r"\b\d{1,2}\s*\.\s*\d{1,2}\s*\.\s*\d{2,4}\b", " ", text)
     patterns = (
         r"\b(?:alle\s+)?ore\s+(\d{1,2})[:.](\d{2})\b",
         r"\bh\.?\s*(\d{1,2})[:.](\d{2})\b",
@@ -8625,6 +8748,7 @@ class PecAuditRepository:
         source_message_id: str,
         candidate_documents: Iterable[dict[str, Any]] = (),
         candidate_recipients: Iterable[dict[str, Any]] = (),
+        require_deposit: bool = False,
     ) -> dict[str, Any]:
         if not self.fascicoli_db_path or not fascicolo_id:
             return {}
@@ -8765,6 +8889,11 @@ class PecAuditRepository:
                                "non-accettazione", "errore_consegna", "errore-consegna", "rilevazione_virus")
             ):
                 return "failure"
+            deposit_status = {_token(value) for value in _values(item, "status", "stato", "outcome", "esito")}
+            if "proof_deposit_receipt" in raw or "notification_proof_deposited" in raw or (
+                "deposito_prova" in raw and deposit_status.intersection({"depositato", "accettato", "esito positivo"})
+            ):
+                return "proof_deposit"
             if any(marker in raw for marker in ("rdac", "avvenuta_consegna", "delivered_receipt", "delivery_receipt")):
                 return "rdac"
             if any(marker in raw for marker in ("rac", "accettazione", "acceptance_receipt")):
@@ -8974,6 +9103,12 @@ class PecAuditRepository:
             common_act_bindings = act_bindings.intersection(relata_bindings, candidate_bindings)
             if not common_act_bindings:
                 continue
+            proof_deposit_ids = sorted({
+                str(item["id"]) for stage, item, source in records
+                if stage == "proof_deposit" and source == "documento" and item.get("id")
+            })
+            if require_deposit and not proof_deposit_ids:
+                continue
             evidence = [
                 f"{source_kind}:{stage}:{correlation_id}"
                 for stage, _, source_kind in records
@@ -8981,6 +9116,7 @@ class PecAuditRepository:
             ]
             return {
                 "complete_proof": True,
+                "proof_deposit_ids": proof_deposit_ids,
                 "reason": (
                     "Prova completa della stessa notifica presente nel fascicolo: "
                     "atto e relata correlati, invio L. 53/1994, RAC e RdAC dello stesso "
@@ -10472,6 +10608,9 @@ class PecAuditRepository:
             correlation.get("source_message_id") or ""
         )
         receipt_stage = detect_pct_deposit_stage(parsed).get("id")
+        esito_finale_xml = esito_finale_xml_pec(
+            parsed.get("procedural_profile") or {}, parsed.get("pct_deposit_receipt") or {}, receipt_stage, correlation,
+        )
         if not receipt_source_message_id and receipt_stage == "accettazione_pec":
             receipt_source_message_id = _canonical_message_id_value(pec_receipt.get("daticert_message_id"))
         receipt_source_key = _normalised_message_id_value(receipt_source_message_id)
@@ -10566,7 +10705,10 @@ class PecAuditRepository:
             if exact_for_fascicolo:
                 candidates.extend(exact_for_fascicolo)
                 continue
-            identity = case_identity_evidence(profile, fascicolo, clients_by_id.get(str(getattr(fascicolo, "id_cliente", ""))))
+            profilo_identita = {**profile, "numero_ruolo_certificato": esito_finale_xml["numero_ruolo"]} if esito_finale_xml else profile
+            identity = case_identity_evidence(profilo_identita, fascicolo, clients_by_id.get(str(getattr(fascicolo, "id_cliente", ""))))
+            esito_identifica = bool(esito_finale_xml and identity["rg_match"] and identity["office_match"]
+                                   and not identity["conflicts"])
             score = 0.0
             reasons: list[str] = []
             fasc_rg = ""
@@ -10615,7 +10757,7 @@ class PecAuditRepository:
             if keyword_hits:
                 score += min(0.12, 0.03 * len(keyword_hits))
                 reasons.append("parole chiave comuni")
-            if score:
+            if score or esito_identifica:
                 candidates.append(
                     {
                         "id": str(getattr(fascicolo, "id", "")),
@@ -10624,12 +10766,14 @@ class PecAuditRepository:
                         "rg": fasc_rg,
                         "identity_evidence": identity,
                         "identity_conflicts": identity["conflicts"],
-                        "score": round(min(score, 1.0), 3),
+                        "score": 1.0 if esito_identifica else round(min(score, 1.0), 3),
+                        "esito_ministeriale_identifica_fascicolo": esito_identifica,
                         "reasons": reasons,
                     }
                 )
         candidates.sort(
-            key=lambda item: (bool(item.get("exact_receipt_reference")), not bool(item.get("identity_conflicts")), float(item["score"])),
+            key=lambda item: (bool(item.get("exact_receipt_reference")), bool(item.get("esito_ministeriale_identifica_fascicolo")),
+                              not bool(item.get("identity_conflicts")), float(item["score"])),
             reverse=True,
         )
         # Ruolo, cliente e ufficio su tutti i fascicoli (non solo i primi cinque candidati): l'unicità si
@@ -10695,6 +10839,9 @@ class PecAuditRepository:
         stage = lifecycle.get("current_stage") if isinstance(lifecycle.get("current_stage"), dict) else {}
         stage_id = str(stage.get("id") or "")
         receipt = lifecycle.get("receipt") if isinstance(lifecycle.get("receipt"), dict) else {}
+        esito_finale_xml = esito_finale_xml_pec(
+            parsed.get("procedural_profile") or {}, parsed.get("pct_deposit_receipt") or {}, stage_id, correlation,
+        )
         official_rg_number, official_rg_year = _pct_split_numero_ruolo(
             receipt.get("numero_ruolo_certificato") or ""
         )
@@ -10786,13 +10933,24 @@ class PecAuditRepository:
             and list(getattr(fascicolo, "depositi_pct", []) or [])
             and stage_id != "deposito_da_ricondurre"
         ):
-            return {
-                "ok": False,
-                "skipped": True,
-                "reason": "ricevuta_senza_deposito_correlato",
-                "fascicolo_id": fascicolo_id,
-                "correlation": correlation,
-            }
+            profilo = parsed.get("procedural_profile") or {}
+            identita = case_identity_evidence({**profilo, "numero_ruolo_certificato": esito_finale_xml.get("numero_ruolo")}, fascicolo)
+            distinta = (
+                esito_finale_xml and identita["rg_match"] and identita["office_match"] and not identita["conflicts"]
+                and all(
+                    dep.id_deposito_esterno and (not ref_id or ref_id != dep.id_deposito_esterno
+                    and f"PEC_DEPOSIT_CORRELATION:refid:{ref_id}" not in dep.note.splitlines())
+                    for dep in fascicolo.depositi_pct
+                )
+            )
+            if not distinta:
+                return {
+                    "ok": False,
+                    "skipped": True,
+                    "reason": "ricevuta_senza_deposito_correlato",
+                    "fascicolo_id": fascicolo_id,
+                    "correlation": correlation,
+                }
         if deposito is None and stage_id == "deposito_da_ricondurre" and lifecycle.get("requires_new_deposit") is False:
             try:
                 with self.connect() as conn:
@@ -10854,6 +11012,10 @@ class PecAuditRepository:
             deposito.id_deposito_esterno = external_id
             deposito.fonte_portale = "PEC_PCT"
             deposito.servizio_portale = "PEC ricevute deposito"
+            if esito_finale_xml:
+                # Le ricevute finali attestano l'esito. Il timestamp dell'invio
+                # si compila quando viene collegata l'accettazione del gestore.
+                deposito.timestamp = ""
             created = True
 
         rg_note_lines: list[str] = []
@@ -10919,6 +11081,8 @@ class PecAuditRepository:
                 continue
             if data_accettazione and deposito.fonte_portale == "PEC_PCT":
                 attivita.data = data_accettazione[:10]
+            elif created and not deposito.timestamp and receipt.get("occurred_at"):
+                attivita.data = str(receipt["occurred_at"])[:10]
             if deposito.stato == "ACCETTATO_CANCELLERIA" and attivita.esito == EsitoAttivita.IN_ATTESA:
                 attivita.esito = EsitoAttivita.FAVOREVOLE
                 attivita.descrizione = f"Atto: {deposito.nome_atto_principale}. Deposito accettato dalla cancelleria."
@@ -10929,6 +11093,22 @@ class PecAuditRepository:
             return {"ok": False, "skipped": False, "reason": f"salvataggio_fascicolo_fallito: {exc}"}
         try:
             with self.connect() as conn:
+                if created and esito_finale_xml:
+                    riga = conn.execute(
+                        "SELECT metadata_json FROM pec_messages WHERE tenant_id=? AND id=? AND linked_fascicolo_id=?",
+                        (self.tenant_id, message_id, fascicolo_id),
+                    ).fetchone()
+                    metadati = _json_loads(riga["metadata_json"]) if riga else None
+                    if isinstance(metadati, dict):
+                        metadati["archive_receipt_reference"] = {
+                            "fascicolo_id": fascicolo_id, "deposito_id": deposito.id,
+                            "idbusta": idbusta, "source_message_id": correlation.get("source_message_id"),
+                            "strategy": "idbusta_finale", "matched_by": ["idbusta_finale"],
+                        }
+                        conn.execute(
+                            "UPDATE pec_messages SET metadata_json=? WHERE tenant_id=? AND id=? AND linked_fascicolo_id=?",
+                            (canonical_json(metadati), self.tenant_id, message_id, fascicolo_id),
+                        )
                 self.append_audit(
                     conn,
                     action="pec.deposit.upserted",
@@ -13576,6 +13756,8 @@ class PecAuditRepository:
                 validation_report,
                 legal_event_understanding,
             )
+            if profilo := profilo_processuale_per_vista(validation_report):
+                validation_report = {**validation_report, "procedural_profile": profilo}
             return {
                 "message": item,
                 "parsed": parsed,
@@ -14835,9 +15017,19 @@ class PecAuditRepository:
                 )
                 # La stessa udienza già in agenda da un'altra fonte (altra PEC, documenti, portale, calendario):
                 # la PEC diventa una prova in più della voce esistente, non una seconda voce.
+                esistente = agenda.trova_per_uid_esterno(event_uid, provider="pec_audit", profile_id="pec_scadenziario")
+                from pct.esito_udienza import MARCATORE as MARCATORE_ESITO_UDIENZA
+
+                if (esistente and str(getattr(esistente.stato, "value", esistente.stato)) == "COMPLETATO"
+                        and f"Scadenza: {deadline_id}" in esistente.note.splitlines()
+                        and any(riga.startswith(f"{MARCATORE_ESITO_UDIENZA}:decisa:") for riga in esistente.note.splitlines())
+                        and esistente.data_ora == agenda_data_ora):
+                    last_report = {"outcome": "skipped", "appuntamento": esistente,
+                                   "message": "Esito della trattazione già registrato dalla sentenza."}
+                    continue
                 equivalente = None
                 # Art. 127-ter c.p.c.: il termine per le note vale come udienza, quindi stessa regola di equivalenza.
-                if (is_hearing or titolo_note_127_ter(agenda_title)) and agenda.trova_per_uid_esterno(event_uid, provider="pec_audit", profile_id="pec_scadenziario") is None:
+                if (is_hearing or titolo_note_127_ter(agenda_title)) and esistente is None:
                     equivalente = udienza_equivalente(
                         agenda.tutti(), id_fascicolo=linked_fascicolo_id, procedimento=agenda_procedimento,
                         data_ora=agenda_data_ora, ora_certa=not ora_segnaposto,
@@ -15207,6 +15399,8 @@ class PecAuditRepository:
         )
         if comm is None or (comm.change is None and event_type != "comunicazione_cancelleria" and not ministerial_xml):
             return {"ok": True, "skipped": "nessun_cambio"}
+        if mismatch := _ruolo_diverso_in_allegato_cancelleria(report, detail.get("attachments") or ()):
+            return {"ok": True, "skipped": "provvedimento_altro_ruolo", "expected_rg": mismatch[0], "document_rg": mismatch[1]}
         change = comm.change
         received = receipt_datetime_rome(
             _field_date_value(parsed, "data_consegna"),
@@ -15369,6 +15563,14 @@ class PecAuditRepository:
                 )
                 note_127_ter = provvedimento.note_127_ter if provvedimento is not None else None
                 term_proposals = list(term_proposals) + list(proposte_provvedimento)
+                if comm.kind == "provvedimento" and provvedimento is not None and note_127_ter is None:
+                    termini_note = [
+                        voce for voce in provvedimento.voci
+                        if voce.regola_id == "127ter.termine_note" and voce.giorno and voce.prova
+                    ]
+                    if len(termini_note) == 1:
+                        termine_note = termini_note[0]
+                        comm = replace(comm, kind="fissazione_termine", date=termine_note.giorno.isoformat(), time=termine_note.ora)
             except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
                 logging.getLogger(__name__).warning("Provvedimento del giudice non esaminato: %s", exc)
         if (event_type == "comunicazione_cancelleria" or ministerial_xml) and apre_opposizione_127_ter(profile) and not any(
@@ -15606,6 +15808,11 @@ class PecAuditRepository:
                             )
                         continue
                     try:
+                        campi_scadenza = dict(getattr(item, "campi_scadenza", None) or {})
+                        if campi_scadenza.get("source_snippet"):
+                            allegati = [a for a in detail.get("attachments") or () if _is_pdf_attachment(a)]
+                            if len(allegati) == 1:
+                                campi_scadenza.setdefault("source_document_name", _attachment_name(allegati[0]))
                         scadenza = manager.nuova(
                             titolo=clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180),
                             tipo=(
@@ -15645,7 +15852,7 @@ class PecAuditRepository:
                             source_event_at=item.dies_a_quo,
                             source_message_id=clean_id,
                             # Orario operativo, modalità d'udienza e udienza collegata (note ex art. 127-ter c.p.c.).
-                            **dict(getattr(item, "campi_scadenza", None) or {}),
+                            **campi_scadenza,
                         )
                     except ScadenziarioConflict:
                         # La chiave già inserita da un worker concorrente tutela la stessa proposta.
@@ -17138,7 +17345,7 @@ class PecAuditRepository:
             _source_message_id=_source_message_id,
             _reconcile_derived=_reconcile_derived,
         )
-        if _source_message_id or not self.agenda_db_path:
+        if _source_message_id or not self.agenda_db_path or result.get("skipped") == "provvedimento_altro_ruolo":
             return result
         # Dopo il presidio della nuova data: la comunicazione che cambia udienza o
         # termine entra in agenda nel giorno e all'ora di consegna della PEC.
@@ -17175,6 +17382,15 @@ class PecAuditRepository:
         message = dict(message or {})
         if not report or not isinstance(report.get("deadline_proposal"), dict):
             report = self._validation_report_from_parsed(parsed)
+        if not _source_message_id and report.get("event_type") == "comunicazione_cancelleria":
+            with self.connect() as conn:
+                record = self.latest_parsed_row(conn, message_id)
+                attachments = self.attachment_rows(conn, message_id, record["id"]) if record is not None else ()
+            if mismatch := _ruolo_diverso_in_allegato_cancelleria(report, attachments):
+                return {
+                    "ok": False, "skipped": "provvedimento_altro_ruolo",
+                    "message": f"L'allegato indica il R.G. {mismatch[1]}, mentre la comunicazione indica il R.G. {mismatch[0]}.",
+                }
         understanding: dict[str, Any] = {}
         if _schedule_all_hearings:
             try:

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 
+from ..collegamenti import descrizione, esecuzione_nei_collegati, numero_del_decreto
 from ..modello import Conclusione, Dubbio, Fonte
 from ..norme import norme
 from ..notifiche import notifiche_di
@@ -80,6 +81,26 @@ def decorrenze_incoerenti(ctx: Contesto) -> list[tuple[str, str, Fonte]]:
     return list(esiti.values())
 
 
+def _notifica_attestata(ctx: Contesto, decreto, pronuncia):
+    """La data di notifica che il provvedimento di esecutorietà attesta («notificato in data 23-12-2024»), con la
+    ricevuta di avvenuta consegna dello stesso giorno se è nel fascicolo; None se il giudice non la scrive."""
+    esecutivo = decreto_esecutivo(ctx, decreto)
+    if esecutivo is None or pronuncia is None:
+        return None
+    m = re.search(r"notificat\w*\s+(?:in\s+data\s+|il\s+|in\s+)?(\d{1,2}\s*[./-]\s*\d{1,2}\s*[./-]\s*\d{2,4})", semplice(esecutivo.testo))
+    lette = date_nel_testo(m.group(1)) if m else []
+    if not lette or not pronuncia <= lette[0][2] <= ctx.oggi:
+        return None
+    data = lette[0][2]
+    prova = f"lo attesta il giudice nel provvedimento di esecutorietà «{esecutivo.nome}» del {data_it(esecutivo.data)} (art. 647 c.p.c.)"
+    ricevuta = next((a for a in ctx.della_causa() if semplice(a.nome).startswith("consegna")
+                     and "notificazione ai sensi della legge" in semplice(a.nome + " " + a.testo[:400])
+                     and any(d == data for _i, _f, d in date_nel_testo(a.testo[:1500]))), None)
+    if ricevuta:
+        prova += f"; ricevuta di avvenuta consegna «{ricevuta.nome}» del {data_it(data)}"
+    return data, prova
+
+
 def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
     if ctx.rito.codice != "monitorio":
         return []
@@ -100,6 +121,13 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
         riferimento and data_consegna and pronuncia and pronuncia <= data_consegna <= ctx.oggi
         and len(ricorsi) == 1 and ctx.consegne_verificate.get(ricorsi[0].id) == prova_decreto
     )
+    attestata = None if prova_congiunta else _notifica_attestata(ctx, decreto, pronuncia)
+    if attestata:
+        # Il giudice che dichiara esecutivo il decreto ne attesta la notifica (art. 647 c.p.c.): fonte certa.
+        data_consegna, riferimento_attestato = attestata
+        prova_congiunta = True
+        prova_decreto = {"data": data_consegna.isoformat(), "riferimento": riferimento_attestato}
+        riferimento = riferimento_attestato
     da_verificare = bool(tracce or prova_decreto)
     dubbi = []
     if da_verificare and not prova_congiunta:
@@ -109,12 +137,14 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
         dubbi.append(Dubbio("destinazione_monitorio_da_verificare", "La destinazione determina il termine di notifica.",
                             "il luogo di notificazione dell'ingiunzione per applicare l'art. 644 c.p.c.", fonte))
     esito.append(Conclusione(
-        "notifica_decreto_ingiuntivo", "Verificare la notifica di ricorso e decreto ingiuntivo" if da_verificare and not prova_congiunta
+        "notifica_decreto_ingiuntivo", "Notifica di ricorso e decreto ingiuntivo eseguita" if prova_congiunta
+        else "Verificare la notifica di ricorso e decreto ingiuntivo" if da_verificare
         else "Notificare il ricorso e il decreto ingiuntivo al debitore", fonte, norme("cpc_643", "cpc_644", "l53_art3bis"),
         "notifica a mezzo PEC con relata quando applicabile, oppure tramite ufficiale giudiziario",
         "il decreto perde efficacia se non notificato nei termini dell'art. 644 c.p.c.",
         "fatto" if prova_congiunta else "dubbio" if da_verificare else "da_fare",
-        f"Consegna verificata del {data_it(prova_decreto['data'])}, prova {riferimento}." if prova_congiunta else "",
+        (f"Notificato il {data_it(prova_decreto['data'])}: {riferimento}." if attestata else
+         f"Consegna verificata del {data_it(prova_decreto['data'])}, prova {riferimento}.") if prova_congiunta else "",
         None, "builtin-tmp-not-003", dubbi=dubbi,
         motivo_senza_termine="Consegna verificata. Il computo della tempestività richiede la destinazione e la prova lato mittente."
         if prova_congiunta else "",
@@ -143,7 +173,24 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
         motivo_senza_termine="L'esecutorietà è documentata dal provvedimento del giudice." if esecutorieta else "",
     ))
     precetto = _atto_con(ctx, "precetto")
-    if istanza or esecutorieta:
+    numero = numero_del_decreto(ctx.della_causa())
+    esecuzione = esecuzione_nei_collegati(numero, ctx.ufficio, ctx.collegati) if numero and ctx.collegati else None
+    if esecuzione:
+        # Il precetto fondato su questo decreto è nel fascicolo collegato dell'esecuzione: il passo è già fatto.
+        atto_precetto = esecuzione["precetto"]
+        pign = esecuzione.get("pignoramento") or {}
+        esito.append(Conclusione(
+            "precetto", "Precetto notificato con il decreto ingiuntivo esecutivo: esecuzione avviata nel fascicolo collegato",
+            fonte, norme("cpc_480", "cpc_481", "cpc_474"),
+            "proseguire l'esecuzione nel fascicolo collegato",
+            "il precetto intima il pagamento ed è il presupposto dell'esecuzione forzata",
+            "fatto", f"Precetto «{atto_precetto['nome']}»" + (f" del {data_it(atto_precetto['data'])}" if atto_precetto.get("data") else "")
+            + (f" e atto dell'esecuzione «{pign['nome']}»" if pign else "")
+            + f", fondati sul decreto ingiuntivo n. {esecuzione['decreto_numero']}, nel {descrizione(esecuzione)}",
+            None, "builtin-tmp-ese-001", motivo_senza_termine="Precetto già notificato: l'esecuzione prosegue nel fascicolo collegato.",
+        ))
+        ctx.collegamenti_trovati.append(esecuzione)
+    elif istanza or esecutorieta:
         fonte_titolo = (Fonte(esecutorieta.id, esecutorieta.nome, pulito(esecutorieta.testo[:400]), esecutorieta.data)
                         if esecutorieta else fonte)
         dubbio = Dubbio("titolo_esecutivo_da_verificare", "L'istanza chiede l'esecutorietà del decreto.",

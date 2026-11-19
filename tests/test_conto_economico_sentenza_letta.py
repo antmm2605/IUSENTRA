@@ -53,6 +53,18 @@ def test_sentenza_di_altra_causa_o_non_verificata_non_conta():
     assert spese_lette(_sentenza_lavoro(), rg="") == []
 
 
+def test_spese_amministrative_riusano_l_identita_acquisita_dalla_lettura():
+    tar = _sentenza_lavoro(rg="1159/2025", oggetto="TAR")
+    tar[0].verifica = "plausibile"
+    tar[2].valore = "condanna;importo=800,00;distrazione"
+    titolo = _sentenza_lavoro(rg="195/2024", oggetto="CIV")
+    fatti = [*titolo, *tar]
+    [voce] = spese_lette(fatti, rg="", sentenze_pertinenti=frozenset({"TAR"}))
+    assert voce["documento_id"] == "TAR" and voce["importo"] == 800.0
+    tar[2].verifica = "plausibile"
+    assert spese_lette(fatti, rg="", sentenze_pertinenti=frozenset({"TAR"})) == []
+
+
 def test_beneficiario_e_importo():
     assert beneficiario("condanna il Ministero al pagamento delle spese di lite") == "attivo"
     assert beneficiario("condanna parte ricorrente alla rifusione delle spese in favore della parte resistente") == "passivo"
@@ -80,6 +92,25 @@ def test_conto_mostra_la_sentenza_letta_con_fonte_cliccabile_e_accessori():
     assert "ove richiesto" in riga["dettaglio"]
     assert conto["percorso"]["passi"][0]["fatto"] is True
     assert "proforma" in conto["percorso"]["prossimoPasso"].lower()
+
+
+def test_conto_riusa_la_richiesta_di_distrazione_della_lettura():
+    from pct.fascicolo_lettura.ragionamento import vista
+    from web.services.riscontri_processuali_runtime import chiarisci_spese_da_sentenza
+
+    sentenze = _sentenze_runtime(a_favore_del_cliente=True)
+    conto = conto_economico(voci={}, crediti=crediti_dalle_sentenze_lette(sentenze), sentenze=sentenze,
+                            documenti_contributo=[], parcelle=[])
+    conto.update(ok=True, fascicoloId="F1")
+    liquidazione = {"atto": "SENT1", "compensi": 250, "distrazione_condizionata": True,
+                   "richiesta_distrazione": {"id": "N1", "nome": "Note.pdf"}}
+    lettura = {"ragionamento": {**vista({"economia": {"liquidazioni": [liquidazione]}}), "conclusioni": [
+        {"codice": "termine_impugnazione", "letto": {"documento_id": "SENT1", "documento": "Sentenza.pdf"}},
+    ]}}
+    chiarisci_spese_da_sentenza(conto, lettura)
+    riga = conto["righe"][0]
+    assert riga["importoLabel"] == "€ 250,00" and "la richiesta di distrazione" in riga["dettaglio"].lower()
+    assert [f["href"] for f in riga["fonti"]] == ["/fascicoli/F1/documenti/SENT1/visualizza", "/fascicoli/F1/documenti/N1/visualizza"]
 
 
 def test_condanna_del_cliente_non_e_un_credito():

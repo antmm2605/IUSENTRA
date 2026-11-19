@@ -71,8 +71,12 @@ def test_rilettura_notturna_dell_intera_catena(tmp_path: Path):
 
         registro, tenant = registro_corrente(), tenant_corrente()
         fascicolo = _fascicolo(app, fascicolo_id)
+        worker = "prima-lettura"
+        evento = registro.reclama_evento(tenant, fascicolo_id, worker)
+        assert evento is not None
         primo = runtime.leggi_fascicolo(fascicolo)
         assert primo["documenti"]["letti"] == 4
+        assert registro.concludi_evento(tenant, fascicolo_id, worker, evento["generation"]) is False
         scadenze_prima = [s for s in get_scadenziario().tutte(id_fascicolo=fascicolo_id, solo_aperte=False)]
         agenda_prima = list(get_agenda().tutti())
         # Lo stesso termine letto dal decreto e dalla sua copia resta una sola scadenza.

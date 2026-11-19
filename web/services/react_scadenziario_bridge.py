@@ -17,6 +17,7 @@ from typing import Any, Mapping
 from urllib.parse import quote
 
 from pct.note_127_ter.proposta import TITOLO_NOTE_127_TER
+from pct.riconvalida_termine_lungo import CODICE_TERMINE_LUNGO, DALLA_DECISIONE, NON_CERTA
 from pct.scadenze_superate_sentenza import decisione_superante, riscontro_storico
 from pct.scadenze_stato import (
     ESITO_UDIENZA, SCADUTA, STORICA, aperta, esito_udienza_da_registrare, scaduta_da_chiudere,
@@ -294,7 +295,8 @@ def _source_evidence(
     message_id = str((pec_profile or {}).get("_source_message_id") or _pec_audit_message_id(scadenza))
     if message_id:
         event_source_name = resolve_pec_source_name(
-            getattr(scadenza, "remote_hearing_source", "")
+            getattr(scadenza, "source_document_name", "")
+            or getattr(scadenza, "remote_hearing_source", "")
             or getattr(scadenza, "hearing_mode_source", ""),
             context,
             limit=140,
@@ -1203,6 +1205,20 @@ def _row(
         )
     overdue = _is_overdue(scadenza)
     status_label = _status_label(status)
+    note = str(getattr(scadenza, "note", "") or "")
+    date_status = ""
+    publication_detail = ""
+    if (status == "BOZZA" and getattr(scadenza, "deadline_profile_code", "") == CODICE_TERMINE_LUNGO
+            and NON_CERTA in note.splitlines()):
+        if DALLA_DECISIONE in note:
+            date_status = "prudenziale"
+            decision_date = _parse_date(getattr(scadenza, "data_decorrenza", ""))
+            publication_detail = "Stima prudenziale basata sulla data della decisione"
+            publication_detail += f" del {decision_date:%d/%m/%Y}." if decision_date else "."
+        else:
+            date_status = "da_verificare"
+            publication_detail = "La data della comunicazione di cancelleria è un riferimento provvisorio."
+        publication_detail += " Reperire la data di pubblicazione nel registro telematico prima di confermare il termine lungo (artt. 133 e 327 c.p.c.)."
     decisione = decisione_superante(scadenza) if status == "STORICO" else None
     finding, sentenza_href = riscontro_storico(fascicolo_id, decisione) if decisione else ("", "")
     if _is_hearing_to_record(scadenza):
@@ -1218,9 +1234,10 @@ def _row(
         "id": item_id,
         "date": due_date,
         "dateLabel": _format_date(due_date),
+        "dateStatus": date_status,
         "title": title,
         "description": finding or context_description or _visible_legal_text((control_tower_source or {}).get("description"), 260) or _legal_scadenza_description(scadenza),
-        "detailDescription": finding or context_detail or _visible_legal_text((control_tower_source or {}).get("detailDescription"), 760) or _legal_scadenza_detail_description(scadenza),
+        "detailDescription": finding or publication_detail or context_detail or _visible_legal_text((control_tower_source or {}).get("detailDescription"), 760) or _legal_scadenza_detail_description(scadenza),
         "proceduralFinding": finding,
         "decisionHref": sentenza_href,
         "reconciliationReason": _reconciliation_reason(scadenza) if status == "ANNULLATO" else "",

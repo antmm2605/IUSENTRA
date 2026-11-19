@@ -59,7 +59,7 @@ def termine_lungo_del_fascicolo(fascicolo_id: str, scadenziario: Any) -> dict[st
     }
 
 
-def termine_di_notifica_lavoro(fascicolo_id: str, scadenziario: Any) -> dict[str, str] | None:
+def termine_di_notifica_lavoro(fascicolo_id: str, scadenziario: Any, *, source_message_id: str = "") -> dict[str, str] | None:
     """Il primo termine aperto dell'art. 415 c.p.c. proposto dalla PEC del decreto, o None."""
     if not fascicolo_id or scadenziario is None:
         return None
@@ -69,6 +69,9 @@ def termine_di_notifica_lavoro(fascicolo_id: str, scadenziario: Any) -> dict[str
         return None
     candidati = [s for s in scadenze if "LAV_415_NOTIFICA" in _valore(s, "note")
                  and _valore(s, "stato").upper() not in {"COMPLETATO", "ANNULLATO"}]
+    if source_message_id:
+        prefisso = f"{MARCATORE_PEC}{source_message_id}:LAV_415_NOTIFICA"
+        candidati = [s for s in candidati if any(riga.strip().startswith(prefisso) for riga in _valore(s, "note").splitlines())]
     if not candidati:
         return None
     scelta = min(candidati, key=lambda s: _valore(s, "data_scadenza"))
@@ -81,18 +84,19 @@ def termine_di_notifica_lavoro(fascicolo_id: str, scadenziario: Any) -> dict[str
     }
 
 
-def termine_per_presidio(notification_case: str, fascicolo_id: str, cache: dict[str, Any]) -> dict[str, str] | None:
+def termine_per_presidio(notification_case: str, fascicolo_id: str, cache: dict[tuple[str, str, str], Any], *, source_message_id: str = "") -> dict[str, str] | None:
     """Sentenze: termine lungo; ordini di notificazione: termini dell'art. 415. Una lettura per fascicolo e caso."""
     caso = str(notification_case or "")
     lettore = termine_lungo_del_fascicolo if "judgment" in caso else termine_di_notifica_lavoro if "order" in caso else None
     if lettore is None:
         return None
-    chiave = f"{lettore.__name__}:{fascicolo_id}"
+    fonte = {"source_message_id": source_message_id} if lettore is termine_di_notifica_lavoro else {}
+    chiave = (lettore.__name__, fascicolo_id, fonte.get("source_message_id", ""))
     if chiave not in cache:
         try:
             from web.helpers import get_scadenziario
 
-            cache[chiave] = lettore(fascicolo_id, get_scadenziario())
+            cache[chiave] = lettore(fascicolo_id, get_scadenziario(), **fonte)
         except Exception:
             cache[chiave] = None
     return cache[chiave]

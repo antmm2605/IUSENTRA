@@ -2041,6 +2041,24 @@ def start_scheduler(app):
                 return {"ok": False, "job": "pannelli_pronti_ricalcolo", "error": str(e)}
 
     @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", minute="6-56/10"),
+        id="bozze_passi_preparazione",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=300,
+    )
+    def _bozze_passi_preparazione():
+        # Bozze dei prossimi passi dalle Letture già salvate: nessuna lettura di documenti, nessun invio.
+        with app.app_context():
+            try:
+                from web.services.bozze_passi_runtime import giro
+
+                return {"ok": True, "job": "bozze_passi_preparazione", **giro(app)}
+            except Exception as e:
+                logger.error("[scheduler] Preparazione delle bozze dei passi fallita: %s", e)
+                return {"ok": False, "job": "bozze_passi_preparazione", "error": str(e)}
+
+    @scheduler.scheduled_job(
         CronTrigger(timezone="Europe/Rome", day_of_week="sun", hour=0, minute=17),
         id="letture_recupero_completo",
         max_instances=1,
@@ -2362,7 +2380,7 @@ def start_scheduler(app):
                 from pct.config_studio import GestioneConfigStudio
                 from pct.fascicoli import GestioneFascicoli
                 from pct.giurisprudenza import GestioneGiurisprudenza
-                from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
+                from pct.postgres_runtime_support import database_config_to_dsn
                 from pct.scadenziario import GestioneScadenziario, regola_patrono_studio
                 from pct.workspace_intelligente import WorkspaceIntelligenteService
 
@@ -2387,7 +2405,7 @@ def start_scheduler(app):
                         calendar_sync=GestioneCalendarSync(db_path=target["calendar_sync_db"]),
                         giurisprudenza=GestioneGiurisprudenza(db_path=target["giurisprudenza_db"]),
                         snapshot_path=target["snapshot_db"],
-                        postgres_dsn=resolve_runtime_postgres_dsn(database=target.get("database")),
+                        postgres_dsn=database_config_to_dsn(target.get("database")) if target.get("paths") else None,
                     )
 
                     try:

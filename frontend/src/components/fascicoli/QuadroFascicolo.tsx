@@ -5,7 +5,7 @@ import { ApiClientError, ensureJson } from '../../lib/apiClient'
 import { Badge } from '../dashboard'
 import { isSezioneFascicoloId } from './SezioneFascicolo'
 import type { SezioneFascicoloId } from './SezioneFascicolo'
-import { descriviEsitoDispositivo } from './letturaFascicolo'
+import { descriviEsitoDispositivo, hrefFonteDispositivo } from './letturaFascicolo'
 import './QuadroFascicolo.css'
 
 /**
@@ -20,7 +20,7 @@ export type QuadroTema = 'prossimo_passo' | 'termini' | 'economia' | 'notifiche'
 export type QuadroLivello = 'ok' | 'info' | 'attenzione' | 'urgente'
 export type QuadroStatoPratica = { codice: string; etichetta: string; dettaglio: string }
 export type QuadroRiga = { tema: QuadroTema; titolo: string; testo: string; livello: QuadroLivello; sezione: SezioneFascicoloId }
-export type QuadroFascicoloDati = { stato: QuadroStatoPratica; righe: QuadroRiga[]; generatoIl: string; esitoDispositivo?: string; letturaInPreparazione?: boolean; letturaPrecedente?: boolean; quadroInAggiornamento?: boolean }
+export type QuadroFascicoloDati = { stato: QuadroStatoPratica; righe: QuadroRiga[]; generatoIl: string; esitoDispositivo?: string; sentenzaId?: string; branoDispositivo?: string; letturaInPreparazione?: boolean; letturaPrecedente?: boolean; quadroInAggiornamento?: boolean }
 export type QuadroLettura =
   | { fase: 'caricamento' }
   | { fase: 'pronto'; dati: QuadroFascicoloDati }
@@ -83,6 +83,8 @@ export function normalizzaQuadro(payload: unknown): QuadroFascicoloDati | null {
     letturaInPreparazione: record.lettura_in_preparazione === true,
     letturaPrecedente: record.lettura_precedente === true,
     quadroInAggiornamento: record.quadro_in_aggiornamento === true,
+    sentenzaId: testo(esito.documento_id),
+    branoDispositivo: testo(esito.brano_dispositivo),
     esitoDispositivo: descriviEsitoDispositivo({
       esito: testo(esito.esito), per_il_cliente: testo(esito.per_il_cliente), motivo_esito: testo(esito.motivo_esito),
       data: testo(esito.data), sentenza: testo(esito.sentenza),
@@ -156,7 +158,8 @@ function oraAggiornamento(iso: string): string {
   return data.toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-export function QuadroFascicolo({ lettura, onRiprova, onApriSezione }:{
+export function QuadroFascicolo({ fascicoloId, lettura, onRiprova, onApriSezione }:{
+  fascicoloId?: string
   lettura: QuadroLettura
   onRiprova: () => void
   onApriSezione: (sezione: SezioneFascicoloId) => void
@@ -167,6 +170,8 @@ export function QuadroFascicolo({ lettura, onRiprova, onApriSezione }:{
     onApriSezione(sezione)
   }
   const aggiornato = lettura.fase === 'pronto' ? oraAggiornamento(lettura.dati.generatoIl) : ''
+  const sentenzaId = lettura.fase === 'pronto' ? lettura.dati.sentenzaId : undefined
+  const fonteSentenza = hrefFonteDispositivo(fascicoloId || '', sentenzaId)
   return (
     <section id="quadro-fascicolo" className="iu-quadro-fascicolo" aria-labelledby="quadro-fascicolo-titolo">
       <header className="iu-quadro-fascicolo__header">
@@ -180,7 +185,18 @@ export function QuadroFascicolo({ lettura, onRiprova, onApriSezione }:{
         <p className="iu-quadro-fascicolo__stato" role="status">Quadro in aggiornamento. Per i termini consulta la Lettura e l’agenda del fascicolo.</p>
       ) : null}
       {lettura.fase === 'pronto' && lettura.dati.esitoDispositivo ? (
-        <p><a href="#lettura-fascicolo" onClick={apri('sezione-andamento')}>Esito del dispositivo · {lettura.dati.esitoDispositivo}</a></p>
+        <>
+          <p className="iu-quadro-fascicolo__stato">
+            Esito del dispositivo · {lettura.dati.esitoDispositivo}
+            {fonteSentenza ? <> · <a href={fonteSentenza} target="_blank" rel="noopener noreferrer">Apri la sentenza</a></> : null}
+          </p>
+          {lettura.dati.branoDispositivo ? (
+            <details className="iu-fas-brano-dispositivo">
+              <summary>Che cosa ha disposto il giudice</summary>
+              <blockquote>{lettura.dati.branoDispositivo}</blockquote>
+            </details>
+          ) : null}
+        </>
       ) : null}
       {lettura.fase === 'caricamento' ? <p className="iu-quadro-fascicolo__stato" role="status">Lettura del quadro del fascicolo…</p> : null}
       {lettura.fase === 'errore' ? (

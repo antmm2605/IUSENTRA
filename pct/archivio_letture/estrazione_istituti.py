@@ -27,7 +27,7 @@ from pct.provvedimenti.calcolo import calcola
 from pct.provvedimenti.dispositivo import capi
 from pct.provvedimenti.materia import materia_del_provvedimento
 from pct.provvedimenti.collettivi import testo_per_il_ruolo
-from pct.provvedimenti.termine_scritto import DataLetta, rischio_estinzione, termine_note_127_ter, udienza_tenuta_o_rinviata
+from pct.provvedimenti.termine_scritto import DataLetta, dispone_note_scritte, dispone_udienza_remota, rischio_estinzione, termine_note_127_ter, udienza_tenuta_o_rinviata
 from pct.registro_letture.fatti_repository import Fatto
 
 from .istituti_processuali import (
@@ -142,8 +142,10 @@ def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "",
     """
     elenco = list(fatti)
     testo = testo_per_il_ruolo(str(testo or ""), numero_rg, anno_rg) if numero_rg and anno_rg else str(testo or "")
-    per_127_ter = cita_127_ter(testo)
-    per_127_bis = cita_127_bis(testo)
+    # Citare l'art. 127-ter non basta: il provvedimento deve disporre le note, non solo richiamarle in premessa
+    # (pct/provvedimenti/termine_scritto.dispone_note_scritte).
+    per_127_ter = cita_127_ter(testo) and dispone_note_scritte(testo)
+    per_127_bis = cita_127_bis(testo) and dispone_udienza_remota(testo)
     if not per_127_ter and not per_127_bis:
         return elenco
 

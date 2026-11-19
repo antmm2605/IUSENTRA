@@ -9,10 +9,11 @@
 const DEFAULT_HREF = '/app-v2';
 const NOTIFICATION_ICON = '/static/icons/icon-192.png';
 const NOTIFICATION_BADGE = '/static/icons/badge-96.png';
-const SW_VERSION = '2026-11-10-offline-v8';
+const SW_VERSION = '2026-11-17-offline-v9';
 const SHELL_CACHE = `iusentra-shell-${SW_VERSION}`;
 const OFFLINE_URL = '/offline';
-const SHELL_ASSETS = [OFFLINE_URL, '/static/errori/offline.js', NOTIFICATION_ICON, '/static/icons/icon-512.png'];
+const OFFLINE_SCRIPT = '/static/errori/offline.js';
+const SHELL_ASSETS = [OFFLINE_URL, OFFLINE_SCRIPT, NOTIFICATION_ICON, '/static/icons/icon-512.png'];
 const REMOTE_HEARING_DOMAINS = [
   'teams.microsoft.com',
   'zoom.us',
@@ -140,10 +141,18 @@ self.addEventListener('notificationclick', (event) => {
   })());
 });
 
-// Solo le navigazioni: si prova sempre la rete; se manca, la pagina «Sei offline».
+// Si conservano solo la pagina di ripristino e il suo script pubblico.
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  if (request.method !== 'GET' || request.mode !== 'navigate') return;
+  if (request.method !== 'GET') return;
+  if (request.destination === 'script' && request.url === new URL(OFFLINE_SCRIPT, self.location.origin).href) {
+    event.respondWith((async () => {
+      const cache = await caches.open(SHELL_CACHE);
+      return (await cache.match(OFFLINE_SCRIPT)) || fetch(request);
+    })());
+    return;
+  }
+  if (request.mode !== 'navigate') return;
   event.respondWith((async () => {
     try {
       return await fetch(request);

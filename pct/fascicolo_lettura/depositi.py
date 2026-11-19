@@ -15,6 +15,7 @@ from datetime import date
 import re
 from typing import Any
 
+from pct.deposito_simulazione import is_simulated_deposit
 from pct.procedura_fasi.depositi import canale_deposito, fase_deposito
 from pct.ricevute_deposito_pct import data_consegna_deposito
 
@@ -47,6 +48,9 @@ def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]
         fase, attesa, perfezionato = ("acquisito dal fascicolo d'ufficio", "", True)
     else:
         fase, attesa, perfezionato = FASI.get(stato, (stato.lower().replace("_", " "), "", False))
+    reinvio = deposito.get("reinvio_accettato") if stato == "RIFIUTATO_CANCELLERIA" else None
+    if reinvio:
+        attesa = f"Reinvio accettato dalla cancelleria · busta {reinvio['nuova_busta']}"
     canale_letto = canale_deposito(deposito.get("fonte_portale") or deposito.get("servizio_portale") or canale) or "PCT_TELEMATICO"
     fase_procedurale = fase_deposito(canale_letto, stato)
     esito_controlli = pulisci(deposito.get("esito_controlli")).upper()
@@ -90,6 +94,7 @@ def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]
         "fase": fase,
         "attesa": attesa,
         "perfezionato": perfezionato,
+        "reinvio_accettato": {k: v for k, v in reinvio.items() if k.startswith("pec_") or k == "nuova_busta"} if reinvio else None,
         "esito_controlli": esito_controlli,
         "ricevute": ricevute,
         "documenti": int(deposito.get("documenti_count") or len(deposito.get("documenti_ids") or []) or 0),
@@ -107,14 +112,21 @@ def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]
 
 
 def depositi(elenco: list[dict[str, Any]], canale: str = "") -> dict[str, Any]:
-    letti = sorted((leggi_deposito(voce, canale) for voce in elenco),
-                   key=lambda voce: (data_da(voce["data"]) or date.min, voce["data_ora"]))
-    prove = [voce for voce in letti if "PROVA" in voce["stato"] or "SIMUL" in voce["stato"]]
-    letti = [voce for voce in letti if voce not in prove]
+    letti, prove = [], []
+    for originale in elenco:
+        voce = leggi_deposito(originale, canale)
+        if "PROVA" in voce["stato"] or "SIMUL" in voce["stato"] or is_simulated_deposit(originale):
+            prove.append({**voce, "stato": "PROVA_SENZA_INVIO", "fase": "prova senza invio",
+                          "attesa": "", "perfezionato": False})
+        else:
+            letti.append(voce)
+    letti.sort(key=lambda voce: (data_da(voce["data"]) or date.min, voce["data_ora"]))
+    prove.sort(key=lambda voce: (data_da(voce["data"]) or date.min, voce["data_ora"]))
     importati = [voce for voce in letti if voce["importato"]]
     perfezionati = [voce for voce in letti if voce["perfezionato"] and not voce["importato"]]
     in_corso = [voce for voce in letti if not voce["perfezionato"] and voce["stato"] not in {"ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA"}]
-    falliti = [voce for voce in letti if voce["stato"] in {"ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA"}]
+    falliti = [voce for voce in letti if voce["stato"] in {"ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA"}
+               and not voce["reinvio_accettato"]]
     return {
         "tutti": letti,
         "prove_senza_invio": prove,

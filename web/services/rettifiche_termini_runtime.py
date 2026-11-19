@@ -27,6 +27,21 @@ def _traccia(scadenza: Any, voce: dict[str, Any]) -> str:
     return json.dumps(traccia, ensure_ascii=False)
 
 
+_AZIONI_DELLA_PERSONA = ("scadenziario.modifica", "scadenziario.completa", "scadenziario.elimina", "scadenza.completata")
+
+
+def _scadenze_toccate(scadenze: dict[str, Any]) -> frozenset[str]:
+    """Le scadenze su cui una persona è intervenuta, secondo il registro di audit dello studio."""
+    try:
+        from web.helpers import get_utenti
+
+        eventi = get_utenti().audit_log(azione="scadenz", limit=100000)
+    except Exception:  # senza registro non si può escludere l'intervento dell'avvocato: nessuna riga si modifica
+        return frozenset(scadenze)
+    return frozenset(str(e.risorsa_id) for e in eventi
+                     if str(getattr(e, "risorsa_id", "")) in scadenze and str(getattr(e, "azione", "")).startswith(_AZIONI_DELLA_PERSONA))
+
+
 def riconcilia_termini_riletti(fascicolo: Any, registro: Any, tenant: str, *, applica: bool = True) -> dict[str, Any]:
     from pct.archivio_letture.rettifica_termini import (
         VERSIONE, piano_agenda, piano_agenda_documentale_sostituita, piano_rettifiche,
@@ -52,7 +67,9 @@ def riconcilia_termini_riletti(fascicolo: Any, registro: Any, tenant: str, *, ap
         if marker == "IUSENTRA_PROVVEDIMENTO_CANCELLERIA" and pec_id.strip():
             fonti_pec[documento.id] = pec_id.strip()
     oggi = oggi_roma()
-    piano = piano_rettifiche(scadenze.values(), fatti, oggi=oggi)
+    piano = piano_rettifiche(scadenze.values(), fatti, oggi=oggi, toccate=_scadenze_toccate(scadenze))
+    segnalazioni = [r for r in piano if r.azione == "segnala"]
+    piano = [r for r in piano if r.azione != "segnala"]
     piano_appuntamenti = piano_agenda(appuntamenti, fatti, tribunale=str(getattr(fascicolo, "tribunale", "") or ""))
     sostituzioni = sostituzioni_documentate(fatti)
     piano_appuntamenti.extend(piano_agenda_documentale_sostituita(appuntamenti, sostituzioni, oggi=oggi))
@@ -60,6 +77,7 @@ def riconcilia_termini_riletti(fascicolo: Any, registro: Any, tenant: str, *, ap
     piano.extend(scadenza for scadenza, _ in sostituite if scadenze[scadenza.scadenza_id].stato.value != "ANNULLATO")
     esito = {
         "dry_run": not applica, "piano": [asdict(r) for r in piano], "aggiornate": 0, "annullate": 0,
+        "segnalazioni": [asdict(r) for r in segnalazioni],
         "fonti_udienze_sostituite": [{"documento": documento, "data": giorno} for documento, giorno in sostituzioni],
     }
     if not applica:
@@ -82,6 +100,11 @@ def riconcilia_termini_riletti(fascicolo: Any, registro: Any, tenant: str, *, ap
                 scadenziario.aggiorna(scadenza.id, stato="ANNULLATO", trace_json=_traccia(scadenza, voce),
                                       note=scadenza.note + "\nRettifica automatica della lettura: " + rettifica.motivo)
                 esito["annullate"] += 1
+            elif not rettifica.fatto_id:
+                # Riga del presidio PEC (udienza titolata come opposizione ex art. 127-ter): la nota si integra, non si riscrive.
+                scadenziario.aggiorna(scadenza.id, trace_json=_traccia(scadenza, voce),
+                                      note=scadenza.note + "\nRettifica automatica della lettura: " + rettifica.motivo, **rettifica.campi)
+                esito["aggiornate"] += 1
             else:
                 righe = scadenza.note.splitlines()
                 # La nota resta nella forma automatica di tre righe: la riga punta al fatto corrente.

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from datetime import date, timedelta
 from typing import Any
 
 from pct.notiziario.archivio import ArchivioNotiziario
@@ -65,4 +66,25 @@ def inoltra_alla_revisione(archivio: ArchivioNotiziario, repository: Any, *, lim
     return len(inoltrate)
 
 
-__all__ = ["STATO_ACQUISIZIONE", "inoltra_alla_revisione"]
+def riusa_pubblicazioni_verificate(archivio: ArchivioNotiziario, repository: Any, *, oggi: date) -> int:
+    """Riporta nelle Notizie utili la scheda verificata e pubblicata dalla pipeline legale."""
+    pubblicazioni = {}
+    for voce in repository.published_news_with_direct_evidence(since=(oggi - timedelta(days=14)).isoformat()):
+        chiave = voce["source_code"], voce["source_url"], voce["title"], voce["published_at"][:10], voce["raw_text"]
+        pubblicazioni.setdefault(chiave, voce)
+    verificate = archivio.verifiche_attuali()
+    sincronizzate = 0
+    for notizia in archivio.elenco():
+        if notizia["id"] in verificate:
+            continue
+        chiave = _PER_FONTE.get(notizia["fonte"]), notizia["url"], notizia["titolo"], notizia["data"], _testo(notizia)
+        voce = pubblicazioni.get(chiave)
+        if not voce or not all(str(voce[k] or "").strip() for k in ("short_summary", "content", "verified_at")):
+            continue
+        archivio.salva_verifica(notizia["id"], sintesi=voce["short_summary"], azione=voce["content"],
+                               evidenza=voce["source_url"], verificata_il=str(voce["verified_at"]))
+        sincronizzate += 1
+    return sincronizzate
+
+
+__all__ = ["STATO_ACQUISIZIONE", "inoltra_alla_revisione", "riusa_pubblicazioni_verificate"]

@@ -30,7 +30,7 @@ quello finale: l'ultima data utile è l'udienza meno i giorni meno uno.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from typing import Any, Iterable
 
@@ -190,6 +190,13 @@ for _regola in REGOLE:
     for _etichetta in _regola.etichette:
         REGOLE_PER_ETICHETTA[_etichetta.casefold()] = (*REGOLE_PER_ETICHETTA.get(_etichetta.casefold(), ()), _regola)
 
+_NOTIFICA_SENTENZA_PAT = replace(
+    REGOLE_PER_ETICHETTA["sentenza"][0],
+    atti="sentenza amministrativa",
+    fonti=("art. 92 c.p.a.", "art. 3-bis L. 53/1994"),
+    avvertenze=("L’art. 92 c.p.a. prevede 60 giorni dalla notificazione della sentenza, "
+                "salvo i termini abbreviati applicabili al rito. Fa fede la notificazione dell’atto preciso."),
+)
 
 @dataclass(frozen=True)
 class DocumentoCatalogato:
@@ -199,6 +206,7 @@ class DocumentoCatalogato:
     data: str = ""  # data del provvedimento o dell'atto (ISO), dall'archivio
     nostro: bool | None = None  # la parte assistita agisce nell'atto?
     udienze: tuple[str, ...] = ()  # udienze lette nel documento (ISO)
+    giurisdizione: str = ""
 
 
 @dataclass(frozen=True)
@@ -229,9 +237,10 @@ class ObbligoNotifica:
         return f"{self.regola.id}:{self.documento.id}"
 
     def to_dict(self) -> dict[str, Any]:
+        etichetta = "Sentenza amministrativa" if self.regola is _NOTIFICA_SENTENZA_PAT else self.documento.etichetta
         return {
             "chiave": self.chiave, "regola": self.regola.id, "documentoId": self.documento.id, "documento": self.documento.nome,
-            "etichetta": self.documento.etichetta, "dataAtto": self.documento.data, "atti": self.regola.atti, "stato": self.stato, "motivo": self.motivo,
+            "etichetta": etichetta, "dataAtto": self.documento.data, "atti": self.regola.atti, "stato": self.stato, "motivo": self.motivo,
             "scadenza": self.scadenza, "natura": self.natura, "formula": self.formula, "destinatari": list(self.destinatari),
             "fonti": list(self.regola.fonti), "dopo": self.regola.dopo, "avvertenze": self.regola.avvertenze,
             "facoltativa": self.regola.facoltativa,
@@ -402,7 +411,7 @@ def _sentenza_notificata(obbligo: "ObbligoNotifica", prova: dict[str, Any], cont
     from pct.sentenza_notificata import termini_dalla_notifica
 
     data = str(prova.get("data") or prova.get("data_consegna") or "")[:10]
-    if contesto.get("termini_sentenza_nei_riscontri"):
+    if contesto.get("termini_sentenza_nei_riscontri") or obbligo.documento.giurisdizione == "amministrativo":
         momento = f" del {_data_it(data)}" if _data_it(data) else ""
         obbligo.motivo = (
             f"Riscontro di notifica{momento} nei documenti archiviati. "
@@ -440,6 +449,8 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
     esito: list[ObbligoNotifica] = []
     for documento in documenti:
         for regola in REGOLE_PER_ETICHETTA.get(documento.etichetta.casefold(), ()):
+            if regola.id == "sentenza_notifica_breve" and documento.giurisdizione == "amministrativo":
+                regola = _NOTIFICA_SENTENZA_PAT
             obbligo = ObbligoNotifica(regola=regola, documento=documento, stato=STATO_DA_NOTIFICARE)
             obbligo.destinatari = _destinatari(regola, parti, ufficio, documento.id)
             if regola.facoltativa:

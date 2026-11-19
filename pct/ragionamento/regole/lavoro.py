@@ -67,20 +67,31 @@ def conclusioni_lavoro(ctx: Contesto) -> list[Conclusione]:
         if udienza is None:
             dubbi.append(Dubbio("udienza_ignota", "Il decreto ordina la notifica ma la lettura non trova l'udienza fissata.",
                                 "la data d'udienza del decreto", ordine.fonte))
-        dubbi.append(Dubbio(
-            "destinazione_notifica_ignota",
-            "Il termine minimo a difesa dipende da dove deve essere eseguita la notifica.",
-            "il destinatario e la destinazione della notifica: Italia (30 giorni) o estero (40 giorni)",
-            ordine.fonte,
-        ))
-        proposta = next(iter(proposte_art_415(atto.testo, udienza=udienza)), None)
+        # Contro un'amministrazione la notifica si esegue in Italia (presso l'amministrazione o l'Avvocatura dello
+        # Stato, art. 415, ultimi commi, c.p.c.): il termine a difesa è di trenta giorni, senza dubbio sulla destinazione.
+        estero = False if ctx.rito.contro_pa else None
+        if estero is None:
+            dubbi.append(Dubbio(
+                "destinazione_notifica_ignota",
+                "Il termine minimo a difesa dipende da dove deve essere eseguita la notifica.",
+                "il destinatario e la destinazione della notifica: Italia (30 giorni) o estero (40 giorni)",
+                ordine.fonte,
+            ))
+        proposte = sorted(proposte_art_415(atto.testo, udienza=udienza, estero=estero), key=lambda p: p.due_date)
+        # Il termine che conta è il primo ancora aperto: scaduti i dieci giorni (ordinatori, comma 4), resta l'ultimo giorno
+        # utile prima dell'udienza (comma 5); la conseguenza del primo, ormai decorso, si dice nel calcolo.
+        proposta = next((p for p in proposte if p.due_date >= ctx.oggi.isoformat()), proposte[0] if proposte else None)
+        decorsi = [p for p in proposte if p is not proposta and p.due_date < ctx.oggi.isoformat()]
         termine = None
         if proposta:
             termine = esito_termine(
                 giorno(proposta.due_date), oggi=ctx.oggi, perentorio=proposta.perentorio,
                 decorrenza=proposta.dies_a_quo, evento="pronuncia del decreto",
                 computo=proposta.note, rito=ctx.rito,
-                conseguenze="Verificare il termine minimo a difesa rispetto alla data d'udienza.",
+                conseguenze="Verificare il termine minimo a difesa rispetto alla data d'udienza." + "".join(
+                    f" Il termine di dieci giorni dalla pronuncia del decreto ({p.norm}) è decorso il {data_it(p.due_date)}: "
+                    "è ordinatorio e il suo decorso non impedisce la notifica, purché rispetti il termine a difesa."
+                    for p in decorsi),
             )
         else:
             dubbi.append(Dubbio(

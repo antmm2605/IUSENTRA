@@ -50,6 +50,7 @@ export function ItemCard({ item, onOpenDetail, busy, onAzione, onOpenSource, dat
   const programmazione = programmazioneLabel(item)
   const fonteLabel = item.evidenze === 1 ? 'fonte' : 'fonti'
   const termine = chiusa ? null : statoTermine(item.scadenza, dataPiano)
+  const statoLabel = dailyPlanStatusLabel[item.stato] || item.stato
 
   return (
     <div
@@ -74,8 +75,8 @@ export function ItemCard({ item, onOpenDetail, busy, onAzione, onOpenSource, dat
             <AlertTriangle size={12} aria-hidden="true" /> Bloccante
           </Badge>
         ) : null}
-        {item.da_rivedere ? <Badge variant="outline">Da confermare</Badge> : null}
-        <Badge variant="outline">{dailyPlanStatusLabel[item.stato] || item.stato}</Badge>
+        {item.da_rivedere && statoLabel !== 'Da confermare' ? <Badge variant="outline">Da confermare</Badge> : null}
+        <Badge variant="outline">{statoLabel}</Badge>
         {item.scadenza_label ? (
           <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
             <CalendarClock size={13} aria-hidden="true" /> {item.tipo_azione === 'hearing_outcome' ? 'Udienza del' : 'Termine'} {item.scadenza_label}

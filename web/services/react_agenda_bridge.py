@@ -10,7 +10,9 @@ from urllib.parse import quote
 from pct.agenda_lavorazione import indice_proposte, proposte_aperte
 from pct.agenda_linguaggio import modalita_legale, riga_contesto, titolo_storico
 from pct.formatting import parse_datetime_rome
+from pct.note_127_ter.comunicazione import CODICE_OPPOSIZIONE_127_TER, TITOLO_OPPOSIZIONE_127_TER
 from pct.note_127_ter.proposta import TITOLO_NOTE_127_TER
+from pct.ora_italiana import oggi_roma
 from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
 from pct.pec_profilo_ufficio import ufficio_generico
 from web.services.pec_source_links import (
@@ -786,6 +788,13 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
                     )
                 elif legal_label == "Udienza":
                     activity = "verificare data, ora, fascicolo, modalità di udienza e provvedimento collegato."
+                elif legal_label == "Trattazione scritta" and row.get("source") == "scadenziario":
+                    termine = parse_datetime_rome(row.get("start"))
+                    if termine and termine.date() < oggi_roma():
+                        activity = ("riscontrare le note depositate, la ricevuta di consegna e l’esito della cancelleria; "
+                                    "consultare il provvedimento successivo per stabilire come prosegue la causa.")
+                    else:
+                        activity = "predisporre le note per la trattazione scritta entro il termine del provvedimento."
                 elif legal_label in {"Deposito note scritte", "Deposito memoria", "Deposito atto"}:
                     activity = "preparare il deposito indicato dal provvedimento e controllare la fonte prima della scadenza."
                 elif legal_label == "Notifica":
@@ -858,7 +867,10 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
     )
     label = _legal_label(raw_title, kind, label_context)
     hearing_mode = str(row.get("hearingMode") or "")
-    if row.get("source") == "scadenziario" and raw_title.startswith(TITOLO_NOTE_127_TER):
+    if row.get("source") == "scadenziario" and raw_title.startswith(TITOLO_OPPOSIZIONE_127_TER):
+        label = "Opposizione alla trattazione scritta"
+        origin_title = TITOLO_OPPOSIZIONE_127_TER
+    elif row.get("source") == "scadenziario" and raw_title.startswith(TITOLO_NOTE_127_TER):
         label = "Trattazione scritta"
         origin_title = TITOLO_NOTE_127_TER
     elif kind.casefold() == "udienza" and modalita_legale(hearing_mode) == modalita_legale("note_scritte"):
@@ -1159,7 +1171,11 @@ def _deadline_event(
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))
     title = str(getattr(item, "titolo", "") or "Scadenza")
-    if title.startswith(TITOLO_NOTE_127_TER):
+    if str(getattr(item, "deadline_profile_code", "") or "").upper() == CODICE_OPPOSIZIONE_127_TER:
+        title = TITOLO_OPPOSIZIONE_127_TER
+    if title.startswith(TITOLO_OPPOSIZIONE_127_TER):
+        kind = "SCADENZA"
+    elif title.startswith(TITOLO_NOTE_127_TER):
         kind = "DEPOSITO"
     elif tipo == "UDIENZA":
         kind = "UDIENZA"
@@ -1188,9 +1204,19 @@ def _deadline_event(
             _extract_labeled_line(notes, "Orario udienza", limit=80),
             _extract_labeled_line(notes, "Orario collegamento", limit=80),
         )
+    elif title.startswith(TITOLO_NOTE_127_TER):
+        orari = (str(getattr(item, "legal_due_at", "") or ""), str(getattr(item, "operational_due_at", "") or ""))
+        locali = [
+            data_ora.strftime("%H:%M") for valore in orari
+            if len(valore) >= 16 and (data_ora := parse_datetime_rome(valore)) and data_ora.date() == due_date
+        ]
+        hearing_time = _extract_hearing_time(
+            getattr(item, "hearing_time", ""),
+            *(ora for ora in locali if ora not in {"00:00", "23:59"}),
+        )
     start = datetime.combine(due_date, hearing_time or time(hour=9))
     end = start + timedelta(minutes=45)
-    time_label = start.strftime("%H:%M") if kind == "UDIENZA" else "Entro giornata"
+    time_label = start.strftime("%H:%M") if kind == "UDIENZA" or hearing_time is not None else "Entro giornata"
     duration_label = "45 min" if kind == "UDIENZA" else "Scadenza"
     fascicolo_id = str(getattr(item, "id_fascicolo", "") or "")
     source_event_type = str(getattr(item, "source_event_type", "") or "").strip()
@@ -1211,7 +1237,8 @@ def _deadline_event(
         source_context,
         matter_id=fascicolo_id,
         source_name=str(
-            getattr(item, "remote_hearing_source", "")
+            getattr(item, "source_document_name", "")
+            or getattr(item, "remote_hearing_source", "")
             or getattr(item, "hearing_mode_source", "")
             or ""
         ),
@@ -1231,7 +1258,7 @@ def _deadline_event(
             "sourceVerified": bool(control_tower_source.get("sourceVerified")),
         }
     if control_tower_source:
-        if not title.startswith(TITOLO_NOTE_127_TER):
+        if not title.startswith((TITOLO_NOTE_127_TER, TITOLO_OPPOSIZIONE_127_TER)):
             title = _clean_text(control_tower_source.get("displayTitle"), limit=180) or title
         source_event_type = str(control_tower_source.get("legalEventType") or source_event_type)
     return _decorate_event({

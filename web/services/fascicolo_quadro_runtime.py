@@ -40,8 +40,12 @@ def termini_futuri(fascicolo: Any) -> list[dict[str, str]]:
     fid = _testo(getattr(fascicolo, "id", ""))
     from pct.scadenziario import StatoTermine
 
+    from pct.fascicolo_lettura.termini_certi import codice_della_bozza
+
     termini = [{"data": _testo(s.data_scadenza)[:10], "titolo": _testo(s.titolo), "tipo": "scadenza",
-                "stato": _testo(s.stato)}
+                "stato": _testo(s.stato), "id": _testo(s.id),
+                **({"codice_proposta": codice} if s.stato == StatoTermine.BOZZA and (codice := codice_della_bozza(
+                    {"titolo": s.titolo, "note": s.note, "stato": "BOZZA"})) else {})}
                for s in get_scadenziario().tutte(id_fascicolo=fid, solo_aperte=False)
                if s.stato in {StatoTermine.APERTO, StatoTermine.BOZZA}]
     for attivita in getattr(fascicolo, "attivita", []) or []:
@@ -67,7 +71,11 @@ def conteggio_pec_fascicolo(fascicolo: Any, lettura: dict[str, Any] | None) -> d
     from web.services.fascicolo_lettura_verifiche import leggi_registro
 
     if lettura and isinstance((lettura.get("pec") or {}).get("conteggio"), dict):
-        return dict(lettura["pec"]["conteggio"])
+        pec = lettura["pec"]
+        conteggio = dict(pec["conteggio"])
+        if "collegate" in pec:
+            conteggio["collegate"] = pec["collegate"]
+        return conteggio
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
     fid = _testo(getattr(fascicolo, "id", ""))
@@ -110,7 +118,7 @@ def esito_dispositivo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, st
     if not percorso.get("esito"):
         return None
     return {campo: _testo(percorso.get(campo))
-            for campo in ("esito", "per_il_cliente", "motivo_esito", "data", "documento_id", "sentenza")}
+            for campo in ("esito", "per_il_cliente", "motivo_esito", "data", "documento_id", "sentenza", "brano_dispositivo")}
 
 
 def riga_economia_materializzata(fascicolo_id: str, lettura: dict[str, Any] | None, *,
@@ -127,8 +135,14 @@ def riga_economia_materializzata(fascicolo_id: str, lettura: dict[str, Any] | No
     prossimo_economico = _testo((conto.get("percorso") or {}).get("prossimoPasso"))
     if not conto:
         stato_letto = stato_contributo_da_lettura(lettura)
-        if stato_letto and not (lettura or {}).get("aggiornamento_pendente"):
-            return riga_economia(stato_letto, [])
+        corrente = lettura or {}
+        if not corrente.get("aggiornamento_pendente"):
+            percorso = corrente.get("percorso") or {}
+            spese = percorso.get("spese") or {}
+            if percorso.get("documento_id") and spese.get("regolazione") == "compensazione":
+                righe_conto = [{"voce": "sentenza", "stato": "Spese compensate"}]
+            if stato_letto or righe_conto:
+                return riga_economia(stato_letto, righe_conto)
         if fascicolo is None:
             return None
         if lettura is not None:
@@ -156,31 +170,59 @@ def prossimo_passo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, str]:
 
 def riga_notifiche_da_lettura(sintesi: dict[str, Any] | None, lettura: dict[str, Any] | None,
                               oggi: date) -> dict[str, str]:
-    from pct.fascicolo_quadro import riga_notifiche
-    from web.services.riscontri_processuali_runtime import documenti_notifica_storica, obbligo_di_notifica_storico
+    from pct.fascicolo_quadro import obblighi_dal_modello, riga_notifiche
+    from web.services.riscontri_processuali_runtime import proietta_riscontri, stati_obblighi_da_lettura
 
     if sintesi is None:
-        return riga_notifiche(None, oggi=oggi)
+        # Il giro in sfondo non ha ancora salvato la sintesi: la riga si calcola dal modello della causa
+        # già nella Lettura (conclusioni sulle notifiche dovute), mai rinviata.
+        conclusioni = ((lettura or {}).get("ragionamento") or {}).get("conclusioni")
+        obblighi_modello = obblighi_dal_modello(conclusioni if isinstance(conclusioni, list) else None)
+        riscontri = proietta_riscontri(lettura, "notifiche")
+        # I riscontri storici della Lettura attestano singoli adempimenti superati: senza obblighi aperti
+        # nel modello non consentono di concludere che tutto il fascicolo sia in ordine.
+        testi = {"notifica_sentenza": "Sentenza: riscontro storico del termine breve",
+                 "notifica_ricorso_decreto_415": "Ordine di notifica del ricorso e del decreto: adempimento storico"}
+        frasi = list(dict.fromkeys(
+            testi[voce["codice"]] for voce in riscontri.get("conclusioni", [])
+            if voce.get("codice") in testi and voce.get("stato") == "non_dovuto"
+            and (voce.get("letto") or {}).get("documento_id")
+        ))
+        if obblighi_modello:
+            riga = riga_notifiche(obblighi_modello, oggi=oggi)
+            if frasi:
+                riga["testo"] = riga["testo"].rstrip(".") + " · " + " · ".join(frasi) + "."
+            return riga
+        if frasi:
+            riga = riga_notifiche(None, oggi=oggi)
+            prefisso = "Ultima lettura salvata. " if riscontri.get("aggiornamento_pendente") else ""
+            riga["testo"] = prefisso + " · ".join(frasi) + ". Apri Notifiche per fonti e altri obblighi."
+            return riga
+        return riga_notifiche(obblighi_modello, oggi=oggi)
     # Il riscontro storico non prova la consegna. Il quadro lo distingue da una
     # notifica ancora azionabile solo per la stessa sentenza e la stessa finalità.
-    lettura = lettura or {}
     obblighi = list(sintesi.get("obblighi") or [])
-    esiti = (lettura.get("ragionamento") or {}).get("conclusioni") or []
-    storici = documenti_notifica_storica(esiti)
-    stato = "riscontro_storico_precedente" if lettura.get("aggiornamento_pendente") else "riscontro_storico"
-    return riga_notifiche([
-        {**voce, "stato": stato} if obbligo_di_notifica_storico(voce, storici) else voce
-        for voce in obblighi
-    ], oggi=oggi)
+    return riga_notifiche(stati_obblighi_da_lettura(obblighi, lettura or {}), oggi=oggi)
 
 
 def riga_termini_da_lettura(agenda: list[dict[str, str]] | None, lettura: dict[str, Any] | None, oggi: date) -> dict[str, str]:
     from pct.fascicolo_quadro import riga_termini
     from web.services.riscontri_processuali_runtime import proietta_riscontri
 
-    termini = [voce for voce in (agenda or []) if voce.get("stato") != "BOZZA"]
+    from pct.fascicolo_lettura.termini_certi import bozze_certe, bozze_della_controparte
+
+    # Le bozze che il modello della causa ha letto nello stesso provvedimento del giudice sono certe: contano come termini,
+    # non come «da verificare» (si confermano da sole nel ciclo in sfondo, web/services/termini_certi_runtime). I termini
+    # della controparte letti nel provvedimento non sono né adempimenti dello studio né dubbi.
+    bozze = [v for v in agenda or [] if v.get("stato") == "BOZZA"]
+    conclusioni_modello = ((lettura or {}).get("ragionamento") or {}).get("conclusioni")
+    certe = bozze_certe(bozze, conclusioni_modello)
+    della_controparte = bozze_della_controparte(bozze, conclusioni_modello)
+    termini = [voce for voce in (agenda or []) if voce.get("stato") != "BOZZA" or (voce.get("id") or voce.get("titolo")) in certe]
     bozze_future = [voce for voce in (agenda or [])
-                    if voce.get("stato") == "BOZZA" and voce["data"] >= oggi.isoformat()]
+                    if voce.get("stato") == "BOZZA" and voce["data"] >= oggi.isoformat()
+                    and (voce.get("id") or voce.get("titolo")) not in certe
+                    and (voce.get("id") or voce.get("titolo")) not in della_controparte]
     riscontri = proietta_riscontri(lettura, "termini")
     conclusioni = riscontri.get("conclusioni") or []
     lettura_precedente = bool((lettura or {}).get("aggiornamento_pendente"))
@@ -195,6 +237,16 @@ def riga_termini_da_lettura(agenda: list[dict[str, str]] | None, lettura: dict[s
         if data and voce.get("stato") == "da_fare" and voce.get("onerato_codice") in {"noi", "tutte_le_parti"} and chiave not in presenti:
             termini.append({"data": data, "titolo": titolo, "tipo": "scadenza"})
             presenti.add(chiave)
+    # Una scadenza sola per giorno e adempimento: la bozza certa e il termine già aperto dello stesso atto non sono due.
+    from pct.fascicolo_lettura.prossimi_passi import _codice_scadenza
+
+    unici, chiavi = [], set()
+    for voce in termini:
+        codice = voce.get("codice_proposta") or _codice_scadenza({"titolo": voce.get("titolo")}) or _testo(voce.get("titolo")).casefold()
+        if (voce.get("data"), codice) not in chiavi:
+            chiavi.add((voce.get("data"), codice))
+            unici.append(voce)
+    termini = unici
     riga_termine = riga_termini(termini, oggi=oggi)
     if agenda is not None and riga_termine["livello"] == "ok" and riscontri.get("stato") != "pronto":
         riga_termine["testo"] = "Nessuna scadenza o udienza futura registrata in agenda. I termini dagli atti sono da verificare."

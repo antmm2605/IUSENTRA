@@ -11,6 +11,10 @@ _MESI = {m: i for i, m in enumerate(("gennaio", "febbraio", "marzo", "aprile", "
                                       "settembre", "ottobre", "novembre", "dicembre"), 1)}
 _DATA_LETTERE = re.compile(r"(?<!\d)(\d{1,2})\s+(" + "|".join(_MESI) + r")\s+(\d{4})", re.I)
 _RG = re.compile(r"(?<![\d/])(0*\d{1,6})\s*/\s*(\d{4}|\d{2})(?![\d/])")
+_RG_INTESTAZIONE = re.compile(
+    r"^\s*(?:n\.?\s*)?r\.?\s*g\.?(?:\s*n\.?)?\s*[:\-]?\s*(\d{1,7})\s*/\s*(\d{4})\s*$",
+    re.IGNORECASE,
+)
 
 
 def pulito(testo: object) -> str:
@@ -66,6 +70,13 @@ def rg_normale(numero: object, anno: object = "") -> str:
     if testo.isdigit() and pulito(anno).isdigit():
         return f"{int(testo)}/{_anno(pulito(anno))}"
     return ""
+
+
+def rg_frontespizio(testo: str) -> str:
+    """Riconosce il ruolo scritto come riga autonoma in testa al provvedimento."""
+    righe = [riga for riga in str(testo or "").splitlines() if riga.strip()][:6]
+    ruoli = {rg_normale(*match.groups()) for riga in righe if (match := _RG_INTESTAZIONE.fullmatch(riga))}
+    return next(iter(ruoli)) if len(ruoli) == 1 else ""
 
 
 def ruoli_nel_testo(testo: str) -> list[tuple[int, str]]:

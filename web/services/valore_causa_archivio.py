@@ -10,8 +10,9 @@ from pct.registro_letture.fatti_repository import Fatto
 from web.services.contributo_stato_runtime import href_documento
 
 CAMPO_VALORE = "valore_dichiarato_iscrizione"
-_VERSIONE = "valore-iscrizione:v1"
+_VERSIONE = "valore-iscrizione:v2"
 _NOTA = re.compile(r"\bnota\s+d(?:i\s+|[’']\s*)iscrizione\s+a\s+ruolo\b", re.I)
+_CODICE_OGGETTO = re.compile(r"\bcodice\s+ed\s+oggetto\s+della\s+domanda\s*\]?\s*[:\-]?\s*(\d{6})\b", re.I)
 _NUMERO = r"(?:[0-9]{1,3}(?:\.[0-9]{3})+|[0-9]+)(?:,[0-9]{2})?"
 _VALORE = re.compile(rf"\bvalore\s+dell[ae]\s+(?:controversia|causa|lite)\s*[:=]\s*(?:€\s*|euro\s+)?({_NUMERO})(?![\d.,])", re.I)
 _DOMANDA = re.compile(rf"\b(?:somma|importo)\s+di\s+(?:€\s*|euro\s+)({_NUMERO})(?![\d.,])", re.I)
@@ -73,10 +74,14 @@ def registra_valore_iscrizione(fascicolo: Any, registro: Any, tenant: str) -> in
             conferme = sorted(ref for ref, importi in depositi.items() if valore in importi and ref != oid)
             if valore > 0 and (ruoli == {ruolo} or (not ruoli and conferme)):
                 fonti = {ref: oggetti[ref].impronta for ref in [oid, *conferme]}
+                prova = {"impronte_documenti": fonti}
+                codici = set(_CODICE_OGGETTO.findall(testo[:1600]))
+                if len(codici) == 1:
+                    prova["codice_oggetto_dichiarato"] = codici.pop()
                 fatti.append(Fatto(
                     categoria="importo", campo=CAMPO_VALORE, valore=f"{valore:.2f}",
                     etichetta="Valore dichiarato all'iscrizione", verifica="verificata",
-                    origine="nota_iscrizione_ruolo", prove=[{"impronte_documenti": fonti}],
+                    origine="nota_iscrizione_ruolo", prove=[prova],
                 ))
         precedente = precedenti.get(oid)
         if precedente and fatti and precedente.sha256 == oggetto.impronta and precedente.prove == fatti[0].prove and precedente.valore == fatti[0].valore:
@@ -93,6 +98,7 @@ def valore_iscrizione(fascicolo: Any, fatti: list[Any], oggetti: list[Any]) -> d
     documenti = {str(d.id): d for d in fascicolo.documenti}
     impronte = {o.oggetto_id: o.impronta for o in oggetti if o.presente and o.tipo == "documento"}
     fonti = {}
+    codici = {}
     for fatto in fatti:
         if fatto.campo != CAMPO_VALORE or fatto.verifica not in {"verificata", "corretta"}:
             continue
@@ -102,15 +108,21 @@ def valore_iscrizione(fascicolo: Any, fatti: list[Any], oggetti: list[Any]) -> d
             attese = prova.get("impronte_documenti") or {}
             if attese and all(sha and impronte.get(ref) == sha for ref, sha in attese.items()):
                 fonti[fatto.oggetto_id] = fatto.valore
+                codice = prova.get("codice_oggetto_dichiarato") or ""
+                if re.fullmatch(r"\d{6}", codice):
+                    codici[fatto.oggetto_id] = codice
     if not fonti or len(set(fonti.values())) != 1:
         return {}
     oid, importo = next(iter(sorted(fonti.items())))
     registrato = getattr(fascicolo, "valore_causa", None)
     if registrato and Decimal(str(registrato)) != Decimal(importo):
         return {}
-    return {"importo": float(importo), "documento": {
+    esito = {"importo": float(importo), "documento": {
         "id": oid, "nome": documenti[oid].nome, "href": href_documento(str(fascicolo.id), oid),
     }}
+    if oid in codici and len(set(codici.values())) == 1:
+        esito["codice_oggetto_dichiarato"] = codici[oid]
+    return esito
 
 
 

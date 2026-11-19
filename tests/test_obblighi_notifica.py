@@ -332,6 +332,34 @@ def test_rettifica_aggiorna_la_stessa_bozza_ma_rispetta_la_conferma(tmp_path, mo
     assert conservata.data_scadenza == "2026-12-10"
 
 
+def test_le_ricevute_di_una_sentenza_non_si_trasferiscono_a_un_altra():
+    from pct.archivio_letture.copie_atti import riunisci_obblighi
+    from pct.obblighi_notifica_atto import una_voce_per_atto
+
+    obblighi = [{"documentoId": oid, "documento": oid, "chiave": oid, "regola": "sentenza_notifica_breve",
+                 "stato": stato, "facoltativa": True}
+                for oid, stato in (("titolo-civile", "notificato"), ("sentenza-tar", "facoltativa"),
+                                   ("copia-tar", "facoltativa"))]
+    identita = {"titolo-civile": "testo-civile", "sentenza-tar": "testo-tar", "copia-tar": "testo-tar"}
+    esiti = una_voce_per_atto(riunisci_obblighi(obblighi, identita), {})
+    assert {v["documentoId"]: v["stato"] for v in esiti} == {"titolo-civile": "notificato", "sentenza-tar": "facoltativa"}
+    tar = next(v for v in esiti if v["documentoId"] == "sentenza-tar")
+    assert {f["documentoId"] for f in tar["fonti_documentali"]} == {"sentenza-tar", "copia-tar"}
+
+
+def test_la_sentenza_del_tar_espone_il_cpa_anche_in_presidi_con_titoli_civili():
+    civile = DocumentoCatalogato("CIV", "Titolo civile", "Sentenza")
+    tar = DocumentoCatalogato("TAR", "Sentenza TAR", "Sentenza", giurisdizione="amministrativo")
+    contesto = {"prove_notifica": [{"atto_documento_id": "TAR", "verificata": True, "data": "2025-12-15",
+                                   "destinatari_completi": True}]}
+    esiti = {o.documento.id: o for o in obblighi_del_fascicolo([civile, tar], [], contesto=contesto, oggi=OGGI)}
+    assert "art. 325 c.p.c." in esiti["CIV"].regola.fonti
+    amministrativa = esiti["TAR"]
+    assert amministrativa.regola.fonti == ("art. 92 c.p.a.", "art. 3-bis L. 53/1994")
+    assert amministrativa.to_dict()["etichetta"] == "Sentenza amministrativa"
+    assert amministrativa.stato == STATO_NOTIFICATO and not amministrativa.calcoli
+
+
 def test_riscontro_storico_non_attesta_il_termine_breve():
     from types import SimpleNamespace
     from pct.obblighi_notifica_atto import una_voce_per_atto

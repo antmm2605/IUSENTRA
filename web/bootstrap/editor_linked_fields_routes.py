@@ -9,6 +9,7 @@ from pct.editor_linked_fields import linked_fields_catalog
 
 
 def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None, get_studio_context=None, get_process_dates=None):
+    @app.get("/api/editor/<id_fasc>/recupera-campi")
     @app.post("/api/editor/<id_fasc>/recupera-campi")
     def editor_recover_fields(id_fasc):
         user = g.get("utente_corrente")
@@ -24,7 +25,7 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
                 return jsonify(ok=False, errore="Fascicolo non trovato."), 404
             from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
             registry, tenant = registro_corrente(sola_lettura=True), tenant_corrente()
-            payload = request.get_json(silent=True) if request.is_json else {}
+            payload = request.get_json(silent=True) if request.method == "POST" and request.is_json else {}
             if not isinstance(payload, dict) or set(payload) - {'generation'}:
                 return jsonify(ok=False, errore="Richiesta di recupero non valida."), 400
             if 'generation' not in payload:
@@ -91,13 +92,22 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
                     registry.fatti(tenant, matter.id, categoria="metadato_fascicolo"),
                     fascicolo_id=matter.id, oggetti=registry.oggetti(tenant, matter.id),
                 )
-            fields = linked_fields_catalog(cliente=client, fascicolo=matter, date_processuali=dates, **studio_context)
+            from web.services.passaggi_runtime import dati_collegati_note
+
+            fields = linked_fields_catalog(cliente=client, fascicolo=matter, date_processuali=dates,
+                                           dati_note_scritte=dati_collegati_note(matter.id), **studio_context)
             revision = hashlib.sha256(json.dumps([matter.id, matter.id_cliente, [(field["id"], field["value"]) for field in fields]], ensure_ascii=False).encode()).hexdigest()
+            extra = {}
+            if request.args.get("timbro") == "1":
+                from pct.editor_stamp import editor_stamp_payload
+
+                extra["timbro"] = editor_stamp_payload(studio_context.get("studio_timbro"))
             return jsonify(ok=True, matterId=matter.id, clientId=matter.id_cliente,
                            matterLabel=" · ".join(part for part in [matter.numero, matter.titolo] if part),
                            clientLabel=client.nome_completo if client else "",
                            notice="" if client else "Nessun cliente è collegato al fascicolo: sono disponibili soltanto i dati della pratica.",
-                           revision=revision, fields=fields, recoveryState=recovery_state, recoveryError=recovery_error, recoveryGeneration=recovery_generation)
+                           revision=revision, fields=fields, recoveryState=recovery_state, recoveryError=recovery_error,
+                           recoveryGeneration=recovery_generation, **extra)
         except Exception:
             app.logger.exception("Dati collegati dell’editor non disponibili")
             return jsonify(ok=False, errore="Dati non caricati. Riprova; il documento è preservato."), 503

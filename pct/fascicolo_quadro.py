@@ -116,8 +116,9 @@ def riga_economia(contributo: Mapping[str, Any] | None, righe_conto: Iterable[Ma
     stato_parcella = _testo(parcella.get("stato"))
     spese_compensate = sentenza.get("stato") == "Spese compensate"
     if stato_parcella and not ((spese_da_verificare or spese_compensate) and stato_parcella == "Da preparare"):
-        parti.append(_PARCELLA.get(stato_parcella, f"parcella: {stato_parcella.lower()}"))
         attenzione = attenzione or (stato_parcella == "Da preparare" and bool(sentenza.get("importo")))
+        if not (stato_parcella == "Da preparare" and prossimo_economico and attenzione):
+            parti.append(_PARCELLA.get(stato_parcella, f"parcella: {stato_parcella.lower()}"))
     testo = " · ".join(p for p in parti if p)
     if prossimo_economico and attenzione:
         testo += f". {prossimo_economico}"
@@ -159,6 +160,44 @@ def riga_notifiche(obblighi: list[Mapping[str, Any]] | None, *, oggi: date) -> d
     return riga("notifiche", " · ".join(parti), livello)
 
 
+# Le conclusioni del modello della causa sulle notifiche dovute (pct/ragionamento): l'atto che si notifica.
+_ATTI_NOTIFICA_MODELLO = {
+    "notifica_ricorso_decreto_415": "Ricorso e decreto di fissazione dell'udienza (art. 415 c.p.c.)",
+    "notifica_decreto_ingiuntivo": "Ricorso e decreto ingiuntivo (art. 644 c.p.c.)",
+    "notifica_ordinata": "Notifica ordinata dal giudice",
+    "notifica_sentenza": "Sentenza",
+    "esecuzione_pa": "Titolo esecutivo alla pubblica amministrazione (art. 14 D.L. 669/1996)",
+}
+
+
+def obblighi_dal_modello(conclusioni: Iterable[Mapping[str, Any]] | None) -> list[dict[str, Any]] | None:
+    """Gli obblighi di notifica come li conclude il modello della causa, nella forma della sintesi del quadro.
+
+    Fatto (con la prova) → notificato; da fare → da notificare entro la scadenza calcolata; dubbio → da verificare;
+    la notifica della sentenza senza termine è una scelta difensiva (facoltativa). None se il modello non c'è.
+    """
+    if conclusioni is None:
+        return None
+    obblighi: list[dict[str, Any]] = []
+    for voce in conclusioni:
+        codice = _testo(voce.get("codice"))
+        atto = _ATTI_NOTIFICA_MODELLO.get(codice)
+        stato = _testo(voce.get("stato"))
+        if not atto or stato == "non_dovuto" or voce.get("onerato_codice") in {"controparte", "terzo"}:
+            continue
+        termine = voce.get("termine") or {}
+        if stato == "fatto":
+            obblighi.append({"atto": atto, "stato": "notificato"})
+        elif stato == "da_fare" and codice == "notifica_sentenza" and not termine:
+            obblighi.append({"atto": atto, "stato": "facoltativo"})
+        elif stato == "da_fare":
+            obblighi.append({"atto": atto, "stato": "da_notificare", "scadenza": _testo(termine.get("scadenza_iso")),
+                             **({"natura": "ordinatorio"} if termine.get("natura") == "ordinatorio" else {})})
+        else:
+            obblighi.append({"atto": atto, "stato": "da_verificare"})
+    return obblighi
+
+
 def riga_documenti(totale: int, da_classificare: int | None, pec: Mapping[str, Any]) -> dict[str, str]:
     parti = [f"{totale} document{'o' if totale == 1 else 'i'}"]
     if da_classificare is None:
@@ -171,9 +210,10 @@ def riga_documenti(totale: int, da_classificare: int | None, pec: Mapping[str, A
     if da_confermare:
         parti.append(f"{da_confermare} PEC da confermare")
     collegate = int(pec.get("collegate") or 0)
-    parti.append(f"{collegate} PEC collegat{'a' if collegate == 1 else 'e'}")
+    if collegate:
+        parti.append(f"{collegate} PEC collegat{'a' if collegate == 1 else 'e'} dalla casella")
     livello = "attenzione" if da_confermare or da_classificare else "ok"
     return riga("documenti", " · ".join(parti), livello)
 
 
-__all__ = ["SEZIONI", "riga", "riga_documenti", "riga_economia", "riga_notifiche", "riga_prossimo_passo", "riga_termini"]
+__all__ = ["SEZIONI", "obblighi_dal_modello", "riga", "riga_documenti", "riga_economia", "riga_notifiche", "riga_prossimo_passo", "riga_termini"]

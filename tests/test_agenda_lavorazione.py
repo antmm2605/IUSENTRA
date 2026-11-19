@@ -47,6 +47,51 @@ def test_voce_proposta_in_linguaggio_legale():
     assert voce["spiegazione"] == "10 giorni dal 04/11." and voce["confermaHref"] == "/scadenziario/B1/conferma-proposta"
 
 
+def test_riusa_i_due_computi_del_decreto_solo_se_coerenti_con_la_data_proposta():
+    proposta = SimpleNamespace(
+        id="B3", titolo="Deposito note scritte ex art. 127-ter c.p.c.", data_scadenza="2026-12-16",
+        perentorio=True, operational_due_at="2026-12-16T23:59:00",
+        note="Termine proposto: 16/12/2026.\nDecreto del 10/11/2026: note cinque giorni prima dell’udienza. "
+             "Computo a giorni pieni 17/12/2026. Data operativa prudenziale a giorni liberi 16/12/2026.",
+    )
+    voce = voce_proposta(proposta)
+    assert voce["dataEtichetta"] == "16 dicembre 2026"
+    assert voce["dataGiorniPieni"] == "17 dicembre 2026"
+    assert voce["spiegazione"] == "Decreto del 10/11/2026: note cinque giorni prima dell’udienza."
+    proposta.data_scadenza = "2026-12-15"
+    assert voce_proposta(proposta)["dataGiorniPieni"] == ""
+
+
+def test_opposizione_in_agenda_mantiene_il_titolo_dello_scadenziario():
+    from web.services.react_agenda_bridge import _deadline_event
+
+    termine = SimpleNamespace(
+        id="SC1", stato="APERTO", tipo="DEPOSITO_ATTO", titolo="Opposizione",
+        data_scadenza="2026-11-16", deadline_profile_code="CIV_OPPOSIZIONE_127_TER",
+        note="Termine proposto: Eventuale opposizione alla trattazione scritta",
+    )
+    evento = _deadline_event(termine, control_tower_source={"displayTitle": "Udienza"})
+    assert evento["legalLabel"] == "Opposizione alla trattazione scritta"
+    assert evento["originTitle"].startswith("Eventuale opposizione alla trattazione scritta")
+    assert evento["kind"] == "SCADENZA"
+
+
+def test_agenda_mostra_l_ora_delle_note_scritte_gia_salvata_nello_scadenziario():
+    from web.services.react_agenda_bridge import _deadline_event
+
+    termine = SimpleNamespace(
+        id="SC2", stato="APERTO", tipo="TERMINE_PERENTORIO",
+        titolo="Deposito note scritte ex art. 127-ter c.p.c.",
+        data_scadenza="2026-12-16", operational_due_at="2026-12-16T13:00:00Z",
+    )
+    evento = _deadline_event(termine)
+    assert evento["kind"] == "DEPOSITO"
+    assert evento["timeLabel"] == "14:00"
+    assert evento["start"] == "2026-12-16T14:00"
+    termine.operational_due_at = "2026-12-16T23:59:00"
+    assert _deadline_event(termine)["timeLabel"] == "Entro giornata"
+
+
 def test_scheda_di_lavorazione_completa():
     agenda = SimpleNamespace(get=lambda i: RICEZIONE if i == "APP1" else None)
     scadenziario = SimpleNamespace(get=lambda i: None, tutte=lambda solo_aperte=False: SCADENZE)

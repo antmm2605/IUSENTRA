@@ -6028,7 +6028,7 @@ def test_react_agenda_bridge_presidio_documentale_lex_link_storico_da_controllar
     )
 
 
-def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
+def test_react_dashboard_legge_repository_operativi(tmp_path: Path, monkeypatch):
     from web.services.react_dashboard_time import oggi_rome
 
     app = _app(tmp_path)
@@ -6128,6 +6128,20 @@ def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
         )
     )
 
+    # La Panoramica legge l'indice dei fascicoli salvato in sfondo (workspace_intelligente.save_snapshot),
+    # non ricarica i fascicoli nella richiesta: il test prepara lo stesso indice dai repository reali.
+    import web.blueprints.api_v1_react as api_react
+    from pct.workspace_intelligente import _local_now as _adesso
+    campi = ("id", "numero", "titolo", "nome_cliente", "id_cliente", "numero_rg", "anno_rg", "rg_completo", "stato",
+             "tipo", "oggetto", "tribunale", "controparte", "area_pratica", "codice_oggetto_pst",
+             "data_prossima_udienza", "has_conflicts")
+    indice = []
+    for voce in fascicoli.tutti(archiviati=False):
+        riga = {nome: getattr(voce, nome, "") for nome in campi}
+        riga["stato"] = getattr(riga["stato"], "value", riga["stato"])
+        riga["tipo"] = getattr(riga["tipo"], "value", riga["tipo"])
+        indice.append(riga)
+    monkeypatch.setattr(api_react, "_workspace_snapshot", lambda: {"generated_at": _adesso().isoformat(), "overview": {}, "case_index": indice})
     response = client.get("/api/v1/ui/dashboard", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
 

@@ -62,6 +62,17 @@ def _modelli_harness():
         DeadlineTemplate(code="LEX_PEN_QUERELA_124", name="Termine per la querela", base_value=3, period_type="months",
                          matter_type="penal", suspend_august=False, ferial_suspension_policy="not_applicable",
                          reference_law="Art. 124 c.p.; computo ex art. 14 c.p. (sostanziale)"),
+        # Art. 92 ord. giud. («opposizione all'esecuzione») letto dalla Cassazione anche per gli artt. 617 e 619 c.p.c.
+        # (Cass. ord. 21568/2017; Cass. 9998/2010): niente sospensione feriale. Il modello ESE_OPPOSIZIONE_ATTI_617 del
+        # motore la applica: discordanza segnalata, l'harness usa questo.
+        DeadlineTemplate(code="LEX_ESE_OPPOSIZIONE_ATTI_617", name="Opposizione agli atti esecutivi", base_value=20,
+                         suspend_august=False, ferial_suspension_policy="not_applicable",
+                         reference_law="Art. 617 c.p.c.; art. 92 ord. giud. (Cass. ord. 21568/2017)"),
+        # Art. 1137 c.c.: termine sostanziale a rilevanza processuale; la sospensione feriale si applica per Corte cost.
+        # 49/1990 (illegittimità dell'art. 1 l. 742/1969 nella parte in cui non la estendeva a questo termine).
+        DeadlineTemplate(code="LEX_CONDOMINIO_1137", name="Impugnazione della delibera condominiale", base_value=30,
+                         suspend_august=True, extend_saturday=False,
+                         reference_law="Art. 1137 c.c.; art. 1 l. 742/1969 come inciso da Corte cost. 49/1990"),
         DeadlineTemplate(code="LEX_CAU_MERITO_669OCTIES", name="Inizio del giudizio di merito dopo la misura cautelare",
                          base_value=60, suspend_august=False, ferial_suspension_policy="da_verificare",
                          reference_law="Art. 669-octies c.p.c."),

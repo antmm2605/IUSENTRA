@@ -125,7 +125,10 @@ def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:
                            [Rif("cpc:617", "venti giorni")])]
     d = _prima_data(f)
     if d:
-        a.conclusione.append(Punto(f"Dal {data_breve(d)}: scadenza {data_breve(termine("ESE_OPPOSIZIONE_ATTI_617", d))}.", [Rif("cpc:617", "venti giorni")]))
+        a.conclusione.append(Punto(f"Dal {data_breve(d)}: scadenza {data_breve(termine('LEX_ESE_OPPOSIZIONE_ATTI_617', d))}, "
+                                   "senza sospensione feriale: l'art. 92 ord. giud. esclude le cause di opposizione "
+                                   "all'esecuzione e la Cassazione vi comprende l'opposizione agli atti esecutivi (Cass. ord. "
+                                   "21568/2017).", [Rif("cpc:617", "venti giorni"), Rif("rd12:92", "opposizione all'esecuzione")]))
     return a
 
 
@@ -144,11 +147,13 @@ def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
     a.procedibilita = P.mediazione_obbligatoria("condominio")
     d = _prima_data(f)
     if d:
-        a.conclusione.append(Punto(f"Dal {data_breve(d)}: trenta giorni scadono {data_breve(termine_giorni(d, 30, sostanziale=True))} "
-                                   "(termine di decadenza, calcolato senza sospensione feriale).", [Rif("cc:1137", "termine perentorio di trenta giorni")]))
-    if d and tocca_agosto(d, termine_giorni(d, 30, sostanziale=True)):
-        a.dubbi.append("Il termine attraversa agosto: se la sospensione feriale si applichi al termine dell'art. 1137 c.c. "
-                       "va verificato sulla giurisprudenza; per prudenza si rispetta la scadenza senza sospensione.")
+        con = termine("LEX_CONDOMINIO_1137", d)
+        senza = termine_giorni(d, 30, sostanziale=True)
+        a.conclusione.append(Punto(f"Dal {data_breve(d)}: trenta giorni scadono {data_breve(con)} (termine di decadenza; "
+                                   "la sospensione feriale si applica per la sentenza della Corte costituzionale n. 49/1990)"
+                                   + (f". Per prudenza conviene agire entro {data_breve(senza)}, la scadenza senza sospensione"
+                                      if tocca_agosto(d, senza) else "") + ".",
+                                   [Rif("cc:1137", "termine perentorio di trenta giorni"), Rif("l742:1", "sospeso di diritto")]))
     a.dubbi.append("La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: "
                    "depositala entro i trenta giorni.")
     return a

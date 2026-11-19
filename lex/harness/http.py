@@ -8,11 +8,14 @@ Ordine: 1) harness (redazione, parere, termine con fattispecie, testo di un arti
 """
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Callable
 
 from . import comprendi, rispondi
 from .norme import normalizza
+
+_log = logging.getLogger(__name__)
 
 _NOTA_LAVORO = ("Se la sentenza è resa in una controversia di lavoro o previdenza, il termine breve per l'appello è di "
                 "trenta giorni dalla notificazione e la sospensione feriale non si applica (art. 434 c.p.c.; art. 3 "
@@ -26,11 +29,21 @@ def _etichetta(valore: float) -> str:
 def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None = None) -> dict[str, Any] | None:
     try:
         c = comprendi(domanda)
-        if not c.per_harness:
-            return None
-        esito = rispondi(domanda, comprensione=c)
     except Exception:
+        _log.exception("harness: comprensione della domanda non riuscita")
         return None
+    if not c.per_harness:
+        return None
+    try:
+        esito = rispondi(domanda, comprensione=c)
+    except Exception as exc:
+        # Domanda giuridica riconosciuta ma regola in errore: si dichiara, non si devia in silenzio sui router operativi.
+        _log.exception("harness: errore nella regola per una domanda di tipo %s", c.tipo)
+        return _payload(domanda, "**Analisi non completata**\n- La domanda è stata riconosciuta come richiesta giuridica "
+                        f"({c.tipo}), ma il passo di analisi si è interrotto per un errore interno ({type(exc).__name__}). "
+                        "Non do una risposta parziale: l'errore è registrato nel log e va corretto; nel frattempo la "
+                        "questione va esaminata senza Lex.", 0.0, f"Errore interno dell'harness: {type(exc).__name__}.",
+                        [], "errore_harness", {"rule": "errore_harness", "errore": type(exc).__name__})
     if esito is None:
         if c.tipo not in {"termine", "norma", "parere", "calcolo"} or risposta_certa is None:
             return None

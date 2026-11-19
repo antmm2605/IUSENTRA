@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 import sys
 import time
@@ -123,6 +124,7 @@ def main() -> int:
 URN_NORMATTIVA = {
     "dlgs231": "urn:nir:stato:decreto.legislativo:2002-10-09;231",
     "dpr600": "urn:nir:presidente.repubblica:decreto:1973-09-29;600",
+    "rd12": "urn:nir:stato:regio.decreto:1941-01-30;12:1",  # allegato: ordinamento giudiziario
     "l241": "urn:nir:stato:legge:1990-08-07;241",
 }
 
@@ -152,10 +154,17 @@ def da_normattiva(chiavi: list[str]) -> int:
         for k in voci:
             numero = k.split(":")[1]
             el = articoli.get(numero)
-            if el is None:
-                print(f"{k}: articolo non trovato nel testo Normattiva")
-                continue
-            testo = _testo(el)
+            if el is not None:
+                testo = _testo(el)
+            else:
+                # Atti con allegato (ordinamento giudiziario): gli articoli dell'allegato sono paragrafi «Art. N.» negli annessi.
+                piano_xml = " ".join(re.sub(r"<[^>]+>", " ", atto.xml.decode("utf-8", "replace")
+                                            if isinstance(atto.xml, bytes) else atto.xml).split())
+                m = re.search(rf"\bArt\. {numero}\.\s(.+?)(?=\sArt\. \d+(?:-[a-z]+)?\.\s|$)", piano_xml)
+                if not m:
+                    print(f"{k}: articolo non trovato nel testo Normattiva")
+                    continue
+                testo = f"Art. {numero}. " + m.group(1).strip()
             istantanea["norme"][k] = {
                 "citazione": NORME[k].citazione, "testo": testo, "url": f"https://www.normattiva.it/uri-res/N2Ls?{urn}~art{numero}",
                 "titolo_atto": atto.titolo_pagina[:200], "aggiornamento": date.fromisoformat(atto.data_espressione).strftime("%d/%m/%Y") if atto.data_espressione else "", "vigente": True,

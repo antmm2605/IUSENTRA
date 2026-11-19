@@ -201,6 +201,7 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("dlgs231:4", "art. 4 d.lgs. 231/2002", "art. 4 d.lgs. 231/2002", "Decorrenza degli interessi moratori"),
     _n("dlgs231:5", "art. 5 d.lgs. 231/2002", "art. 5 d.lgs. 231/2002", "Saggio degli interessi"),
     _n("dlgs231:6", "art. 6 d.lgs. 231/2002", "art. 6 d.lgs. 231/2002", "Risarcimento delle spese di recupero"),
+    _n("rd12:92", "art. 92 r.d. 12/1941", "art. 92 r.d. 12/1941 (ordinamento giudiziario)", "Affari civili nel periodo feriale"),
     _n("dpr600:43", "art. 43 d.p.r. 600/1973", "art. 43 d.P.R. 600/1973", "Termine per l'accertamento"),
     _n("dlgs546:18", "art. 18 d.lgs. 546/1992", "art. 18 d.lgs. 546/1992", "Il ricorso"),
     _n("dlgs546:22", "art. 22 d.lgs. 546/1992", "art. 22 d.lgs. 546/1992", "Costituzione in giudizio del ricorrente"),
@@ -210,6 +211,7 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("dlgs206:133", "art. 133 d.lgs. 206/2005", "art. 133 d.lgs. 206/2005 (codice del consumo)", "Termini"),
     _n("dlgs206:135bis", "art. 135-bis d.lgs. 206/2005", "art. 135-bis d.lgs. 206/2005 (codice del consumo)", "Rimedi per il difetto di conformità"),
     _n("dpr1199:9", "art. 9 d.p.r. 1199/1971", "art. 9 d.P.R. 1199/1971", "Termine del ricorso straordinario"),
+    _n("dpr115:10", "art. 10 d.p.r. 115/2002", "art. 10 d.P.R. 115/2002", "Esenzioni"),
     _n("dpr115:30", "art. 30 d.p.r. 115/2002", "art. 30 d.P.R. 115/2002", "Anticipazione forfettaria"),
     _n("dpr115:13", "art. 13 d.p.r. 115/2002", "art. 13 d.P.R. 115/2002", "Contributo unificato"),
 )}

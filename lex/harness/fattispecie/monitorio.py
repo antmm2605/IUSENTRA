@@ -125,15 +125,21 @@ def analizza_opposizione_di(c: Comprensione, f: Fatti) -> Analisi:
               [Rif("cpc:641", "quaranta giorni"), Rif("cpc:645", "ufficio giudiziario al quale appartiene il giudice")]),
     ]
     prescritte = []
+    # La prescrizione si interrompe con la notificazione dell'atto che inizia il giudizio (art. 2943, comma 1, c.c.):
+    # per il monitorio conta la notifica di ricorso e decreto, non il deposito del ricorso.
+    interruzione = notifica or deposito
     for n, d, v in fatture:
         sc = scadenze.get(n)
-        if sc and deposito and termine_anni(sc, 10) < deposito and re.search(r"mai chiesto per iscritto|mai riconosciut", t):
+        if sc and interruzione and termine_anni(sc, 10) < interruzione and re.search(r"mai chiesto per iscritto|mai riconosciut", t):
             prescritte.append((n, sc, v))
             a.inquadramento.append(Punto(
                 f"La fattura n. {n} ({euro(v)}) scadeva il {sc.strftime('%d/%m/%Y')}: la prescrizione decorre dal giorno in cui "
                 f"il diritto può essere fatto valere e il termine ordinario è di dieci anni, maturati il "
-                f"{termine_anni(sc, 10).strftime('%d/%m/%Y')}, prima del ricorso e senza atti interruttivi: si eccepisce la prescrizione.",
-                [Rif("cc:2935", "dal giorno in cui il diritto puo essere fatto valere"), Rif("cc:2946", "dieci anni")]))
+                f"{termine_anni(sc, 10).strftime('%d/%m/%Y')}, prima della "
+                + ("notificazione del ricorso e del decreto" if notifica else "proposizione del ricorso (data della notifica da verificare)")
+                + ", che è l'atto interruttivo, e senza altri atti interruttivi: si eccepisce la prescrizione.",
+                [Rif("cc:2935", "dal giorno in cui il diritto puo essere fatto valere"), Rif("cc:2946", "dieci anni"),
+                 Rif("cc:2943", "notificazione dell'atto con il quale si inizia un giudizio")]))
     pagato = None
     if m_pag:
         pagato = (float(m_pag.group(1).replace(".", "")), m_pag.group(2))

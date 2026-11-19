@@ -63,10 +63,10 @@ def giudice_per_valore(valore: float, *, circolazione: bool = False) -> tuple[st
                           f"di IUSENTRA ({controllo}): verificarla prima di scegliere il giudice.", [], False,
                           "calcolatore della competenza discordante")]
     if valore <= limite:
-        return "Giudice di pace", [Punto(
+        return "Giudice di pace", [*contributo_unificato(valore, giudice_pace=True), Punto(
             f"Competente per valore è il giudice di pace: la causa ({euro(valore)}) non supera il limite di "
             f"{euro(limite)} dell'art. 7, comma {'2' if circolazione else '1'}, c.p.c. vigente.", [Rif("cpc:7", ancora)])]
-    return "Tribunale", [Punto(
+    return "Tribunale", [*contributo_unificato(valore), Punto(
         f"Competente per valore è il tribunale: {euro(valore)} supera il limite di {euro(limite)} del giudice di pace "
         f"(art. 7, comma {'2' if circolazione else '1'}, c.p.c. vigente) e il tribunale è competente per tutte le cause "
         "che non sono di competenza di altro giudice.",
@@ -212,3 +212,25 @@ def _calcolatore_competenza(valore: float, circolazione: bool) -> str:
         return str(esito.get("giudice_competente") or "")
     except Exception:
         return ""
+
+
+def contributo_unificato(valore: float, *, categoria: str = "civile_ordinario", giudice_pace: bool = False) -> list[Punto]:
+    """Contributo unificato dal calcolatore di IUSENTRA (art. 13 d.P.R. 115/2002) più l'anticipazione forfettaria
+    (art. 30). Nessun importo scritto a mano: se il calcolatore non risponde, il punto non c'è."""
+    try:
+        from pct.strumenti_legali import GestioneStrumentiLegali
+
+        r = GestioneStrumentiLegali().calcola_contributo_unificato({
+            "cu_categoria": categoria, "cu_valore": valore, "cu_valore_tipo": "determinato",
+            "cu_giudice_pace": giudice_pace, "cu_anticipazione_forfettaria": True})
+        totale, forfettaria = float(r.get("totale") or 0), float(r.get("anticipazione_forfettaria") or 0)
+    except Exception:
+        return []
+    if totale <= 0:
+        return []
+    cu = totale - forfettaria
+    return [Punto(f"Costi di iscrizione (calcolatore di IUSENTRA): contributo unificato {euro(cu)} per una causa di "
+                  f"{euro(valore)}" + (f", più {euro(forfettaria)} di anticipazione forfettaria" if forfettaria else "")
+                  + "; esenzioni e riduzioni (art. 10 d.P.R. 115/2002) da verificare sul caso.",
+                  [Rif("dpr115:13", "il contributo unificato e' dovuto nei seguenti importi"),
+                   *([Rif("dpr115:30", "anticipa")] if forfettaria else [])])]

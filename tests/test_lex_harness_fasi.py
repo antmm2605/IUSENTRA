@@ -157,3 +157,38 @@ def test_appalto_con_consumatore_niente_negoziazione_e_garanzia_di_conformita():
 
 def test_circondario_di_comune_non_sede():
     assert P.ufficio("Tribunale", "Modugno").startswith("Tribunale di Bari")
+
+
+def test_errore_della_regola_dichiarato_e_registrato(monkeypatch, caplog):
+    import lex.harness.http as H
+
+    def guasto(*a, **k):
+        raise RuntimeError("prova")
+
+    monkeypatch.setattr(H, "rispondi", guasto)
+    p = H.payload_harness("Redigi l'atto di citazione per la caparra versata dal mio cliente al promittente venditore.")
+    assert p is not None and p["confidence"] == 0.0 and "Analisi non completata" in p["answer"]
+    assert any("harness" in r.getMessage() for r in caplog.records)
+
+
+@archivio
+def test_prescrizione_interrotta_dalla_notifica_non_dal_deposito():
+    import json
+    from pathlib import Path
+
+    from lex.harness import rispondi
+
+    casi = json.loads((Path(__file__).parent / "lex_collaudo" / "casi_avvocato.json").read_text(encoding="utf-8"))["casi"]
+    base = next(c["domanda"] for c in casi if c["id"] == "D4_1_02")
+    # Scadenza 10/03/2016: dieci anni il 10/03/2026. Deposito prima (20/02/2026), notifica dopo (20/03/2026): prescritta.
+    domanda = (base.replace("25/09/2026 - Metalcarb deposita", "20/02/2026 - Metalcarb deposita")
+               .replace("20/10/2026 - viene notificato", "20/03/2026 - viene notificato"))
+    r = rispondi(domanda.replace("Data di oggi 05/11/2026", "Data di oggi 05/04/2026"))
+    assert "si eccepisce la prescrizione" in r.testo and "notificazione del ricorso e del decreto" in r.testo
+
+
+def test_feriale_617_esclusa_e_1137_applicata():
+    from lex.harness.termini import termine
+
+    assert termine("LEX_ESE_OPPOSIZIONE_ATTI_617", date(2026, 7, 25)) == date(2026, 8, 14)   # art. 92 ord. giud.
+    assert termine("LEX_CONDOMINIO_1137", date(2026, 7, 20)) == date(2026, 9, 19)            # Corte cost. 49/1990

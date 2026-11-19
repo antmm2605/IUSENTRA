@@ -57,13 +57,20 @@ def termini_futuri(fascicolo: Any) -> list[dict[str, str]]:
 
 
 def documenti_da_classificare(fascicolo: Any) -> int:
-    """Documenti senza voce di catalogo attiva o con la voce da rivedere."""
-    from web.services.document_intelligence_runtime import build_document_ai_repository, document_ai_tenant_id
+    """Documenti da verificare nel catalogo o non ancora catalogati (bozze dello studio escluse).
 
-    fid = _testo(getattr(fascicolo, "id", ""))
-    stati = build_document_ai_repository().catalog_status_by_document(document_ai_tenant_id(), fid)
-    return sum(1 for d in getattr(fascicolo, "documenti", []) or []
-               if stati.get(_testo(getattr(d, "id", "")), "review_required") == "review_required")
+    Stesso calcolo del pannello «Catalogazione documentale» e della Lettura (``catalogo_conteggi_runtime``)."""
+    from web.services.catalogo_conteggi_runtime import riepilogo_fascicolo
+
+    riepilogo = riepilogo_fascicolo(fascicolo)
+    return riepilogo["da_verificare"] + riepilogo["in_attesa"]
+
+
+def _numero_documenti(fascicolo: Any) -> int:
+    """I documenti del fascicolo: le bozze preparate dal software non si contano."""
+    from web.services.catalogo_conteggi_runtime import documenti_del_fascicolo
+
+    return len(documenti_del_fascicolo(fascicolo))
 
 
 def conteggio_pec_fascicolo(fascicolo: Any, lettura: dict[str, Any] | None) -> dict[str, Any]:
@@ -103,7 +110,7 @@ def quadro_fascicolo(fascicolo: Any) -> dict[str, Any]:
         riga_termini_da_lettura(termini, lettura, oggi),
         riga_economia_materializzata(fid, lettura, fascicolo=fascicolo),
         riga_notifiche_da_lettura(sintesi, lettura, oggi),
-        riga_documenti(len(getattr(fascicolo, "documenti", []) or []),
+        riga_documenti(_numero_documenti(fascicolo),
                        _sicuro(lambda: documenti_da_classificare(fascicolo), None, "catalogo"), pec),
     ]
     return {"ok": True, "stato": stato, "righe": righe, "termini_agenda": termini, "termini_agenda_versione": 2,

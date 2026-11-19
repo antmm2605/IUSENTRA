@@ -63,6 +63,7 @@ from pct.presidio_documentale_state import (
 )
 from pct.presidio_processuale_ruleset import is_pagopa_rt_contributo_xml, is_pagopa_rt_xml
 from pct.soggetti import soggetto_coincide_con_cliente
+from pct.bozze_passi.modello import e_bozza_del_software
 from pct.document_signature_state import (
     document_bytes_have_real_digital_signature,
     document_has_real_digital_signature,
@@ -8692,7 +8693,29 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None, solo_inv
                 "missing": [],
                 "needs_refresh": False,
             }
-        return fallback
+        return {**fallback, "present": _firma_presente_non_verificata(data, doc, display_names)}
+
+    def _firma_presente_non_verificata(data: bytes, doc: Any, display_names: tuple[Any, ...]) -> bool:
+        """Il file contiene una firma (busta CAdES/.p7m o firma PAdES) che la verifica crittografica non conferma."""
+        from pct.document_signature_state import is_signed_container_name
+
+        if is_signed_container_name(*display_names, getattr(doc, "nome", ""), getattr(doc, "nome_originale", "")):
+            return True
+        if data.startswith(b"%PDF-"):
+            try:
+                from pct.firma import analizza_firma_documento
+
+                return bool(analizza_firma_documento(data, _text(getattr(doc, "nome", ""))))
+            except Exception:
+                return False
+        if data[:1] == b"\x30":
+            try:
+                from asn1crypto import cms
+
+                return cms.ContentInfo.load(data)["content_type"].native == "signed_data"
+            except Exception:
+                return False
+        return False
 
     local_documents = list(getattr(fascicolo, "documenti", []) or [])
     saved_catalog = _saved_document_catalog_by_id(fascicolo)
@@ -8802,6 +8825,11 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None, solo_inv
                 "signatureReadyForDeposit": signature_state["ready"],
                 "signatureMissingAttributes": signature_state["missing"],
                 "signatureNeedsRefresh": signature_state["needs_refresh"],
+                # Esito della verifica sui byte del file: valida, presente ma non confermata, oppure nessuna firma
+                # digitale nel file (copie, PEC, ricevute: è la condizione normale dei documenti ricevuti).
+                "signatureCheck": "valida" if signed else ("non_confermata" if signature_state.get("present") else "assente"),
+                # Le bozze preparate dal software non sono documenti del fascicolo: il catalogo le mostra a parte.
+                "studioDraft": e_bozza_del_software(doc),
                 "statusLabel": "Firma CAdES-BES da aggiornare" if signature_state["needs_refresh"] else (
                     "Firmato" if signed else ("Firma non verificata" if solo_inventario else "Da firmare")
                 ),

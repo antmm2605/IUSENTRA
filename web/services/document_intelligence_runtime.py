@@ -13,6 +13,8 @@ from pct.document_crypto import doc_key
 from pct.document_intelligence import DocumentAIRepository, DocumentAIService, LexIndexingSummary
 from pct.document_intelligence.catalog_pipeline import FascicoloDocumentCatalogPipeline
 from pct.document_intelligence.catalog_resolver import REGISTRY_VERSION, RESOLVER_VERSION
+from pct.bozze_passi.modello import e_bozza_del_software
+from pct.document_intelligence.certezza_lettura import SOGLIA_CERTEZZA, motivo_da_confermare, riepilogo_catalogo, stato_catalogo
 from pct.document_intelligence.security import DocumentAINotFound, DocumentAIValidationError
 from pct.document_intelligence.sources import DocumentAISource, collect_fascicolo_document_sources
 from pct.fascicolo_sentenza_economica import (
@@ -255,18 +257,29 @@ def build_document_catalog_payload(
         if str(assignment.get("source_state") or "") == "manual_override"
         or str(assignment.get("status") or "") == "confirmed"
     ]
+    # Un solo calcolo dei conteggi (certezza_lettura.riepilogo_catalogo), lo stesso del quadro e della Lettura:
+    # documenti = catalogati + da verificare + in attesa; catalogati = automatici + confermati + proposti.
+    riepilogo = riepilogo_catalogo((item["assignment"] or {}).get("status") for item in documents)
     summary = {
-        "total": sum(item["status"] in {"catalogued", "proposed", "confirmed"} for item in current),
-        **{status: sum(item["status"] == status for item in current)
-           for status in ("catalogued", "proposed", "confirmed", "review_required")},
+        "total": riepilogo["catalogati"],
+        "catalogued": riepilogo["automatici"],
+        "proposed": riepilogo["proposti"],
+        "confirmed": riepilogo["confermati"],
+        "review_required": riepilogo["da_verificare"],
         "errors": len(run.errors),
         "stale": len(stale_assignments),
         "stale_assignments": len(stale_assignments),
         "stale_manual_or_confirmed": len(stale_manual_or_confirmed),
     }
-    summary["waiting_for_index"] = run.waiting_for_index
-    summary["awaiting_index"] = run.waiting_for_index
-    summary["source_documents"] = len(sources)
+    summary["waiting_for_index"] = riepilogo["in_attesa"]
+    summary["awaiting_index"] = riepilogo["in_attesa"]
+    summary["source_documents"] = riepilogo["documenti"]
+    summary["certainty_threshold"] = SOGLIA_CERTEZZA
+    bozze_studio = [
+        {"document_id": str(doc.id), "filename": str(getattr(doc, "nome", "") or "")}
+        for doc in getattr(fascicolo, "documenti", []) or [] if e_bozza_del_software(doc)
+    ]
+    summary["studio_drafts"] = len(bozze_studio)
     return {
         "fascicolo_id": str(fascicolo_id),
         "resolver_version": RESOLVER_VERSION,
@@ -274,6 +287,8 @@ def build_document_catalog_payload(
         "summary": summary,
         "run": run.to_dict(),
         "documents": documents,
+        # Le bozze preparate dal software: non sono documenti del fascicolo, il pannello le mostra a parte.
+        "studio_drafts": bozze_studio,
     }
 
 
@@ -442,6 +457,10 @@ def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: An
         return {}
     if source_urls is None:
         source_urls = _catalog_source_urls(repository, assignment)
+    evidenze = repository.list_catalog_evidence(assignment.id)
+    # La regola della certezza (direttiva del 10/11/2026): proposta certa dal contenuto = catalogata in automatico.
+    stato = stato_catalogo(assignment.status, assignment.confidence, ha_prova=bool(evidenze),
+                           automatico=bool((assignment.metadata or {}).get("automatic_classification")))
     return {
         "id": assignment.id,
         "document_id": assignment.document_id,
@@ -455,7 +474,8 @@ def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: An
         "document_section": assignment.document_section,
         "deposit_role": assignment.deposit_role,
         "deposit_candidate": bool(assignment.deposit_candidate),
-        "status": "catalogued" if assignment.status == "proposed" and bool((assignment.metadata or {}).get("automatic_classification")) else assignment.status,
+        "status": stato,
+        "certainty_note": motivo_da_confermare(assignment.status, assignment.confidence, ha_prova=bool(evidenze)),
         "confidence": int(assignment.confidence),
         "source_state": assignment.source_state,
         "resolver_version": assignment.resolver_version,
@@ -479,7 +499,7 @@ def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: An
                 "weight": int(item.weight),
                 "official_url": source_urls.get(item.locator, "") if item.evidence_type == "legal_source" else "",
             }
-            for item in repository.list_catalog_evidence(assignment.id)
+            for item in evidenze
         ],
     }
 

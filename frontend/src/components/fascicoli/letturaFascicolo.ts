@@ -290,14 +290,16 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
   const daLeggere = documenti.da_leggere_lettura ?? documenti.non_indicizzati.length
   const daCatalogare = Math.max(0, documenti.totale - documenti.catalogati)
   const proposti = documenti.proposti || 0
-  const certi = `${documenti.confermati} confermati` + (proposti ? ` · ${proposti} proposti da confermare` : '')
+  const automatici = documenti.automatici || 0
+  // Stesso calcolo del pannello «Catalogazione documentale»: automatici (certi dal contenuto), confermati, proposti.
+  const certi = [automatici ? `${automatici} catalogati in automatico` : '', `${documenti.confermati} confermati`, proposti ? `${proposti} proposti da confermare` : ''].filter(Boolean).join(' · ')
   return [
     {
       id: 'documenti',
       titolo: 'Documentazione',
       valore: `${documenti.catalogati}/${documenti.totale}`,
       // Confermati dall'avvocato e proposti dal catalogo si contano separati: una proposta non è una conferma.
-      nota: erroriLettura ? `${erroriLettura} letture non riuscite · ${daLeggere} da indicizzare · ${certi}` : daAcquisire ? `${daAcquisire} da acquisire dal portale · ${certi}` : daLeggere ? `${daLeggere} da indicizzare · ${certi}` : daVerificare ? `${daVerificare} da classificare · ${certi}` : daCatalogare ? `${daCatalogare} da verificare nel catalogo documentale · ${certi}` : documenti.totale ? (proposti ? `tutti letti · ${certi}` : 'tutti letti e catalogati' + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '')) : 'nessun documento',
+      nota: erroriLettura ? `${erroriLettura} letture non riuscite · ${daLeggere} da indicizzare · ${certi}` : daAcquisire ? `${daAcquisire} da acquisire dal portale · ${certi}` : daLeggere ? `${daLeggere} da indicizzare · ${certi}` : daVerificare ? `${daVerificare} da classificare · ${certi}` : daCatalogare ? `${daCatalogare} da verificare nel catalogo documentale · ${certi}` : documenti.totale ? (proposti ? `tutti letti · ${certi}` : 'tutti letti e catalogati' + (automatici ? ' · ' + automatici + ' in automatico' : '') + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '')) : 'nessun documento',
       tono: erroriLettura ? 'danger' : daAcquisire || daVerificare || daCatalogare ? 'warning' : daLeggere || proposti ? 'info' : documenti.totale ? 'success' : 'neutral',
       href: '#catalogazione-documentale',
     },

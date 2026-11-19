@@ -1,0 +1,1 @@
+import{in as e}from"./lettura-fascicolo-leV6dTau.js";import{t}from"./ImpostazioniPage-Bc72q0Ar.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

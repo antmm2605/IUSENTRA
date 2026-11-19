@@ -8,8 +8,10 @@ riga lo dice («da verificare») invece di indovinarlo.
 
 from __future__ import annotations
 
-from datetime import date
+import re
+from datetime import date, datetime
 from typing import Any, Iterable, Mapping
+from zoneinfo import ZoneInfo
 
 SEZIONI = {
     "prossimo_passo": ("Prossimo passo", "sezione-andamento"),
@@ -50,8 +52,60 @@ def riga(tema: str, testo: str, livello: str) -> dict[str, str]:
     return {"tema": tema, "titolo": titolo, "testo": testo, "livello": livello, "sezione": sezione}
 
 
+# Termini la cui inosservanza estingue il processo o fa decadere la parte: artt. 181, 307, 309 e 631 c.p.c. (mancata
+# comparizione e inattività delle parti, anche nell'esecuzione), art. 127-ter c.p.c. (note scritte in sostituzione
+# dell'udienza: il mancato deposito equivale alla mancata comparizione, quindi agli artt. 181 e 309 c.p.c.).
+_RE_TERMINE_GRAVE = re.compile(
+    r"\b(?:estinzion\w*|estint\w*|decadenz\w*|decad\w*|perentori\w*|127[- ]?ter|"
+    r"art(?:t)?\.?\s*(?:\d+\s*(?:,|e)\s*)*(?:181|307|309|631)(?!\d|[- ]?(?:bis|ter|quater)))\b",
+    re.IGNORECASE,
+)
+
+
+def termine_grave(passo: Mapping[str, Any]) -> bool:
+    """Il passo ha un termine perentorio o richiama estinzione o decadenza (artt. 181, 307, 309, 631, 127-ter c.p.c.)."""
+    if _testo(passo.get("natura")).lower() == "perentorio":
+        return True
+    testo = " ".join(_testo(passo.get(campo)) for campo in ("azione", "motivo", "norma", "prova"))
+    return bool(_RE_TERMINE_GRAVE.search(testo))
+
+
+def _data_entro(entro: str) -> date | None:
+    entro = _testo(entro)
+    if len(entro) == 10 and entro[2] == "/" and entro[5] == "/":
+        try:
+            return date(int(entro[6:]), int(entro[3:5]), int(entro[:2]))
+        except ValueError:
+            return None
+    return _giorno(entro)
+
+
+def livello_del_passo(passo: Mapping[str, Any], *, oggi: date | None = None) -> str:
+    """Il livello del prossimo passo nel quadro, con la regola giuridica e non solo l'urgenza del passo.
+
+    - un termine scaduto senza prova dell'adempimento è «urgente»;
+    - un termine perentorio, o un passo che cita estinzione o decadenza, è almeno «attenzione», e «urgente» se
+      scade entro 7 giorni;
+    - gli altri passi seguono l'urgenza assegnata dalla Lettura.
+    """
+    try:
+        urgenza = int(passo.get("urgenza"))
+    except (TypeError, ValueError):
+        urgenza = 2
+    livello = _LIVELLO_URGENZA.get(urgenza, "info")
+    if passo.get("scaduto"):
+        return "urgente"
+    if not termine_grave(passo):
+        return livello
+    giorno = _data_entro(_testo(passo.get("entro")))
+    oggi = oggi or datetime.now(ZoneInfo("Europe/Rome")).date()
+    if giorno is not None and (giorno - oggi).days <= 7:
+        return "urgente"  # anche un termine già passato ma non segnato «scaduto»: si verifica subito
+    return "urgente" if livello == "urgente" else "attenzione"
+
+
 def riga_prossimo_passo(passi: list[Mapping[str, Any]] | None, *, ripiego: str = "",
-                       motivo_stato: str = "") -> dict[str, str]:
+                       motivo_stato: str = "", oggi: date | None = None) -> dict[str, str]:
     """Il primo dei prossimi passaggi della Lettura; senza Lettura pronta, il passo economico o una frase onesta."""
     if passi:
         passo = passi[0]
@@ -60,11 +114,7 @@ def riga_prossimo_passo(passi: list[Mapping[str, Any]] | None, *, ripiego: str =
         norma = _testo(passo.get("norma"))
         if norma:
             testo += f" · {norma}"
-        try:
-            urgenza = int(passo.get("urgenza"))
-        except (TypeError, ValueError):
-            urgenza = 2
-        return riga("prossimo_passo", testo, "urgente" if passo.get("scaduto") else _LIVELLO_URGENZA.get(urgenza, "info"))
+        return riga("prossimo_passo", testo, livello_del_passo(passo, oggi=oggi))
     if passi is not None:
         if motivo_stato:
             return riga("prossimo_passo", motivo_stato, "info")
@@ -216,4 +266,4 @@ def riga_documenti(totale: int, da_classificare: int | None, pec: Mapping[str, A
     return riga("documenti", " · ".join(parti), livello)
 
 
-__all__ = ["SEZIONI", "obblighi_dal_modello", "riga", "riga_documenti", "riga_economia", "riga_notifiche", "riga_prossimo_passo", "riga_termini"]
+__all__ = ["SEZIONI", "livello_del_passo", "obblighi_dal_modello", "riga", "riga_documenti", "riga_economia", "riga_notifiche", "riga_prossimo_passo", "riga_termini", "termine_grave"]

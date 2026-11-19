@@ -1,5 +1,8 @@
 """Conferma in blocco delle proposte di catalogazione di un fascicolo.
 
+Le proposte riconosciute con certezza dal contenuto (``certezza_lettura.stato_catalogo``) sono già catalogate in
+automatico e non passano di qui: si confermano in blocco solo le proposte sotto la soglia di certezza.
+
 Confermare una proposta significa attestare che la prova letta dal contenuto
 è stata vista: la conferma massiva vale come attestazione per tutte le
 proposte che una prova ce l'hanno, passa dalla stessa revisione tracciata
@@ -11,6 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from pct.document_intelligence.certezza_lettura import STATO_AUTOMATICO, stato_catalogo
 from web.services.document_intelligence_runtime import (
     assert_document_ai_fascicolo_current_tenant,
     build_document_ai_service,
@@ -35,9 +39,13 @@ def conferma_proposte_catalogo(fascicolo_id: str, *, user_context: dict[str, Any
             continue
         documento_id = str(getattr(assegnazione, "document_id", "") or "")
         etichetta = str(getattr(assegnazione, "document_label", "") or "")
-        if not repository.list_catalog_evidence(getattr(assegnazione, "id", "")):
+        prova = bool(repository.list_catalog_evidence(getattr(assegnazione, "id", "")))
+        if not prova:
             senza_prova.append({"document_id": documento_id, "document_label": etichetta})
             continue
+        if stato_catalogo(assegnazione.status, getattr(assegnazione, "confidence", 0), ha_prova=prova,
+                          automatico=bool((getattr(assegnazione, "metadata", None) or {}).get("automatic_classification"))) == STATO_AUTOMATICO:
+            continue  # riconosciuta con certezza dal contenuto: già catalogata in automatico, nessuna conferma da chiedere
         try:
             resolve_document_catalog_assignment(
                 str(fascicolo_id), documento_id, status="confirmed", note=NOTA_CONFERMA_MASSIVA,

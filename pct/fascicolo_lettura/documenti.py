@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from pct.document_intelligence.certezza_lettura import riepilogo_catalogo
 from pct.document_intelligence.sezioni import SEZIONI_DOCUMENTO
 
 from ._testo import data_it, pulisci
@@ -153,14 +154,16 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
         candidati = [voce for voce in letti if not voce["bozza_locale"] and voce["natura"] in natura]
         return candidati[0] if candidati else None
 
+    riepilogo = riepilogo_catalogo(voce["stato_catalogo"] for voce in letti)
     return {
         "tutti": letti,
         "totale": len(letti),
         "conteggi": conteggi,
-        "catalogati": sum(1 for voce in letti if voce["stato_catalogo"] in {"catalogued", "proposed", "confirmed"}),
-        "proposti": sum(1 for voce in letti if voce["stato_catalogo"] == "proposed"),
-        "automatici": sum(1 for voce in letti if voce["stato_catalogo"] == "catalogued"),
-        "confermati": sum(1 for voce in letti if voce["stato_catalogo"] == "confirmed"),
+        # Lo stesso calcolo del pannello «Catalogazione documentale» e del quadro (certezza_lettura).
+        "catalogati": riepilogo["catalogati"],
+        "proposti": riepilogo["proposti"],
+        "automatici": riepilogo["automatici"],
+        "confermati": riepilogo["confermati"],
         "da_verificare": [voce for voce in letti if voce["sezione"] == "da-verificare"],
         "non_indicizzati": [voce for voce in letti if not voce["indicizzato"] and not voce["da_acquisire"]],
         "da_acquisire": [voce for voce in letti if voce["da_acquisire"]],

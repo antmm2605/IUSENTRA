@@ -42,7 +42,7 @@ def analizza_ricorso_di(c: Comprensione, f: Fatti) -> Analisi:
         a.competenza += punti
         citta, foro = P.foro_convenuto(f)
         a.competenza += foro
-        a.giudice = f"{giudice} di {citta}" if giudice and citta else giudice
+        a.giudice = P.ufficio(giudice, citta) if giudice else giudice
         if a.giudice:
             a.competenza.append(Punto("Per i crediti pecuniari liquidi concorre anche il domicilio del creditore, dove "
                                       "l'obbligazione deve eseguirsi.", [Rif("cc:1182", "domicilio che il creditore ha al tempo della scadenza"),
@@ -90,4 +90,85 @@ def analizza_notifica_di(c: Comprensione, f: Fatti) -> Analisi:
     a = Analisi("notifica_decreto_ingiuntivo", "monitorio")
     a.conclusione = [Punto("Il decreto ingiuntivo va notificato entro sessanta giorni dalla pronuncia, novanta se la "
                            "notificazione si fa all'estero; altrimenti diventa inefficace.", [Rif("cpc:644", "sessanta giorni")])]
+    return a
+
+
+# ------------------------------------------------------------------- opposizione a decreto ingiuntivo
+def riconosci_opposizione_di(c: Comprensione, f: Fatti) -> int:
+    return 5 if c.atto == "opposizione a decreto ingiuntivo" or (
+        re.search(r"opposizion", piano(f.testo)) and re.search(r"decreto ingiuntivo n\.", piano(f.testo))) else 0
+
+
+def analizza_opposizione_di(c: Comprensione, f: Fatti) -> Analisi:
+    from ..termini import data_breve, termine_anni, termine_giorni
+    from .strumenti import date_in, forma
+
+    t = piano(f.testo)
+    a = Analisi("opposizione_decreto_ingiuntivo", "monitorio", modello="MON_004", forma=forma(c))
+    m_not = re.search(r"(\d{1,2}/\d{1,2}/\d{4})\s*-\s*viene notificato[^.]{0,80}decreto ingiuntivo", t) or re.search(
+        r"decreto ingiuntivo[^.]{0,80}notificat\w*[^.]{0,20}(\d{1,2}/\d{1,2}/\d{4})", t)
+    notifica = date_in(m_not.group(1))[0] if m_not else None
+    m_uff = re.search(r"del (tribunale di [a-z]+)", t)
+    ufficio = m_uff.group(1).title() if m_uff else "ufficio che ha emesso il decreto"
+    fatture = [(m.group(2), date_in(m.group(1))[0], float(m.group(3).replace(".", "")))
+               for m in re.finditer(r"(\d{1,2}/\d{1,2}/\d{4})\s*-(?:(?!\d{1,2}/\d{1,2}/\d{4}).){0,160}?fattura n\.\s*(\d+) di euro ([\d.]+)", t)]
+    scadenze = {m.group(1): date_in(m.group(2))[0] for m in re.finditer(r"fattura n\.\s*(\d+)(?:(?!\d{1,2}/\d{1,2}/\d{4}).){0,120}?scadenz\w*[^0-9]{0,20}(\d{1,2}/\d{1,2}/\d{4})", t)}
+    m_ing = re.search(r"ingiunge il pagamento di euro ([\d.]+)|per euro ([\d.]+) \(fatture", t)
+    ingiunto = float((m_ing.group(1) or m_ing.group(2)).replace(".", "")) if m_ing else sum(v for *_, v in fatture)
+    m_pag = re.search(r"paga a [^.]{0,40}?euro ([\d.]+)[^.]{0,80}?fattura n\.\s*(\d+)", t)
+    deposito = (date_in((re.search(r"(\d{1,2}/\d{1,2}/\d{4})\s*-[^.]{0,40}deposita ricorso", t) or [None, ""])[1] or "") or [None])[0]
+    a.rimedio = "atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.)"
+    a.giudice = ufficio
+    a.inquadramento = [
+        Punto("L'opposizione si propone entro quaranta giorni dalla notificazione, con atto di citazione davanti all'ufficio "
+              "giudiziario al quale appartiene il giudice che ha emesso il decreto.",
+              [Rif("cpc:641", "quaranta giorni"), Rif("cpc:645", "ufficio giudiziario al quale appartiene il giudice")]),
+    ]
+    prescritte = []
+    for n, d, v in fatture:
+        sc = scadenze.get(n)
+        if sc and deposito and termine_anni(sc, 10) < deposito and re.search(r"mai chiesto per iscritto|mai riconosciut", t):
+            prescritte.append((n, sc, v))
+            a.inquadramento.append(Punto(
+                f"La fattura n. {n} ({euro(v)}) scadeva il {sc.strftime('%d/%m/%Y')}: la prescrizione decorre dal giorno in cui "
+                f"il diritto può essere fatto valere e il termine ordinario è di dieci anni, maturati il "
+                f"{termine_anni(sc, 10).strftime('%d/%m/%Y')}, prima del ricorso e senza atti interruttivi: si eccepisce la prescrizione.",
+                [Rif("cc:2935", "dal giorno in cui il diritto puo essere fatto valere"), Rif("cc:2946", "dieci anni")]))
+    pagato = None
+    if m_pag:
+        pagato = (float(m_pag.group(1).replace(".", "")), m_pag.group(2))
+        a.inquadramento.append(Punto(
+            f"Chi ha più debiti verso la stessa persona può dichiarare, quando paga, quale intende soddisfare: il pagamento di "
+            f"{euro(pagato[0])} va imputato alla fattura n. {pagato[1]}, come da causale.", [Rif("cc:1193", "dichiarare")]))
+    if notifica:
+        lim = termine_giorni(notifica, 40)
+        a.termini = [Punto(f"Decreto notificato il {data_breve(notifica)}: opposizione entro {data_breve(lim)} (quaranta "
+                           "giorni, termine processuale).", [Rif("cpc:641", "quaranta giorni")])]
+        if lim >= f.oggi:
+            a.avvertenze.append("Il termine è ancora aperto: l'opposizione tardiva (art. 650 c.p.c.) non serve.")
+    dovuto = ingiunto - sum(v for *_, v in prescritte) - (pagato[0] if pagato else 0)
+    a.conclusione = [Punto(f"Somma ingiunta {euro(ingiunto)}; non dovuti {euro(ingiunto - dovuto)}"
+                           + (f" (fattura prescritta e pagamento)" if prescritte and pagato else "") +
+                           f"; somma effettivamente dovuta in linea capitale {euro(dovuto)}. Chiedere la revoca del decreto e "
+                           "l'accertamento della minor somma, senza contestare le forniture non contestabili.",
+                           [Rif("cpc:645", "ufficio giudiziario al quale appartiene il giudice")])]
+    a.procedibilita = [Punto("La negoziazione assistita non si applica ai procedimenti per ingiunzione, inclusa "
+                             "l'opposizione; la mediazione, se la materia la richiede, non si applica fino alla pronuncia sulle "
+                             "istanze di provvisoria esecuzione.", [Rif("dl132:3", "procedimenti per ingiunzione, inclusa l'opposizione"),
+                                                                   Rif("dlgs28:5", "procedimenti per ingiunzione, inclusa l'opposizione")])]
+    a.dati_mancanti = ["codici fiscali e PEC delle parti", "data dell'udienza nel rispetto dei termini a comparire"]
+    if c.tipo == "redazione":
+        from ..bozze import ricorso_generico
+
+        a.bozza = ricorso_generico(
+            "Atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.)", ufficio.upper(), f,
+            "revoca del decreto ingiuntivo e accertamento della minor somma dovuta",
+            ["Tempestività: opposizione proposta nei quaranta giorni davanti all'ufficio che ha emesso il decreto (artt. 641 e "
+             "645 c.p.c.).", "Prescrizione decennale della fattura scaduta da oltre dieci anni (artt. 2935 e 2946 c.c.).",
+             "Pagamento parziale imputato dal debitore alla fattura indicata in causale (art. 1193 c.c.).",
+             f"Somma dovuta in linea capitale: {euro(dovuto)}."],
+            "revocare il decreto ingiuntivo; dichiarare prescritto il credito della fattura indicata e parzialmente estinto per "
+            f"pagamento quello della fattura saldata in parte; accertare che l'opponente deve la sola somma di {euro(dovuto)}; "
+            "con vittoria di spese.", "decreto notificato, fatture, contabile del bonifico.",
+            "artt. 163, 641 e 645 c.p.c.")
     return a

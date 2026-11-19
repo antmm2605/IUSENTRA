@@ -9,11 +9,24 @@ from collections.abc import Callable
 from ..comprensione import Comprensione
 from ..fatti import Fatti
 from ..modello import Analisi
-from . import civile, domande, famiglia, lavoro, locazione, monitorio
+from . import appalto, civile, domande, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
 
 Regola = tuple[str, Callable[[Comprensione, Fatti], int], Callable[[Comprensione, Fatti], Analisi]]
 
 REGOLE: tuple[Regola, ...] = (
+    ("opposizione_precetto", esecuzione.riconosci_opposizione_precetto, esecuzione.analizza_opposizione_precetto),
+    ("opposizione_decreto_ingiuntivo", monitorio.riconosci_opposizione_di, monitorio.analizza_opposizione_di),
+    ("opposizione_sfratto_commerciale", locazione.riconosci_sfratto_commerciale, locazione.analizza_sfratto_commerciale),
+    ("negoziazione_locazione_inadatta", locazione.riconosci_negoziazione_locazione, locazione.analizza_negoziazione_locazione),
+    ("restituzione_canone_non_registrato", locazione.riconosci_indebito_locazione, locazione.analizza_indebito_locazione),
+    ("sequestro_conservativo", varie.riconosci_sequestro, varie.analizza_sequestro),
+    ("opposizione_verbale_cds", varie.riconosci_verbale_cds, varie.analizza_verbale_cds),
+    ("disconoscimento_paternita", varie.riconosci_disconoscimento, varie.analizza_disconoscimento),
+    ("chiamato_nel_possesso", varie.riconosci_eredita_possesso, varie.analizza_eredita_possesso),
+    ("diffida_commerciale", stragiudiziale.riconosci_diffida_commerciale, stragiudiziale.analizza_diffida_commerciale),
+    ("sinistro_stradale", stragiudiziale.riconosci_sinistro, stragiudiziale.analizza_sinistro),
+    ("vizi_appalto", appalto.riconosci_vizi_appalto, appalto.analizza_vizi_appalto),
+    ("termini_precetto", esecuzione.riconosci_termini_precetto, esecuzione.analizza_termini_precetto),
     ("caparra_confirmatoria", civile.riconosci_caparra, civile.analizza_caparra),
     ("impugnazione_licenziamento", lavoro.riconosci_licenziamento, lavoro.analizza_licenziamento),
     ("appello_lavoro", domande.riconosci_appello_lavoro, domande.analizza_appello_lavoro),
@@ -28,7 +41,6 @@ REGOLE: tuple[Regola, ...] = (
     ("notifica_decreto_ingiuntivo", monitorio.riconosci_notifica_di, monitorio.analizza_notifica_di),
     ("decreto_ingiuntivo", monitorio.riconosci_ricorso_di, monitorio.analizza_ricorso_di),
     ("opposizione_atti_esecutivi", domande.riconosci_opposizione_atti, domande.analizza_opposizione_atti),
-    ("precetto", domande.riconosci_precetto, domande.analizza_precetto),
     ("impugnazione_delibera", domande.riconosci_delibera, domande.analizza_delibera),
     ("lite_condominio", domande.riconosci_lite_condominio, domande.analizza_lite_condominio),
     ("consumatore", domande.riconosci_consumatore, domande.analizza_consumatore),

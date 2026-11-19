@@ -33,7 +33,11 @@ def _diffida(f: Fatti):
 
 
 def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
-    a = Analisi("caparra_confirmatoria", "civile — contratti", modello="CIV_ORD_001")
+    a = Analisi("caparra_confirmatoria", "civile — contratti", modello="CIV_ORD_001",
+                forma="atto" if c.tipo == "redazione" else "parere (consulenza)",
+                rimedio=("atto di citazione (rito ordinario di cognizione, con valutazione motivata del procedimento "
+                         "semplificato) per l'accertamento del legittimo recesso ex art. 1385, comma 2, c.c. e la condanna al "
+                         "pagamento del doppio della caparra"))
     caparra = f.importo("caparra")
     prezzo = f.importo("prezzo")
     att, conv = _nome(f.assistita, "parte assistita"), _nome(f.controparte, "controparte")
@@ -72,6 +76,11 @@ def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
               "al rogito fissato (verbale notarile), la diffida rimasta senza risposta e l'offerta dell'immobile a terzi.",
               [Rif("cc:1455", "ha scarsa importanza")]),
     ]
+    if re.search(r"rogito fissato entro|stipula entro|entro il \d{1,2}/\d{1,2}/\d{4} presso notaio", piano(f.testo)):
+        a.inquadramento.append(Punto(
+            "Il termine fissato per il rogito non è qualificato come essenziale nel contratto: non si invoca la risoluzione "
+            "per termine essenziale, ma l'inadempimento definitivo dimostrato dalla diffida e dall'offerta a terzi.",
+            [Rif("cc:1457", "essenziale nell'interesse dell'altra")]))
     ev, giorni, ricevuta = _diffida(f)
     if ev:
         punto = ("Diffida ad adempiere: il termine non può essere inferiore a quindici giorni; decorso il termine senza "
@@ -104,7 +113,7 @@ def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
     citta, punti_foro = P.foro_convenuto(f)
     a.competenza += punti_foro
     if giudice:
-        a.giudice = f"{giudice} di {citta}" if citta else giudice
+        a.giudice = P.ufficio(giudice, citta)
     for p in a.conclusione:
         p.testo = p.testo.replace("GIUDICE_COMPETENTE", a.giudice or "giudice competente [da verificare]")
     a.competenza.append(Punto(
@@ -165,6 +174,11 @@ def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
         if cu:
             a.cosa_fare.append(cu)
     a.dubbi.append("Luogo di conclusione del preliminare [da completare]: serve solo per il foro alternativo dell'art. 20 c.p.c.")
+    a.dati_mancanti = ["codice fiscale e PEC del convenuto (pubblici elenchi)", "data di notifica e calendario delle udienze",
+                       "procura alle liti"]
+    a.avvertenze = ["La data dell'udienza va indicata rispettando i 120 giorni liberi dalla notifica e l'invito a costituirsi "
+                    "70 giorni prima, con gli avvertimenti dell'art. 163, comma 3, n. 7, c.p.c.",
+                    "Interessi legali sul doppio della caparra dalla domanda al saldo: non quantificati nell'atto."]
     if c.tipo == "redazione":
         from ..bozze import citazione_caparra
 

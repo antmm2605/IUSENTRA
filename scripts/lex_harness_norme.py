@@ -117,5 +117,58 @@ def main() -> int:
     return 0
 
 
+
+
+# Atti assenti dall'archivio: testo vigente scaricato da Normattiva (Akoma Ntoso), stessa lettura dell'importatore.
+URN_NORMATTIVA = {
+    "dlgs231": "urn:nir:stato:decreto.legislativo:2002-10-09;231",
+    "dpr600": "urn:nir:presidente.repubblica:decreto:1973-09-29;600",
+    "l241": "urn:nir:stato:legge:1990-08-07;241",
+}
+
+
+def da_normattiva(chiavi: list[str]) -> int:
+    from lxml import etree
+
+    from lex.normativa.biblioteca.normattiva_akn import NS, _numero, _testo, scarica
+
+    istantanea = json.loads(ISTANTANEA.read_text(encoding="utf-8"))
+    oggi = date.today()
+    per_atto: dict[str, list[str]] = {}
+    for k in chiavi:
+        per_atto.setdefault(k.split(":")[0], []).append(k)
+    for prefisso, voci in per_atto.items():
+        urn = URN_NORMATTIVA.get(prefisso)
+        if not urn:
+            print(f"{prefisso}: URN non censito")
+            continue
+        atto = scarica(urn, oggi.strftime("%Y%m%d"))
+        radice = etree.fromstring(atto.xml, etree.XMLParser(resolve_entities=False, no_network=True, huge_tree=True))
+        articoli = {}
+        for el in radice.iter("{%s}article" % NS["a"]):
+            num = el.find("a:num", NS)
+            if num is not None:
+                articoli.setdefault(_numero(_testo(num)), el)
+        for k in voci:
+            numero = k.split(":")[1]
+            el = articoli.get(numero)
+            if el is None:
+                print(f"{k}: articolo non trovato nel testo Normattiva")
+                continue
+            testo = _testo(el)
+            istantanea["norme"][k] = {
+                "citazione": NORME[k].citazione, "testo": testo, "url": f"https://www.normattiva.it/uri-res/N2Ls?{urn}~art{numero}",
+                "titolo_atto": atto.titolo_pagina[:200], "aggiornamento": date.fromisoformat(atto.data_espressione).strftime("%d/%m/%Y") if atto.data_espressione else "", "vigente": True,
+                "origine": f"Normattiva, testo vigente al {oggi.strftime('%d/%m/%Y')} (Akoma Ntoso)",
+                "sha256": hashlib.sha256(testo.encode()).hexdigest(),
+            }
+            istantanea["mancanti"] = [m for m in istantanea.get("mancanti", []) if not m.startswith(k + ":")]
+            print(f"{k}: letto da Normattiva ({len(testo)} caratteri)")
+    ISTANTANEA.write_text(json.dumps(istantanea, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return 0
+
+
 if __name__ == "__main__":
+    if "--normattiva" in sys.argv:
+        raise SystemExit(da_normattiva(sys.argv[sys.argv.index("--normattiva") + 1].split(",")))
     raise SystemExit(main())

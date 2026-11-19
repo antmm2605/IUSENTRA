@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from .fatti import Fatti, euro
 from .modello import Punto, Rif
+from functools import lru_cache
+
 from .norme import importo_in_lettere_dopo
 
 # Materie dell'art. 5, comma 1, d.lgs. 28/2010 (mediazione obbligatoria): nome → parole letterali del testo vigente.
@@ -142,3 +144,28 @@ def rito_ordinario_o_semplificato(*, documentale: bool, monocratico: bool = True
         + ([Rif("cpc:281decies", "composizione monocratica")] if monocratico else []))
     punti.append(alternativa)
     return punti
+
+
+@lru_cache(maxsize=1)
+def _uffici() -> frozenset[str]:
+    try:
+        from pct.uffici_giudiziari import _build_bundle_completo
+
+        return frozenset(u["nome"].lower() for u in _build_bundle_completo() if u.get("tipo") in {"TRIBUNALE", "GDP"})
+    except Exception:
+        return frozenset()
+
+
+def ufficio(giudice: str, citta: str) -> str:
+    """«Tribunale di Bari» solo se l'ufficio esiste nel bundle dei 648 uffici; altrimenti il circondario resta da verificare.
+
+    Il comune del fatto («Modugno») non è sempre sede di tribunale: la geografia giudiziaria (d.lgs. 155/2012) decide il
+    circondario, che qui non si indovina.
+    """
+    if not citta:
+        return giudice
+    nome = (f"Ufficio del Giudice di Pace di {citta}" if giudice.lower().startswith("giudice di pace")
+            else f"{giudice} di {citta}")
+    if nome.lower() in _uffici():
+        return nome.replace("Ufficio del Giudice di Pace", "Giudice di pace")
+    return f"{giudice} nel cui circondario si trova {citta} [ufficio da verificare]"

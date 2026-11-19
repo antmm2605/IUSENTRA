@@ -14,8 +14,11 @@ from .norme import piano
 
 # Atti che l'avvocato chiede di redigere (ordine: dal più specifico).
 ATTI: tuple[tuple[str, str], ...] = (
+    ("opposizione a decreto ingiuntivo", r"opposizion\w*.{0,60}(?:decreto ingiuntivo|ingiunzione)"),
+    ("opposizione a precetto", r"opposizion\w*.{0,60}precett|precett.{0,80}\bopposizion"),
+    ("opposizione alla convalida di sfratto", r"opposizion\w*.{0,40}convalida"),
+    ("memoria", r"\bmemori[ae]\b"),
     ("ricorso per decreto ingiuntivo", r"ricorso (?:per|di) (?:decreto )?ingiuntiv|(?:decreto|ingiunzione) ingiuntiv|decreto ingiuntivo|ricorso monitorio"),
-    ("opposizione a decreto ingiuntivo", r"opposizione (?:al|a) decreto ingiuntivo"),
     ("intimazione di sfratto", r"intimazione di sfratto|sfratto per morosita|atto di sfratto|\bsfratto\b"),
     ("ricorso per separazione o divorzio", r"ricorso (?:per|di) (?:separazione|divorzio)|separazione giudiziale|divorzio giudiziale"),
     ("ricorso nel rito del lavoro", r"ricorso.{0,60}(?:lavor|retribu|licenzia|tfr)|(?:lavor|licenzia).{0,40}\bricorso\b"),
@@ -93,8 +96,14 @@ def comprendi(testo: str) -> Comprensione:
     if not t:
         return Comprensione("altro")
     racconto = e_racconto_di_fatti(testo)
-    atto = atto_richiesto(testo)
-    verbo = re.search(_VERBI_REDAZIONE, t) is not None
+    # Nel racconto strutturato la richiesta è la parte fra «Richiesta dell'avvocato» e «Fatti»: atto e verbo si
+    # leggono lì, non nei fatti («ricorso per sequestro» nei fatti non è la richiesta di redigere un ricorso).
+    m_rich = re.search(r"richiesta dell avvocato\s*:?\s*(.+?)(?:\bfatti del fascicolo\b|$)", t)
+    richiesta = m_rich.group(1) if m_rich else t
+    atto = atto_richiesto(richiesta)
+    verbo = re.search(_VERBI_REDAZIONE, richiesta) is not None
+    if re.search(r"\bparere\b|\bconsulenza\b", richiesta) and not re.search(r"(?:redig|prepar|scriv)\w* (?:l |il |la |un |una )?(?:atto|ricorso|citazione|comparsa)", richiesta):
+        return Comprensione("parere", atto, racconto, True, ["richiesta di parere"])
     oggetto = re.search(_OGGETTI_GIURIDICI, t) is not None
     parere = re.search(_PARERE, t) is not None
     termine = re.search(_TERMINE, t) is not None

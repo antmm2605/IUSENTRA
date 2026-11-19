@@ -190,7 +190,8 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
     m = re.search(r"(?i:immobile|appartamento|locale|negozio|unita immobiliare|villa|box)[^.]{0,30}?\b(?i:in|a|sito in|sito a)\s+" + _CITTA, grezzo)
     if m:
         f.luogo_immobile = m.group(1).strip()
-    m = re.search(r"(?i:lavorato|lavora|prestato servizio|presta servizio|sede di lavoro|addetto)[^.]{0,40}?\b(?i:a|in|presso la sede di)\s+" + _CITTA, grezzo)
+    m = re.search(r"(?i:sede di lavoro)\s*:?\s*" + _CITTA, grezzo) or re.search(
+        r"(?i:lavorato|lavora|prestato servizio|presta servizio|addetto)[^.]{0,40}?\b(?i:a|in|presso la sede di)\s+" + _CITTA, grezzo)
     if m:
         f.luogo_lavoro = m.group(1).strip()
     for nome, espr in _SEGNALI.items():

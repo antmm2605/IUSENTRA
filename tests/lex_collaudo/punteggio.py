@@ -62,3 +62,59 @@ def riepilogo(esiti: list[Esito]) -> str:
         if not x.corretta:
             righe.append(f"- {x.id}: mancano {x.mancanti} vietate {x.vietate} norme {x.norme_mancanti} non verificate {x.inventate}")
     return "\n".join(righe)
+
+
+# ------------------------------------------------------------------- casi del banco dell'avvocato (22 casi)
+CRITERI = (("rimedio", "rimedio e forma"), ("giudice_rito", "giudice e rito"), ("norme", "norme essenziali"),
+           ("termini_importi", "termini e importi"), ("avvertenze", "avvertenze e procedibilità"),
+           ("dati", "dati mancanti"), ("bozza", "bozza dell'atto"), ("inventate", "nessuna norma inventata"))
+
+
+def carica_casi() -> list[dict]:
+    return json.loads((CARTELLA / "casi_avvocato.json").read_text(encoding="utf-8"))["casi"]
+
+
+@dataclass
+class EsitoCaso:
+    id: str
+    criteri: dict = field(default_factory=dict)
+    mancanze: list[str] = field(default_factory=list)
+
+    @property
+    def corretto(self) -> bool:
+        return all(self.criteri.values())
+
+
+def valuta_caso(caso: dict, risposta: str) -> EsitoCaso:
+    from lex.harness.controllo import citazioni
+    from lex.harness.norme import NORME, testo_norma
+
+    att = caso["attese"]
+    t = piano(risposta)
+    e = EsitoCaso(caso["id"])
+    for chiave in ("rimedio", "giudice_rito", "termini_importi", "avvertenze", "dati"):
+        manca = [x for x in att.get(chiave, []) if not re.search(x, t)]
+        e.criteri[chiave] = not manca
+        e.mancanze += [f"{chiave}: {x}" for x in manca]
+    citate = {k for _, k in citazioni(risposta)}
+    manca = [k for k in att["norme"] if k not in citate and piano(NORME[k].citazione) not in t]
+    e.criteri["norme"] = not manca
+    e.mancanze += [f"norma: {k}" for k in manca]
+    e.criteri["bozza"] = (not att.get("bozza")) or "**bozza dell'atto**" in t or "bozza dell'atto" in t
+    if not e.criteri["bozza"]:
+        e.mancanze.append("bozza assente")
+    inv = sorted({c for c, k in citazioni(risposta) if not k or k not in NORME or testo_norma(k) is None})
+    e.criteri["inventate"] = not inv
+    e.mancanze += [f"non verificata: {x}" for x in inv]
+    return e
+
+
+def riepilogo_casi(esiti: list[EsitoCaso]) -> str:
+    ok = sum(1 for e in esiti if e.corretto)
+    righe = [f"Casi dell'avvocato corretti {ok}/{len(esiti)} ({100 * ok / max(1, len(esiti)):.0f}%)"]
+    for chiave, nome in CRITERI:
+        righe.append(f"  {nome}: {sum(1 for e in esiti if e.criteri.get(chiave))}/{len(esiti)}")
+    for e in esiti:
+        if not e.corretto:
+            righe.append(f"- {e.id}: {e.mancanze}")
+    return "\n".join(righe)

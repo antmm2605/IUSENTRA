@@ -19,8 +19,22 @@ _SIGLE = {
     "l. 604/1966": "l604", "l. 898/1970": "l898", "d.lgs. 206/2005": "dlgs206", "d.p.r. 1199/1971": "dpr1199",
     "d.p.r. 115/2002": "dpr115", "d.lgs. 546/1992": "dlgs546", "d.lgs. 104/2010": "cpa",
 }
-_ATTO = r"(c\.p\.a\.|c\.p\.c\.|c\.p\.p\.|c\.c\.|c\.p\.|d\.l\. 132/2014|d\.lgs\. 28/2010|l\. \d{2,4}/\d{4}|d\.lgs\. \d+/\d{4}|d\.p\.r\. \d+/\d{4})"
-_NUM = r"\d{1,4}(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies|undecies|duodecies))?(?:\.\d{1,2})?"
+# Sigle degli atti del catalogo ricavate dalle citazioni («art. 13 l. 431/1998» → l431) e nomi d'uso dei codici.
+_ALIAS = {"cod. strada": "dlgs285", "c.d.s.": "dlgs285", "codice della strada": "dlgs285", "cod. ass.": "dlgs209",
+          "st. lav.": "l300", "cod. consumo": "dlgs206"}
+
+
+def _sigle_catalogo() -> dict[str, str]:
+    out = dict(_SIGLE)
+    for chiave, n in NORME.items():
+        atto = re.sub(r"\s*\(.*\)$", "", n.citazione.split(" ", 2)[2]).lower().replace("d.p.r.", "d.p.r.")
+        out.setdefault(atto, chiave.split(":")[0])
+    out.update(_ALIAS)
+    return out
+
+
+_ATTO = r"(cod\. strada|c\.d\.s\.|cod\. ass\.|st\. lav\.|c\.p\.a\.|c\.p\.c\.|c\.p\.p\.|c\.c\.|c\.p\.|d\.l\. 132/2014|d\.lgs\. 28/2010|l\. \d{2,4}/\d{4}|d\.lgs\. \d+/\d{4}|d\.p\.r\. \d+/\d{4})"
+_NUM = r"\d{1,4}(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|nonies|decies|undecies|duodecies))?(?:\.\d{1,2})?"
 _CITAZIONE = re.compile(r"\bartt?\.\s*((?:" + _NUM + r")(?:(?:\s*,\s*|\s+e\s+|\s*-\s*)" + _NUM + r")*)"
                         r"(?:\s*(?:ss\.|e ss\.|seg\w*))?(?:,\s*comm[ai]\s*[\d\s,e-]+(?:,\s*n+\.\s*[\d-]+(?:-bis)?)?)?(?:,)?\s+" + _ATTO,
                         re.IGNORECASE)
@@ -28,7 +42,7 @@ _CITAZIONE = re.compile(r"\bartt?\.\s*((?:" + _NUM + r")(?:(?:\s*,\s*|\s+e\s+|\s
 
 def chiave_da_citazione(numero: str, atto: str) -> str:
     atto = atto.lower()
-    prefisso = _SIGLE.get(atto)
+    prefisso = _sigle_catalogo().get(atto)
     if prefisso is None:
         return ""
     return f"{prefisso}:{numero.lower().replace('-', '').replace('.', '')}"

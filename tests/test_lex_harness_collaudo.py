@@ -48,3 +48,15 @@ def test_ferrandina_risolto_per_intero():
     for sezione in ("**Cosa ho capito**", "**Conclusione**", "**Come e perché**", "**Termini**", "**Cosa fare**",
                     "**Dubbi e dati da completare**", "**Norme applicate**", "**Bozza dell'atto**"):
         assert sezione in testo
+
+
+def test_casi_avvocato_almeno_90_per_cento():
+    from tests.lex_collaudo.punteggio import carica_casi, riepilogo_casi, valuta_caso
+
+    esiti = []
+    for caso in carica_casi():
+        payload = payload_harness(caso["domanda"], risposta_certa=_certa)
+        esiti.append(valuta_caso(caso, str(payload.get("answer") or "") if payload else ""))
+    print(riepilogo_casi(esiti))
+    assert all(e.criteri["inventate"] for e in esiti), riepilogo_casi(esiti)
+    assert sum(1 for e in esiti if e.corretto) / len(esiti) >= 0.9, riepilogo_casi(esiti)

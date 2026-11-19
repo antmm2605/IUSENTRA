@@ -7,6 +7,7 @@ from ..comprensione import Comprensione
 from ..fatti import Fatti
 from ..modello import Analisi, Punto, Rif
 from ..norme import piano
+from .. import procedura as P
 
 
 def riconosci_separazione(c: Comprensione, f: Fatti) -> int:
@@ -32,7 +33,7 @@ def analizza_separazione(c: Comprensione, f: Fatti) -> Analisi:
                           "minore ha la residenza abituale" + (f" (qui: {luogo_minore})" if luogo_minore else "") +
                           "; altrimenti valgono gli altri criteri dello stesso articolo (residenza del convenuto).",
                           [Rif("cpc:473bis11", "residenza abituale")])]
-    a.giudice = f"Tribunale di {luogo_minore or luogo}" if (luogo_minore or luogo) else "Tribunale"
+    a.giudice = P.ufficio("Tribunale", luogo_minore or luogo) if (luogo_minore or luogo) else "Tribunale"
     a.inquadramento = [
         Punto("La separazione giudiziale si chiede quando si verificano fatti tali da rendere intollerabile la "
               "prosecuzione della convivenza o recare grave pregiudizio all'educazione dei figli.",

@@ -27,6 +27,12 @@ def componi(domanda_tipo: str, a: Analisi, esito: EsitoControllo, domanda: str =
     righe: list[str] = []
     righe.append("**Cosa ho capito**")
     righe += [f"- {x}" for x in a.capito] or [f"- Domanda: «{' '.join(domanda.split())[:300]}»"]
+    if a.forma or a.rimedio:
+        righe += ["", "**Forma e rimedio**"]
+        if a.forma:
+            righe.append(f"- Forma: {a.forma}.")
+        if a.rimedio:
+            righe.append(f"- Rimedio: {a.rimedio}" + (f" — {a.giudice}." if a.giudice and a.giudice not in a.rimedio else "."))
     if a.conclusione:
         righe += ["", "**Conclusione**"] + [_riga(p) for p in a.conclusione]
     come = [("Inquadramento", a.inquadramento), ("Competenza e valore della causa", a.competenza),
@@ -41,8 +47,11 @@ def componi(domanda_tipo: str, a: Analisi, esito: EsitoControllo, domanda: str =
         righe += ["", "**Termini**"] + [_riga(p) for p in a.termini]
     if a.cosa_fare:
         righe += ["", "**Cosa fare**"] + [f"{n}. {x}" for n, x in enumerate(a.cosa_fare, 1)]
-    if a.dubbi:
+    if a.avvertenze:
+        righe += ["", "**Avvertenze**"] + [f"- {x}" for x in a.avvertenze]
+    if a.dubbi or a.dati_mancanti:
         righe += ["", "**Dubbi e dati da completare**"] + [f"- {x}" for x in a.dubbi]
+        righe += [f"- Dato da acquisire: {x}" for x in a.dati_mancanti]
     if esito.norme_verificate:
         righe += ["", "**Norme applicate** (testo vigente letto dall'archivio Normattiva di IUSENTRA; ogni affermazione è "
                       "stata confrontata con le parole della norma)"]

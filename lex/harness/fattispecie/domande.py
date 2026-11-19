@@ -229,7 +229,7 @@ def analizza_straordinario(c: Comprensione, f: Fatti) -> Analisi:
 
 # ---------------------------------------------------------------------------------- penale
 def riconosci_querela(c: Comprensione, f: Fatti) -> int:
-    return 3 if "querel" in _t(f) and re.search(r"termin|entro|quando|tempo", _t(f)) else 0
+    return 3 if "querel" in _t(f) and re.search(r"termin|entro|quando|tempo|mesi|parere", _t(f)) else 0
 
 
 def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
@@ -241,6 +241,29 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
         a.conclusione.append(Punto(f"Notizia del fatto il {data_breve(d)}: querela entro {data_breve(termine_mesi(d, 3, sospensione_feriale=False))}.",
                                    [Rif("cp:124", "tre mesi")]))
     a.dubbi.append("Alcuni reati hanno termini diversi stabiliti dalla legge: verifica la norma del reato specifico.")
+    t = _t(f)
+    from .strumenti import data_di
+
+    notizia = data_di(f, r"apprende|viene a sapere|ha saputo|notizia")
+    if notizia:
+        lim = termine_mesi(notizia, 3, sospensione_feriale=False, sostanziale=True)
+        a.conclusione = [Punto(f"Il termine decorre dalla notizia del fatto ({notizia.strftime('%d/%m/%Y')}), non dalla "
+                               f"pubblicazione: querela entro {data_breve(lim)}.", [Rif("cp:124", "tre mesi")])]
+    if re.search(r"facebook|social|post|pubblic", t):
+        a.inquadramento.append(Punto("Offesa all'altrui reputazione comunicando con più persone: diffamazione, aggravata se "
+                                     "commessa con un mezzo di pubblicità come un social network.",
+                                     [Rif("cp:595", "comunicando con piu persone"), Rif("cp:595", "mezzo di pubblicita")]))
+        a.inquadramento.append(Punto("La diffamazione è punibile a querela della persona offesa, presentata nelle forme dell'art. "
+                                     "336 c.p.p.", [Rif("cp:597", "querela della persona offesa"), Rif("cpp:336", "querela")]))
+        a.rimedio = "querela per diffamazione aggravata entro tre mesi dalla notizia, senza atti che valgano rinuncia"
+        a.giudice = "Procura della Repubblica competente"
+        a.forma = "parere (consulenza)"
+        a.avvertenze = ["I «sei mesi» della richiesta sono sbagliati: il termine è di tre mesi; aspettare febbraio farebbe "
+                        "perdere la querela.", "Accettare la proposta di cancellare il post in cambio di «lasciar perdere» può "
+                        "valere come rinuncia tacita: non accettarla prima di aver presentato querela."]
+        a.inquadramento.append(Punto("Il diritto di querela non si esercita se c'è stata rinuncia espressa o tacita.",
+                                     [Rif("cp:124", "rinuncia espressa o tacita")]))
+        a.dati_mancanti = ["screenshot con data e link del post", "dati del querelato"]
     return a
 
 
@@ -274,12 +297,63 @@ def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
                             Rif("cpa:41", "piena conoscenza")])]
     a.termini = [Punto("La sospensione feriale dei termini (1-31 agosto) si applica anche ai termini del processo "
                        "amministrativo.", [Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")])]
-    d = _prima_data(f)
+    from .strumenti import data_di as _data_di
+
+    d = _data_di(f, r"notificat|comunicat") or _prima_data(f)
     if d:
         a.conclusione.append(Punto(f"Provvedimento notificato il {data_breve(d)}: ricorso da notificare entro "
                                    f"{data_breve(termine_giorni(d, 60))} (sessanta giorni con la sospensione feriale).",
                                    [Rif("cpa:29", "sessanta giorni"), Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")]))
     a.dubbi.append("Riti speciali (appalti, accesso agli atti, silenzio) hanno termini dimezzati o diversi: verifica il rito.")
+    t = _t(f)
+    if re.search(r"annullamento d ufficio|autotutela", t):
+        from .strumenti import data_di
+
+        rilascio = data_di(f, r"rilascia")
+        annull = data_di(f, r"adotta la determinazione|adotta\w*[^.]{0,60}annullamento") or data_di(f, r"annullamento d ufficio")
+        a.forma = "atto" if c.tipo == "redazione" else "parere (consulenza)"
+        a.rimedio = "ricorso al TAR per l'annullamento dell'atto di annullamento d'ufficio, con istanza cautelare"
+        a.giudice = "TAR competente per territorio (sede dell'ente)"
+        m_com = re.search(r"comune di ([a-z ]+?)(?: rilascia| \(|,|\.| notific)", t)
+        if m_com:
+            try:
+                from pct.territorio_italia import get_comune
+
+                com = get_comune(nome=m_com.group(1).strip())
+            except Exception:
+                com = None
+            if com:
+                a.giudice = (f"TAR {com.regione} (sede o sezione competente per la provincia di {com.provincia}, da verificare) "
+                             "— atto di un ente con sede nella regione")
+        a.inquadramento.append(Punto(
+            "L'annullamento d'ufficio dei provvedimenti di autorizzazione è possibile entro un termine ragionevole, comunque "
+            "non superiore a sei mesi dall'adozione, con motivazione sull'interesse pubblico e sugli interessi dei destinatari; "
+            "il limite non vale per i provvedimenti ottenuti con false rappresentazioni o dichiarazioni mendaci.",
+            [Rif("l241:21nonies", "non superiore a sei mesi dal momento dell'adozione"), Rif("l241:21nonies", "false rappresentazioni")]))
+        if rilascio:
+            lim6 = termine_mesi(rilascio, 6, sostanziale=True)
+            a.termini.append(Punto(f"Permesso adottato il {rilascio.strftime('%d/%m/%Y')}: potere di annullamento fino al "
+                                   f"{data_breve(lim6)}" + (f"; l'annullamento del {annull.strftime('%d/%m/%Y')} è tardivo." if annull and annull > lim6 else "."),
+                                   [Rif("l241:21nonies", "non superiore a sei mesi dal momento dell'adozione")]))
+        a.rito = [Punto("Il ricorso è notificato all'amministrazione e ad almeno un controinteressato entro il termine, poi "
+                        "depositato; contiene gli elementi dell'art. 40 c.p.a.",
+                        [Rif("cpa:41", "controinteressati"), Rif("cpa:40", "motivi")])]
+        a.dati_mancanti = ["codice fiscale della ricorrente", "indirizzo del controinteressato"]
+        m_sp = re.search(r"spese documentate per euro ([\d.]+)", t)
+        if m_sp:
+            a.capito.append(f"Spese già sostenute per i lavori: {euro(float(m_sp.group(1).replace('.', '')))} (rilevano per "
+                            "l'affidamento e per il danno grave nell'istanza cautelare).")
+        if c.tipo == "redazione":
+            from ..bozze import ricorso_generico
+
+            a.bozza = ricorso_generico(
+                "Ricorso al TAR con istanza cautelare (artt. 29, 40 e 41 c.p.a.)", a.giudice, f,
+                "annullamento della determinazione di annullamento d'ufficio del permesso di costruire",
+                ["Violazione dell'art. 21-nonies l. 241/1990: annullamento adottato oltre sei mesi dall'adozione del permesso, "
+                 "senza false rappresentazioni.", "Difetto di motivazione sull'interesse pubblico e sull'affidamento della titolare.",
+                 "Istanza cautelare: danno grave e irreparabile (lavori avviati e spese sostenute)."],
+                "annullare l'atto impugnato, previa sospensione cautelare; con vittoria di spese.",
+                "permesso di costruire, atto impugnato con notifica, documentazione delle spese.", "artt. 40 e 41 c.p.a.")
     return a
 
 
@@ -294,11 +368,51 @@ def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
                            "inammissibilità, entro sessanta giorni dalla notificazione dell'atto impugnato.",
                            [Rif("dlgs546:21", "entro sessanta giorni dalla data di notificazione")])]
     a.termini = [Punto("Il termine è sospeso dal 1° al 31 agosto.", [Rif("l742:1", "31 agosto")])]
-    d = _prima_data(f)
+    from .strumenti import data_di as _data_di
+
+    d = _data_di(f, r"notifica\w*[^.]{0,80}avviso|avviso[^.]{0,40}notificat") or _prima_data(f)
+    if d:
+        cost = termine_giorni(termine_giorni(d, 60), 30, sospensione_feriale=False)
+        a.termini.append(Punto(f"Costituzione in giudizio entro trenta giorni dalla notifica del ricorso: se il ricorso è "
+                               f"notificato l'ultimo giorno utile, entro {data_breve(cost)}.", [Rif("dlgs546:22", "trenta giorni")]))
     if d:
         a.conclusione.append(Punto(f"Atto notificato il {data_breve(d)}: ricorso da notificare entro "
                                    f"{data_breve(termine_giorni(d, 60))} (sessanta giorni con la sospensione feriale).",
                                    [Rif("dlgs546:21", "entro sessanta giorni dalla data di notificazione")]))
+    t = _t(f)
+    from .strumenti import data_di
+
+    dich = data_di(f, r"presenta la dichiarazione|dichiarazione dei redditi")
+    if dich:
+        from datetime import date as _date
+
+        lim = _date(dich.year + 5, 12, 31)
+        notif = data_di(f, r"notifica[^.]{0,40}avviso|avviso di accertamento")
+        a.inquadramento = [Punto(
+            f"Gli avvisi di accertamento vanno notificati, a pena di decadenza, entro il 31 dicembre del quinto anno successivo "
+            f"a quello di presentazione della dichiarazione: dichiarazione del {dich.strftime('%d/%m/%Y')}, termine "
+            f"{lim.strftime('%d/%m/%Y')}" + (f"; avviso notificato il {notif.strftime('%d/%m/%Y')}: l'Agenzia è decaduta "
+                                            "(vizio assorbente da proporre come primo motivo)." if notif and notif > lim else "."),
+            [Rif("dpr600:43", "entro il 31 dicembre del quinto anno successivo")])]
+        a.forma = "atto" if c.tipo == "redazione" else "parere (consulenza)"
+        a.rimedio = "ricorso alla Corte di giustizia tributaria di primo grado (artt. 18 e 21 d.lgs. 546/1992)"
+        a.giudice = "Corte di giustizia tributaria di primo grado della provincia dell'ufficio che ha emesso l'atto"
+        a.rito = [Punto("Il ricorso contiene gli elementi dell'art. 18 e il ricorrente si costituisce entro trenta giorni dalla "
+                        "proposizione del ricorso.", [Rif("dlgs546:18", "ricorso"), Rif("dlgs546:22", "trenta giorni")])]
+        a.dati_mancanti = ["codice fiscale e PEC del ricorrente", "relata di notifica dell'avviso"]
+        m_imp = re.search(r"maggiore imposta di euro ([\d.]+)", t)
+        if m_imp:
+            a.capito.append(f"Maggiore imposta accertata: {euro(float(m_imp.group(1).replace('.', '')))}, oltre sanzioni e interessi.")
+        if c.tipo == "redazione":
+            from ..bozze import ricorso_generico
+
+            a.bozza = ricorso_generico(
+                "Ricorso alla Corte di giustizia tributaria di primo grado (artt. 18 e 21 d.lgs. 546/1992)", a.giudice, f,
+                "annullamento dell'avviso di accertamento",
+                ["Decadenza dell'Agenzia dal potere di accertamento (art. 43 d.P.R. 600/1973).",
+                 "Nel merito: i versamenti sono la restituzione di un prestito, documentata.",],
+                "annullare l'avviso per decadenza e, in subordine, nel merito; con vittoria di spese.",
+                "avviso con relata, dichiarazione, scrittura di prestito, bonifici.", "art. 18 d.lgs. 546/1992")
     a.dubbi += ["L'istanza di accertamento con adesione sospende il termine per novanta giorni: verifica se è stata presentata.",
                 "Il testo unico della giustizia tributaria (d.lgs. 175/2024) sostituirà il d.lgs. 546/1992: verifica sull'archivio "
                 "la data da cui si applica prima di citarlo nell'atto."]

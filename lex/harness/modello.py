@@ -34,6 +34,10 @@ class Analisi:
     cosa_fare: list[str] = field(default_factory=list)
     dubbi: list[str] = field(default_factory=list)
     bozza: str = ""
+    forma: str = ""                              # «atto» o «parere» (consulenza)
+    rimedio: str = ""                            # rimedio scelto, in una riga
+    avvertenze: list[str] = field(default_factory=list)
+    dati_mancanti: list[str] = field(default_factory=list)
     modello: str = ""                            # scheda del catalogo dei modelli d'atto
     valore: float | None = None
     giudice: str = ""

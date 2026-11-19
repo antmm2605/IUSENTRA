@@ -29,7 +29,7 @@ TIPI_ATTO: tuple[tuple[str, str, str, str | None], ...] = (
 )
 _MESI = "gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre"
 # Dal più lungo: «terdecies» non va letto come «ter», «undecies» non va perso (art. 281-undecies, 281-terdecies c.p.c.).
-_LATINI = (r"(?:quinquiesdecies|sexiesdecies|septiesdecies|octiesdecies|quaterdecies|terdecies|duodecies|undecies|"
+_LATINI = (r"(?:quinquiesdecies|sexiesdecies|septiesdecies|octiesdecies|quaterdecies|terdecies|duodecies|undecies|nonies|"
            r"quinquies|septies|sexies|octies|novies|decies|quater|bis|ter)")
 # Articoli con numerazione a punto del rito di famiglia («473-bis.11»).
 _PUNTO = r"(?:\.\d{1,2}(?!\d))?"

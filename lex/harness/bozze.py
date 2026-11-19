@@ -14,14 +14,20 @@ from .modello import Analisi
 DA = "[da completare]"
 
 
-def _fatto(testo: str) -> str:
+def _fatto(testo: str, ruolo: str = "") -> str:
     """«Il 12/02/2026 Ferrandina ha versato…» → «In data 12/02/2026 Ferrandina ha versato…»; il resto come scritto."""
-    testo = re.sub(r"^(?:Il|il|In data)\s+(\d{1,2}/\d{1,2}/\d{4})\s*,?\s*", r"In data \1 ", testo.strip())
+    # Il comando rivolto a Lex («Prepara il ricorso…:») non è un fatto della causa.
+    testo = re.sub(r"^(?:\S+\s+){0,2}(?:redig\w*|prepar\w*|scriv\w*|predispo\w*|stend\w*|compil\w*)\b[^:]{0,120}:\s*", "",
+                   testo.strip(), flags=re.I)
+    testo = re.sub(r"^(?:Il|il|In data)\s+(\d{1,2}/\d{1,2}/\d{4})\s*,?\s*", r"In data \1 ", testo)
+    if ruolo:
+        testo = re.sub(r"\b(?:il mio cliente|la mia cliente|il mio assistito|la mia assistita)\b", ruolo, testo, flags=re.I)
+    testo = testo[:1].upper() + testo[1:]
     return testo.rstrip(".") + "."
 
 
-def _fatti_numerati(f: Fatti) -> list[str]:
-    return [f"{n}. {_fatto(e.testo)}" for n, e in enumerate(f.eventi, 1)]
+def _fatti_numerati(f: Fatti, ruolo: str = "") -> list[str]:
+    return [f"{n}. {_fatto(e.testo, ruolo)}" for n, e in enumerate(f.eventi, 1)]
 
 
 def citazione_caparra(f: Fatti, a: Analisi, caparra: float, doppio: float) -> str:
@@ -51,7 +57,7 @@ def citazione_caparra(f: Fatti, a: Analisi, caparra: float, doppio: float) -> st
         "[oppure: è stato rifiutato / la negoziazione si è conclusa senza accordo il " + DA + "].",
         "",
         "FATTO (art. 163, comma 3, n. 4, c.p.c.)",
-        *_fatti_numerati(f),
+        *_fatti_numerati(f, "l'attore"),
         f"{len(f.eventi) + 1}. Con il contratto preliminare le parti hanno qualificato espressamente la somma di "
         f"{euro(caparra)} come caparra confirmatoria ai sensi dell'art. 1385 c.c. (clausola 6).",
         f"{len(f.eventi) + 2}. Il convenuto non ha stipulato il contratto definitivo, non si è presentato davanti al notaio "
@@ -151,7 +157,7 @@ def ricorso_generico(titolo: str, ufficio: str, f: Fatti, oggetto: str, diritto:
         "OGGETTO: " + oggetto,
         "",
         "FATTO",
-        *(_fatti_numerati(f) or ["1. " + DA]),
+        *(_fatti_numerati(f, "il ricorrente") or ["1. " + DA]),
         "",
         "DIRITTO",
         *[f"{n}. {d}" for n, d in enumerate(diritto, 1)],

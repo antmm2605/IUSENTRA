@@ -527,7 +527,9 @@
     "2\\.800",
     "convalida"
    ],
-   "vietate": [],
+   "vietate": [
+    "lecce non"
+   ],
    "percorso": "harness",
    "nota": ""
   },
@@ -563,7 +565,8 @@
     "tribunale",
     "12\\.000",
     "quaranta giorni",
-    "estratti autentici"
+    "estratti autentici",
+    "tribunale di taranto"
    ],
    "vietate": [
     "negoziazione assistita obbligatoria",

@@ -53,7 +53,9 @@ def componi(domanda_tipo: str, a: Analisi, esito: EsitoControllo, domanda: str =
             righe.append(f"- {n.citazione} — {n.rubrica}{agg}" + (f": {t.url}" if t and t.url else ""))
     if a.bozza:
         righe += ["", "**Bozza dell'atto** (dal modello del catalogo" + (f" {a.modello}" if a.modello else "") +
-                  "; i dati mancanti sono segnati «[da completare]»)", "", a.bozza]
+                  "; i dati mancanti sono segnati «[da completare]»)", "",
+                  # una riga vuota fra le righe: la chat rende il testo come markdown e unirebbe le righe semplici
+                  "\n\n".join(r for r in a.bozza.splitlines() if r.strip())]
     if esito.citazioni_non_verificate:
         righe += ["", "Attenzione: questi riferimenti non sono stati verificati sull'archivio e vanno controllati prima "
                       "dell'uso: " + ", ".join(esito.citazioni_non_verificate) + "."]

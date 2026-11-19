@@ -140,8 +140,15 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
     m_oggi = re.search(r"data di oggi\s*:?\s*(\d{1,2})/(\d{1,2})/(\d{4})", t)
     giorno = _data(m_oggi) if m_oggi else None
     f = Fatti(testo=grezzo, oggi=giorno or oggi or date.today())
-    f.assistita = _parte(r"(?i:parte assistita|assistito|assistita|il mio cliente|la mia cliente|mio cliente|mia cliente|ricorrente)", grezzo)
+    f.assistita = _parte(r"(?i:parte assistita|assisto (?:il|la|lo) (?:locatore|locatrice|conduttore|conduttrice|moglie|marito|"
+                         r"lavoratore|lavoratrice|creditore|creditrice|promissario acquirente|promittente venditore)|"
+                         r"assistito|assistita|il mio cliente|la mia cliente|mio cliente|mia cliente|ricorrente)", grezzo)
     f.controparte = _parte(r"(?i:controparte|convenuto|resistente|debitore|conduttore moroso)", grezzo)
+    if not f.controparte.nome:
+        f.controparte = _parte(r"(?i:verso|contro|nei confronti di|dipendente di|alle dipendenze di|il promittente venditore|"
+                               r"la promittente venditrice|il venditore|il conduttore|il locatore|il datore di lavoro)", grezzo)
+        if f.controparte.nome and f.controparte.nome == f.assistita.nome:
+            f.controparte = Parte()
     for m in _IMPORTO.finditer(grezzo):
         grezzo_num = (m.group(1) or m.group(2) or "").replace(".", "").replace(",", ".")
         try:
@@ -167,16 +174,23 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
             if d and not (m_oggi and d == giorno and "data di oggi" in piano(frase)):
                 f.eventi.append(Evento(d, frase.strip()))
                 break
-    for espr in (r"residenza del convenuto\s*:?\s*" + _CITTA, r"(?:convenuto|controparte|debitore|datore|societa|conduttore)[^.]{0,80}?(?:residente|domiciliat\w|con sede)\s+(?:a|in)\s+" + _CITTA,
-                 r"(?:residente|con sede legale|con sede)\s+(?:a|in)\s+" + _CITTA):
-        m = re.search(espr, grezzo, re.I)
+    # Le parole chiave non distinguono maiuscole; il nome della città sì («a Lecce non paga» → «Lecce»).
+    luogo = r"(?i:residente|residenti|domiciliat\w|con sede legale|con sede)\s+(?i:a|in)\s+" + _CITTA
+    candidati = [r"(?i:residenza del convenuto)\s*:?\s*" + _CITTA]
+    if f.controparte.nome:
+        candidati.append(re.escape(f.controparte.nome) + r"[^.;]{0,60}?" + luogo)
+    candidati += [r"(?i:convenuto|controparte|debitore|datore|conduttore)[^.]{0,80}?" + luogo]
+    if not f.assistita.nome:
+        candidati.append(luogo)
+    for espr in candidati:
+        m = re.search(espr, grezzo)
         if m:
             f.residenza_convenuto = m.group(1).strip()
             break
-    m = re.search(r"(?:immobile|appartamento|locale|negozio|unita immobiliare|villa|box)[^.]{0,30}?\b(?:in|a|sito in|sito a)\s+" + _CITTA, grezzo, re.I)
+    m = re.search(r"(?i:immobile|appartamento|locale|negozio|unita immobiliare|villa|box)[^.]{0,30}?\b(?i:in|a|sito in|sito a)\s+" + _CITTA, grezzo)
     if m:
         f.luogo_immobile = m.group(1).strip()
-    m = re.search(r"(?:lavorato|lavora|prestato servizio|presta servizio|sede di lavoro|addetto)[^.]{0,40}?\b(?:a|in|presso la sede di)\s+" + _CITTA, grezzo, re.I)
+    m = re.search(r"(?i:lavorato|lavora|prestato servizio|presta servizio|sede di lavoro|addetto)[^.]{0,40}?\b(?i:a|in|presso la sede di)\s+" + _CITTA, grezzo)
     if m:
         f.luogo_lavoro = m.group(1).strip()
     for nome, espr in _SEGNALI.items():

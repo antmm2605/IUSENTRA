@@ -30,6 +30,20 @@ def test_catalogue_groups_and_values_use_native_sources():
     assert not any('note_riservate' in key for key in catalog)
 
 
+def test_note_model_recovers_stable_matter_fields_when_no_hearing_is_proven():
+    client, matter = sources()
+    matter.rg_completo = 'RG 7646/2023'
+    matter.codice_oggetto_pst = '220050'
+    matter.giudice = 'Giudice di prova'
+    fields = {field['id']: field for field in linked_fields_catalog(cliente=client, fascicolo=matter)}
+    assert fields['note_127ter.ruolo']['value'] == '7646/2023'
+    assert fields['note_127ter.parte_assistita']['value'] == client.nome_completo
+    assert fields['fascicolo.giudice']['value'] == matter.giudice
+    assert fields['fascicolo.oggetto']['value'].casefold() == 'retribuzione lavoro dipendente da privato'
+    assert not fields['note_127ter.udienza']['available']
+    assert not fields['note_127ter.termine']['available']
+
+
 def test_wrong_client_is_never_used():
     client, matter = sources()
     matter.id_cliente = 'ALTRO'
@@ -274,6 +288,8 @@ def test_stamp_alignment_and_position_survive_word_round_trip(tmp_path, position
 
 
 def test_api_requires_both_permissions_and_tenant_and_native_fk(monkeypatch, tmp_path):
+    from pct.studio_timbro import StudioTimbro
+
     client, matter = sources()
     app = Flask(__name__)
     permissions = {'clienti.leggi', 'fascicoli.leggi'}
@@ -284,6 +300,7 @@ def test_api_requires_both_permissions_and_tenant_and_native_fk(monkeypatch, tmp
         g.tenant_context_missing = state['missing']
     register_editor_linked_fields_routes(app,
         get_process_dates=lambda matter: {},
+        get_studio_context=lambda: {"studio_timbro": StudioTimbro.from_payload({"studio_nome": "Studio prova"})},
         get_fascicoli=lambda: SimpleNamespace(_studio_db=object(), get=lambda identifier: matter if identifier == 'F1' else None),
         get_clienti=lambda: SimpleNamespace(_studio_db=object(), get=lambda identifier: client if identifier == 'C1' else None))
     browser = app.test_client()
@@ -291,6 +308,11 @@ def test_api_requires_both_permissions_and_tenant_and_native_fk(monkeypatch, tmp
     registry = RegistroLetture(tmp_path / 'reading-requests.db')
     monkeypatch.setattr('web.services.registro_letture_runtime.registro_corrente', lambda **kwargs: registry)
     monkeypatch.setattr('web.services.registro_letture_runtime.tenant_corrente', lambda: 'study-a')
+    monkeypatch.setattr('web.services.passaggi_runtime.dati_collegati_note', lambda fid: {
+        "termine_deposito": "22/12/2026 entro le ore 14:00",
+    })
+    response = browser.get('/api/editor/F1/recupera-campi', json={'generation': 0})
+    assert response.status_code == 200 and response.json['generation'] == 0
     assert browser.post('/api/editor/F1/recupera-campi').status_code == 200
     assert registry.esito_evento('study-a','F1')['generation'] == 0
     assert browser.post('/api/editor/F1/recupera-campi',json={'generation':0}).status_code == 202
@@ -303,6 +325,13 @@ def test_api_requires_both_permissions_and_tenant_and_native_fk(monkeypatch, tmp
     assert browser.post('/api/editor/ALTRO/recupera-campi').status_code == 404
     result = browser.get('/api/editor/F1/campi-collegati')
     assert result.status_code == 200 and result.json['clientId'] == 'C1'
+    campi = {campo["id"]: campo for campo in result.json["fields"]}
+    assert campi["note_127ter.termine"]["value"] == "22/12/2026 entro le ore 14:00"
+    assert not campi["note_127ter.difensore"]["available"]
+    assert "timbro" not in result.json
+    con_timbro = browser.get('/api/editor/F1/campi-collegati?timbro=1')
+    assert con_timbro.status_code == 200 and con_timbro.json["timbro"]["ok"]
+    assert any(riga["text"].casefold() == "studio prova" for riga in con_timbro.json["timbro"]["righe"])
     assert browser.get('/api/editor/ALTRO/campi-collegati').status_code == 404
     permissions.remove('clienti.leggi')
     assert browser.post('/api/editor/F1/recupera-campi').status_code == 403

@@ -366,10 +366,11 @@ def _pct_esito_mime(
     message_id: str,
     when: str,
     original_message_id: str = "",
+    sender: str = "cancelleria@giustiziapec.it",
 ) -> bytes:
     msg = EmailMessage(policy=policy.SMTP)
     msg["Subject"] = subject
-    msg["From"] = "cancelleria@giustiziapec.it"
+    msg["From"] = sender
     msg["To"] = "studio@example.pec.it"
     msg["Date"] = when
     msg["Message-ID"] = message_id
@@ -3794,6 +3795,39 @@ def test_pct_deposit_receipts_upsert_one_fascicolo_card_and_no_duplicate_history
     assert second["duplicate"] is False
 
 
+def test_pct_esito_finale_certificato_acquisisce_altra_busta_nello_stesso_fascicolo(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    path = tmp_path / "fascicoli.json"
+    manager = GestioneFascicoli(str(path))
+    fascicolo = manager.nuovo("Fascicolo lavoro", TipoFascicolo.CIVILE, nome_cliente="Mario Rossi",
+                              tribunale="Tribunale di Palmi", numero_rg="1733", anno_rg=2026)
+    note = manager.aggiungi_esito_deposito(fascicolo.id, "NOTE", "", stato="ACCETTATO_CANCELLERIA")
+    note.id_deposito_esterno = "35500001"
+    manager._salva()
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", fascicoli_db_path=path)
+    xml = Path("tests/fixtures/pec/esito_atto_accettazione_manuale.xml").read_text(encoding="utf-8")
+    ricezione = repo.ingest_mime(_pct_esito_mime(
+        "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO: Ricorso Punturiero RG: 1733/2026",
+        xml, message_id="<altra-busta@example.test>", when="Tue, 16 Jun 2026 07:36:00 +0200",
+        sender="tribunale.palmi@civile.ptel.giustiziacert.it",
+    ))
+    assert repo.run_pending_jobs(limit=25, actor="test")["failed"] == 0
+    collegamento = repo.link_fascicolo(ricezione["id"], actor="test")
+    assert collegamento["fascicolo_id"] == fascicolo.id, collegamento
+    assert collegamento["deposit_upsert"]["ok"], collegamento["deposit_upsert"]
+    depositi = GestioneFascicoli(str(path)).get(fascicolo.id).depositi_pct
+    assert {d.id_deposito_esterno for d in depositi} == {"35500001", "35508878"}
+    acquisito = next(d for d in depositi if d.id_deposito_esterno == "35508878")
+    assert acquisito.stato == "ACCETTATO_CANCELLERIA"
+    with repo.connect() as conn:
+        riga = repo.get_message_row(conn, ricezione["id"])
+        assert riga["linked_fascicolo_id"] == fascicolo.id
+        assert json.loads(riga["metadata_json"])["archive_receipt_reference"]["deposito_id"] == acquisito.id
+    repo.link_fascicolo(ricezione["id"], actor="test")
+    assert len(GestioneFascicoli(str(path)).get(fascicolo.id).depositi_pct) == 2
+
+
 def test_pct_receipts_bridge_refid_to_idbusta_without_merging_conflicts(tmp_path):
     from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 
@@ -7156,6 +7190,30 @@ def test_react_email_bridge_normalizza_evento_storico_del_tribunale():
 
     assert payload is not None
     assert payload["eventType"] == "comunicazione_cancelleria"
+
+
+def test_react_email_bridge_mostra_il_rifiuto_xml_anche_con_oggetto_accettazione():
+    from pct.pec_pipeline import _solo_profilo_processuale
+    from web.services.react_email_bridge import _pec_audit_payload
+
+    ricevuta = {
+        "description": "Indicare l'ultima dichiarazione dei redditi.",
+        "esito_ministeriale": {"codice_esito": -1, "idbusta": "321",
+                              "numero_ruolo": "2848/2026", "source_message_id": "<originale@test.example>"},
+    }
+    profilo = {"fonte_certa": "giustizia", "oggetto_evento": "ACCETTAZIONE DEPOSITO TELEMATICO"}
+    ciclo = {"current_stage": {"id": "rifiuto_deposito"}, "receipt": ricevuta,
+             "correlation": {"idbusta": "321", "source_message_id": "originale@test.example"}}
+    report = {"event_type": "pct_deposito", "procedural_profile": profilo, "deposit_lifecycle": ciclo}
+    payload = _pec_audit_payload({"id": "pec-rifiuto", "validation_report": report})
+    assert payload["proceduralProfile"]["tipo_evento"] == "Deposito rifiutato dalla cancelleria"
+    assert payload["proceduralProfile"]["fonte_evento"] == "EsitoAtto.xml"
+    assert payload["proceduralProfile"]["descrizione_evento"] == ricevuta["description"]
+    assert payload["proceduralProfile"]["oggetto_evento"] == profilo["oggetto_evento"]
+    assert _solo_profilo_processuale(report)["procedural_profile"]["tipo_evento"] == payload["proceduralProfile"]["tipo_evento"]
+    ciclo["correlation"]["idbusta"] = "322"
+    payload = _pec_audit_payload({"id": "pec-rifiuto", "validation_report": report})
+    assert "fonte_evento" not in payload["proceduralProfile"]
 
 
 def test_react_email_bridge_preserva_evento_reale_del_giudice_di_pace():

@@ -113,6 +113,23 @@ def test_agenda_fascicolo_riusa_bozza_scritta_con_presidio_storico_e_udienza():
     assert "replacesAppointmentId" not in righe["bozza"]
 
 
+def test_agenda_riunisce_le_proposte_di_notifica_della_stessa_pec():
+    from web.services.react_fascicoli_bridge import _deadlines
+
+    comune = dict(data_scadenza="2026-11-20", stato="BOZZA", perentorio=False)
+    portale = SimpleNamespace(id="P", titolo="Notificare ricorso e decreto", note="OBBLIGO_NOTIFICA:lavoro_415:D1", **comune)
+    pec = SimpleNamespace(id="B", titolo="Notifica di ricorso e decreto", source_message_id="pec-ordine",
+                          deadline_profile_code="LAV_415_NOTIFICA_TRENTA_GIORNI", **comune)
+    documento = SimpleNamespace(id="D1", msg_id_portale="pec-ordine#allegato")
+    righe = {r["id"]: r for r in _deadlines([portale, pec], documenti=[documento])}
+    assert righe["P"]["representedByDeadlineId"] == "B"
+    assert righe["B"]["href"] == "/scadenziario?focus=B"
+
+    documento.msg_id_portale = "pec-altra"
+    righe = {r["id"]: r for r in _deadlines([portale, pec], documenti=[documento])}
+    assert "representedByDeadlineId" not in righe["P"]
+
+
 def test_presidio_documentale_riusa_la_bozza_dello_stesso_decreto():
     from types import SimpleNamespace
     from web.services.react_fascicoli_bridge import _allinea_azioni_documentali_note

@@ -17,13 +17,15 @@ def test_ranking_preferisce_match_esatto_rg(tmp_path):
         context = {
             "tenant_id": "studio",
             "fascicoli": FakeManager([
-                {"id": "F1", "numero_rg": "466/2023", "titolo": "Sinistro stradale"},
+                {"id": "F1", "numero_rg": "00000466", "anno_rg": 2023, "titolo": "Sinistro stradale"},
                 {"id": "F2", "numero_rg": "999/2023", "titolo": "Note su RG 466/2023 citato in memoria"},
             ]),
         }
         GlobalSearchIndexer(repo, adapters=[FascicoliSearchAdapter()]).reindex_all(context)
         results = repo.search(tenant_id="studio", query="466/2023", limit=5)
         assert [r.entity_id for r in results][:2] == ["F1", "F2"]
+        assert results[0].metadata["rg"] == "466/2023"
+        assert results[0].metadata["numero_rg"] == "00000466"
     finally:
         repo.close()
 

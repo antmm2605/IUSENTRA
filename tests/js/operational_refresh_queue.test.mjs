@@ -159,6 +159,27 @@ test('paced live updates wait the minimum interval, commands stay immediate', as
   queue.dispose()
 })
 
+test('an invalidation received during a live fetch respects the same pacing', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+  let finish
+  let calls = 0
+  const queue = createOperationalRefreshQueue(() => {
+    calls += 1
+    return new Promise(resolve => { finish = resolve })
+  }, () => {}, { minLiveIntervalMs: 10000 })
+  queue.schedule({ live: true })
+  t.mock.timers.tick(120)
+  queue.schedule({ live: true })
+  finish(true)
+  await flush()
+  t.mock.timers.tick(9999)
+  assert.equal(calls, 1)
+  t.mock.timers.tick(1)
+  assert.equal(calls, 2)
+  queue.dispose()
+  finish(true)
+})
+
 test('without pacing live updates keep the previous timing', async t => {
   t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
   const intents = []

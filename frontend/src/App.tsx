@@ -1302,6 +1302,7 @@ function DashboardPage({
   onSyncMailboxes: () => void
 }) {
   const syncStateClass = loading || mailSyncing || (revalidating && data.stale) ? '' : data.status === 'errore' ? 'danger' : data.status === 'parziale' ? 'warn' : 'ok'
+  const quadroDisponibile = Boolean(data.generatedAt) && data.status !== 'errore'
   return (
     <main className="iu-content">
       <div className="iu-page-heading">
@@ -1320,11 +1321,15 @@ function DashboardPage({
         </div>
       </div>
       <DashboardNotice data={data}/>
-      <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section>
+      <section className="iu-metrics" aria-busy={!quadroDisponibile && loading}>
+        {data.metrics.map(m => <KpiCard item={quadroDisponibile ? m : {...m, value: '—', tag: ''}}
+          icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}
+      </section>
       {/* Righe da 12 colonne esatte: la Panoramica non deve lasciare spazi morti
           a destra, ne' su desktop largo ne' sui passaggi responsive. */}
       <section className="iu-grid">
         <NotiziarioPanel />
+        {quadroDisponibile ? <>
         <div className="span6"><Operations data={data}/></div>
         <div className="span6"><Agenda data={data}/></div>
         <div className="span4"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email/"/><a className="iu-link" href="/email/">Vai alla casella PEC -&gt;</a></Panel></div>
@@ -1338,6 +1343,7 @@ function DashboardPage({
         <div className="span3"><Lex data={data}/></div>
         <div className="span6"><Dossiers data={data}/></div>
         <div className="span6"><Sources data={data}/></div>
+        </> : null}
       </section>
     </main>
   )

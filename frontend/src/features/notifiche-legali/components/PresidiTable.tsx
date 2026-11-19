@@ -71,9 +71,9 @@ function StatusCell({ item }: { item: PresidioSummary }) {
         <StatusBadge tone={presidioStatusTone(item.status)}>
           {presidioStatusLabel(item.status, item.status_label)}
         </StatusBadge>
-        <StatusBadge tone={priorityTone(item.priority)}>{item.priority}</StatusBadge>
+        {item.excluded_source ? null : <StatusBadge tone={priorityTone(item.priority)}>{item.priority}</StatusBadge>}
       </span>
-      {item.explicit_due_at ? (
+      {item.excluded_source ? null : item.explicit_due_at ? (
         <time className="nlp-deadline" dateTime={item.explicit_due_at}>
           <Clock3 size={14} aria-hidden="true" />
           Termine {formatDateTimeIt(item.explicit_due_at, 'da verificare')}

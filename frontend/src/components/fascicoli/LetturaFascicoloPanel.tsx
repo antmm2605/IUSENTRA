@@ -12,6 +12,7 @@ import {
   etichettaFase,
   etichettaUrgenza,
   hrefCalcoloTermine,
+  hrefFonteDispositivo,
   normeDelPasso,
   passiOrdinati,
   presidiCards,
@@ -175,6 +176,10 @@ export function LetturaFascicoloPanel({
   const testata = lettura.intestazione
   const percorso = lettura.percorso
   const esitoSentenza = descriviEsitoDispositivo(percorso)
+  const fonteSentenza = hrefFonteDispositivo(fascicoloId, percorso?.documento_id)
+  const reinvii = lettura.depositi.tutti.flatMap((deposito) =>
+    deposito.reinvio_accettato ? [deposito.reinvio_accettato] : [],
+  )
 
   return (
     <div className="iu-fas-lettura" aria-busy={loading}>
@@ -193,13 +198,19 @@ export function LetturaFascicoloPanel({
           {percorso && esitoSentenza ? (
             <p>
               <strong>Esito del dispositivo</strong> · {esitoSentenza}
-              {percorso.documento_id ? (
+              {fonteSentenza ? (
                 <> · <button type="button" className="iu-fas-lettura__retry" onClick={() => setSentenzaAperta({
-                  href: `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(percorso.documento_id || '')}/visualizza`,
+                  href: fonteSentenza,
                   label: percorso.sentenza, context: 'Esito del dispositivo',
                 })}>Apri la sentenza</button></>
               ) : null}
             </p>
+          ) : null}
+          {percorso?.brano_dispositivo ? (
+            <details className="iu-fas-brano-dispositivo">
+              <summary>Che cosa ha disposto il giudice</summary>
+              <blockquote>{percorso.brano_dispositivo}</blockquote>
+            </details>
           ) : null}
           {fase.prossima_udienza ? <p><strong>Prossimo appuntamento o termine:</strong> {fase.prossima_udienza}</p> : null}
           {fase.incoerenze.map((voce) => <p className="iu-fas-lettura__attenzione" key={voce}><AlertTriangle size={14}/> {voce}.</p>)}
@@ -261,6 +272,27 @@ export function LetturaFascicoloPanel({
           </a>
         ))}
       </section>
+
+      {reinvii.length ? (
+        <section className="iu-fas-lettura__blocco">
+          <h4>Depositi corretti e accettati</h4>
+          {reinvii.map((reinvio) => (
+            <div key={reinvio.pec_rifiuto}>
+              <p>Autocertificazione reddituale · busta {reinvio.nuova_busta}</p>
+              <ul>
+                {[
+                  ['Richiesta della cancelleria', reinvio.pec_richiesta],
+                  ['Rifiuto del primo invio e motivazione', reinvio.pec_rifiuto],
+                  ['Ricevuta di consegna del reinvio', reinvio.pec_consegna],
+                  ['Accettazione della cancelleria', reinvio.pec_accettazione],
+                ].map(([label, id]) => (
+                  <li key={label}><a href={`/email/?audit_id=${encodeURIComponent(id)}`}>{label}</a></li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      ) : null}
 
       {lettura.depositi.messaggi_archiviati?.length ? (
         <details className="iu-fas-lettura__blocco">
@@ -360,7 +392,15 @@ export function LetturaFascicoloPanel({
         </div>
         {economico.length ? (
           <dl className="iu-fas-lettura__economico-righe">
-            {economico.map((riga) => <div className={riga.tono ? `is-${riga.tono}` : ''} key={riga.etichetta}><dt>{riga.etichetta}</dt><dd>{riga.valore}{riga.nota ? <small>{riga.nota}</small> : null}</dd></div>)}
+            {economico.map((riga) => (
+              <div className={riga.tono ? `is-${riga.tono}` : ''} key={riga.etichetta}>
+                <dt>{riga.etichetta}</dt>
+                <dd>{riga.valore}
+                  {riga.fonte ? <small><a href={riga.fonte.href}>{riga.fonte.nome}</a></small> : null}
+                  {riga.nota ? <small>{riga.nota}</small> : null}
+                </dd>
+              </div>
+            ))}
           </dl>
         ) : <p>Nessun dato economico collegato al fascicolo.</p>}
       </section>

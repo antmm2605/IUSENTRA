@@ -95,8 +95,8 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
   const riscontriAttuali = riscontri?.fid === fascicoloId ? riscontri.dati : undefined
   if (!obblighi.length && !errore && !riscontriAttuali?.conclusioni?.length) return <CopiePstPanel copie={copiePst}/>
   return (
-    <div className="iu-fas-letture__parti iu-fas-letture__obblighi" aria-label="Notifiche richieste dagli atti">
-      <h5><Send size={14}/> Notifiche richieste dagli atti ({obblighi.length})</h5>
+    <div className="iu-fas-letture__parti iu-fas-letture__obblighi" aria-label="Notifiche e prove per atto">
+      <h5><Send size={14}/> Notifiche e prove per atto ({obblighi.length})</h5>
       {errore ? <p className="iu-fas-lettura__state iu-fas-lettura__state--error" role="alert"><AlertTriangle size={15}/> {errore}</p> : null}
       <CopiePstPanel copie={copiePst}/>
       {riscontriAttuali?.conclusioni?.length ? <Suspense fallback={null}><RiscontriProcessuali fascicoloId={fascicoloId} dati={riscontriAttuali}/></Suspense> : null}
@@ -107,8 +107,8 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
             <li key={obbligo.chiave} className={`is-${stato.tono === 'danger' ? 'warning' : stato.tono}`}>
               <div className="iu-fas-letture__parte-testo">
                 <Badge tone={stato.tono}>{stato.testo}</Badge>
-                <b>Notificare {obbligo.atti}</b>
-                <span>{obbligo.etichetta} · {obbligo.documento}</span>
+                <b>{obbligo.documento || obbligo.etichetta}</b>
+                <span>{obbligo.stato === 'da_notificare' ? `Notificare ${obbligo.atti}` : obbligo.atti}</span>
                 {obbligo.scadenza ? <small><strong>{obbligo.dati_mancanti?.length ? 'Data parziale da verificare: ' : 'Entro il '}{dataItaliana(obbligo.scadenza)}</strong> — {obbligo.formula}</small> : obbligo.formula ? <small>{obbligo.formula}</small> : null}
                 {obbligo.destinatari.length ? (
                   <small>A: {obbligo.destinatari.map((d) => `${d.nome} ${d.presso} (${d.fonte})`).join('; ')}</small>

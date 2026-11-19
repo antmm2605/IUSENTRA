@@ -12,6 +12,9 @@
 .iu-quadro-fascicolo__header h2{display:flex;align-items:center;gap:7px;margin:0;font-size:15px;font-weight:950;color:#0f172a}
 .iu-quadro-fascicolo__header small{color:var(--iu-slate-500,#64748b);font-size:12px;font-weight:700}
 .iu-quadro-fascicolo__stato{margin:0;color:var(--iu-slate-600,#475569);font-size:13px;font-weight:700}
+.iu-fas-brano-dispositivo{margin:0;font-size:13px;line-height:1.5}
+.iu-fas-brano-dispositivo summary{width:fit-content;cursor:pointer;font-weight:700}
+.iu-fas-brano-dispositivo blockquote{margin:6px 0 0;border-inline-start:2px solid var(--iu-border,#dde2e8);padding-inline-start:10px}
 .iu-quadro-fascicolo__stato--errore{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#92400e}
 .iu-quadro-fascicolo__stato--errore button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--iu-border,#dde2e8);border-radius:10px;background:#fff;color:var(--iu-slate-700,#334155);font-size:12px;font-weight:900;cursor:pointer}
 .iu-quadro-fascicolo__righe{display:grid;gap:6px;margin:0;padding:0;list-style:none}

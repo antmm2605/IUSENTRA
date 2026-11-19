@@ -1,4 +1,5 @@
 import { NormativeArticleLink } from './NormativeArticleLink'
+import { ApriBozzaNote } from '../features/passaggi/components/ApriBozzaNote'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useId, useState, type ReactNode } from 'react'
 import { AlertTriangle, BookOpen, Calculator, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, FilePenLine, FileText, Gavel, Landmark, ListChecks, RefreshCw, Scale, ShieldCheck, TimerReset, UploadCloud, UsersRound } from 'lucide-react'
@@ -29,6 +30,7 @@ type Props = {
   fascicoloId?: string
   codice?: string
   fascicoloTitle?: string
+  valoreFascicolo?: number
   explicitProcedure?: boolean
 }
 
@@ -275,7 +277,7 @@ function NormativaItem({ item }:{item:GuidaNormativa | unknown}) {
   return (
     <li>
       <strong>{label || 'Norma'}</strong><span>{detail || 'Descrizione da completare'}</span>
-      {url ? <NormativeArticleLink url={url} article={label}>Apri il testo</NormativeArticleLink> : null}
+      {url ? <NormativeArticleLink url={url} article={label} act={text(item.archivio_atto)}>Apri il testo</NormativeArticleLink> : null}
     </li>
   )
 }
@@ -453,18 +455,24 @@ function boolContext(value: unknown): string {
   return value ? 'Presente' : 'Da verificare'
 }
 
-function FascicoloContextCard({ fascicolo, operativo }: { fascicolo?: Record<string, unknown>; operativo?: GuidaContestoOperativo }) {
+function FascicoloContextCard({ fascicolo, operativo, valoreFascicolo }: {
+  fascicolo?: Record<string, unknown>; operativo?: GuidaContestoOperativo; valoreFascicolo?: number
+}) {
   if (!fascicolo) return null
   const documentiCount = Number(fascicolo.documenti_count || 0)
   const attivitaCount = Number(fascicolo.attivita_count || 0)
+  const valore = valoreFascicolo || operativo?.valore_causa?.importo || Number(fascicolo.valore_causa)
+  const codiceIscrizione = operativo?.valore_causa?.codice_oggetto_dichiarato
+  const codiceRegistrato = text(fascicolo.codice_oggetto_pst || fascicolo.codiceOggettoPst)
   const parti = Array.isArray(fascicolo.parti) ? fascicolo.parti.filter(isRecord).filter((item) => text(item.nome)) : []
   const rows = ([
     ['Cliente', text(fascicolo.cliente)],
     ['Parti', parti.map((item) => [text(item.ruolo), text(item.nome)].filter(Boolean).join(': ')).filter(Boolean).join(' · ') || text(fascicolo.controparte)],
     ['Ufficio', text(fascicolo.ufficio || fascicolo.tribunale)],
     ['Oggetto pratica', text(fascicolo.oggetto || fascicolo.title)],
-    ['Codice ufficiale', text(fascicolo.codice_oggetto_pst || fascicolo.codiceOggettoPst, 'Non valorizzato')],
-    ['Valore causa', operativo?.valore_causa?.importo ? formatEuroIt(operativo.valore_causa.importo) : Number(fascicolo.valore_causa) > 0 ? formatEuroIt(Number(fascicolo.valore_causa)) : 'Non presente'],
+    ['Codice oggetto in anagrafica', codiceRegistrato || 'Non valorizzato'],
+    ...(codiceIscrizione && codiceIscrizione !== codiceRegistrato ? [['Codice nella nota d’iscrizione', codiceIscrizione]] : []),
+    ['Valore causa', valore > 0 ? formatEuroIt(valore) : 'Non presente'],
     ...(typeof operativo?.udienza === 'string' ? [['Prossima udienza', operativo.udienza || 'Nessuna udienza futura registrata']] : []),
     ...(operativo?.contributo ? [['Contributo unificato', [operativo.contributo.etichetta, operativo.contributo.importoLabel].filter(Boolean).join(' · ')]] : []),
     ['Rito / fase', [text(fascicolo.tipo_procedimento || fascicolo.procedureType), text(fascicolo.stato)].filter(Boolean).join(' · ')],
@@ -482,7 +490,11 @@ function FascicoloContextCard({ fascicolo, operativo }: { fascicolo?: Record<str
             <dt>{label}</dt>
             <dd>
               {value}
-              {label === 'Valore causa' && operativo?.valore_causa?.documento ? (
+              {operativo?.valore_causa?.documento && (
+                label === 'Codice nella nota d’iscrizione'
+                || (label === 'Codice oggetto in anagrafica' && codiceRegistrato === codiceIscrizione)
+                || (label === 'Valore causa' && operativo.valore_causa.importo === valore)
+              ) ? (
                 <div><a href={operativo.valore_causa.documento.href}>{operativo.valore_causa.documento.nome}</a></div>
               ) : null}
               {label === 'Contributo unificato' && operativo?.contributo ? (
@@ -529,8 +541,10 @@ function PassiDellaPratica({ fase, fascicoloId }: { fase: GuidaFaseReale; fascic
                     : fonte.norma}
                 </p>
               ))}
-              {passo.modello_atto ? (
-                <span><a href={`/template-atti/${encodeURIComponent(passo.modello_atto)}/usa?id_fascicolo=${id}${passo.modello_atto === 'builtin-tmp-civ-012' && passo.entro ? `&termine_guida=${encodeURIComponent(passo.entro)}` : ''}`}>Apri il modello con i dati del fascicolo</a></span>
+              {passo.bozza_note ? (
+                <ApriBozzaNote fascicoloId={fascicoloId} chiave={passo.bozza_note.chiave} documentoId={passo.bozza_note.documento_id}/>
+              ) : passo.modello_atto && passo.modello_atto !== 'builtin-tmp-civ-012' ? (
+                <span><a href={`/template-atti/${encodeURIComponent(passo.modello_atto)}/usa?id_fascicolo=${id}`}>Apri il modello con i dati del fascicolo</a></span>
               ) : null}
             </li>
           ))}
@@ -557,7 +571,8 @@ function ChecklistTab({ response, fascicoloId = '', faseInLettura = false, fase 
           <p className="iu-guida-lead">{checklist.nota_fase}</p>
         </Section>
       ) : null}
-      {faseInLettura ? <p className="iu-empty">Fase della pratica in lettura dal fascicolo…</p> : null}
+      {faseInLettura ? <p className="iu-empty">Apertura della fase salvata…</p> : null}
+      {fase?.aggiornamento_pendente ? <p className="iu-empty">Ultima fase disponibile. Il fascicolo è in aggiornamento.</p> : null}
       <PercorsoSection percorso={response.percorso} mostraIpotesi={!fase?.passi_operativi}/>
       {checklist?.nota_fase ? null : (
         <div className="iu-guida-progress" aria-label="Completamento guida pratica">
@@ -649,13 +664,15 @@ function NormativaTab({ guida, fascicoloId }: { guida?: GuidaPratica; fascicoloI
   )
 }
 
-function ContestoTab({ response, operativo }: { response: GuidaPraticaResponse; operativo?: GuidaContestoOperativo }) {
+function ContestoTab({ response, operativo, valoreFascicolo }: {
+  response: GuidaPraticaResponse; operativo?: GuidaContestoOperativo; valoreFascicolo?: number
+}) {
   const guida = response.guida
   const mediazione = guida?.obbligo_mediazione || guida?.obbligo_mediazione_o_negoziazione_assistita
   const extraFields = extraGuidaFields(guida)
   return (
     <div className="iu-guida-tab-panel">
-      <FascicoloContextCard fascicolo={response.fascicolo} operativo={operativo}/>
+      <FascicoloContextCard fascicolo={response.fascicolo} operativo={operativo} valoreFascicolo={valoreFascicolo}/>
       <Section title="Tipologie di intervento" icon={<Scale size={16}/> }>
         <StructuredList items={guida?.tipologie_di_intervento} prefix="tipologia" empty="Tipologie di intervento da completare."/>
       </Section>
@@ -698,13 +715,13 @@ function ContestoTab({ response, operativo }: { response: GuidaPraticaResponse; 
   )
 }
 
-function AttoTab({ guida }:{guida?:GuidaPratica}) {
+function AttoTab({ guida, modelloPerNuovoAtto }:{guida?:GuidaPratica; modelloPerNuovoAtto: boolean}) {
   const atto = guida?.atto_principale
   const struttura = atto?.struttura_obbligatoria || []
   const campi = atto?.campi_obbligatori || []
   return (
     <div className="iu-guida-tab-panel">
-      <Section title="Atto da redigere" icon={<FileText size={16}/> }>
+      <Section title={modelloPerNuovoAtto ? 'Modello per un nuovo atto' : 'Atto da redigere'} icon={<FileText size={16}/> }>
         <p className="iu-guida-lead">{atto?.denominazione || guida?.denominazione || 'Atto principale'}</p>
         <dl className="iu-guida-mini-kv">
           <div><dt>Tipo atto</dt><dd>{readableValue(atto?.tipo_atto)}</dd></div>
@@ -714,9 +731,13 @@ function AttoTab({ guida }:{guida?:GuidaPratica}) {
       <Section title="Struttura obbligatoria" icon={<ListChecks size={16}/> }>
         {struttura.length ? <ol className="iu-guida-ordered">{struttura.map((item, index) => {
           const record: Record<string, unknown> = isRecord(item) ? item : {}
-          const title = itemTitle(item, 'Sezione')
+          const title = itemTitle(item, '')
           const detail = firstReadable(record, ['contenuto', 'descrizione', 'testo', 'note']) || itemDetail(item)
-          return <li key={itemKey('sezione', index, title)}><strong>{title}</strong>{detail ? <span>{detail}</span> : null}</li>
+          if (!title && !detail) return null
+          return <li key={itemKey('sezione', index, title || detail)}>
+            {title ? <strong>{title}</strong> : null}
+            {detail && detail !== title ? <span>{title ? ' ' : ''}{detail}</span> : null}
+          </li>
         })}</ol> : <p className="iu-empty">Struttura da completare.</p>}
       </Section>
       <Section title="Campi da compilare" icon={<ClipboardCheck size={16}/> }>
@@ -731,20 +752,28 @@ function AttoTab({ guida }:{guida?:GuidaPratica}) {
   )
 }
 
-function AdempimentiTab({ guida, fascicoloId = '' }:{guida?:GuidaPratica; fascicoloId?: string}) {
+function AdempimentiTab({ guida, fascicoloId = '', modelloPerNuovoAtto }:{guida?:GuidaPratica; fascicoloId?: string; modelloPerNuovoAtto: boolean}) {
   const adempimenti = guida?.adempimenti_propedeutici || []
   const allegati = guida?.allegati_obbligatori || []
   const avvertenze = [...(guida?.avvertimenti_obbligatori || []), ...(guida?.avvertenze_redazionali || [])]
   const termini = guida?.termini_processuali || []
   return (
     <div className="iu-guida-tab-panel">
-      <Section title="Adempimenti propedeutici" icon={<ClipboardCheck size={16}/> }>
+      <Section title={modelloPerNuovoAtto ? 'Adempimenti per un nuovo atto' : 'Adempimenti propedeutici'} icon={<ClipboardCheck size={16}/> }>
         {adempimenti.length ? <ol className="iu-guida-ordered">{adempimenti.map((item, index) => {
           const record: Record<string, unknown> = isRecord(item) ? item : {}
           const title = itemTitle(item, `Passaggio ${text(record.step) || index + 1}`)
-          const detail = itemDetail(item)
+          const dettagli = Object.fromEntries(Object.entries(record).filter(([key, value]) =>
+            !['step', 'obbligatorio', 'sanzione_omissione'].includes(key) && text(value) !== title
+          ))
+          const detail = itemDetail(dettagli)
           const omissione = text(record.sanzione_omissione)
-          return <li key={itemKey('adempimento', index, title)}><strong>{title}</strong><span>{record.obbligatorio === false ? 'Consigliato' : 'Obbligatorio'}</span>{detail ? <em>{detail}</em> : null}{omissione ? <em>{omissione}</em> : null}</li>
+          return <li key={itemKey('adempimento', index, title)}>
+            <strong>{title}</strong>{' '}
+            <span>· {record.obbligatorio === false ? 'Consigliato' : 'Obbligatorio'}</span>
+            {detail && detail !== title ? <em> · {detail}</em> : null}
+            {omissione && omissione !== detail ? <em> · {omissione}</em> : null}
+          </li>
         })}</ol> : <p className="iu-empty">Adempimenti da configurare.</p>}
       </Section>
       <Section title="Allegati" icon={<FileText size={16}/> }>
@@ -770,7 +799,7 @@ function AdempimentiTab({ guida, fascicoloId = '' }:{guida?:GuidaPratica; fascic
   )
 }
 
-export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTitle = '', explicitProcedure = false }: Props) {
+export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTitle = '', valoreFascicolo, explicitProcedure = false }: Props) {
   const [response, setResponse] = useState<GuidaPraticaResponse>(emptyGuidaPraticaResponse())
   const [loading, setLoading] = useState(false)
   useBusyActivity(loading, 'Caricamento della guida pratica…')
@@ -788,28 +817,22 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
     if (!nextKey || loading || (!force && loadedKey === nextKey)) return
     const generation = ++requestGeneration.current
     setLoading(true)
+    const caricaFase = Boolean(fascicoloId && !explicitProcedure)
+    setFaseInLettura(caricaFase)
     const loader = explicitProcedure && codice ? getCodiceGuidaPratica(codice, fascicoloId) : fascicoloId ? getFascicoloGuidaPratica(fascicoloId) : getCodiceGuidaPratica(codice)
-    loader.then((payload) => {
+    loader.then(async (payload) => {
       if (generation !== requestGeneration.current) return
       setResponse(payload)
       setLoadedKey(nextKey)
-    }).finally(() => { if (generation === requestGeneration.current) setLoading(false) })
-    if (fascicoloId && !explicitProcedure) {
-      setFaseInLettura(true)
-      // La fase si prepara in sfondo sul server: si richiede di nuovo finché è pronta (al massimo 3 minuti).
-      const chiedi = (tentativo: number) => {
-        getFascicoloGuidaFase(fascicoloId).then((fase) => {
-          if (generation !== requestGeneration.current) return
-          if (fase.in_preparazione && tentativo < 36) {
-            window.setTimeout(() => chiedi(tentativo + 1), 5000)
-            return
-          }
-          setFaseReale(fase)
-          setFaseInLettura(false)
-        }).catch(() => { if (generation === requestGeneration.current) setFaseInLettura(false) })
-      }
-      chiedi(0)
-    }
+      setLoading(false)
+      if (!caricaFase) return
+      const fase = payload.faseReale ?? await getFascicoloGuidaFase(fascicoloId)
+      if (generation === requestGeneration.current) setFaseReale(fase)
+    }).finally(() => {
+      if (generation !== requestGeneration.current) return
+      setLoading(false)
+      setFaseInLettura(false)
+    })
   }
   useEffect(() => {
     setResponse(emptyGuidaPraticaResponse())
@@ -875,8 +898,11 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
     }
   }, [expanded, explicitProcedure])
   const guida = response.guida
+  const modelloPerNuovoAtto = response.checklist?.fase_redazione === 'atto_introduttivo_depositato'
+    || ['decisa', 'estinta', 'chiusa', 'esecutiva'].includes(faseReale?.fase || '')
   const suggestedMatch = response.matchedFromFascicolo
   const showOptionalEmpty = response.ok && response.guidaPraticaDisponibile === false
+  const opening = (!loadedKey || loading) && !response.generatedAt
   const effectiveCodeLabel = guidaCodeLabel(effectiveCode, guida)
   if (!fascicoloId && !codice) return null
   if (!expanded) {
@@ -912,14 +938,14 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
           <button type="button" onClick={() => setExpanded(false)} title="Nascondi guida pratica"><ChevronUp size={14}/></button>
         </div>
       </header>
-      {((loading && !response.generatedAt) || showOptionalEmpty || !response.ok) && faseReale?.passi_operativi ? (
+      {(opening || showOptionalEmpty || !response.ok) && faseReale?.passi_operativi ? (
         <div className="iu-guida-tab-panel">
           {faseReale.nota_fase ? <p className="iu-guida-lead">{faseReale.nota_fase}</p> : null}
           <PercorsoSection percorso={faseReale.percorso || undefined} mostraIpotesi={false}/>
           <PassiDellaPratica fase={faseReale} fascicoloId={fascicoloId}/>
         </div>
       ) : null}
-      {loading && !response.generatedAt ? (
+      {opening ? (
         <p className="iu-guida-empty" role="status">Caricamento della scheda di materia…</p>
       ) : showOptionalEmpty ? (
         <div className="iu-guida-empty" role="note">
@@ -934,10 +960,10 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
             {(['checklist', 'contesto', 'normativa', 'atto', 'adempimenti'] as TabKey[]).map((key) => <button key={key} type="button" className={tab === key ? 'is-active' : ''} onClick={() => setTab(key)}>{key === 'checklist' ? 'Ora' : key === 'contesto' ? 'Contesto' : key === 'normativa' ? 'Normativa' : key === 'atto' ? 'Atto' : 'Adempimenti'}</button>)}
           </nav>
           {tab === 'checklist' ? <ChecklistTab response={conFaseReale(response, faseReale)} fascicoloId={fascicoloId} faseInLettura={faseInLettura} fase={faseReale}/> : null}
-          {tab === 'contesto' ? <ContestoTab response={response} operativo={faseReale?.contesto_operativo}/> : null}
+          {tab === 'contesto' ? <ContestoTab response={response} operativo={faseReale?.contesto_operativo} valoreFascicolo={valoreFascicolo}/> : null}
           {tab === 'normativa' ? <NormativaTab key={effectiveCode} guida={guida} fascicoloId={explicitProcedure ? undefined : fascicoloId}/> : null}
-          {tab === 'atto' ? <AttoTab guida={guida}/> : null}
-          {tab === 'adempimenti' ? <AdempimentiTab guida={guida} fascicoloId={fascicoloId}/> : null}
+          {tab === 'atto' ? <AttoTab guida={guida} modelloPerNuovoAtto={modelloPerNuovoAtto}/> : null}
+          {tab === 'adempimenti' ? <AdempimentiTab guida={guida} fascicoloId={fascicoloId} modelloPerNuovoAtto={modelloPerNuovoAtto}/> : null}
         </>
       )}
     </aside>

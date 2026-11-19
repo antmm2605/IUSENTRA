@@ -48,6 +48,18 @@ def test_all_pages_offline_in_order_without_eight_page_truncation(monkeypatch):
     assert result.extraction_engine == engine.ENGINE_VERSION
 
 
+def test_recupera_ruolo_nativo_omesso_dal_markdown(monkeypatch):
+    original = pdf_bytes(['N. R.G. 000627/2026'])
+    install_inspector(monkeypatch, lambda *_a, **_k: response(['Decreto di fissazione']))
+    result = engine.extract_pdf_inspected(original)
+    assert result.ok and result.text == 'N. R.G. 627/2026\n\nDecreto di fissazione'
+
+    install_inspector(monkeypatch, lambda *_a, **_k: response(['N. R.G. 1084/2026\n\nDecreto']))
+    result = engine.extract_pdf_inspected(original)
+    assert result.ok and result.text == 'N. R.G. 000627/2026'
+    assert any('intestazioni discordanti' in warning for warning in result.warnings)
+
+
 @pytest.mark.parametrize('pages', [[2], [1, 3], []])
 def test_partial_or_unordered_pages_fail_closed(monkeypatch, pages):
     bad = response(['test'] * len(pages))

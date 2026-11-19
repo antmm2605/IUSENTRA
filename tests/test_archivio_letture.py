@@ -53,6 +53,21 @@ def test_le_date_sono_fatti_solo_se_ancorate_e_vere():
 
 def test_ancora_non_attraversa_frasi_ne_riconosce_parole_parziali():
     assert not estrai_date("Non attesta udienze, scadenze, sentenze, crediti, pagamenti, depositi. Data 12/10/2026", origine="nativo")
+
+
+def test_decreto_di_fissazione_del_ruolo_diverso_non_alimenta_termini():
+    testo = (
+        "N. R.G. {ruolo}/2026\nTRIBUNALE ORDINARIO DI VICENZA\nSEZIONE PRIMA\n"
+        "DECRETO FISSAZIONE\nIl Giudice fissa l’udienza del 16/12/2026. "
+        "Dispone il deposito di note scritte entro il 16/12/2026 alle ore 14.00."
+    )
+    for ruolo in ("627", "1234"):
+        fatti = leggi_testo(testo.format(ruolo=ruolo), origine="nativo", contesto=_contesto())
+        termini = [f for f in fatti if f.categoria == "data" and f.campo in {"termine", "udienza"}]
+        assert termini
+        assert any(f.verifica in {"verificata", "plausibile"} for f in termini) == (ruolo == "1234")
+        if ruolo == "627":
+            assert any("627/2026" in p.get("dettaglio", "") for f in termini for p in f.prove)
     assert not estrai_date("Documento senza scadenze. Data 12/10/2026", origine="nativo")
     assert not estrai_date("Si determinano i criteri. Data 12/10/2026", origine="nativo")
     assert [(f.campo, f.valore) for f in estrai_date("Udienza avanti al Dott. Rossi il 12/10/2026", origine="nativo")] == [("udienza", "2026-10-12")]

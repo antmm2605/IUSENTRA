@@ -225,7 +225,7 @@ def test_workspace_intelligente_panoramica_non_lancia_ricerca_giurisprudenziale_
 
 
 def test_workspace_intelligente_save_snapshot_persiste_solo_payload_sicuro(tmp_path: Path):
-    _fascicolo, agenda, scadenziario, fascicoli, sync, giurisprudenza = _seed_workspace(tmp_path)
+    fascicolo, agenda, scadenziario, fascicoli, sync, giurisprudenza = _seed_workspace(tmp_path)
     appuntamento = next(iter(agenda._appuntamenti.values()))
     appuntamento.remote_hearing_detected = True
     appuntamento.remote_hearing_platform = "Teams"
@@ -249,12 +249,29 @@ def test_workspace_intelligente_save_snapshot_persiste_solo_payload_sicuro(tmp_p
     assert snapshot["overview"]["summary"]["appuntamenti_orizzonte"] >= 1
     assert stored["overview"]["source_counts"]["upcoming_appointments"] >= 1
     assert stored["overview"]["upcoming_appointments"] == []
+    assert len(stored["case_index"]) == 1
+    assert stored["case_index"][0]["id"] == fascicolo.id
+    assert stored["case_index"][0]["rg_completo"] == fascicolo.rg_completo
+    assert "documenti" not in stored["case_index"][0]
     hot = stored["overview"]["fascicoli_hot"][0]
     assert hot["appuntamenti_count"] >= 1
     assert "appuntamenti" not in hot
     assert "PIN-RISERVATO-123" not in raw
     assert "riunione.example.test" not in raw
     assert "Accesso riservato studio" not in raw
+
+
+def test_snapshot_sqlite_non_usa_il_dsn_predefinito_della_piattaforma(tmp_path, monkeypatch):
+    import pct.workspace_intelligente as runtime
+
+    def dsn_predefinito():
+        raise AssertionError("Il backend dello studio è già determinato")
+
+    monkeypatch.setattr(runtime, "resolve_runtime_postgres_dsn", dsn_predefinito)
+    path = tmp_path / "workspace_intelligence.json"
+    payload = {"generated_at": "2026-11-16T12:15:00+01:00", "case_index": []}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    assert WorkspaceIntelligenteService.load_snapshot(str(path), postgres_dsn="") == payload
 
 
 def test_workspace_intelligente_propone_sentenza_per_fascicolo(tmp_path: Path):

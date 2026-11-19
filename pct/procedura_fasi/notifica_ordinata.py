@@ -85,4 +85,37 @@ def proposte_notifica_415_equivalenti(scadenze: Iterable[Any], documenti: Iterab
     }
 
 
+def proposte_notifica_415_equivalenti(scadenze: Iterable[Any], documenti: Iterable[Any]) -> dict[str, str]:
+    """Abbina le due proposte automatiche solo con la stessa PEC e lo stesso giorno."""
+    pec_per_documento = {
+        str(documento.id): str(getattr(documento, "msg_id_portale", "") or "").partition("#")[0]
+        for documento in documenti
+    }
+    da_pec = defaultdict(list)
+    da_obbligo = defaultdict(list)
+    for scadenza in scadenze:
+        stato = getattr(scadenza, "stato", "")
+        if getattr(stato, "value", stato) != "BOZZA" or not scadenza.id:
+            continue
+        giorno = _giorno(scadenza.data_scadenza)
+        if not giorno:
+            continue
+        pec = str(getattr(scadenza, "source_message_id", "") or "")
+        if getattr(scadenza, "deadline_profile_code", "") in PROFILI_NOTIFICA_415 and pec:
+            da_pec[pec, giorno].append(scadenza.id)
+            continue
+        provenienze = {
+            pec_per_documento.get(riga.removeprefix(MARCATORE_NOTIFICA_415))
+            for riga in str(getattr(scadenza, "note", "") or "").splitlines()
+            if riga.startswith(MARCATORE_NOTIFICA_415)
+        }
+        if len(provenienze) == 1 and (origine := next(iter(provenienze))):
+            da_obbligo[origine, giorno].append(scadenza.id)
+    return {
+        ids[0]: da_pec[gruppo][0]
+        for gruppo, ids in da_obbligo.items()
+        if len(ids) == len(da_pec[gruppo]) == 1
+    }
+
+
 __all__ = ["STATI_DA_VALUTARE", "termine_di_notifica_ordinata"]

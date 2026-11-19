@@ -66,7 +66,7 @@ def _crea_utente(app):
         )
 
 
-def test_api_global_search_restituisce_json_e_pagina_renderizza(tmp_path):
+def test_api_global_search_restituisce_json_e_pagina_renderizza(tmp_path, monkeypatch):
     app = create_app(_cfg_web(tmp_path))
     _crea_utente(app)
     repo = GlobalSearchRepository(default_global_search_db_path(app.config["SEARCH_INDEX"]))
@@ -86,8 +86,17 @@ def test_api_global_search_restituisce_json_e_pagina_renderizza(tmp_path):
     finally:
         repo.close()
 
+    original_stats = GlobalSearchRepository.stats
+    tenants_read = []
+
+    def count_stats(repository, tenant_id):
+        tenants_read.append(tenant_id)
+        return original_stats(repository, tenant_id)
+
+    monkeypatch.setattr(GlobalSearchRepository, "stats", count_stats)
     with app.test_client() as client:
         client.post("/login", data={"username": "operatore", "password": "Operatore123!"}, follow_redirects=True)
+        tenants_read.clear()
         response = client.get("/api/global-search?q=RSSMRA80A01H501U")
         assert response.status_code == 200
         payload = response.get_json()
@@ -95,6 +104,7 @@ def test_api_global_search_restituisce_json_e_pagina_renderizza(tmp_path):
         assert payload["results"][0]["entity_type"] == "cliente"
         assert payload["stats"]["fts_enabled"] is True
         assert payload["stats"]["last_indexed_at"]
+        assert tenants_read == ["default"]
 
         page = client.get("/global-search?q=Rossi")
         assert page.status_code == 200

@@ -59,6 +59,18 @@ def test_ordine_di_notifica_nel_rito_del_lavoro_mostra_il_termine_dell_art_415(m
     assert termine_per_presidio("judgment_to_notify_review", "F1", cache)["date"] == "2027-04-01"
 
 
+def test_due_presidi_dello_stesso_fascicolo_non_condividono_il_termine_di_una_pec(monkeypatch):
+    scadenziario = Scadenziario([
+        _scadenza("A", "2026-11-20", "PEC_TERMINE_PROPOSTO:pec-a:LAV_415_NOTIFICA_TRENTA_GIORNI"),
+        _scadenza("B", "2026-11-05", "PEC_TERMINE_PROPOSTO:pec-b:LAV_415_NOTIFICA_DIECI_GIORNI"),
+    ])
+    monkeypatch.setattr("web.helpers.get_scadenziario", lambda: scadenziario)
+    cache: dict = {}
+    assert termine_per_presidio("explicit_order", "F1", cache, source_message_id="pec-a")["href"] == "/scadenziario/A"
+    assert termine_per_presidio("explicit_order", "F1", cache, source_message_id="pec-b")["href"] == "/scadenziario/B"
+    assert termine_per_presidio("explicit_order", "F1", cache, source_message_id="pec-estranea") is None
+
+
 def test_termine_lungo_proposto_dalla_pec_di_cancelleria():
     """Verifica a vista del 01/11/2026: la sentenza aveva il termine lungo in scadenziario, proposto dalla PEC."""
     note = "PEC_TERMINE_PROPOSTO:msg1:CIV_APPELLO_LUNGO\nTermine proposto: Impugnazione sentenza - termine lungo"

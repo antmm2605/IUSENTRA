@@ -43,6 +43,7 @@ def test_presidio_usa_indice_coprente_senza_leggere_o_modificare_mime(tmp_path):
     repository = _repository(tmp_path)
     _inserisci(repository, "linked", "Comunicazione", linked="F1")
     _inserisci(repository, "candidate", "Anna Bianchi R.G. 777/2026")
+    _inserisci(repository, "foreign", "Anna Bianchi R.G. 777/2026", linked="F2")
     _inserisci(repository, "unrelated", "Altro procedimento")
     original = b"fonte originale " * 8192
     with repository.connect() as conn:

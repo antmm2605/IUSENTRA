@@ -807,7 +807,8 @@ def test_valore_dichiarato_proveniente_da_nota_e_deposito(tmp_path, monkeypatch)
         Fatto(categoria="metadato_fascicolo", campo="natura_documentale", valore="nota_di_iscrizione", verifica="verificata"),
     ])
     testi = {
-        nota.id: "Tribunale di Palmi Nota di iscrizione a ruolo Ricorso Mario Rossi Valore della controversia: 1.500,00",
+        nota.id: ("Tribunale di Palmi Nota di iscrizione a ruolo Ricorso Mario Rossi "
+                  "[CODICE ED OGGETTO DELLA DOMANDA] 222050 - Retribuzione Valore della controversia: 1.500,00"),
         deposito.id: "Tribunale di Palmi Ricorso Mario Rossi condannare al pagamento della somma di euro 1.500,00",
     }
     monkeypatch.setattr(archivio_letture_runtime, "testi_indice_archivio", lambda _: testi)
@@ -816,7 +817,9 @@ def test_valore_dichiarato_proveniente_da_nota_e_deposito(tmp_path, monkeypatch)
     assert salva(f, registro, "studio") == 0
     fatti = registro.fatti("studio", f.id)
     assert any(voce.campo == "natura_documentale" for voce in fatti)
-    assert valore_causa_archivio.valore_iscrizione(f, fatti, oggetti)["importo"] == 1500
+    valore = valore_causa_archivio.valore_iscrizione(f, fatti, oggetti)
+    assert valore["importo"] == 1500
+    assert valore["codice_oggetto_dichiarato"] == "222050"
     assert valore_causa_archivio.valore_iscrizione(f, fatti, oggetti[:1]) == {}
     deposito.nome = "Deposito telematico: Ricorso Mario Rossi RG: 00013 - 2023"
     assert salva(f, registro, "studio") == 1

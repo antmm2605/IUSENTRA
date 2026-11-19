@@ -69,18 +69,19 @@
   letter-spacing: 0;
 }
 
-.iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main span {
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  line-height: 1;
-  white-space: nowrap;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-}
+@media (min-width: 1281px) {
+  .iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main span {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    line-height: 1;
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+  }
 
-.iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main span svg {
-  transform: rotate(90deg);
+  .iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main span svg {
+    transform: rotate(90deg);
+  }
 }
 
 .iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main strong,

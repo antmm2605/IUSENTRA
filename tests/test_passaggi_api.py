@@ -163,10 +163,17 @@ def test_worker_attende_la_lettura_prima_di_pubblicare_i_passaggi(app, monkeypat
 
 def test_note_preparate_dalla_stessa_fonte_con_le_due_date(app, monkeypatch):
     from datetime import date
+    from types import SimpleNamespace
+    from web.services import archivio_letture_runtime
     from web.services import passaggi_runtime
 
     monkeypatch.setattr(passaggi_runtime, "oggi_roma", lambda: date(2026, 11, 15))
     dati = _dati("F1")
+    dati["fascicolo"]["sezione"] = "Lavoro"
+    dati["fascicolo_originale"] = SimpleNamespace(id="F1")
+    monkeypatch.setattr(archivio_letture_runtime, "testi_indice_archivio", lambda _fascicolo, documento_ids: {
+        "D1": "TRIBUNALE ORDINARIO DI VICENZA SEZIONE PRIMA DECRETO FISSAZIONE",
+    } if documento_ids == {"D1"} else {})
     nota = {
         "codice": "note_127ter", "stato": "da_fare", "onerato_codice": "tutte_le_parti",
         "termine": {"scadenza_iso": "2027-01-12"},
@@ -194,24 +201,56 @@ def test_note_preparate_dalla_stessa_fonte_con_le_due_date(app, monkeypatch):
         assert "18/01/2027" in bozza["testo"] and "12/01/2027" in bozza["testo"]
         assert "21/01/2027" not in bozza["testo"]
         assert "R.G. 632/2026" in bozza["testo"]
+        assert "## Sezione Prima" in bozza["testo"]
+        assert bozza["sezione_provvedimento"] == "Sezione Prima"
+        assert "istanze e conclusioni" in bozza["campi_da_completare"]
+        assert "data dell’atto" in bozza["campi_da_completare"]
         nota["dubbi"] = [{"codice": "note_in_attesa_cancelleria"}]
         payload = client.get("/api/v1/ui/fascicoli/F1/passaggi", headers=HEADERS).get_json()
         assert payload["bozzeNote"] == {}
 
 
+def test_sezione_della_bozza_richiede_l_intestazione_del_provvedimento():
+    from pct.note_127_ter.bozza import sezione_del_provvedimento
+
+    assert sezione_del_provvedimento("Corte di appello di Venezia\nSEZIONE III\nORDINANZA") == "Sezione III"
+    assert sezione_del_provvedimento("Tribunale di Vicenza DECRETO. Si trasmette alla sezione prima.") == ""
+    assert sezione_del_provvedimento("SEZIONE PRIMA DECRETO") == ""
+
+
+def test_bozza_distingue_l_accettazione_del_ricorso_dalla_copia_nel_fascicolo():
+    from web.services.passaggi_runtime import _ricorso_citato_senza_allegato
+
+    ricevuta = {"portale": "PEC_PCT", "stato": "ACCETTATO_CANCELLERIA", "identificativo_busta": "B123",
+                "atto": "Ricorso (originale notificato).pdf", "documenti": 0, "data_accettazione": "10/11/2026"}
+    lettura = {"depositi": {"perfezionati": [ricevuta]}, "ragionamento": {"atti": []}}
+    assert _ricorso_citato_senza_allegato(lettura) == {
+        "atto": ricevuta["atto"], "busta": "B123", "data": "10/11/2026",
+    }
+
+    altri = [ricevuta, {**ricevuta, "identificativo_busta": "B456"}]
+    assert _ricorso_citato_senza_allegato({**lettura, "depositi": {"perfezionati": altri}}) is None
+    lettura["ragionamento"]["atti"].append(
+        {"appartenenza": "causa", "natura": "atto_principale", "etichetta": "Ricorso in materia di lavoro"}
+    )
+    assert _ricorso_citato_senza_allegato(lettura) is None
+
+
 def test_apertura_bozza_riusa_il_documento_editor(app, tmp_path, monkeypatch):
     from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
     from web import helpers
-    from web.services import riscontri_processuali_runtime
+    from web.services import document_crypto, editor_studio_context, riscontri_processuali_runtime
 
     archivio = GestioneFascicoli(
         db_path=str(tmp_path / "bozze" / "fascicoli.json"),
         documents_dir=str(tmp_path / "bozze" / "documenti"),
     )
-    fascicolo = archivio.nuovo(titolo="Note scritte", tipo=TipoFascicolo.CIVILE)
+    fascicolo = archivio.nuovo(titolo="Note scritte", tipo=TipoFascicolo.CIVILE, giudice="Caterina Neri")
     fonte = archivio.aggiungi_documento(fascicolo.id, "Decreto.pdf", TipoDocumento.DECRETO, b"%PDF-1.4")
     chiave = f"127ter.bozza_note:{fascicolo.id}:S1"
     monkeypatch.setattr(helpers, "get_fascicoli", lambda: archivio)
+    monkeypatch.setattr(editor_studio_context, "studio_context_for_editor", lambda: {})
+    monkeypatch.setattr(document_crypto, "encrypt_doc", lambda raw: raw)
 
     def salvata(fascicolo_id, pannello):
         assert (fascicolo_id, pannello) == (fascicolo.id, "passaggi")
@@ -219,6 +258,8 @@ def test_apertura_bozza_riusa_il_documento_editor(app, tmp_path, monkeypatch):
             "titolo": "Note per la trattazione scritta", "termine": "2027-01-12",
             "documento_id": fonte.id, "documento": fonte.nome,
             "testo": "## Note per la trattazione scritta\n\n[Istanze e conclusioni]",
+            "udienza_sostituita": "18/01/2027", "ora": "14.00",
+            "dati_modello": {"rg": "632/2026", "sezione": "Sezione Prima"},
         }}}
 
     monkeypatch.setattr(riscontri_processuali_runtime, "risultato_materializzato", salvata)
@@ -232,23 +273,64 @@ def test_apertura_bozza_riusa_il_documento_editor(app, tmp_path, monkeypatch):
         assert data["openUrl"] == f"/fascicoli/{fascicolo.id}/documenti/{data['documentId']}/editor"
         doc = next(d for d in archivio.get(fascicolo.id).documenti if d.id == data["documentId"])
         assert doc.fonte_documento == "BOZZA_NOTE_127_TER"
+        assert doc.nome.endswith("12-01-2027.docx")
         assert fonte.id in doc.note
         assert len(archivio.get(fascicolo.id).documenti) == 2
+        from docx import Document
+        from pct.documento_fedele.da_docx import converti_docx
+        from lxml import html
+        percorso = archivio.percorso_documento(fascicolo.id, doc.id)
+        corpo = html.fragment_fromstring(
+            converti_docx(percorso).html, create_parent=True,
+        )
+        titolo_note = next(p for p in Document(percorso).paragraphs if p.text == "Trattazione scritta")
+        assert all(str(run.font.color.rgb) == "000000" for run in titolo_note.runs if run.text)
+        for key, valore in {
+            "fascicolo.giudice": "Caterina Neri",
+            "note_127ter.udienza": "18.01.2027",
+            "note_127ter.termine": "12/01/2027 entro le ore 14:00",
+            "note_127ter.sezione": "Sezione Prima",
+        }.items():
+            (campo,) = corpo.xpath(".//*[@data-iu-linked-field=$key]", key=key)
+            assert campo.text_content() == valore
+            assert campo.get("data-iu-linked-matter") == fascicolo.id
 
 
-def test_note_espone_ora_del_provvedimento_e_stile_nativo():
+def test_note_espone_ora_del_provvedimento_e_stile_nativo(tmp_path):
     from pct.note_127_ter.bozza import testo_note
+    from pct.documento_fedele.da_docx import converti_docx
+    from pct.editor import html_to_docx
+    from pct.editor_linked_fields import template_linked_html
+    from lxml import html as parser
     from web.services.passaggi_runtime import _impagina_bozza_note
 
     proposta = {"termine": "2026-12-22", "ora": "14.00", "udienza_sostituita": "22/12/2026"}
-    testo = testo_note(proposta, ufficio="Tribunale di Vicenza", sezione="Lavoro", rg="1851/2026",
-                       giudice="Caterina Neri", parte="Cliente", controparte="", difensore="",
-                       difensore_controparte="Avvocatura distrettuale di Venezia")
+    dati = dict(ufficio="Tribunale di Vicenza", sezione="Lavoro", rg="1851/2026",
+                giudice="Caterina Neri", parte="Parte A", controparte="", difensore="",
+                difensore_controparte="Avvocatura distrettuale di Venezia")
+    testo = testo_note(proposta, **dati)
     assert "22/12/2026 entro le ore 14:00" in testo
     assert "Controparte: Avvocatura" not in testo
     assert "Difesa indicata nel fascicolo: Avvocatura distrettuale di Venezia." in testo
-    html = _impagina_bozza_note(testo)
+    html = _impagina_bozza_note(testo, proposta={**proposta, "dati_modello": dati}, fascicolo_id="F1", cliente_id="C1")
     assert "data-margine-sinistro" in html and 'data-interlinea="24.0000"' in html
     assert "Times New Roman" in html and "text-align:center;font-size:18pt" in html
     assert "*Giudice:" not in html and "*Udienza del" not in html
     assert "text-align:center;font-style:italic;text-decoration:underline" in html
+    corpo = parser.fragment_fromstring(html, create_parent=True)
+    termine = corpo.xpath(".//*[@data-iu-linked-field='note_127ter.termine']")[0]
+    assert termine.text_content() == "22/12/2026 entro le ore 14:00"
+    assert termine.get("data-iu-linked-matter") == "F1"
+    assert corpo.xpath(".//a[contains(@href,'127ter')]")
+    word = tmp_path / "note-trattazione-scritta.docx"
+    word.write_bytes(html_to_docx(html))
+    riaperto = converti_docx(word).html
+    assert "data-iu-linked-field=\"note_127ter.termine\"" in riaperto and "127ter" in riaperto
+    modello, _ = template_linked_html(riaperto)
+    for dato in ("22/12/2026", "1851/2026", "Parte A", "Caterina Neri"):
+        assert dato not in modello
+    altro, mancanti = template_linked_html(modello, matter_id="F2", client_id="C2", context=[
+        {"id": "note_127ter.termine", "value": "15/01/2027 entro le ore 12:00", "available": True},
+    ])
+    assert "15/01/2027 entro le ore 12:00" in altro
+    assert "Difensore costituito" in mancanti

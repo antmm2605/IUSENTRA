@@ -941,6 +941,18 @@ def test_source_evidence_fonte_evento_esatta_vince_su_altro_zip_del_profilo():
     assert source["sourceLabel"] == "PEC originale - sentenza.pdf"
 
 
+def test_source_evidence_note_127_ter_non_usa_la_norma_come_nome_dell_allegato():
+    scadenza = SimpleNamespace(
+        source_message_id="pec_rettifica",
+        hearing_mode_source="decreto ex art. 127-ter c.p.c.",
+        source_document_name="939172s.pdf.zip",
+    )
+    source = _source_evidence(scadenza)
+    assert source["sourceHref"] == "/api/v1/ui/email/source/pec_rettifica?name=939172s.pdf.zip"
+    scadenza.source_document_name = ""
+    assert _source_evidence(scadenza)["sourceHref"] == "/email/?audit_id=pec_rettifica"
+
+
 def test_pdf_notificato_alimenta_scadenziario_agenda_senza_duplicare_link_audiovisivo(tmp_path: Path):
     exact_link = "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19oPeQ"
     cliente = GestioneClienti(db_path=str(tmp_path / "clienti.json")).nuovo(

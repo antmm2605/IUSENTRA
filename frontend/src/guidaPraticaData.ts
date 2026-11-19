@@ -23,6 +23,7 @@ export type GuidaNormativa = {
   articolo?: string
   descrizione?: string
   url?: string
+  archivio_atto?: string
 }
 
 export type GuidaCitazioneVerificata = {
@@ -220,6 +221,7 @@ export type GuidaPercorso = {
 }
 
 export type GuidaPraticaResponse = {
+  faseReale?: GuidaFaseReale
   ok: boolean
   percorso?: GuidaPercorso
   source?: string
@@ -288,12 +290,13 @@ export function getFascicoloGuidaGiurisprudenza(fascicoloId: string) {
 
 export type GuidaContestoOperativo = {
   udienza?: string
-  valore_causa?: { importo?: number; documento?: { nome: string; href: string } }
+  valore_causa?: { importo?: number; codice_oggetto_dichiarato?: string; documento?: { nome: string; href: string } }
   contributo?: { etichetta: string; importoLabel?: string; norma?: string; fonti?: { nome: string; href: string }[] } | null
 }
 
 export type GuidaFaseReale = {
   contesto_operativo?: GuidaContestoOperativo
+  aggiornamento_pendente?: boolean
   ok?: boolean
   in_preparazione?: boolean
   nota_fase?: string
@@ -303,6 +306,7 @@ export type GuidaFaseReale = {
   passi_operativi?: (PassoLettura & {
     documento?: { documento_id?: string; documento?: string }
     modello_atto?: string
+    bozza_note?: { chiave: string; documento_id: string }
     come?: string
     perche?: string
     riscontri_mancanti?: string[]

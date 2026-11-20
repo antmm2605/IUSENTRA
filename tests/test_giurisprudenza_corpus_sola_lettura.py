@@ -44,3 +44,19 @@ def test_ricerca_su_archivio_wal_in_cartella_non_scrivibile(tmp_path):
         assert [r["numero_sentenza"] for r in righe] == ["49"]
     finally:
         os.chmod(cartella, stat.S_IRWXU)
+
+
+def test_estremi_con_zeri_iniziali_come_in_sentenzeweb(tmp_path):
+    db = tmp_path / "giurisprudenza_corpus.db"
+    GestioneCorpusGiurisprudenza(str(db))
+    conn = sqlite3.connect(db)
+    conn.execute("INSERT INTO fonti_giurisprudenza (codice, nome, tipo_fonte) VALUES ('cassazione_sentenzeweb', 'Cassazione', 'ufficiale')")
+    conn.execute("INSERT INTO sentenze (fonte_id, uuid_interno, tipo_provvedimento, organo_giudicante, sezione, numero_sentenza, "
+                 "anno_sentenza, titolo) VALUES (last_insert_rowid(), 'u-5425-2021', 'sentenza', 'Corte di Cassazione — civile', "
+                 "'U', '05425', 2021, 'Sezioni unite')")
+    conn.commit()
+    conn.close()
+    corpus = GestioneCorpusGiurisprudenza(str(db), read_only=True)
+    for domanda in ("5425/2021", "05425/2021", "Cass. S.U. n. 5425/2021"):
+        righe = corpus.cerca_sentenze(q=domanda, limit=3, semantica=False)
+        assert [r["numero_sentenza"] for r in righe] == ["05425"], domanda

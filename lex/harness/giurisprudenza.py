@@ -85,6 +85,12 @@ def cerca(domanda: str, *, limite: int = 3, secondi: float | None = None,
     if not elenco:
         return EsitoGiurisprudenza("nessun archivio della giurisprudenza disponibile")
     esito = EsitoGiurisprudenza("consultata", archivi=[n for n, _ in elenco])
+    # Una citazione («Cass. S.U. n. 5425/2021») si cerca per soli estremi: niente scansione del testo integrale,
+    # che sugli 8,6 GB di SentenzeWeb e con il disco saturo richiede minuti.
+    from pct.giurisprudenza_corpus import estremi_dalla_domanda
+
+    coppie = estremi_dalla_domanda(domanda)["coppie"]
+    domanda = f"{coppie[0][0]}/{coppie[0][1]}" if len(coppie) == 1 else domanda
     futuri = {nome: _ESECUTORE.submit(corpus.cerca_sentenze, q=domanda, limit=limite, semantica=False)
               for nome, corpus in elenco}
     for nome, futuro in futuri.items():

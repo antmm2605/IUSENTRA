@@ -189,7 +189,11 @@ _DOMANDA_PROCESSUALE = re.compile(
 _ECLI_RE = re.compile(r"\bECLI:[A-Z]{2}:[A-Z]+:\d{4}:[0-9A-Z.]+", re.IGNORECASE)
 _ESTREMI_RE = re.compile(
     r"(?:\b(?:sent(?:enza|\.)?|ord(?:inanza|\.)?|pronuncia|decisione|cost(?:ituzionale|\.)?|consulta"
-    r"|cass(?:azione|\.)?) ?,? ?(?:(?:sent|ord)\. ?)?(?:n\.|nr\.?|numero)? ?)"
+    r"|cass(?:azione|\.)?) ?,? ?"
+    # Sezione fra organo e numero: «Cass. S.U. n.», «Cass., sez. lav., n.», «Cass. sez. III n.», «Cass. civ. n.».
+    r"(?:(?:civ(?:ile|\.)?|pen(?:ale|\.)?|s\. ?u\.|sez(?:ioni|ione|\.)? ?(?:un(?:ite|\.)|lav(?:oro|\.)?|trib(?:utaria|\.)?"
+    r"|[ivx]+|\d(?:-\d)?)?\.?) ?,? ?){0,2}"
+    r"(?:(?:sent|ord)\. ?)?(?:n\.|nr\.?|numero)? ?)"
     r"(\d{1,6}) ?(?:/| del(?:l'anno)? )((?:19|20)\d{2})\b",
     re.IGNORECASE,
 )
@@ -1200,11 +1204,12 @@ class GestioneCorpusGiurisprudenza:
             _aggiungi(conn.execute(
                 f"""
                 SELECT {_COLONNE_RICERCA} FROM sentenze s
-                WHERE s.anno_sentenza = ? AND s.numero_sentenza IN (?, ?) {organo_sql} {filtri}
+                WHERE s.anno_sentenza = ? AND s.numero_sentenza IN (?, ?, ?, ?) {organo_sql} {filtri}
                 ORDER BY {_ORDINE_STORICO}
                 LIMIT 5
                 """,
-                (anno, numero, f"{numero}/{anno}", *filtri_params),
+                # La Cassazione (SentenzeWeb) scrive il numero con gli zeri iniziali («05425»): l'avvocato cita «5425/2021».
+                (anno, numero, numero.zfill(5), numero.zfill(6), f"{numero}/{anno}", *filtri_params),
             ).fetchall())
         return righe
 

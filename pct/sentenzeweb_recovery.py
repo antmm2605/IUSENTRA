@@ -13,6 +13,8 @@ from bs4 import BeautifulSoup
 from pct.sentenzeweb_corpus import body_available
 
 MONTHS = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre")
+# Lotto massimo di un giro di recupero: oltre, ``recover_pending`` rifiuta la richiesta.
+MASSIMO_RECUPERI_PER_GIRO = 1000
 SECTIONS = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII", "L": "Lavoro", "U": "Unite", "F": "Feriale"}
 
 
@@ -127,7 +129,7 @@ def recover_pending(owner, *, limit=25, interval=2.0, fetch=None, promote_active
     import time
     from contextlib import closing
 
-    if not 1 <= limit <= 1000 or interval < 1:
+    if not 1 <= limit <= MASSIMO_RECUPERI_PER_GIRO or interval < 1:
         raise ValueError("Recovery request outside bounded rate or batch")
     fetch = fetch or fetch_alternative
     with closing(owner._connect()) as connection, connection:

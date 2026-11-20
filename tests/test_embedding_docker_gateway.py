@@ -48,3 +48,29 @@ def test_tags_hide_generation_models_and_preserve_digest(monkeypatch):
 def test_gateway_has_dedicated_port_and_loopback_upstream_is_separate():
     assert gateway.BIND == "172.17.0.1"
     assert gateway.BIND_PORT == 11435
+
+
+def test_embedding_serializzato_con_modello_tenuto_caricato():
+    """Decisione del 19/11/2026: una richiesta alla volta e keep_alive lungo per embeddinggemma."""
+    assert gateway.IN_FLIGHT._initial_value == 1
+    body = {"model": gateway.MODEL, "input": ["prova"]}
+    assert gateway.validate("POST", "/api/embed", body)["keep_alive"] == gateway.KEEP_ALIVE == "24h"
+
+
+def test_risposta_400_di_ollama_porta_il_motivo(monkeypatch):
+    class Reply:
+        status = 400
+        def read(self, limit):
+            return b'{"error":"the input length exceeds the context length"}'
+    class Connection:
+        def __init__(self, host, port, timeout):
+            pass
+        def request(self, *args, **kwargs):
+            pass
+        def getresponse(self):
+            return Reply()
+        def close(self):
+            pass
+    monkeypatch.setattr(gateway.http.client, "HTTPConnection", Connection)
+    stato, corpo = gateway.forward("POST", "/api/embed", {"model": gateway.MODEL, "input": ["x"]})
+    assert stato == 400 and corpo["motivo"] == "the input length exceeds the context length"

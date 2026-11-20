@@ -14,6 +14,9 @@ import os
 from pathlib import Path
 import re
 from typing import Any, Iterable, Sequence
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 TEXT_SUFFIXES = {
@@ -28,6 +31,14 @@ TEXT_SUFFIXES = {
 }
 DEFAULT_MAX_FILES = 20000
 DEFAULT_MAX_FILE_BYTES = 50 * 1024 * 1024
+# Giro notturno (verifica del 19/11/2026: il passo partito alle 03:06 non si era più chiuso). Il perimetro è tutto
+# /data: la visita dell'albero e i JSON grandi (fino a 50 MB, ogni stringa ricontrollata con quattro codifiche)
+# potevano durare ore, senza un limite di tempo e ripartendo ogni notte dall'inizio. Ora il giro ha un tempo massimo,
+# legge i file in ordine fisso e salva il punto raggiunto: la notte dopo riprende da lì.
+DEFAULT_DURATA_MASSIMA_S = 20 * 60
+NIGHTLY_MAX_FILE_BYTES = 8 * 1024 * 1024
+# Archivi derivati montati sotto /data che non sono testi dello studio (dataset Lex, decine di GB).
+CARTELLE_ESCLUSE = frozenset({"lex_dataset", ".git", "node_modules", "__pycache__"})
 SCHEMA_VERSION = "iusentra.utf8_integrity.v1"
 
 def _chars(*codes: int) -> str:
@@ -259,17 +270,48 @@ def _is_within_roots(path: Path, roots: Sequence[Path]) -> bool:
     return any(resolved == root.resolve() or root.resolve() in resolved.parents for root in roots)
 
 
-def _iter_text_files(roots: Sequence[Path], *, max_files: int) -> Iterable[Path]:
+def _iter_text_files(
+    roots: Sequence[Path], *, max_files: int, riprendi_da: str = "", esclusi: frozenset[str] = frozenset(),
+    continua=None,
+) -> Iterable[Path]:
+    """File di testo in ordine fisso (nome per nome, cartelle comprese); con ``riprendi_da`` salta fino a quel file."""
     seen: set[Path] = set()
     count = 0
+    cursore = tuple(Path(riprendi_da).parts) if riprendi_da else ()
+
+    def visita(cartella: Path):
+        try:
+            voci = sorted(os.scandir(cartella), key=lambda voce: voce.name)
+        except OSError:
+            return
+        for voce in voci:
+            if continua is not None and not continua():
+                return  # tempo scaduto anche durante la visita di cartelle senza file di testo
+            percorso = Path(voce.path)
+            parti = percorso.parts
+            try:
+                if voce.is_dir(follow_symlinks=False):
+                    if voce.name in esclusi:
+                        continue
+                    # Cartella già visitata per intero nei giri precedenti: si salta senza entrarci.
+                    if cursore and parti < cursore[: len(parti)]:
+                        continue
+                    yield from visita(percorso)
+                elif voce.is_file():
+                    if cursore and parti <= cursore:
+                        continue
+                    yield percorso
+            except OSError:
+                continue
+
     for root in roots:
         if not root.exists():
             continue
-        iterator = [root] if root.is_file() else root.rglob("*")
+        iterator = [root] if root.is_file() else visita(root)
         for path in iterator:
             if count >= max_files:
                 return
-            if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+            if path.suffix.lower() not in TEXT_SUFFIXES or not path.is_file():
                 continue
             resolved = path.resolve()
             if resolved in seen:
@@ -353,12 +395,37 @@ def scan_utf8_integrity(
     max_files: int = DEFAULT_MAX_FILES,
     max_file_bytes: int = DEFAULT_MAX_FILE_BYTES,
     report_path: str | Path | None = None,
+    durata_massima_s: float | None = None,
+    stato_path: str | Path | None = None,
+    esclusi: frozenset[str] = frozenset(),
+    orologio=None,
 ) -> dict[str, Any]:
+    import time
+
+    orologio = orologio or time.monotonic
     safe_roots = [Path(root).expanduser().resolve() for root in roots if _clean(root)]
     started_at = _now_iso()
     files: list[Utf8FileResult] = []
     checked = repaired_count = artifact_count = skipped_large = errors = unresolved = 0
-    for path in _iter_text_files(safe_roots, max_files=max_files):
+    stato = Path(stato_path) if stato_path else None
+    riprendi_da = ""
+    if stato is not None:
+        try:
+            riprendi_da = str(json.loads(stato.read_text(encoding="utf-8")).get("ultimo_file") or "")
+        except (OSError, ValueError, AttributeError):
+            riprendi_da = ""
+    scadenza = orologio() + durata_massima_s if durata_massima_s else None
+    ultimo = ""
+    esaurito = False
+    logger.info("[utf8] Giro avviato%s.", f", riprende dopo {riprendi_da}" if riprendi_da else "")
+    def continua() -> bool:
+        return scadenza is None or orologio() < scadenza
+
+    for path in _iter_text_files(safe_roots, max_files=max_files, riprendi_da=riprendi_da, esclusi=esclusi,
+                                 continua=continua):
+        if not continua():
+            break
+        ultimo = str(path)
         checked += 1
         try:
             size = path.stat().st_size
@@ -397,9 +464,25 @@ def scan_utf8_integrity(
         except Exception as exc:
             errors += 1
             files.append(Utf8FileResult(str(path), "errore", False, message=str(exc)))
+    else:
+        esaurito = True
+    # Concluso solo se la visita è finita da sola, prima del tempo massimo e del numero massimo di file.
+    completato = esaurito and continua() and checked < max_files
+    if stato is not None:
+        try:
+            stato.parent.mkdir(parents=True, exist_ok=True)
+            stato.write_text(json.dumps({"ultimo_file": "" if completato else ultimo, "aggiornato": _now_iso()},
+                                        ensure_ascii=False) + "\n", encoding="utf-8")
+        except OSError as exc:
+            logger.warning("[utf8] Punto di ripresa non salvato: %s", exc)
+    logger.info("[utf8] Giro %s: %d file controllati, ultimo %s.",
+                "concluso" if completato else "interrotto per tempo o numero di file", checked, ultimo or "-")
     report = {
         "schema_version": SCHEMA_VERSION,
         "started_at": started_at,
+        "completed": completato,
+        "resumed_from": riprendi_da,
+        "resume_from": "" if completato else ultimo,
         "finished_at": _now_iso(),
         "ok": errors == 0 and unresolved == 0,
         "repair_enabled": bool(repair),
@@ -429,16 +512,26 @@ def run_utf8_integrity_service(
     max_files: int | None = None,
     max_file_bytes: int | None = None,
     report_path: str | Path | None = None,
+    notturno: bool = False,
 ) -> dict[str, Any]:
+    """``notturno=True``: tempo massimo, file fino a 8 MB, archivi derivati esclusi e ripresa dal punto raggiunto."""
     cfg = dict(config or {})
     selected_roots = [Path(root) for root in roots] if roots else roots_from_config(cfg)
-    selected_report = report_path or _default_report_path(cfg)
+    selected_report = Path(report_path or _default_report_path(cfg))
+    massimo_byte = DEFAULT_MAX_FILE_BYTES if not notturno else NIGHTLY_MAX_FILE_BYTES
+    durata = None
+    if notturno:
+        durata = float(cfg.get("IUSENTRA_UTF8_DURATA_MASSIMA_S") or os.getenv("IUSENTRA_UTF8_DURATA_MASSIMA_S")
+                       or DEFAULT_DURATA_MASSIMA_S)
     return scan_utf8_integrity(
         selected_roots,
         repair=repair,
         max_files=int(max_files or os.getenv("IUSENTRA_UTF8_MAX_FILES") or DEFAULT_MAX_FILES),
-        max_file_bytes=int(max_file_bytes or os.getenv("IUSENTRA_UTF8_MAX_FILE_BYTES") or DEFAULT_MAX_FILE_BYTES),
+        max_file_bytes=int(max_file_bytes or os.getenv("IUSENTRA_UTF8_MAX_FILE_BYTES") or massimo_byte),
         report_path=selected_report,
+        durata_massima_s=durata,
+        stato_path=selected_report.with_name("utf8_integrity_ripresa.json") if notturno else None,
+        esclusi=CARTELLE_ESCLUSE if notturno else frozenset(),
     )
 
 

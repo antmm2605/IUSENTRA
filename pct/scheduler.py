@@ -206,6 +206,9 @@ def _run_scheduler_command(label: str, command: list[str], *, timeout_seconds: i
     }
 
 
+ESCLUSI_SOLO_PROVA = "solo studi di prova"
+
+
 def start_scheduler(app):
     """
     Avvia lo scheduler APScheduler in background.
@@ -1365,7 +1368,7 @@ def start_scheduler(app):
             "local_ai_models_dir": app.config.get("LOCAL_AI_MODELS_DIR", "./intelligence/models"),
         }
 
-    def _mailbox_sync_plan() -> tuple[list[tuple[str, dict]], str]:
+    def _mailbox_sync_plan(*, posta: bool = False) -> tuple[list[tuple[str, dict]], str]:
         """Target dei presidi e motivo dell'eventuale assenza.
 
         I presidi PEC, relata, fascicoli, agenda e notifiche lavorano tutti su
@@ -1377,11 +1380,13 @@ def start_scheduler(app):
         """
 
         try:
-            targets = list(_mailbox_sync_targets())
+            targets = list(_mailbox_sync_targets(posta=posta))
         except Exception as exc:  # pragma: no cover - difesa, la generator gia' cattura
             return [], f"target dei presidi non calcolabili: {exc}"
         if targets:
             return targets, ""
+        if posta and _studi_esclusi_dalla_posta():
+            return [], ESCLUSI_SOLO_PROVA
         if app.config.get("MULTI_TENANT"):
             return [], (
                 "nessuno studio attivo o registro studi non leggibile: i presidi non hanno "
@@ -1389,7 +1394,33 @@ def start_scheduler(app):
             )
         return [], "nessun percorso dati disponibile per i presidi"
 
+    def _studi_esclusi_dalla_posta() -> list[str]:
+        """Studi di prova (``pct.tenant.escluso_dalla_posta_automatica``) che i giri della posta non toccano."""
+        if not app.config.get("MULTI_TENANT"):
+            return []
+        try:
+            from pct.tenant import GestioneTenant, StatoTenant, escluso_dalla_posta_automatica
+
+            tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+            return [str(studio.slug) for studio in tm.lista()
+                    if studio.stato != StatoTenant.SOSPESO and escluso_dalla_posta_automatica(studio)]
+        except Exception:
+            return []
+
+    def _nota_esclusi_posta(risultato: dict) -> dict:
+        esclusi = _studi_esclusi_dalla_posta()
+        if esclusi and isinstance(risultato, dict):
+            from pct.tenant import MOTIVO_ESCLUSO_POSTA
+
+            nota = f"{', '.join(esclusi)}: {MOTIVO_ESCLUSO_POSTA}."
+            risultato["studi_esclusi_posta"] = esclusi
+            risultato["message"] = " ".join(x for x in (str(risultato.get("message") or "").strip(), nota) if x)
+        return risultato
+
     def _presidio_senza_target(job_id: str, reason: str) -> dict:
+        if reason == ESCLUSI_SOLO_PROVA:
+            return {"ok": True, "job": job_id, "skipped": True, "reason": "solo_studi_di_prova",
+                    "message": "Solo studi di prova: esclusi dalla posta automatica.", "targets": 0}
         logger.error("[scheduler] %s non eseguito: %s", job_id, reason)
         return {
             "ok": False,
@@ -1413,15 +1444,17 @@ def start_scheduler(app):
 
         return _tenant_json_mirror_path(paths, key, default)
 
-    def _mailbox_sync_targets(*, ensure_baseline=None):
+    def _mailbox_sync_targets(*, ensure_baseline=None, posta: bool = False):
         if app.config.get("MULTI_TENANT"):
             try:
-                from pct.tenant import GestioneTenant, StatoTenant
+                from pct.tenant import GestioneTenant, StatoTenant, escluso_dalla_posta_automatica
 
                 tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
                 found = False
                 for studio in tm.lista():
                     if studio.stato == StatoTenant.SOSPESO:
+                        continue
+                    if posta and escluso_dalla_posta_automatica(studio):
                         continue
                     path_options = {"reconcile_aliases": False}
                     if ensure_baseline is not None:
@@ -1639,7 +1672,7 @@ def start_scheduler(app):
                     ),
                     100,
                 )
-                targets, no_target_reason = _mailbox_sync_plan()
+                targets, no_target_reason = _mailbox_sync_plan(posta=True)
                 if not targets:
                     return _presidio_senza_target("mailbox_sync_runtime", no_target_reason)
                 processed_targets = 0
@@ -1672,7 +1705,9 @@ def start_scheduler(app):
                         channel = channel_report if isinstance(channel_report, dict) else {}
                         result = channel.get("result") if isinstance(channel.get("result"), dict) else {}
                         errore = str(result.get("errore") or result.get("sync_errore") or "").strip()
-                        warning = bool(result.get("warning")) or bool(errore)
+                        # Lo stesso errore della casella si segnala una volta sola (decisione del 19/11/2026).
+                        gia_segnalato = bool(result.get("gia_segnalato"))
+                        warning = (bool(result.get("warning")) or bool(errore)) and not gia_segnalato
                         channel_payload = {
                             "ok": channel.get("ok"),
                             "skipped": bool(channel.get("skipped")),
@@ -1694,7 +1729,9 @@ def start_scheduler(app):
                             totals["warnings"] += 1
                             canale = "PEC" if channel_name == "pec" else "posta ordinaria"
                             connessioni_incomplete.append(f"{label} ({canale})")
-                        if channel.get("ok") is False and not str(channel_payload["reason"]).strip() and "non configurato" not in errore.lower():
+                        channel_payload["gia_segnalato"] = gia_segnalato
+                        if (channel.get("ok") is False and not gia_segnalato and not str(channel_payload["reason"]).strip()
+                                and "non configurato" not in errore.lower()):
                             totals["errors"] += 1
                     tenant_reports.append(tenant_item)
                     logger.info(
@@ -1707,7 +1744,7 @@ def start_scheduler(app):
                     )
                 if processed_targets:
                     logger.info("[scheduler] Mailbox sync completata per %d target", processed_targets)
-                return {
+                return _nota_esclusi_posta({
                     "ok": totals["errors"] == 0,
                     "job": "mailbox_sync_runtime",
                     "status": "parziale" if connessioni_incomplete else "ok",
@@ -1722,7 +1759,7 @@ def start_scheduler(app):
                     "targets": processed_targets,
                     "totals": totals,
                     "tenants": tenant_reports,
-                }
+                })
             except Exception as e:
                 logger.error("[scheduler] Mailbox sync fallita: %s", e)
                 return {"ok": False, "job": "mailbox_sync_runtime", "error": str(e)}
@@ -1754,7 +1791,7 @@ def start_scheduler(app):
                     document_presidio_limit = int(os.environ.get("IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT", "10") or 10)
                 except (TypeError, ValueError):
                     document_presidio_limit = 10
-                targets, no_target_reason = _mailbox_sync_plan()
+                targets, no_target_reason = _mailbox_sync_plan(posta=True)
                 if not targets:
                     return _presidio_senza_target("pec_audit_pipeline_workers", no_target_reason)
                 processed_targets = 0
@@ -2188,7 +2225,7 @@ def start_scheduler(app):
             try:
                 from web.services.pec_fascicolo_documenti_runtime import limite_recupero, recupero_per_studi
 
-                targets, no_target_reason = _mailbox_sync_plan()
+                targets, no_target_reason = _mailbox_sync_plan(posta=True)
                 if not targets:
                     return _presidio_senza_target("pec_fascicolo_documenti_recupero", no_target_reason)
                 report = recupero_per_studi(targets, limite=limite_recupero(app.config))
@@ -2394,7 +2431,7 @@ def start_scheduler(app):
                 from web.services.pec_pipeline_runtime import build_digest_for_paths
 
                 processed_targets = 0
-                for label, paths in _mailbox_sync_targets():
+                for label, paths in _mailbox_sync_targets(posta=True):
                     digest = build_digest_for_paths(paths, tenant_label=label)
                     processed_targets += 1
                     logger.info(
@@ -2590,6 +2627,14 @@ def start_scheduler(app):
                     "tenants": tenant_reports,
                 }
             except Exception as e:
+                from pct.local_ai import ai_locale_non_disponibile
+
+                if ai_locale_non_disponibile(e):
+                    # Ollama spento, occupato o troppo lento: il lavoro si rinvia, non è un guasto dei dati.
+                    logger.warning("[scheduler] Local AI maintenance rinviata, servizio locale non disponibile: %s", e)
+                    return {"ok": True, "job": "local_ai_maintenance", "skipped": True, "rinviato": True,
+                            "reason": "ai_locale_non_disponibile",
+                            "message": f"AI locale non disponibile: manutenzione rinviata al prossimo giro ({str(e)[:160]})."}
                 logger.error("[scheduler] Local AI maintenance fallita: %s", e)
                 return {"ok": False, "job": "local_ai_maintenance", "error": str(e)}
 
@@ -2805,18 +2850,21 @@ def start_scheduler(app):
 
                 # Il perimetro include EML, XML e documenti originali.
                 # Il giro verifica e segnala: una riscrittura potrebbe alterare una prova.
-                report = run_utf8_integrity_service(app.config, repair=False)
+                # Tempo massimo e ripresa dal punto raggiunto (verifica del 19/11/2026: passo fermo dalle 03:06).
+                report = run_utf8_integrity_service(app.config, repair=False, notturno=True)
                 da_verificare = int(report.get("files_with_artifacts") or 0)
                 errori = int(report.get("error_files") or 0)
                 letti = int(report.get("checked_files") or 0)
+                completo = bool(report.get("completed", True))
                 logger.info(
-                    "[scheduler] Integrità UTF-8: %d file controllati, %d da verificare, %d errori",
-                    letti, da_verificare, errori,
+                    "[scheduler] Integrità UTF-8: %d file controllati, %d da verificare, %d errori%s",
+                    letti, da_verificare, errori, "" if completo else "; si riprende al prossimo giro",
                 )
+                ripresa = "" if completo else " Controllo interrotto allo scadere del tempo: riprende al prossimo giro."
                 return {
-                    **report, "ok": errori == 0,
-                    "status": "parziale" if da_verificare else "",
-                    "message": f"File controllati: {letti}. Da verificare: {da_verificare}. Errori: {errori}.",
+                    **{k: v for k, v in report.items() if k != "files"}, "ok": errori == 0,
+                    "status": "parziale" if da_verificare or not completo else "",
+                    "message": f"File controllati: {letti}. Da verificare: {da_verificare}. Errori: {errori}.{ripresa}",
                     "totals": {"controllati": letti, "da_verificare": da_verificare, "errori": errori},
                 }
             except Exception as e:

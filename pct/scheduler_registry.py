@@ -2258,7 +2258,18 @@ def _allinea_lavoro_integrato(scheduler, existing, job_id: str, trigger) -> None
 
 def apply_scheduler_registry(scheduler, app, repository: SchedulerRegistryRepository | None = None) -> dict[str, int]:
     repo = repository or scheduler_registry_repository(app.config)
-    repo.upsert_default_jobs(app.config)
+    try:
+        repo.upsert_default_jobs(app.config)
+    except sqlite3.OperationalError as exc:
+        # Verifica del 18/11/2026: il riallineamento gira ogni minuto e, con l'archivio occupato da un altro
+        # scrittore, falliva per intero («database is locked», 11 volte in mezza giornata), saltando anche
+        # l'applicazione delle pianificazioni. I modelli predefiniti si riscrivono al giro successivo: qui si
+        # applicano le righe già salvate.
+        if "locked" not in str(exc).lower():
+            raise
+        import logging
+
+        logging.getLogger(__name__).warning("[scheduler] Modelli delle pianificazioni non aggiornati in questo giro: %s", exc)
     applied = 0
     removed = 0
     for job in repo.list_jobs():

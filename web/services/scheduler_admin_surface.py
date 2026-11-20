@@ -325,6 +325,7 @@ def build_scheduler_admin_surface() -> dict[str, Any]:
     from pct.scheduler_health import presidio_heartbeat
 
     return {
+        "studi_esclusi_posta": _studi_esclusi_posta(),
         "totals": repo.totals(),
         # Battito dei presidi: dice in console quali stanno lavorando davvero e
         # da quale riga di registro proviene ciascuna riga mostrata.
@@ -351,6 +352,21 @@ def build_scheduler_admin_surface() -> dict[str, Any]:
         "sequenza_notturna": _sequenza_notturna(repo.db_path),
         "semaforo_motori": _semaforo_motori({str(j.get("job_id")): str(j.get("name") or "") for j in jobs}),
     }
+
+
+def _studi_esclusi_posta() -> list[dict[str, str]]:
+    """Studi di prova che i giri automatici della posta non toccano (decisione del 19/11/2026)."""
+    if not current_app.config.get("MULTI_TENANT"):
+        return []
+    try:
+        from pct.tenant import MOTIVO_ESCLUSO_POSTA, GestioneTenant, StatoTenant, escluso_dalla_posta_automatica
+
+        manager = GestioneTenant(registry_path=current_app.config["TENANTS_REGISTRY"])
+        return [{"slug": str(studio.slug), "nome": str(studio.nome or studio.slug), "motivo": MOTIVO_ESCLUSO_POSTA}
+                for studio in manager.lista()
+                if studio.stato != StatoTenant.SOSPESO and escluso_dalla_posta_automatica(studio)]
+    except Exception:
+        return []
 
 
 def _semaforo_motori(nomi: dict[str, str]) -> dict[str, Any]:

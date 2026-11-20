@@ -12,7 +12,11 @@ BIND = "172.17.0.1"
 BIND_PORT = 11435
 NETWORKS = tuple(ipaddress.ip_network(n) for n in ("172.17.0.0/16", "172.18.0.0/16"))
 MAX_BODY = 1024 * 1024
-IN_FLIGHT = threading.BoundedSemaphore(2)
+# Una richiesta alla volta (decisione del 19/11/2026): gli embedding non si alternano ai modelli di chat in ollama
+# e il modello resta caricato. Chi arriva mentre un'altra richiesta è in corso aspetta il turno fino a ATTESA_TURNO_S.
+IN_FLIGHT = threading.BoundedSemaphore(1)
+ATTESA_TURNO_S = 120
+KEEP_ALIVE = "24h"
 
 
 def allowed_peer(address: str) -> bool:
@@ -33,6 +37,8 @@ def validate(method: str, path: str, payload: object = None) -> dict | None:
     fields = {"model"} if path == "/api/show" else {"model", "input", "prompt", "truncate", "keep_alive"}
     if set(payload) - fields:
         raise ValueError("Opzioni non consentite")
+    if path in ("/api/embed", "/api/embeddings"):
+        payload.setdefault("keep_alive", KEEP_ALIVE)
     if path != "/api/show":
         text = payload.get("input") if path == "/api/embed" else payload.get("prompt")
         values = [text] if isinstance(text, str) else text
@@ -55,6 +61,13 @@ def forward(method: str, path: str, payload: dict | None) -> tuple[int, dict]:
         connection.request(method, path, body=body, headers={"Content-Type": "application/json"})
         response = connection.getresponse()
         raw = response.read(16 * 1024 * 1024 + 1)
+        if response.status == 400 and len(raw) <= 16 * 1024 * 1024:
+            # Motivo del rifiuto di ollama (per esempio testo oltre il contesto): breve, senza testi dello studio.
+            try:
+                motivo = str(json.loads(raw).get("error") or "")
+            except (ValueError, AttributeError):
+                motivo = ""
+            return 400, {"error": "Richiesta rifiutata dal modello locale", "motivo": motivo[:200]}
         if len(raw) > 16 * 1024 * 1024 or response.status != 200:
             return 502, {"error": "Embedding locale non disponibile"}
         result = json.loads(raw)
@@ -86,7 +99,7 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeError):
             self.respond(400, {"error": "Richiesta non consentita"})
             return
-        if not IN_FLIGHT.acquire(blocking=False):
+        if not IN_FLIGHT.acquire(timeout=ATTESA_TURNO_S):
             self.respond(503, {"error": "Embedding locale occupato"})
             return
         try:

@@ -114,6 +114,9 @@ def _esegui_lavoro(
         return "fallito", str(esito.get("error") or dettaglio or "Esito negativo.")[:300]
 
     messaggio = f"Giro eseguito. {dettaglio}"[:300] if dettaglio else "Giro eseguito."
+    if esito.get("rinviato") is True:
+        # Risorsa esterna non disponibile (per esempio l'AI locale): il passo si rinvia, non è un errore.
+        return "rinviato", str(esito.get("message") or "Lavoro rinviato al prossimo giro.")[:300]
     saltato = esito.get("skipped")
     if saltato is True or isinstance(saltato, str) and saltato:
         return "saltato", str(esito.get("message") or esito.get("reason") or "Nessuna esecuzione richiesta.")[:300]

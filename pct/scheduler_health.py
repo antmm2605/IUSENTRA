@@ -119,6 +119,30 @@ def _esiti_notturni_presidi(registry_repo: Any, ora: datetime, configured: Mappi
         }
 
 
+# Messaggio scritto da ``pct/scheduler.py`` quando APScheduler non avvia un giro perché il precedente è ancora in
+# corso (max_instances=1): il presidio sta lavorando, non è fermo.
+ISTANZA_IN_CORSO = "istanza precedente ancora in corso"
+
+
+def _ultimi_giri_utili(db_path: Any) -> dict[str, dict[str, Any]]:
+    """Per ogni lavoro l'ultimo giro avviato o concluso (in corso, completato o rinviato), esclusi i saltati."""
+    if not db_path or not Path(db_path).exists():
+        return {}
+    with closing(sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True, timeout=5)) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT r.job_id, r.status, r.finished_at, r.started_at, r.created_at
+            FROM scheduled_job_runs r
+            JOIN (
+                SELECT job_id, MAX(id) AS max_id FROM scheduled_job_runs
+                WHERE status IN ('completed', 'running', 'cancelled') GROUP BY job_id
+            ) utile ON utile.max_id = r.id
+            """
+        ).fetchall()
+    return {str(row["job_id"]): dict(row) for row in rows}
+
+
 def presidio_heartbeat(
     registry_repo: Any,
     *,
@@ -151,10 +175,24 @@ def presidio_heartbeat(
     voci: list[dict[str, Any]] = []
     degradati = 0
     guasti_certi = 0
+    giri_utili: dict[str, dict[str, Any]] | None = None
     for job_id, label, tolleranza_minuti in jobs:
         run = latest.get(job_id) if isinstance(latest, Mapping) else None
         run = run if isinstance(run, Mapping) else {}
         status = str(run.get("status") or "").strip().lower()
+        if status == "missed" and ISTANZA_IN_CORSO in str(run.get("message") or ""):
+            # Verifica del 18/11/2026: con il PC carico un giro che dura più della cadenza fa registrare «missed»
+            # al giro successivo, e il container restava «unhealthy» mentre il presidio lavorava. Conta l'ultimo
+            # giro avviato o concluso: se è entro la tolleranza il presidio lavora, altrimenti resta il degrado.
+            if giri_utili is None:
+                try:
+                    giri_utili = _ultimi_giri_utili(getattr(registry_repo, "db_path", None))
+                except sqlite3.Error:
+                    giri_utili = {}
+            utile = giri_utili.get(job_id)
+            if utile:
+                run = {**utile, "message": str(run.get("message") or ""), "error_message": ""}
+                status = str(utile.get("status") or "").strip().lower()
         finished_at = _parse_iso(
             run.get("finished_at") or run.get("updated_at") or run.get("started_at") or run.get("created_at")
         )

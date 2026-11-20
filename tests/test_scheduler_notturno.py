@@ -337,3 +337,29 @@ def test_lotto_esaurito_non_ripete_i_controlli_gia_fatti():
     assert catena._niente_da_fare({"ok": True, "totals": {"esaminati": 25, "restano": 0}})
     assert not catena._niente_da_fare({"ok": True, "totals": {"esaminati": 0, "restano": 2}})
     assert catena._niente_da_fare({"ok": True, "status": "parziale", "restano": 2})
+
+
+def test_ai_locale_non_disponibile_rinvia_il_passo_e_non_lo_fa_fallire(monkeypatch):
+    """Decisione del 19/11/2026: con ollama non disponibile il passo si chiude «rinviato», non «fallito»."""
+    from datetime import datetime, timedelta
+    from types import SimpleNamespace
+
+    import requests
+
+    from pct.local_ai import ai_locale_non_disponibile
+    from pct.scheduler_notturno import catena
+    from pct.scheduler_notturno.sequenza import Passo
+
+    risposta = SimpleNamespace(status_code=502)
+    assert ai_locale_non_disponibile(requests.HTTPError(response=risposta))
+    assert ai_locale_non_disponibile(requests.ReadTimeout("Read timed out. (read timeout=45)"))
+    assert not ai_locale_non_disponibile(requests.HTTPError(response=SimpleNamespace(status_code=400)))
+    assert not ai_locale_non_disponibile(ValueError("vettore non valido"))
+
+    esito = {"ok": True, "skipped": True, "rinviato": True, "reason": "ai_locale_non_disponibile",
+             "message": "AI locale non disponibile: manutenzione rinviata al prossimo giro."}
+    monkeypatch.setattr(catena, "esegui_in_catena", lambda *a, **k: esito)
+    adesso = datetime(2026, 11, 19, 2, 4)
+    stato, messaggio = catena._esegui_lavoro(SimpleNamespace(func=None, args=[], kwargs={}), Passo("local_ai_maintenance"),
+                                             adesso + timedelta(hours=1), lambda: adesso)
+    assert stato == "rinviato" and "AI locale non disponibile" in messaggio

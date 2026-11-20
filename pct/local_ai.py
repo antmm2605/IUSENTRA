@@ -487,6 +487,34 @@ def _gateway_embedding_locale() -> str:
     return _normalize_api_base_url(raw)
 
 
+# Il gateway embedding accetta solo questo valore (deploy/private-lex/embedding_docker_gateway.py).
+EMBED_KEEP_ALIVE = "24h"
+
+
+def _registra_rifiuto(response: Any, path: str) -> None:
+    """Le risposte 400 di ollama si registrano con il motivo (verifica del 19/11/2026: nel log non c'era)."""
+    if getattr(response, "status_code", 0) != 400:
+        return
+    try:
+        corpo = response.json()
+        motivo = str(corpo.get("motivo") or corpo.get("error") or "")
+    except Exception:
+        motivo = str(getattr(response, "text", "") or "")
+    logger.warning("[local_ai] Richiesta %s rifiutata dal modello locale (400): %s", path, motivo[:200] or "motivo non indicato")
+
+
+def ai_locale_non_disponibile(exc: BaseException) -> bool:
+    """Vero se l'errore dice che il servizio locale non risponde (spento, occupato o lento), non che i dati sono sbagliati."""
+    if isinstance(exc, (requests.ConnectionError, requests.Timeout)):
+        return True
+    if isinstance(exc, requests.HTTPError):
+        stato = getattr(getattr(exc, "response", None), "status_code", 0)
+        return stato in {502, 503, 504}
+    from pct.runtime_resilience import CircuitBreakerOpenError
+
+    return isinstance(exc, CircuitBreakerOpenError)
+
+
 class OllamaHttpClient:
     def __init__(self, base_url: str, timeout: float = 30.0, *, solo_locale: bool = False) -> None:
         self.base_url = _normalize_api_base_url(base_url)
@@ -509,6 +537,7 @@ class OllamaHttpClient:
                         method, f"{self.base_url}{path}", json=payload,
                         timeout=min(timeout or self.timeout, 45), allow_redirects=False,
                     )
+                _registra_rifiuto(response, path)
                 response.raise_for_status()
                 if response.status_code != 200:
                     raise ValueError("Il gateway locale non può reindirizzare la richiesta.")
@@ -519,6 +548,7 @@ class OllamaHttpClient:
                 json=payload,
                 timeout=timeout or self.timeout,
             )
+            _registra_rifiuto(response, path)
             response.raise_for_status()
             return response.json()
 
@@ -561,10 +591,11 @@ class OllamaHttpClient:
         )
 
     def embed_texts(self, model_name: str, inputs: list[str]) -> dict[str, Any]:
+        # keep_alive lungo: il modello degli embedding resta caricato e non si alterna ai modelli di chat.
         data = self._request(
             "POST",
             "/embed",
-            payload={"model": model_name, "input": inputs, "truncate": False},
+            payload={"model": model_name, "input": inputs, "truncate": False, "keep_alive": EMBED_KEEP_ALIVE},
             timeout=240,
         )
         embeddings = data.get("embeddings") or []

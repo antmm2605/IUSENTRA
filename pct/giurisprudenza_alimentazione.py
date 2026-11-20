@@ -87,7 +87,12 @@ def esegui_giro(config: dict[str, Any], *, archivi_studi: list[str] | None = Non
 
     scadenza = time.monotonic() + durata_massima_s
     esito: dict[str, Any] = {"ok": True, "status": "completato"}
-    esito["sentenzeweb"] = run_nightly(config)
+    try:
+        esito["sentenzeweb"] = run_nightly(config)
+    except Exception as exc:  # l'acquisizione non ferma la riparazione dei collegamenti e la lettura delle citazioni
+        esito["sentenzeweb"] = {"ok": False, "error": f"{type(exc).__name__}: {str(exc)[:240]}"}
+        esito["status"] = "parziale"
+        esito["message"] = f"Acquisizione SentenzeWeb non riuscita: {str(exc)[:200]}"
     cartella = str(config.get("IUSENTRA_SENTENZEWEB_DIRECTORY") or os.getenv("IUSENTRA_SENTENZEWEB_DIRECTORY") or "").strip()
     if cartella and (Path(cartella) / "giurisprudenza_corpus.db").is_file():
         radice = Path(cartella).resolve()

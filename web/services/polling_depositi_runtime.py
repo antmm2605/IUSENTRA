@@ -115,8 +115,17 @@ def run_polling_esiti_deposito(app: Any, *, giorni: int) -> dict[str, Any]:
 
     credenziali_pdp = _credenziali_pdp(app)
     studi: list[dict[str, Any]] = []
+    esclusi: list[str] = []
     if app.config.get("MULTI_TENANT"):
-        active = _active_tenants(app)
+        from pct.tenant import MOTIVO_ESCLUSO_POSTA, escluso_dalla_posta_automatica
+
+        tutti = _active_tenants(app)
+        # Studi di prova esclusi dai giri automatici della posta (decisione dell'avvocato del 19/11/2026).
+        esclusi = [str(getattr(studio, "slug", "") or "") for studio in tutti if escluso_dalla_posta_automatica(studio)]
+        active = [studio for studio in tutti if not escluso_dalla_posta_automatica(studio)]
+        if not active and esclusi:
+            return {"ok": True, "job": JOB_ID, "skipped": True, "reason": "solo_studi_di_prova",
+                    "message": f"{', '.join(esclusi)}: {MOTIVO_ESCLUSO_POSTA}.", "tenants": []}
         if not active:
             logger.error("[scheduler] %s non eseguito: nessuno studio attivo o registro studi non leggibile", JOB_ID)
             return {"ok": False, "job": JOB_ID, "error": "nessuno studio attivo: nessun deposito da controllare",
@@ -135,14 +144,20 @@ def run_polling_esiti_deposito(app: Any, *, giorni: int) -> dict[str, Any]:
         studi.append(_studio_unico(app, giorni=giorni, credenziali_pdp=credenziali_pdp))
     falliti = [voce["tenant"] for voce in studi if voce.get("error") or voce.get("errori")]
     imap_incompleti = [voce["tenant"] for voce in studi if voce.get("imap_incompleto")]
+    messaggio = (
+        "Controllo IMAP delle ricevute incompleto. Verificare collegamento e credenziali PEC per "
+        + ", ".join(imap_incompleti) + ". Le ricevute disponibili nell’archivio locale sono state controllate."
+    ) if imap_incompleti else ""
+    if esclusi:
+        from pct.tenant import MOTIVO_ESCLUSO_POSTA
+
+        messaggio = " ".join(x for x in (messaggio, f"{', '.join(esclusi)}: {MOTIVO_ESCLUSO_POSTA}.") if x)
     return {
         "ok": not falliti,
         "job": JOB_ID,
         "status": "parziale" if imap_incompleti else "",
-        "message": (
-            "Controllo IMAP delle ricevute incompleto. Verificare collegamento e credenziali PEC per "
-            + ", ".join(imap_incompleti) + ". Le ricevute disponibili nell’archivio locale sono state controllate."
-        ) if imap_incompleti else "",
+        "message": messaggio,
+        "studi_esclusi_posta": esclusi,
         "imap_incompleti": len(imap_incompleti),
         "error": ("polling fallito per: " + ", ".join(falliti)) if falliti else "",
         "source_of_truth": "fascicoli e archivio PEC di ciascuno studio",

@@ -124,7 +124,7 @@ def test_calcolo_storico_senza_avviso_di_copertura_parziale(tmp_path):
 
     gestore = GestioneStrumentiLegali(str(tmp_path / "tabelle_normative.json"))
     esito = gestore.calcola_interessi(
-        {"int_tipo": "legali", "int_capitale": "10000", "int_data_inizio": "2020-01-01", "int_data_fine": "2023-12-31"}
+        {"int_tipo": "legali", "int_capitale": "10000", "int_data_inizio": "2019-12-31", "int_data_fine": "2023-12-31"}
     )
     # 10.000 x (0,05% + 0,01% + 1,25% + 5%) per anni interi: 5 + 1 + 125 + 500.
     assert esito["total_interest"] == 631.0
@@ -135,7 +135,7 @@ def test_calcolo_storico_senza_avviso_di_copertura_parziale(tmp_path):
 def _mora(**extra):
     from pct.strumenti_legali import GestioneStrumentiLegali
 
-    dati = {"int_tipo": "mora_commerciale", "int_capitale": "7300", "int_data_inizio": "2013-01-01", "int_data_fine": "2013-12-31"}
+    dati = {"int_tipo": "mora_commerciale", "int_capitale": "7300", "int_data_inizio": "2012-12-31", "int_data_fine": "2013-12-31"}
     return GestioneStrumentiLegali().calcola_interessi({**dati, **extra})
 
 

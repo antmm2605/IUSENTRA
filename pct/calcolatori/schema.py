@@ -265,7 +265,7 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
                     ("massima", "Massima — relazione quotidiana e dipendenza"),
                     ("molto_intensa", "Molto intensa — condivisione giornaliera"),
                     ("intensa", "Intensa — condivisione abituale"),
-                    ("ordinaria", "Ordinaria — condivisione sporadica"),
+                    ("ordinaria", "Sporadica — frequentazione e condivisione occasionali"),
                     ("debole", "Debole — contatti rari"),
                     ("assente", "Assente o conflittuale"),
                 ],

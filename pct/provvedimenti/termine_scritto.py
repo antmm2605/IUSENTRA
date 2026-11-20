@@ -207,9 +207,10 @@ def dispone_udienza_remota(testo: str) -> bool:
 
 
 _RE_DISERZIONE = re.compile(
-    r"nessun[oa]\s+(?:delle\s+parti\s+)?(?:è\s+)?(?:present|compar)\w*|poich[ée]\s+nessuno|"
+    # «è» si scrive anche «e'» (dattiloscritti, testi senza accenti, OCR): «Poiche' nessuno e' presente» (19/11/2026).
+    r"nessun[oa]\s+(?:delle\s+parti\s+)?(?:(?:è|e['’])\s*)?(?:present|compar)\w*|poich(?:[ée]|e['’])\s*nessuno|"
     r"mancata\s+comparizione(?:\s+delle)?\s+parti|assenza\s+di\s+tutte\s+le\s+parti|"
-    r"non\s+(?:è\s+)?comparsa?\s+alcuna\s+(?:delle\s+)?parti|nessuna\s+delle\s+parti\s+ha\s+depositato",
+    r"non\s+(?:(?:è|e['’])\s*)?comparsa?\s+alcuna\s+(?:delle\s+)?parti|nessuna\s+delle\s+parti\s+ha\s+depositato",
     re.I,
 )
 _RE_631 = re.compile(r"\b631\b", re.I)

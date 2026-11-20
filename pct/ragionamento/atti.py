@@ -110,10 +110,12 @@ def firmato_dal_giudice(testo: str) -> bool:
 def _autore(natura: str, etichetta: str, testo: str, dello_studio: bool) -> str:
     if natura == "certificato_cancelleria":
         return "cancelleria"
+    if natura in NATURE_DI_PARTE:
+        # «Ricorso per decreto ingiuntivo» è un atto di parte anche se l'etichetta nomina il decreto (collaudo della
+        # catena del 19/11/2026: la data del ricorso era presa come pronuncia del decreto, art. 644 c.p.c.).
+        return "studio" if dello_studio else "controparte"
     if natura in NATURE_GIUDICE or "sentenza" in etichetta or "decreto" in etichetta or "ordinanza" in etichetta:
         return "giudice"
-    if natura in NATURE_DI_PARTE:
-        return "studio" if dello_studio else "controparte"
     if natura == "comunicazione":
         if "comunicazione di cancelleria" in semplice(testo[:3000]) or "notificazione ai sensi del d.l. 179" in semplice(testo[:3000]):
             return "cancelleria"

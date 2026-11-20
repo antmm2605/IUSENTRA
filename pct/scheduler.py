@@ -1113,6 +1113,48 @@ def start_scheduler(app):
                 logger.error("[scheduler] Riconvalida profili procedurali fallita: %s", e)
                 return {"ok": False, "job": "profili_procedurali_riconvalida", "error": str(e)}
 
+    # ---- Guardiano della catena dei fascicoli (pct/catena) ----
+    # Di giorno il guardiano gira dopo ogni Lettura ricalcolata; di notte ripassa tutti i fascicoli non archiviati.
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", hour=3, minute=25),
+        id="guardiano_catena_notturno",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    def _guardiano_catena_notturno():
+        with app.app_context():
+            try:
+                from web.services.catena_guardiano_runtime import giro
+
+                return {"ok": True, "job": "guardiano_catena_notturno", "totals": giro(app, origine="notte")}
+            except Exception as e:
+                logger.error("[scheduler] Guardiano della catena fallito: %s", e)
+                return {"ok": False, "job": "guardiano_catena_notturno", "error": str(e)}
+
+    # Collaudo della catena (modello della causa → Lettura → guardiano) con il codice installato, prima del giro.
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", hour=3, minute=20),
+        id="collaudo_catena",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    def _collaudo_catena():
+        with app.app_context():
+            try:
+                from pct.catena.collaudo import esegui_collaudo
+
+                esito = esegui_collaudo()
+                if not esito["superato"]:
+                    logger.error("[scheduler] Collaudo della catena NON superato: %s",
+                                 [c for c in esito["casi"] if not c["superato"]])
+                return {"ok": bool(esito["superato"]), "job": "collaudo_catena", **{k: v for k, v in esito.items() if k != "casi"},
+                        "casi_non_superati": [c for c in esito["casi"] if not c["superato"]]}
+            except Exception as e:
+                logger.error("[scheduler] Collaudo della catena fallito: %s", e)
+                return {"ok": False, "job": "collaudo_catena", "error": str(e)}
+
     # ---- Adeguamento della soglia del patrocinio (art. 77 D.P.R. 115/2002) ----
     # Il decreto e' biennale, ma la data di pubblicazione non e' prevedibile:
     # si guarda la Gazzetta ogni due mesi. Non si riscrive la soglia — si

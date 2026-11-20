@@ -653,7 +653,10 @@ def test_decreto_lavoro_usa_la_data_delle_note_per_i_termini_a_ritroso():
     causa = ragiona(fonti(LAVORO, [RICORSO_LAVORO, decreto, CONSEGNA_DIFFIDA]))
 
     assert conclusione(causa, "note_127ter").termine.scadenza == "2026-12-17"
-    assert conclusione(causa, "notifica_ordinata").termine.scadenza == "2026-11-17"
+    # Termine a ritroso dello studio: data da rispettare a giorni liberi (decisione dell'avvocato del 29/10/2026),
+    # accanto la scadenza di legge a giorni pieni (17/11/2026).
+    notifica = conclusione(causa, "notifica_ordinata")
+    assert notifica.termine.scadenza == "2026-11-16" and "giorni pieni: 17/11/2026" in notifica.termine.computo
     costituzione = conclusione(causa, "costituzione_convenuto")
     assert costituzione.termine.scadenza == "2026-12-07"
     assert costituzione.stato == "non_dovuto"
@@ -772,3 +775,63 @@ def test_copie_della_sentenza_senza_data_di_decisione_richiedono_testo_integrale
              testo=intestazione + "Parte diversa. " + motivazione + dispositivo)
     _copie_della_sentenza([a, b, c])
     assert a.copie == ["B"] and b.copie == ["A"] and not c.copie
+
+
+def test_note_cinque_giorni_prima_non_prendono_i_dieci_giorni_della_costituzione():
+    """Decreto reale (RG 2691/2026, Tribunale di Bergamo, 10/11/2026): l'udienza del 22/12/2026 si svolge con note
+    scritte, «sino a cinque giorni prima dell'udienza»; nello stesso periodo il convenuto deve costituirsi «almeno
+    10 giorni prima». Prima il modello dava le note all'11/12 (i dieci giorni della costituzione); il termine è dei
+    cinque giorni: 16/12/2026 a giorni liberi (decisione dell'avvocato del 29/10/2026), 17/12/2026 a giorni pieni."""
+    decreto = doc(
+        "D", "28443865s.pdf", "provvedimento", "Decreto di fissazione udienza",
+        "Tribunale Ordinario di Bergamo Sezione Lavoro\n\nIl Giudice, Visto l’art. 415 c.p.c. FISSA per la discussione della "
+        "causa l’udienza del 22/12/2026 alle ore 09:00, avvertendo la parte convenuta che, per non incorrere nelle decadenze "
+        "di legge, ha l’onere di costituirsi in giudizio almeno 10 giorni prima dell’udienza, mediante deposito di memoria "
+        "difensiva contenente gli elementi indicati dagli artt. 416 e 418 c.p.c. * letto l’art. 127 ter c.p.c., DISPONE** "
+        "che l’udienza abbia svolgimento mediante lo scambio e il deposito in telematico di note scritte; INVITA le parti "
+        "a depositare, sino a cinque giorni prima dell’udienza, coincise note, con espresso consenso a tale modalità di "
+        "trattazione dell’udienza.\n\nSi comunichi. Bergamo, 10/11/2026\nIl Giudice", "2026-11-10")
+    causa = ragiona(fonti({**LAVORO, "numero_rg": "2691"}, [RICORSO_LAVORO, decreto]))
+    note = conclusione(causa, "note_127ter")
+    assert note.termine.scadenza == "2026-12-16" and "giorni pieni: 17/12/2026" in note.termine.computo
+    assert [(u.data, u.modalita) for u in causa.udienze] == [("2026-12-22", "note_scritte")]
+
+
+def _monitorio_dello_studio(data_pronuncia, *, estero=False):
+    testo_di = DI["testo"].replace("20-12-2024", data_pronuncia) + (" Il decreto va notificato all'estero." if estero else "")
+    documenti = [RICORSO_DI, {**DI, "testo": testo_di, "data_documento": ""}]
+    return ragiona(fonti(MONITORIO, documenti))
+
+
+def test_monitorio_dello_studio_sessanta_giorni_dalla_pronuncia_sempre_certi():
+    """Art. 644 c.p.c.: inefficace se non notificato entro sessanta giorni dalla pronuncia, novanta all'estero.
+    Pronuncia 20/11/2026 → 19/01/2027 (martedì); sessanta giorni sono prudenti anche senza conoscere il luogo."""
+    notifica = conclusione(_monitorio_dello_studio("20-11-2026"), "notifica_decreto_ingiuntivo")
+    assert notifica.stato == "da_fare" and notifica.onerato == "noi"
+    assert notifica.termine.scadenza == "2027-01-19" and notifica.termine.perentorio is True
+    assert not any(d.codice == "destinazione_monitorio_da_verificare" for d in notifica.dubbi)
+    # Notifica all'estero scritta negli atti: novanta giorni dalla pronuncia del 20/11/2026 → 18/02/2027.
+    estero = conclusione(_monitorio_dello_studio("20-11-2026", estero=True), "notifica_decreto_ingiuntivo")
+    assert estero.termine.scadenza == "2027-02-18"
+    # Termine processuale: sospensione feriale. Pronuncia 15/07/2026: 16 giorni a luglio, agosto sospeso, 30 a settembre,
+    # 14 a ottobre → 14/10/2026 (art. 1 L. 742/1969).
+    feriale = conclusione(_monitorio_dello_studio("15-07-2026"), "notifica_decreto_ingiuntivo")
+    assert feriale.termine.scadenza == "2026-10-14"
+
+
+def test_posizione_del_cliente_dall_atto_introduttivo_anche_senza_nomi_degli_avvocati():
+    """Il cliente del fascicolo che agisce con un difensore nell'atto introduttivo è la parte attiva; il nome
+    dell'avvocato nelle Impostazioni è solo una conferma (collaudo della catena del 19/11/2026)."""
+    ricorso = doc("RIC", "Ricorso.pdf", "atto_principale", "Ricorso in materia di lavoro (art. 414 c.p.c.)",
+                  "TRIBUNALE DI VICENZA RICORSO EX ART. 414 C.P.C. La prof.ssa GIALLI ANNA, rappresentata e difesa dall'Avv. "
+                  "Luca Bianchi, ricorre contro il MINISTERO DELL'ISTRUZIONE E DEL MERITO.")
+    altrui = doc("RIC", "Ricorso.pdf", "atto_principale", "Ricorso", "TRIBUNALE DI VICENZA RICORSO. La DELTA SRL, rappresentata "
+                 "e difesa dall'Avv. Neri, ricorre contro GIALLI ANNA e chiede, giusta procura in calce, la condanna.")
+
+    def posizione(documento, cliente):
+        return ragiona(FontiCausa(fascicolo={"id": "F", "numero_rg": "1", "anno_rg": "2026", "codice_oggetto_pst": "222050",
+                                             "cliente": cliente}, studio={"avvocati": []}, documenti=[documento], oggi=OGGI)).ruolo_cliente
+
+    assert posizione(ricorso, "Anna Gialli") == "attiva"
+    assert posizione(altrui, "Anna Gialli") == "passiva"
+    assert posizione(ricorso, "") == "passiva"  # senza cliente né avvocati non si può dire che l'atto è dello studio

@@ -1,0 +1,1 @@
+import{in as e}from"./lettura-fascicolo-Bo630bK4.js";import"./app-CQ7jk_E0.js";var t=e();function n({children:e,tone:n=`neutral`}){return(0,t.jsx)(`span`,{className:`iu-badge iu-badge--${n}`,children:e})}export{n as t};

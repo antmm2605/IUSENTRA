@@ -1,3 +1,15 @@
+## 2.490.1 — Catena continua del fascicolo, notifiche PEC provate, Lex con harness deterministico
+
+- Catena del fascicolo continua: mappa scritta come codice, guardiano che controlla di notte i fascicoli aperti e collaudo da capo a fondo per ogni materia (anche le pratiche monitorie, ora che il decreto ingiuntivo caricato è riconosciuto dal catalogo).
+- Un solo motore dei termini anche per processo amministrativo, tributario e penale e per gli artt. 617, 481, 1137 e 669-octies; sospensione feriale per materia; date discordanti decise sul testo; art. 644 c.p.c. sempre certo; posizione del cliente letta dall'atto.
+- Modello della causa coerente: scopo raggiunto, parti, scadenze già adempiute, 30 giorni solo per i clienti commerciali, quadro economico con contributo, compenso e spese.
+- Notifiche PEC storiche provate dalle ricevute del gestore (anche con le versioni precedenti della CA AgID) entrano nel registro delle notifiche; verso la P.A. il termine breve decorre dalla consegna al procuratore costituito, i 120 giorni dall'amministrazione debitrice.
+- Lex con harness passo per passo: fasi registrate, scrittore controllato, norme vigenti alla data dei fatti, fatti presi dal modello della causa con documento e data, 22 casi dell'avvocato verificati; il fascicolo si usa solo se l'utente lo vede.
+- Precetto e richiesta di pagamento alla P.A.: elezione di domicilio, preposizione corretta («al Ministero», «all'Agenzia»), dati certi e accessori solo se risultano.
+- Sicurezza: il testo delle bozze dei passi si apre solo per fascicolo, cliente e bozza dello studio; l'HTML dell'editor è ripulito con una lista di tag ammessi.
+- Utility: calcoli ricontrollati sulle norme (TFR, procedibilità ADR, interessi, tassi storici); nei periodi il giorno iniziale è escluso, quindi l'anno intero va dal 31/12 dell'anno prima al 31/12.
+- Lavori notturni: posta solo degli studi veri, semaforo, tolleranze di ritardo, healthcheck e registro; giurisprudenza letta anche da archivi in sola lettura.
+
 ## 2.490.0 — Ragionamento da avvocato, bozze pronte e fascicoli che si aprono subito
 
 - Prossimi passi ordinati per urgenza di legge: prima i termini aperti (a parità di data il perentorio), poi gli scaduti da verificare con conseguenze e rimedi (artt. 153-154 c.p.c.), poi economici e amministrativi.

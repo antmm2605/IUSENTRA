@@ -16,6 +16,9 @@ _CPC = "urn:nir:stato:regio.decreto:1940-10-28;1443"
 _CC = "urn:nir:stato:regio.decreto:1942-03-16;262"
 _DPR115 = "urn:nir:presidente.repubblica:decreto:2002-05-30;115"
 _LETTA = "testo vigente nell'archivio Normattiva del software, letto il 10/11/2026"
+_CPA = "urn:nir:stato:decreto.legislativo:2010-07-02;104"
+_DLGS218 = "urn:nir:stato:decreto.legislativo:1997-06-19;218"
+_LETTA_20 = "testo vigente nell'archivio Normattiva del software, letto il 20/11/2026"
 
 
 def _voce(norma: str, titolo: str, atto: str, art: str, estratto: str) -> dict[str, Any]:
@@ -23,6 +26,15 @@ def _voce(norma: str, titolo: str, atto: str, art: str, estratto: str) -> dict[s
 
 
 FONTI_RAGIONAMENTO: dict[str, dict[str, Any]] = {
+    "cpa_120": {**_voce("art. 120 c.p.a.", "Disposizioni specifiche per gli appalti pubblici", _CPA, "120",
+        "Per l'impugnazione degli atti delle procedure di affidamento il ricorso, principale o incidentale, e i motivi "
+        "aggiunti, anche avverso atti diversi da quelli già impugnati, sono proposti nel termine di trenta giorni."),
+        "verifica": _LETTA_20},
+    "dlgs218_art6": {**_voce("art. 6 D.Lgs. 218/1997", "Accertamento con adesione: istanza del contribuente", _DLGS218, "6",
+        "Il termine per l'impugnazione è sospeso per un periodo di novanta giorni dalla data di presentazione dell'istanza "
+        "del contribuente, salvo quanto previsto dal comma 2-bis, ultimo periodo (trenta giorni per l'istanza presentata "
+        "dopo la notifica dell'atto preceduto dallo schema in contraddittorio preventivo). L'impugnazione comporta "
+        "rinuncia all'istanza."), "verifica": _LETTA_20},
     "cpc_324": _voce("art. 324 c.p.c.", "Cosa giudicata formale", _CPC, "324",
         "S'intende passata in giudicato la sentenza che non è più soggetta né a regolamento di competenza, né ad appello, né a "
         "ricorso per cassazione, né a revocazione per i motivi di cui ai numeri 4 e 5 dell'articolo 395."),

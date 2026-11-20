@@ -28,6 +28,9 @@ ETICHETTE = {
     "esecuzione_immobiliare": "espropriazione immobiliare",
     "volontaria_giurisdizione": "volontaria giurisdizione",
     "sommario": "procedimento speciale sommario",
+    "amministrativo": "processo amministrativo (c.p.a., D.Lgs. 104/2010)",
+    "tributario": "processo tributario (D.Lgs. 546/1992)",
+    "penale": "procedimento penale (c.p.p.)",
     "ignoto": "rito non determinato",
 }
 # Parole della denominazione dell'ente che fanno della controparte una pubblica amministrazione.
@@ -93,6 +96,9 @@ def determina_rito(fascicolo: dict[str, Any], etichette_atti: Iterable[str]) -> 
         scelto, fonte = dagli_atti, "atti catalogati del fascicolo (codice oggetto PST assente)"
     elif semplice(fascicolo.get("tipo")).endswith("lavoro"):
         scelto, fonte = "lavoro", "tipo del fascicolo (codice oggetto PST assente)"
+    elif semplice(fascicolo.get("tipo")) in {"amministrativo", "tributario", "penale"}:
+        # Riti fuori dal catalogo PST civile: il tipo del fascicolo dice il rito (collaudo della catena, 19/11/2026).
+        scelto, fonte = semplice(fascicolo.get("tipo")), "tipo del fascicolo (rito non civile, senza codice oggetto PST)"
     else:
         scelto, fonte = "ignoto", "nessun codice oggetto PST e nessun atto che dica il rito"
     pa = contro_pa(fascicolo.get("controparte"), fascicolo.get("titolo"), fascicolo.get("avvocato_controparte"))

@@ -32,6 +32,7 @@ from .regole.contesto import Contesto
 from .regole.economia import conclusione_contributo, conclusioni_economia
 from .regole.lavoro import conclusioni_lavoro
 from .regole.monitorio import conclusioni_monitorio
+from .regole.riti_non_civili import conclusioni_riti_non_civili
 from .regole.sentenza import conclusioni_sentenza, termini_lunghi_prudenziali
 from .regole.termini_assegnati import conclusioni_termini
 from .regole.titolo import conclusioni_titolo
@@ -190,7 +191,7 @@ def ragiona(fonti: FontiCausa) -> Causa:
         termini_lunghi_prudenziali=termini_lunghi_prudenziali(atti, fonti.documenti, fonti.scadenze),
         collegati=list(fonti.collegati or []),
     )
-    conclusioni = conclusioni_termini(ctx) + conclusioni_lavoro(ctx) + conclusioni_monitorio(ctx) + conclusioni_sentenza(ctx)
+    conclusioni = conclusioni_termini(ctx) + conclusioni_lavoro(ctx) + conclusioni_monitorio(ctx) + conclusioni_riti_non_civili(ctx) + conclusioni_sentenza(ctx)
     titolo, collegamenti_titolo = conclusioni_titolo(ctx)
     conclusioni += titolo
     ctx.collegamenti_trovati.extend(collegamenti_titolo)

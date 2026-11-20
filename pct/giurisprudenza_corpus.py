@@ -307,6 +307,20 @@ class GestioneCorpusGiurisprudenza:
     def _connect(self) -> sqlite3.Connection:
         if getattr(self, "read_only", False):
             conn = sqlite3.connect(Path(self.db_path).as_uri() + "?mode=ro", uri=True, timeout=5)
+            try:
+                conn.execute("SELECT 1 FROM sqlite_master LIMIT 1").fetchone()
+            except sqlite3.OperationalError as exc:
+                # Archivio in modalità WAL in una cartella non scrivibile (montaggio in sola lettura, file di root):
+                # il lettore non può creare il file -shm e ogni interrogazione fallisce con «attempt to write a
+                # readonly database». Senza scrittori in questo processo si legge l'istantanea immutabile.
+                if "readonly" not in str(exc).lower():
+                    raise
+                conn.close()
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "Archivio giurisprudenza in WAL non scrivibile (%s): lettura come istantanea immutabile", self.db_path)
+                conn = sqlite3.connect(Path(self.db_path).as_uri() + "?mode=ro&immutable=1", uri=True, timeout=5)
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA query_only=ON")
             return conn
@@ -1091,7 +1105,10 @@ class GestioneCorpusGiurisprudenza:
                 try:
                     for row in conn.execute(sql, (ricerca, *filtri_params, rosa)).fetchall():
                         candidati.setdefault(int(row["id"]), dict(row))
-                except sqlite3.OperationalError:
+                except sqlite3.OperationalError as exc:
+                    # Una sintassi FTS non valida si salta; un archivio illeggibile non è «nessun risultato».
+                    if "fts5" not in str(exc).lower() and "syntax" not in str(exc).lower():
+                        raise
                     continue
             gia = {int(row["id"]) for row in per_estremi}
             ordinate = _riordina([row for key, row in candidati.items() if key not in gia], domanda, termini)

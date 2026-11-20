@@ -35,10 +35,10 @@ def _nome(cn: str) -> x509.Name:
     return x509.Name([x509.NameAttribute(NameOID.COUNTRY_NAME, "IT"), x509.NameAttribute(NameOID.COMMON_NAME, cn)])
 
 
-def _certificato(cn, chiave, emittente_nome, chiave_emittente, *, ca: bool, seriale: int):
+def _certificato(cn, chiave, emittente_nome, chiave_emittente, *, ca: bool, seriale: int, inizio=INIZIO, fine=FINE):
     costruttore = (x509.CertificateBuilder().subject_name(_nome(cn)).issuer_name(emittente_nome)
                    .public_key(chiave.public_key()).serial_number(seriale)
-                   .not_valid_before(INIZIO).not_valid_after(FINE)
+                   .not_valid_before(inizio).not_valid_after(fine)
                    .add_extension(x509.BasicConstraints(ca=ca, path_length=None), critical=True))
     if ca:
         costruttore = costruttore.add_extension(x509.KeyUsage(
@@ -92,6 +92,17 @@ def pki() -> Pki:
     return Pki(radice, chiavi[0], ca, chiavi[1], gestore, chiavi[2], estraneo, chiavi[3])
 
 
+def pki_rinnovata() -> tuple[Pki, x509.Certificate]:
+    """CA dei gestori rinnovata con la stessa chiave: la versione fissata vale da dopo la ricevuta, la precedente
+    (inclusa dal gestore nella firma, come nelle ricevute reali anteriori al 20/02/2025) copriva la data."""
+    p = pki()
+    nuova = _certificato("CA dei gestori PEC di prova", p.chiave_ca, p.radice.subject, p.chiave_radice, ca=True, seriale=20,
+                         inizio=datetime(2026, 6, 1, tzinfo=timezone.utc))
+    vecchia = _certificato("CA dei gestori PEC di prova", p.chiave_ca, p.radice.subject, p.chiave_radice, ca=True, seriale=10)
+    p.ca = nuova
+    return p, vecchia
+
+
 def messaggio_inviato(destinatari: list[str], allegati: dict[str, bytes], *, message_id="<invio-1@studio.test>",
                       mittente=STUDIO, oggetto="Notificazione ai sensi della legge n. 53/1994 [Notifica_ID:Prova123]") -> bytes:
     invio = EmailMessage()
@@ -138,10 +149,13 @@ def _contenuto(xml: bytes, originale: bytes | None, *, annidato: bool) -> bytes:
 
 
 def ricevuta(p: Pki, tipo: str, xml: bytes, *, originale: bytes | None = None, annidato: bool = False,
-             firmatario: str = "gestore", msgid: str = "<invio-1@studio.test>") -> bytes:
+             firmatario: str = "gestore", msgid: str = "<invio-1@studio.test>", inclusi=()) -> bytes:
     certificato, chiave = (p.gestore, p.chiave_gestore) if firmatario == "gestore" else (p.estraneo, p.chiave_estraneo)
-    firmato = (pkcs7.PKCS7SignatureBuilder().set_data(_contenuto(xml, originale, annidato=annidato))
-               .add_signer(certificato, chiave, hashes.SHA256())
+    costruttore = (pkcs7.PKCS7SignatureBuilder().set_data(_contenuto(xml, originale, annidato=annidato))
+                   .add_signer(certificato, chiave, hashes.SHA256()))
+    for incluso in inclusi:
+        costruttore = costruttore.add_certificate(incluso)
+    firmato = (costruttore
                .sign(serialization.Encoding.SMIME, [pkcs7.PKCS7Options.DetachedSignature]))
     prefisso = "ACCETTAZIONE" if tipo == "accettazione" else "CONSEGNA"
     intestazioni = (f"From: posta-certificata@pec.example.test\r\nTo: {STUDIO}\r\n"

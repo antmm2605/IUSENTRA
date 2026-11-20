@@ -205,3 +205,15 @@ def test_consegna_dopo_le_21_si_perfeziona_alle_7_del_giorno_dopo(spedizione):
                                                       revoche=s.p.revoche()) for d, raw in sera.items()]
     [esito] = _prova(s, esiti=esiti)
     assert esito.provata and esito.data_consegna == "2026-04-21"  # art. 147, terzo comma, c.p.c.
+
+
+def test_indirizzo_ordinario_in_piu_non_e_destinatario_della_notifica(spedizione):
+    s = spedizione
+    ordinario = "segreteria@example.test"
+    invio = messaggio_inviato([A, B, ordinario], {"Sentenza.PDF": SENTENZA, "Relata di notifica.pdf": RELATA}, message_id=MSGID)
+    [esito] = _prova(s, invii=[Invio("INV", invio)])
+    assert esito.provata and esito.invio["destinatari_non_certificati"] == [ordinario]
+    # Se la relata elenca anche l'indirizzo ordinario, la notifica a quel destinatario non è provata.
+    testo = TESTO_RELATA.replace("I seguenti atti:", f"3) - TERZO mediante inoltro all'indirizzo pec: {ordinario};\nI seguenti atti:")
+    [esito] = _prova(s, invii=[Invio("INV", invio)], lettore=_lettore(testo))
+    assert not esito.provata and "relata" in esito.motivo

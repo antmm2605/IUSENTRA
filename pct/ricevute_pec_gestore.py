@@ -44,7 +44,8 @@ from pct.sdi_pec_trust import PecTrustError
 
 VERSIONE = "ricevute_pec_gestore_v1"
 NORMA = "D.P.R. 68/2005, artt. 6 e 9; D.M. 2/11/2005, §§ 7.3-7.4"
-LIVELLO = ("firma S/MIME del gestore verificata; certificato emesso dalla CA AgID dei gestori PEC (AgID CA1) con "
+LIVELLO = ("firma S/MIME del gestore verificata; certificato emesso dalla CA AgID dei gestori PEC (AgID CA1, chiave "
+           "fissata; versioni precedenti della stessa CA accettate solo con la stessa chiave e firmate dalla radice) con "
            "catena alla radice Actalis, valido all'istante della ricevuta; revoche controllate sulle CRL ufficiali "
            "AgID CA1 e Actalis")
 
@@ -190,9 +191,48 @@ def _revocato(crls: list[x509.CertificateRevocationList], certificato: x509.Cert
     return revocato, descrizione
 
 
-def _catena_valida(executable: str, cartella: Path, firmatario: Path, fiducia: Fiducia, istante: datetime) -> bool:
+def _versioni_ca(raw: bytes, ca: x509.Certificate, radice: x509.Certificate) -> list[x509.Certificate]:
+    """La CA fissata e le sue versioni precedenti incluse nella firma della ricevuta.
+
+    AgID ha rinnovato il certificato «AgID CA1» con la stessa chiave (versione fissata: dal 20/02/2025); le ricevute
+    firmate prima portano nella busta il certificato della CA allora in vigore. Si accetta solo un certificato con lo
+    stesso soggetto e la **stessa chiave pubblica** della CA fissata, emesso e firmato dalla radice: è la stessa CA
+    dei gestori PEC in un periodo di validità diverso, non una CA nuova.
+    """
+    import warnings
+    from email import policy as _policy
+    from email.parser import BytesParser as _Parser
+
+    from cryptography.hazmat.primitives.serialization import pkcs7
+
+    versioni = [ca]
+    chiave = ca.public_key().public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+    try:
+        messaggio = _Parser(policy=_policy.compat32).parsebytes(raw)
+        firme = [p.get_payload(decode=True) for p in messaggio.walk()
+                 if p.get_content_type() in {"application/pkcs7-signature", "application/x-pkcs7-signature"}]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            inclusi = [c for dati in firme if dati for c in pkcs7.load_der_pkcs7_certificates(dati)]
+    except Exception:
+        return versioni
+    for certificato in inclusi:
+        stessa = (certificato.subject == ca.subject and certificato.issuer == radice.subject
+                  and certificato.public_key().public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo) == chiave)
+        if not stessa or any(v.serial_number == certificato.serial_number for v in versioni):
+            continue
+        try:
+            certificato.verify_directly_issued_by(radice)
+        except Exception:
+            continue
+        versioni.append(certificato)
+    return versioni
+
+
+def _catena_valida(executable: str, cartella: Path, firmatario: Path, versioni: list[x509.Certificate],
+                   fiducia: Fiducia, istante: datetime) -> bool:
     ca_path, root_path = cartella / "ca.pem", cartella / "radice.pem"
-    ca_path.write_bytes(fiducia.ca_pem)
+    ca_path.write_bytes(b"".join(v.public_bytes(serialization.Encoding.PEM) for v in versioni))
     root_path.write_bytes(fiducia.radice_pem)
     esito = subprocess.run(
         [executable, "verify", "-purpose", "smimesign", "-no-CApath", "-no-CAstore",
@@ -255,12 +295,17 @@ def verifica_ricevuta_gestore(raw: bytes, *, riferimento: str, casella_studio: s
             certificato.verify_directly_issued_by(ca)
         except Exception:  # firma del certificato non della CA, emittente diverso, algoritmo non ammesso
             return esito("gestore_non_riconosciuto", firmatario=descrizione)
-        if not _catena_valida(executable, cartella, firmatario, fiducia, ricevuta.data):
+        versioni = _versioni_ca(raw, ca, radice)
+        if not _catena_valida(executable, cartella, firmatario, versioni, fiducia, ricevuta.data):
             return esito("catena_non_valida", firmatario=descrizione)
+        # La versione della CA in vigore all'istante della ricevuta è quella da controllare nelle revoche.
+        in_vigore = [v for v in versioni if v.not_valid_before_utc <= ricevuta.data <= v.not_valid_after_utc]
     try:
         crls = list((revoche or revoche_ufficiali)(fiducia))
         revocato_firmatario, revoca_firmatario = _revocato(crls, certificato, ca, ricevuta.data)
-        revocata_ca, revoca_ca = _revocato(crls, ca, radice, ricevuta.data)
+        esiti_ca = [_revocato(crls, v, radice, ricevuta.data) for v in in_vigore]
+        revocata_ca = not esiti_ca or all(revocata for revocata, _ in esiti_ca)
+        revoca_ca = [{**d, "seriale": format(v.serial_number, "x")} for v, (_, d) in zip(in_vigore, esiti_ca)]
     except (PecTrustError, ValueError, OSError):
         return esito("revoche_non_verificabili", firmatario=descrizione)
     stato_revoche = {"firmatario": revoca_firmatario, "ca": revoca_ca,

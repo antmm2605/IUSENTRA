@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pytest
 from cryptography import x509
 
-from tests.pec_ricevute_ca_di_prova import STUDIO, daticert, messaggio_inviato, pki, ricevuta
+from tests.pec_ricevute_ca_di_prova import STUDIO, daticert, messaggio_inviato, pki, pki_rinnovata, ricevuta
 from pct.ricevute_pec_gestore import esito_da_dizionario, verifica_ricevuta_gestore
 
 DEST = ["controparte@pec.test", "avvocatura@pec.test"]
@@ -84,3 +84,24 @@ def test_consegna_breve_e_file_qualunque(p):
     assert _verifica(p, messaggio_inviato(DEST, {"a.pdf": b"x"})).codice == "non_ricevuta"
     assert verifica_ricevuta_gestore(_consegna(p), riferimento="R", casella_studio="", fiducia=p.fiducia,
                                      revoche=p.revoche()).codice == "casella_non_configurata"
+
+
+def test_ca_dei_gestori_rinnovata_con_la_stessa_chiave():
+    p, vecchia = pki_rinnovata()
+    xml = daticert("accettazione", destinatari=DEST, msgid=MSGID)
+    # Senza la versione della CA in vigore alla data della ricevuta la catena non regge.
+    assert _verifica(p, ricevuta(p, "accettazione", xml)).codice == "catena_non_valida"
+    esito = _verifica(p, ricevuta(p, "accettazione", xml, inclusi=[vecchia]))
+    assert esito.verificata and [c["seriale"] for c in esito.revoche["ca"]] == ["a"]
+    # Versione precedente sostituita dopo la ricevuta: resta valida per le firme anteriori.
+    dopo = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    revocata = lambda _f: [p.crl("ca"), p.crl("radice", ((10, dopo, x509.ReasonFlags.superseded),))]  # noqa: E731
+    assert _verifica(p, ricevuta(p, "accettazione", xml, inclusi=[vecchia]), revocata).verificata
+    compromessa = lambda _f: [p.crl("ca"), p.crl("radice", ((10, dopo, x509.ReasonFlags.key_compromise),))]  # noqa: E731
+    assert _verifica(p, ricevuta(p, "accettazione", xml, inclusi=[vecchia]), compromessa).codice == "certificato_revocato"
+    # Una CA con lo stesso nome ma altra chiave non è la CA dei gestori.
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from tests.pec_ricevute_ca_di_prova import _certificato
+    falsa = _certificato("CA dei gestori PEC di prova", ec.generate_private_key(ec.SECP256R1()), p.radice.subject,
+                         p.chiave_radice, ca=True, seriale=30)
+    assert _verifica(p, ricevuta(p, "accettazione", xml, inclusi=[falsa])).codice == "catena_non_valida"

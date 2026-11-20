@@ -195,12 +195,12 @@ def _prova(msgid, gruppo, candidati, casella, per_impronta, leggi_relata_file) -
         return dubbio("Il messaggio inviato non ha l'oggetto della notificazione ai sensi della L. 53/1994 (art. 3-bis, comma 4).")
     if messaggio.get_all("Bcc"):
         return dubbio("Il messaggio inviato ha destinatari in copia nascosta: la notifica non è ricostruibile.")
-    destinatari = _indirizzi(messaggio.get_all("To", []) + messaggio.get_all("Cc", []))
+    indirizzati = _indirizzi(messaggio.get_all("To", []) + messaggio.get_all("Cc", []))
     allegati = _allegati(messaggio)
     impronte = frozenset(_sha(d) for _, d in allegati)
     esito.invio = {"riferimento": invio.riferimento, "fonte": invio.fonte, "sha256": _sha(invio.raw),
                    "message_id": str(messaggio["Message-ID"] or "").strip(), "oggetto": " ".join(str(messaggio["Subject"] or "").split()),
-                   "destinatari": sorted(destinatari)}
+                   "destinatari": sorted(indirizzati)}
     # 2. L'accettazione.
     accettazioni = {r.ricevuta.identificativo: r for r in gruppo if r.ricevuta.tipo == "accettazione"}
     if not accettazioni:
@@ -208,8 +208,12 @@ def _prova(msgid, gruppo, candidati, casella, per_impronta, leggi_relata_file) -
     if len(accettazioni) != 1:
         return dubbio("Più ricevute di accettazione con identificativi diversi per lo stesso messaggio.")
     rac = next(iter(accettazioni.values()))
-    if rac.ricevuta.destinatari != destinatari:
+    # I destinatari della notifica sono le caselle certificate attestate dal gestore; un indirizzo ordinario in più nel
+    # messaggio non riceve ricevuta di consegna e non è notificato: si dichiara, e la relata deve escluderlo.
+    destinatari = rac.ricevuta.destinatari
+    if not destinatari or not destinatari <= indirizzati:
         return dubbio("I destinatari certificati nell'accettazione non coincidono con quelli del messaggio inviato.")
+    esito.invio["destinatari_non_certificati"] = sorted(indirizzati - destinatari)
     esito.identificativo = rac.ricevuta.identificativo
     esito.accettazione = {"riferimento": rac.riferimento, "sha256": rac.impronta, "data": rac.ricevuta.data.isoformat(),
                           "identificativo": rac.ricevuta.identificativo, "gestore": rac.firmatario.get("soggetto", "")}

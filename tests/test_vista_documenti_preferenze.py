@@ -117,5 +117,7 @@ def test_il_contratto_react_espone_il_salvataggio_della_vista():
     assert "salvaVista" in hook and "ripristinaVista" in hook
     assert "/api/v1/ui/fascicoli/preferenze-vista-documenti" in servizio
     # La ricerca non entra nella vista: e' una domanda del momento.
-    assert "{ sort, section, status }" in hook
+    # 2.490.0: la vista salvata è fatta di ordinamento, sezione e stato visibili (mai della ricerca).
+    assert "({ sort, section: sezioneVisibile, status: statoVisibile })" in hook
+    assert "query" not in hook[hook.index("const vistaCorrente"):hook.index("const salvaVista")]
     assert "style={{" not in toolbar

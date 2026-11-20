@@ -89,7 +89,8 @@ def test_presidio_non_dichiara_assenza_audit_prima_del_caricamento_reale():
     # Il presidio non ripete più l'audit con un proprio conteggio: l'audit sta solo nel Registro,
     # il cui riepilogo usa lo stesso stato di caricamento del pannello (riorganizzazione del 10/11/2026).
     assert "auditStatus" not in regia and "Audit del fascicolo" not in regia
-    assert "Registro audit non ancora caricato" in source
+    # 2.490.0: prima del caricamento il Registro dice solo cos'è, senza dichiarare l'assenza dell'audit.
+    assert ": { value: '—', label: 'Audit del fascicolo' }" in source
     assert "avviso={`${auditNavigation.label} · eventi tecnici, conservazione, gestione e controlli`}" in source
     assert "loadState={lazyStatus.audit}" in source
     assert "count={loadState === 'loaded' ? audit.summary.total : undefined}" in audit

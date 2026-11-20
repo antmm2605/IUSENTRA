@@ -7711,7 +7711,8 @@ def test_react_fascicolo_lazy_scadenze_unisce_presidio_documenti():
     assert "fascicoloId={f.id}" in source
     assert "if (section === 'scadenze') return ['scadenze', 'documenti']" in source
     assert "loadLazySection('scadenze'); loadLazySection('documenti')" in source
-    assert "{next?.date ? <span>{next.date}</span> : null}" in source
+    # 2.490.0: l'intestazione del presidio dà il conteggio e il titolo; le date stanno nelle righe delle azioni.
+    assert "'Udienze e termini storici' : 'Date rilevate nei documenti'" in source
     assert "<span>{next?.date || presidio.summary}</span>" not in source
     assert ".iu-fas-card-grid .iu-fas-row-actions{grid-template-columns:repeat(3,minmax(0,1fr))}" in css
 

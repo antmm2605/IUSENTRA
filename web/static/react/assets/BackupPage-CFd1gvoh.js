@@ -1,0 +1,1 @@
+import{in as e}from"./lettura-fascicolo-DOMCYWWw.js";import{t}from"./ImpostazioniPage-B_UE0yUs.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

@@ -32,7 +32,8 @@ from typing import Any, Dict, List, Mapping
 
 from pct.calcolatori._base import (
     clean_text,
-    days_inclusive,
+    giorni_interesse,
+    tratto_interessi,
     fmt_date_it,
     messaggio_indice_istat_mancante,
     parse_date,
@@ -111,10 +112,10 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
     giorni_coperti = 0
 
     for periodo in norme.interest_periods("legali"):
-        inizio = max(maturazione, periodo.start)
-        fine = min(liquidazione, periodo.end)
-        if inizio > fine:
+        tratto = tratto_interessi(maturazione, liquidazione, periodo.start, periodo.end)
+        if not tratto:
             continue
+        inizio, fine, giorni = tratto
         if base_interessi == "originario":
             base = round(importo, 2)
         elif base_interessi == "semisomma":
@@ -122,7 +123,6 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         else:
             indice_segmento = _indice(norme, tipo_indice, inizio, f"segmento {inizio.year}")
             base = round(importo * (indice_segmento / indice_base), 2)
-        giorni = days_inclusive(inizio, fine)
         interesse = round(base * (periodo.rate / 100.0) * (giorni / year_denominator(inizio)), 2)
         totale_interessi += interesse
         giorni_coperti += giorni
@@ -141,8 +141,8 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         )
         fonti[fonte["url"]] = fonte
 
-    giorni_totali = days_inclusive(maturazione, liquidazione)
-    if giorni_coperti == 0:
+    giorni_totali = giorni_interesse(maturazione, liquidazione)
+    if giorni_coperti == 0 and giorni_totali > 0:
         raise ValueError(
             "Il periodo richiesto non è coperto dalle tabelle dei saggi legali attualmente caricate."
         )

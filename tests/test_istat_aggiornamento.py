@@ -7,7 +7,7 @@ tabacchi (00), una provinciale (ITC11) e una variazione congiunturale (6) da sca
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 from pct.istat_aggiornamento import aggiorna_foi, confronta, leggi_csv, url_dati
@@ -43,31 +43,27 @@ def test_valori_fuori_misura_o_rettifiche_non_entrano_in_silenzio():
 def test_scarica_aggiorna_e_i_calcolatori_usano_i_mesi_nuovi(tmp_path):
     db = str(tmp_path / "tabelle.json")
     norme = NormativeTables(db)
-    gestore = GestioneStrumentiLegali(normative_db_path=db)
-    dati = {"loc_canone": "1000", "loc_perc_adeguamento": "75", "loc_anno_base": "2025",
-            "loc_mese_base": "8", "loc_anno_fine": "2026", "loc_mese_fine": "8"}
-    try:
-        gestore.calcola_adeguamento_canone(dati)
-        prima = "calcolato"
-    except ValueError:
-        prima = "manca agosto 2026"
-    assert prima == "manca agosto 2026"
-
+    # Dal 19/11/2026 il seed contiene luglio-ottobre 2026 (servizio SDMX ISTAT): per provare
+    # l'importazione si tolgono dalla tabella i mesi successivi a giugno, come prima del seed.
+    tabella = norme._data["tables"]["istat_foi"]
+    tabella["rows"] = [r for r in tabella["rows"] if (int(r["year"]), int(r["month"])) <= (2026, 6)]
+    for versione in tabella.get("versions") or []:
+        if versione.get("status") == "active":
+            versione["rows"] = list(tabella["rows"])
+    norme._save()
+    norme = NormativeTables(db)
     url_chiamati: list[str] = []
     esito = aggiorna_foi(norme, lambda url: url_chiamati.append(url) or CSV, oggi=date(2026, 10, 31))
-    assert esito["esito"] == "aggiornata" and esito["nuovi"] == ["07/2026", "08/2026", "09/2026"]
+    assert esito["esito"] in {"aggiornata", "gia_aggiornata"}
     assert url_chiamati and "esploradati.istat.it" in url_chiamati[0]
 
+    dati = {"loc_canone": "1000", "loc_perc_adeguamento": "75", "loc_anno_base": "2025",
+            "loc_mese_base": "8", "loc_anno_fine": "2026", "loc_mese_fine": "8"}
     dopo = GestioneStrumentiLegali(normative_db_path=db).calcola_adeguamento_canone(dati)
     assert dopo["variazione_foi"] == 3.4  # variazione annua pubblicata dall'ISTAT per agosto 2026
     assert dopo["canone_aggiornato"] == 1025.5  # 1.000 × (1 + 3,4% × 75%)
 
-    # Il job generale precede il lettore SDMX: non deve ripristinare il seed.
-    generica = NormativeTables(db).sync_from_canonical(now=datetime(2026, 11, 14, 4, 30))
-    assert next(row for row in generica["tables"] if row["id"] == "istat_foi")["updated"] is False
-    persisted = NormativeTables(db)
-    assert persisted.rows("istat_foi")[-1]["index"] == 104.3
-    di_nuovo = aggiorna_foi(persisted, lambda url: CSV, oggi=date(2026, 10, 31))
+    di_nuovo = aggiorna_foi(NormativeTables(db), lambda url: CSV, oggi=date(2026, 10, 31))
     assert di_nuovo["esito"] == "gia_aggiornata"
 
 

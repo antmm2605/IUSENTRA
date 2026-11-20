@@ -108,7 +108,13 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         "notes": [
             "Valore fiscale dell'usufrutto vitalizio: base imponibile per la percentuale della fascia "
             "d'età dell'usufruttuario (prospetto allegato al D.P.R. 131/1986).",
-            f"Coefficiente annuale = percentuale/tasso legale ({percentuale:.0f}% / {tasso_legale}% = {coefficiente}).",
+            (
+                f"Coefficiente = percentuale / saggio di riferimento ({percentuale:.0f}% / {saggio_riferimento:g}% = "
+                f"{coefficiente:g}). Il saggio di riferimento non può essere inferiore al 2,5% (art. 46, c. 5-ter, "
+                f"D.P.R. 131/1986): con il saggio legale al {tasso_legale:g}% si usa il 2,5%."
+                if saggio_riferimento > tasso_legale
+                else f"Coefficiente = percentuale / saggio legale ({percentuale:.0f}% / {saggio_riferimento:g}% = {coefficiente:g})."
+            ),
             "L'età rilevante è quella compiuta dall'usufruttuario alla data dell'atto.",
         ],
         "warnings": warnings,

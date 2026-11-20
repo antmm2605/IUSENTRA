@@ -24,7 +24,7 @@ class TestInteressiConvenzionali:
             {
                 "int_tipo": "convenzionale",
                 "int_capitale": "10000",
-                "int_data_inizio": "2026-01-01",
+                "int_data_inizio": "2025-12-31",  # il giorno iniziale non si computa (art. 2963 c.c.)
                 "int_data_fine": "2026-12-31",
                 "int_tasso": "5",
             }

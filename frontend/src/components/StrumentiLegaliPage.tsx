@@ -9,6 +9,7 @@ import {
   caricaStrumentiLegali,
   scadenzeProposte,
   eseguiCalcolo,
+  documentoRisultato,
   elencoTestuale,
   etichettaChiave,
   fontiRisultato,
@@ -260,6 +261,7 @@ function Risultato({ esito, tool, dati }: { esito: EsitoCalcolo; tool: string; d
   const avvisi = elencoTestuale(esito.result, 'warnings')
   const fonti = fontiRisultato(esito.result)
   const tabelle = tabelleRisultato(esito.result, tool)
+  const documento = documentoRisultato(esito.result)
 
   return (
     <section className="iu-tool-result" aria-live="polite">
@@ -272,6 +274,13 @@ function Risultato({ esito, tool, dati }: { esito: EsitoCalcolo; tool: string; d
           </div>
         ))}
       </dl>
+
+      {documento ? (
+        <div className="iu-tool-result__documento-wrap">
+          <h4 className="iu-tool-result__subtitle">Testo del documento</h4>
+          <pre className="iu-tool-result__documento">{documento}</pre>
+        </div>
+      ) : null}
 
       {tabelle.map((tabella) => (
         <div className="iu-table-wrap" key={tabella.chiave}>

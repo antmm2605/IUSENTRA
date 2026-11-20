@@ -5,7 +5,7 @@ Nessuna logica di dominio: solo normalizzazione input e utilità di calendario.
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Mapping, Optional
 
 
@@ -59,6 +59,32 @@ def parse_date(value: Any) -> Optional[date]:
 
 def days_inclusive(start: date, end: date) -> int:
     return (end - start).days + 1
+
+
+def giorni_interesse(inizio: date, fine: date) -> int:
+    """Giorni di interesse fra due date: il giorno iniziale non si computa.
+
+    Gli interessi maturano «dal giorno successivo» a quello in cui sorge il
+    credito (o la mora) fino al giorno finale compreso: dal 20/02 al 20/02 non
+    matura nulla, dal 15/03/2023 al 30/06/2026 maturano 1.203 giorni. E' la
+    stessa regola del computo dei termini (art. 155, comma 1, c.p.c.; art.
+    2963, comma 2, c.c.: «non si computa il giorno nel corso del quale cade il
+    momento iniziale del termine»).
+    """
+    return max(0, (fine - inizio).days)
+
+
+def tratto_interessi(inizio: date, fine: date, periodo_inizio: date, periodo_fine: date):
+    """Parte del periodo tariffario in cui maturano interessi nell'intervallo (inizio, fine].
+
+    Restituisce ``(dal, al, giorni)`` con ``dal`` e ``al`` compresi, oppure
+    ``None`` se nel periodo non matura nessun giorno di interesse.
+    """
+    dal = max(inizio + timedelta(days=1), periodo_inizio)
+    al = min(fine, periodo_fine)
+    if dal > al:
+        return None
+    return dal, al, (al - dal).days + 1
 
 
 def year_denominator(day: date) -> int:

@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from pct.calcolatori._base import messaggio_indice_istat_mancante as _messaggio_indice_istat_mancante
 from pct.calcolatori._base import messaggio_periodo_scaduto as _messaggio_periodo_scaduto
+from pct.calcolatori._base import giorni_interesse as _giorni_interesse
+from pct.calcolatori._base import tratto_interessi as _tratto_interessi
 from pct.calcolatori import (
     assegno_mantenimento as calc_assegno_mantenimento,
     catastale as calc_catastale,
@@ -203,7 +205,7 @@ class GestioneStrumentiLegali:
             {"id": "pignoramento", "title": "Simulatore pignoramento stipendio / pensione", "subtitle": "Ordinario, esattoriale e alimentare con soglia pensione 2026 aggiornata.", "icon": "bi-cash-stack", "categoria": "Esecuzione"},
             {"id": "ctu", "title": "CTU, vacazioni e compensi ausiliari", "subtitle": "Vacazioni vigenti, spese documentate e accessori professionali.", "icon": "bi-journal-medical", "categoria": "Processo"},
             {"id": "rivalutazione_istat", "title": "Rivalutazione monetaria ISTAT", "subtitle": "Calcolo FOI / NIC per danni, assegni divorzili, liquidazioni e adeguamenti.", "icon": "bi-graph-up-arrow", "categoria": "Danni"},
-            {"id": "canone_locazione", "title": "Adeguamento canone di locazione", "subtitle": "Aggiornamento annuale con indice ISTAT FOI ex L. 431/1998.", "icon": "bi-house-lock", "categoria": "Locazioni"},
+            {"id": "canone_locazione", "title": "Adeguamento canone di locazione", "subtitle": "Aggiornamento annuale con indice ISTAT FOI (art. 32 L. 392/1978 e patto contrattuale).", "icon": "bi-house-lock", "categoria": "Locazioni"},
             {"id": "usura", "title": "Verifica soglia usura", "subtitle": "Confronta il tasso con TEGM e soglia antiusura per categoria (L. 108/1996).", "icon": "bi-shield-exclamation", "categoria": "Credito"},
             {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternità secondo il Regolamento unico della previdenza forense (dal 2025).", "icon": "bi-person-badge", "categoria": "Previdenza"},
             {"id": "prescrizione", "title": "Prescrizione civile", "subtitle": "Termini ordinari, brevi e gestione dell'eventuale atto interruttivo.", "icon": "bi-hourglass-bottom", "categoria": "Processo"},
@@ -380,6 +382,8 @@ class GestioneStrumentiLegali:
             "int_data_inizio": today,
             "int_data_fine": today,
             "int_data_contratto": "",
+            "int_data_domanda": "",
+            "int_tasso": "",
             "note_tribunale": prefill.get("tribunale", ""),
             "note_rg": prefill.get("rg", ""),
             "note_creditore": prefill.get("creditore", ""),
@@ -392,6 +396,7 @@ class GestioneStrumentiLegali:
             "note_interessi_manual": "",
             "note_spese_vive": "",
             "note_compensi": "",
+            "note_spese_generali_perc": "15",
             "note_cpa_perc": "4",
             "note_iva_perc": "22",
             "note_acconti": "",
@@ -503,7 +508,10 @@ class GestioneStrumentiLegali:
             "tfr_anni_servizio": "",
             "tfr_mesi_servizio": "",
             "tfr_montante_pregresso": "",
-            "tfr_inflazione_perc": "2.00",
+            "tfr_inflazione_perc": "",
+            "tfr_data_assunzione": "",
+            "tfr_data_cessazione": "",
+            "tfr_trattenuta_050": "1",
             "tfr_anticipazioni": "",
             # Onorari forensi
             "onorari_materia": "CIVILE_COGN",
@@ -1134,6 +1142,9 @@ class GestioneStrumentiLegali:
         if data_fine < data_inizio:
             raise ValueError("La data finale deve essere successiva o uguale alla data iniziale.")
 
+        if mode == "legali_1284_4":
+            return self._interessi_1284_comma_4(payload, capitale, data_inizio, data_fine)
+
         if mode == "convenzionale":
             # Tasso fisso pattuito (art. 1284 c.3 c.c.: oltre il tasso legale la
             # pattuizione richiede forma scritta). Nessuna tabella: il tasso lo
@@ -1143,9 +1154,17 @@ class GestioneStrumentiLegali:
                 raise ValueError("Indica il tasso convenzionale annuo pattuito (percentuale positiva).")
             if tasso > 100:
                 raise ValueError("Tasso convenzionale non plausibile: verifica il valore inserito.")
-            giorni = _days_inclusive(data_inizio, data_fine)
-            denominatore = _year_denominator(data_inizio)
-            interesse = round(capitale * (tasso / 100.0) * (giorni / denominatore), 2)
+            # Il giorno iniziale non si computa (art. 2963 c.c.); ogni anno civile
+            # ha il suo divisore 365/366.
+            giorni = _giorni_interesse(data_inizio, data_fine)
+            interesse = 0.0
+            anno = data_inizio.year
+            while anno <= data_fine.year:
+                tratto = _tratto_interessi(data_inizio, data_fine, date(anno, 1, 1), date(anno, 12, 31))
+                if tratto:
+                    interesse += capitale * (tasso / 100.0) * (tratto[2] / _year_denominator(tratto[0]))
+                anno += 1
+            interesse = round(interesse, 2)
             return {
                 "mode": mode,
                 "label": f"Interessi convenzionali al {tasso:g}% annuo (art. 1284 c.c.)",
@@ -1168,7 +1187,7 @@ class GestioneStrumentiLegali:
                 ],
                 "total_interest": interesse,
                 "total_amount": round(capitale + interesse, 2),
-                "notes": ["Calcolo pro-rata die su giorni effettivi con denominatore 365/366."],
+                "notes": ["Calcolo pro-rata die su giorni effettivi con denominatore 365/366; il giorno iniziale non si computa (art. 2963 c.c.), quello finale sì."],
                 "warnings": [
                     "Interessi superiori al tasso legale: la pattuizione richiede forma scritta (art. 1284 c.3 c.c.).",
                     "La verifica del rispetto delle soglie antiusura (L. 108/1996) spetta al professionista sul caso concreto.",
@@ -1196,11 +1215,10 @@ class GestioneStrumentiLegali:
         covered_days = 0
 
         for period in periods:
-            overlap_start = max(data_inizio, period.start)
-            overlap_end = min(data_fine, period.end)
-            if overlap_start > overlap_end:
+            tratto = _tratto_interessi(data_inizio, data_fine, period.start, period.end)
+            if not tratto:
                 continue
-            days = _days_inclusive(overlap_start, overlap_end)
+            overlap_start, overlap_end, days = tratto
             denominator = _year_denominator(overlap_start)
             rate = period.rate
             if sette_punti and period.start >= _MORA_8_PUNTI_DAL and period.reference_rate is not None:
@@ -1222,9 +1240,14 @@ class GestioneStrumentiLegali:
             )
             sources.append(period.source.to_dict())
 
-        total_days = _days_inclusive(data_inizio, data_fine)
-        if covered_days == 0:
-            raise ValueError("Il periodo richiesto non e coperto dalle basi ufficiali attualmente indicate nel modulo.")
+        total_days = _giorni_interesse(data_inizio, data_fine)
+        if total_days == 0:
+            warnings.append(
+                "Data iniziale e finale coincidono: il giorno iniziale non si computa (art. 2963 c.c.), "
+                "quindi non matura alcun interesse."
+            )
+        elif covered_days == 0:
+            raise ValueError("Il periodo richiesto non è coperto dalle basi ufficiali attualmente indicate nel modulo.")
         if covered_days < total_days:
             warnings.append("Il periodo indicato e coperto solo parzialmente dalle tabelle ufficiali caricate: il risultato riguarda i giorni effettivamente mappati.")
 
@@ -1270,9 +1293,77 @@ class GestioneStrumentiLegali:
             "segments": segments,
             "total_interest": round(total_interest, 2),
             "total_amount": round(capitale + total_interest, 2),
-            "notes": ["Calcolo pro-rata die su giorni effettivi con denominatore 365/366."],
+            "notes": ["Calcolo pro-rata die su giorni effettivi con denominatore 365/366; il giorno iniziale non si computa (art. 2963 c.c.), quello finale sì."],
             "warnings": warnings,
             "sources": list({source["url"]: source for source in sources}.values()),
+        }
+
+    def _interessi_1284_comma_4(
+        self, payload: Mapping[str, Any], capitale: float, data_inizio: date, data_fine: date
+    ) -> Dict[str, Any]:
+        """Art. 1284, comma 4, c.c.: dalla domanda giudiziale il saggio delle transazioni commerciali.
+
+        Se le parti non ne hanno determinato la misura, dal momento in cui e' proposta
+        la domanda giudiziale il saggio degli interessi legali e' quello della
+        legislazione speciale sui ritardi di pagamento (D.Lgs. 231/2002: tasso BCE
+        maggiorato di 8 punti). Fino alla domanda restano gli interessi legali. Il
+        comma e' stato aggiunto dall'art. 17 D.L. 132/2014 e vale per i procedimenti
+        iniziati dall'11/12/2014 (art. 17, comma 2).
+        """
+        data_domanda = _parse_date(payload.get("int_data_domanda"))
+        if not data_domanda:
+            raise ValueError(
+                "Indica la data della domanda giudiziale (notifica della citazione o deposito del ricorso): "
+                "da quel giorno si applica il saggio del D.Lgs. 231/2002 (art. 1284, comma 4, c.c.)."
+            )
+        base = {"int_capitale": capitale, "int_data_fine": data_fine.isoformat()}
+        parti: List[Dict[str, Any]] = []
+        if data_domanda > data_inizio:
+            fino = min(data_domanda, data_fine)
+            parti.append(self.calcola_interessi({**base, "int_tipo": "legali",
+                                                 "int_data_inizio": data_inizio.isoformat(),
+                                                 "int_data_fine": fino.isoformat()}))
+        if data_fine > data_domanda:
+            dal = max(data_domanda, data_inizio)
+            parti.append(self.calcola_interessi({**base, "int_tipo": "mora_commerciale",
+                                                 "int_data_inizio": dal.isoformat(),
+                                                 "int_data_contratto": _MORA_8_PUNTI_DAL.isoformat()}))
+        segments = [segmento for parte in parti for segmento in parte["segments"]]
+        totale = round(sum(parte["total_interest"] for parte in parti), 2)
+        warnings: List[str] = [
+            avviso for parte in parti for avviso in parte["warnings"]
+            if "data del contratto" not in avviso.lower() and "contratto del" not in avviso.lower()
+        ]
+        warnings.append(
+            "Il saggio del D.Lgs. 231/2002 si applica dalla domanda giudiziale solo se le parti non hanno "
+            "pattuito la misura degli interessi (art. 1284, comma 4, c.c.)."
+        )
+        if data_domanda < date(2014, 12, 11):
+            warnings.append(
+                "Domanda anteriore all'11/12/2014: il comma 4 dell'art. 1284 c.c. (art. 17 D.L. 132/2014) vale "
+                "solo per i procedimenti iniziati da quella data; per questo giudizio restano gli interessi legali."
+            )
+        fonti = {f["url"]: f for parte in parti for f in parte.get("sources", [])}
+        giorni = _giorni_interesse(data_inizio, data_fine)
+        return {
+            "mode": "legali_1284_4",
+            "label": "Interessi legali e, dalla domanda giudiziale, saggio D.Lgs. 231/2002 (art. 1284, comma 4, c.c.)",
+            "capital": round(capitale, 2),
+            "start_date": data_inizio.isoformat(),
+            "end_date": data_fine.isoformat(),
+            "data_domanda": data_domanda.isoformat(),
+            "days": giorni,
+            "covered_days": sum(segmento["days"] for segmento in segments),
+            "segments": segments,
+            "total_interest": totale,
+            "total_amount": round(capitale + totale, 2),
+            "notes": [
+                "Fino alla domanda giudiziale: saggio legale annuo (art. 1284, comma 1, c.c.); dal giorno successivo: "
+                "tasso BCE di riferimento maggiorato di 8 punti (art. 5 D.Lgs. 231/2002).",
+                "Calcolo pro-rata die con denominatore 365/366; il giorno iniziale non si computa (art. 2963 c.c.).",
+            ],
+            "warnings": warnings,
+            "sources": list(fonti.values()),
         }
 
     def calcola_conta_giorni(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -1375,6 +1466,15 @@ class GestioneStrumentiLegali:
 
         cf_input = _clean_text(payload.get("cf_codice")).upper()
         if cf_input:
+            # Carattere di controllo (D.M. 23/12/1976, art. 7 e allegato): un codice con
+            # il sedicesimo carattere sbagliato non è un codice fiscale valido.
+            if len(cf_input) == 16 and cf_input[:15].isalnum():
+                atteso = cf_mod._checksum(cf_input[:15])
+                if atteso != cf_input[15]:
+                    raise ValueError(
+                        f"Codice fiscale non valido: il carattere di controllo è «{cf_input[15]}», "
+                        f"ma per i primi quindici caratteri dovrebbe essere «{atteso}» (D.M. 23/12/1976)."
+                    )
             esito = cf_mod.decodifica(cf_input)
             if not esito:
                 raise ValueError("Codice fiscale non valido o malformato (16 caratteri attesi).")
@@ -1523,6 +1623,10 @@ class GestioneStrumentiLegali:
         compensi = _safe_float(payload.get("note_compensi"))
         cpa_perc = _safe_float(payload.get("note_cpa_perc"), 4.0)
         iva_perc = _safe_float(payload.get("note_iva_perc"), 22.0)
+        # Art. 2, comma 2, D.M. 55/2014: rimborso forfettario delle spese generali, di regola
+        # il 15% del compenso; entra nella base della CPA (art. 11 L. 576/1980) e dell'IVA.
+        sg_grezzo = _clean_text(payload.get("note_spese_generali_perc"))
+        spese_generali_perc = _safe_float(sg_grezzo) if sg_grezzo else 15.0
         acconti = _safe_float(payload.get("note_acconti"))
         luogo = _clean_text(payload.get("note_luogo"))
         data_doc = _parse_date(payload.get("note_data")) or _today()
@@ -1554,9 +1658,10 @@ class GestioneStrumentiLegali:
         elif interessi_manual < 0:
             raise ValueError("Gli interessi manuali non possono essere negativi.")
 
-        cpa = round(compensi * (cpa_perc / 100.0), 2)
-        iva = round((compensi + cpa) * (iva_perc / 100.0), 2)
-        totale_lordo = round(capitale + interest_amount + spese_vive + compensi + cpa + iva, 2)
+        spese_generali = round(compensi * (spese_generali_perc / 100.0), 2)
+        cpa = round((compensi + spese_generali) * (cpa_perc / 100.0), 2)
+        iva = round((compensi + spese_generali + cpa) * (iva_perc / 100.0), 2)
+        totale_lordo = round(capitale + interest_amount + spese_vive + compensi + spese_generali + cpa + iva, 2)
         residuo = round(totale_lordo - acconti, 2)
 
         breakdown = [
@@ -1564,6 +1669,7 @@ class GestioneStrumentiLegali:
             ("Interessi", interest_amount),
             ("Spese vive documentate", spese_vive),
             ("Compensi professionali", compensi),
+            (f"Spese generali {_fmt_percent(spese_generali_perc)}% (art. 2, c. 2, D.M. 55/2014)", spese_generali),
             (f"CPA {_fmt_percent(cpa_perc)}%", cpa),
             (f"IVA {_fmt_percent(iva_perc)}%", iva),
             ("Totale maturato", totale_lordo),
@@ -1592,8 +1698,9 @@ class GestioneStrumentiLegali:
             2) Interessi ({intro}): {format_euro_it(interest_amount)}
             3) Spese vive documentate: {format_euro_it(spese_vive)}
             4) Compensi professionali: {format_euro_it(compensi)}
-            5) CPA {_fmt_percent(cpa_perc)}%: {format_euro_it(cpa)}
-            6) IVA {_fmt_percent(iva_perc)}%: {format_euro_it(iva)}
+            5) Spese generali {_fmt_percent(spese_generali_perc)}% (art. 2, comma 2, D.M. 55/2014): {format_euro_it(spese_generali)}
+            6) CPA {_fmt_percent(cpa_perc)}%: {format_euro_it(cpa)}
+            7) IVA {_fmt_percent(iva_perc)}%: {format_euro_it(iva)}
                Totale maturato: {format_euro_it(totale_lordo)}
                Acconti / pagamenti imputati: {format_euro_it(acconti)}
                Residuo richiesto: {format_euro_it(residuo)}
@@ -1623,6 +1730,7 @@ class GestioneStrumentiLegali:
             + _line_html("Interessi", interest_amount)
             + _line_html("Spese vive documentate", spese_vive)
             + _line_html("Compensi professionali", compensi)
+            + _line_html(f"Spese generali {_fmt_percent(spese_generali_perc)}%", spese_generali)
             + _line_html(f"CPA {_fmt_percent(cpa_perc)}%", cpa)
             + _line_html(f"IVA {_fmt_percent(iva_perc)}%", iva)
             + "<hr class='my-2'>"
@@ -2003,8 +2111,14 @@ class GestioneStrumentiLegali:
             raise ValueError("Inserisci un importo positivo.")
         if not (anno_base and mese_base):
             raise ValueError("Indica anno e mese di riferimento base.")
+        indice_finale_automatico = False
         if not (anno_fine and mese_fine):
-            raise ValueError("Indica anno e mese di rivalutazione finale.")
+            # Senza mese finale si usa l'ultimo indice ufficiale pubblicato, dichiarandolo.
+            ultimo = self.norme.istat_last_available(tipo)
+            if not ultimo:
+                raise ValueError("Indica anno e mese di rivalutazione finale.")
+            anno_fine, mese_fine = int(ultimo["year"]), int(ultimo["month"])
+            indice_finale_automatico = True
         if not (1 <= mese_base <= 12) or not (1 <= mese_fine <= 12):
             raise ValueError("Il mese deve essere compreso tra 1 e 12.")
 
@@ -2016,6 +2130,10 @@ class GestioneStrumentiLegali:
         sources = self._sources_for_codes(source_code, "istat_portale")
         warnings: List[str] = []
         notes: List[str] = []
+        if indice_finale_automatico:
+            notes.append(
+                f"Mese finale non indicato: usato l'ultimo indice ISTAT pubblicato ({mese_fine:02d}/{anno_fine})."
+            )
 
         if indice_base is None:
             raise ValueError(
@@ -2054,14 +2172,19 @@ class GestioneStrumentiLegali:
             )
         notes.append(
             "Indice FOI al netto dei tabacchi: e' l'indice prescritto per l'adeguamento dei "
-            "canoni di locazione (art. 81 L. 392/1978, art. 24 L. 431/1998) e per la "
+            "canoni di locazione (artt. 32 e 81 L. 392/1978) ed e' usato per la "
             "rivalutazione dei crediti di rilievo giuridico."
         )
         if tipo_richiesto == "nic":
             warnings.append("L'indice NIC non e' disponibile: per la rivalutazione monetaria di rilievo giuridico la legge indica il FOI al netto dei tabacchi (art. 81 L. 392/1978 per le locazioni, art. 150 disp. att. c.p.c. e art. 429, comma 3, c.p.c. per i crediti di lavoro). Il calcolo e' stato eseguito con il FOI.")
 
-        if variazione_perc < 0:
-            warnings.append("La variazione e negativa (deflazione nel periodo): l'importo rivalutato e inferiore a quello originale.")
+        if (anno_fine, mese_fine) < (anno_base, mese_base):
+            notes.append(
+                "Periodo a ritroso (mese finale anteriore al mese base): e' una devalutazione, cioe' "
+                "l'importo espresso in moneta del mese finale."
+            )
+        elif variazione_perc < 0:
+            warnings.append("La variazione è negativa (deflazione nel periodo): l'importo rivalutato è inferiore a quello originale.")
 
         return {
             "importo_originale": round(importo, 2),
@@ -2133,10 +2256,21 @@ class GestioneStrumentiLegali:
         notes.append(
             f"Formula: {format_euro_it(canone)} + ({format_euro_it(canone)} × {variazione_applicata:.4f}/100) = {format_euro_it(canone_aggiornato)}/mese."
         )
-        if perc_adeguamento == 75.0:
-            notes.append("Contratti liberi 4+4 (L. 431/1998 art. 1): aggiornamento al 75% della variazione FOI. Verificare il testo contrattuale.")
-        elif perc_adeguamento == 100.0:
-            notes.append("Applicato il 100% della variazione FOI (contratti ad uso transitorio o patto specifico).")
+        notes.append(
+            "Il limite del 75% della variazione FOI è quello dell'art. 32 L. 392/1978 per le locazioni a uso "
+            "diverso dall'abitativo. Nelle locazioni abitative a canone libero (art. 2, c. 1, L. 431/1998) "
+            "l'aggiornamento è quello pattuito nel contratto; in quelle a canone concordato (art. 2, c. 3) lo "
+            "fissano gli accordi territoriali."
+        )
+        if perc_adeguamento > 75.0:
+            warnings.append(
+                f"Applicato il {perc_adeguamento:.0f}% della variazione FOI: nelle locazioni a uso diverso "
+                "l'aumento non può superare il 75% (art. 32 L. 392/1978); verificare il contratto e il tipo di locazione."
+            )
+        notes.append(
+            "Con la cedolare secca l'aggiornamento del canone, anche ISTAT, è sospeso per tutta la durata "
+            "dell'opzione (art. 3, c. 11, D.Lgs. 23/2011)."
+        )
 
         if variazione_foi < 0:
             warnings.append("La variazione FOI e negativa: il canone non puo essere ridotto in applicazione dell'adeguamento (salvo patto contrario).")
@@ -2180,6 +2314,7 @@ class GestioneStrumentiLegali:
             "mef_tassi_usura_2026_q1",
             "mef_tassi_usura_2026_q2",
             "mef_tassi_usura_2026_q3",
+            "mef_tassi_usura_2026_q4",
         )
         warnings: List[str] = []
         notes: List[str] = []
@@ -2454,7 +2589,7 @@ class GestioneStrumentiLegali:
             "minimo": 200.0,
             "fisso": False,
             "norma": "Art. 8 co. 1 lett. b) Tariffa DPR 131/1986",
-            "note": "Aliquota del 3% sul valore della condanna. Obbligo di registrazione entro 20 giorni dalla irrevocabilità.",
+            "note": "Aliquota del 3% sul valore della condanna (art. 8, comma 1, lett. b, Tariffa). L'atto si registra anche se impugnato o ancora impugnabile, salvo conguaglio o rimborso (art. 8, nota I, Tariffa; art. 37 D.P.R. 131/1986).",
         },
         "sentenza_immobili": {
             "label": "Sentenza su trasferimento immobili",
@@ -2485,16 +2620,16 @@ class GestioneStrumentiLegali:
             "aliquota": 0.03,
             "minimo": 200.0,
             "fisso": False,
-            "norma": "Art. 11 Tariffa DPR 131/1986",
-            "note": "Se il verbale contiene condanna a pagamento: 3%. Se ha solo natura dichiarativa: €200 fissi.",
+            "norma": "Art. 9 Tariffa DPR 131/1986 (prestazioni a contenuto patrimoniale); art. 11 se privo di contenuto patrimoniale",
+            "note": "Il verbale di conciliazione con prestazioni a contenuto patrimoniale sconta il 3% (art. 9 Tariffa); senza contenuto patrimoniale l'imposta è fissa di €200 (art. 11 Tariffa). Il verbale di accordo raggiunto in mediazione è esente dall'imposta di registro entro il limite di valore di €100.000 (art. 17, comma 3, D.Lgs. 28/2010).",
         },
         "lodo_arbitrale": {
             "label": "Lodo arbitrale",
             "aliquota": 0.03,
             "minimo": 200.0,
             "fisso": False,
-            "norma": "Art. 8 co. 1 lett. c) Tariffa DPR 131/1986",
-            "note": "Il lodo arbitrale (anche non omologato) è soggetto a imposta di registro entro 20 giorni dalla sottoscrizione.",
+            "norma": "Art. 8 co. 1 lett. b) Tariffa DPR 131/1986 (lodo di condanna)",
+            "note": "Il lodo sconta l'imposta secondo il contenuto, con le misure dell'art. 8 della Tariffa: 3% se reca condanna (lett. b), 1% se accerta diritti a contenuto patrimoniale (lett. c), €200 negli altri casi (lett. d).",
         },
         "sentenza_separazione": {
             "label": "Sentenza/provvedimento di separazione o divorzio",
@@ -2538,9 +2673,19 @@ class GestioneStrumentiLegali:
         else:
             notes.append(info["note"])
             notes.append(
-                "L'imposta è dovuta in solido da tutte le parti. Il vincitore generalmente anticipa e recupera in esecuzione. "
-                "Termine di registrazione: 20 giorni dalla data dell'atto definitivo."
+                "Gli atti giudiziari si registrano su richiesta della cancelleria (art. 10, lett. c, D.P.R. 131/1986): "
+                "la parte non deve chiedere la registrazione, ma paga l'imposta dopo l'avviso di liquidazione "
+                "dell'Agenzia delle Entrate."
             )
+            notes.append(
+                "L'imposta è dovuta in solido da tutte le parti in causa (art. 57 D.P.R. 131/1986): la quota per parte "
+                "indica solo la ripartizione interna, non limita quanto l'Agenzia può chiedere a ciascuna."
+            )
+            if tipo in {"sentenza_condanna", "decreto_ingiuntivo_definitivo", "lodo_arbitrale"}:
+                warnings.append(
+                    "Se la condanna riguarda corrispettivi di operazioni soggette a IVA, l'imposta di registro è dovuta "
+                    "in misura fissa (principio di alternatività, art. 40 D.P.R. 131/1986)."
+                )
 
         if imposta > info["minimo"] and not info.get("fisso"):
             notes.append(f"Importo calcolato: {aliquota_eff:.1f}% × {format_euro_it(valore)} = {format_euro_it(imposta)}.")
@@ -2567,55 +2712,12 @@ class GestioneStrumentiLegali:
         }
 
     def calcola_tfr(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
-        retribuzione_annua = _safe_float(payload.get("tfr_retribuzione_annua"))
-        anni_servizio = max(0, _safe_int(payload.get("tfr_anni_servizio")))
-        mesi_servizio = max(0, _safe_int(payload.get("tfr_mesi_servizio")))
-        montante_pregresso = _safe_float(payload.get("tfr_montante_pregresso"))
-        inflazione_perc = _safe_float(payload.get("tfr_inflazione_perc"), 2.0)
-        anticipazioni = _safe_float(payload.get("tfr_anticipazioni"))
+        """TFR con rivalutazione annua ISTAT e trattenuta dello 0,50% (pct/calcolatori/tfr.py)."""
+        from pct.calcolatori import tfr as calc_tfr
 
-        if retribuzione_annua <= 0:
-            raise ValueError("Inserisci una retribuzione annua lorda positiva.")
-        if mesi_servizio >= 12:
-            anni_servizio += mesi_servizio // 12
-            mesi_servizio = mesi_servizio % 12
-
-        anni_equivalenti = round(anni_servizio + (mesi_servizio / 12.0), 4)
-        quota_annua = round(retribuzione_annua / 13.5, 2)
-        # Art. 2120, c. 1, c.c. (collaudo normativo del 31/10/2026): quota per i mesi di servizio
-        # calcolata sui mesi esatti, senza arrotondare prima gli anni equivalenti.
-        quota_periodo = round(quota_annua / 12.0 * (anni_servizio * 12 + mesi_servizio), 2)
-        coeff_rivalutazione = round(1.5 + (inflazione_perc * 0.75), 4)
-        rivalutazione = round(montante_pregresso * (coeff_rivalutazione / 100.0), 2)
-        totale_lordo = round(montante_pregresso + quota_periodo + rivalutazione - anticipazioni, 2)
-
-        notes = [
-            f"Quota annua TFR: retribuzione annua / 13,5 = {retribuzione_annua:.2f} / 13,5.",
-            f"Rivalutazione del montante pregresso: 1,5% + 75% dell'inflazione ({inflazione_perc:.2f}%).",
-        ]
-        warnings: List[str] = []
-        if anticipazioni > 0:
-            notes.append(f"Anticipazioni detratte dal maturato complessivo: {format_euro_it(anticipazioni)}.")
-        if totale_lordo < 0:
-            warnings.append("Il totale risulta negativo dopo le anticipazioni indicate: verificare i dati di partenza.")
-
-        return {
-            "retribuzione_annua": round(retribuzione_annua, 2),
-            "anni_servizio": anni_servizio,
-            "mesi_servizio": mesi_servizio,
-            "anni_equivalenti": anni_equivalenti,
-            "quota_annua": quota_annua,
-            "quota_periodo": quota_periodo,
-            "montante_pregresso": round(montante_pregresso, 2),
-            "inflazione_perc": round(inflazione_perc, 2),
-            "coeff_rivalutazione": coeff_rivalutazione,
-            "rivalutazione": rivalutazione,
-            "anticipazioni": round(anticipazioni, 2),
-            "totale_lordo": totale_lordo,
-            "notes": notes,
-            "warnings": warnings,
-            "sources": self._sources_for_codes("normattiva_portale", "ministero_lavoro_portale"),
-        }
+        risultato = calc_tfr.calcola(payload, self.norme)
+        risultato["sources"] = self._sources_for_codes("istat_indici_prezzi", "normattiva_portale")
+        return risultato
 
     def calcola_onorari_forensi(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         materia_key = _clean_text(payload.get("onorari_materia") or "CIVILE_COGN")
@@ -3142,7 +3244,11 @@ class GestioneStrumentiLegali:
             "registro_evitato": registro_evitato,
             "notes": notes,
             "warnings": [],
-            "sources": self._sources_for_codes("agenzia_entrate_fec", "normattiva_portale", "legge_431_1998_locazioni"),
+            "sources": [
+                {"title": "Art. 3 D.Lgs. 23/2011 — cedolare secca sugli affitti (Normattiva)",
+                 "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-03-14;23~art3"},
+                *self._sources_for_codes("legge_431_1998_locazioni"),
+            ],
         }
 
     def calcola_indennita_licenziamento(self, payload: Mapping[str, Any]) -> Dict[str, Any]:

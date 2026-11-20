@@ -3,9 +3,9 @@
 Base normativa (nessun valore soggetto ad aggiornamento periodico: solo
 frazioni e soglie fissate dalla legge):
 
-- Art. 132, comma 2, c.p.: nel computo della pena il giorno è di ventiquattro
-  ore e l'anno è di trecentosessantacinque giorni. Il mese è computato in
-  trenta giorni secondo la prassi applicativa costante.
+- Art. 134 c.p.: le pene temporanee si applicano a giorni, mesi e anni. Per
+  le operazioni frazionarie (aumenti e diminuzioni) la prassi applicativa
+  costante computa l'anno in dodici mesi e il mese in trenta giorni.
 - Art. 62-bis c.p.: circostanze attenuanti generiche; la diminuzione non può
   eccedere un terzo (art. 65, n. 3, c.p.).
 - Art. 65, n. 3, c.p.: misura della diminuzione per una circostanza attenuante.
@@ -241,7 +241,8 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
         "benefici": esiti,
         "notes": notes
         + [
-            "Computo della pena secondo l'art. 132, comma 2, c.p.: anno di 365 giorni, mese di 30 giorni. "
+            "Pena espressa in anni, mesi e giorni (art. 134 c.p.); nelle frazioni l'anno vale dodici mesi e il mese "
+            "trenta giorni, secondo la prassi applicativa costante. "
             "Le diminuzioni frazionarie sono arrotondate per difetto, in favore dell'imputato.",
             "Lo strumento calcola l'effetto delle frazioni indicate: non stabilisce se attenuanti, continuazione "
             "o rito siano in concreto applicabili, valutazione che resta del difensore e del giudice.",

@@ -14,12 +14,13 @@ basi ufficiali caricate non vengono mai stimati (fail-closed).
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Any, Dict, List, Mapping, Tuple
 
 from pct.calcolatori._base import (
     clean_text,
-    days_inclusive,
+    giorni_interesse,
+    tratto_interessi,
     fmt_date_it,
     parse_date,
     safe_float,
@@ -55,18 +56,17 @@ def _parse_acconti(raw: Any) -> List[Tuple[date, float]]:
 
 
 def _interest_between(capitale: float, start: date, end: date, periods: List[Any]) -> Tuple[float, int, List[Dict[str, Any]]]:
-    """Interessi su ``capitale`` per i giorni [start, end] con i periodi tariffari coperti."""
+    """Interessi su ``capitale`` per i giorni (start, end]: il giorno ``start`` non si computa."""
     total = 0.0
     covered = 0
     segments: List[Dict[str, Any]] = []
-    if end < start or capitale <= 0:
+    if end <= start or capitale <= 0:
         return 0.0, 0, segments
     for period in periods:
-        overlap_start = max(start, period.start)
-        overlap_end = min(end, period.end)
-        if overlap_start > overlap_end:
+        tratto = tratto_interessi(start, end, period.start, period.end)
+        if not tratto:
             continue
-        days = days_inclusive(overlap_start, overlap_end)
+        overlap_start, overlap_end, days = tratto
         interest = round(capitale * (period.rate / 100.0) * (days / year_denominator(overlap_start)), 2)
         total += interest
         covered += days
@@ -117,15 +117,18 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
     imputazioni: List[Dict[str, Any]] = []
     sources: Dict[str, Dict[str, str]] = {}
 
+    # ``cursore`` e' l'ultimo giorno gia' computato: gli interessi del tratto
+    # maturano dal giorno successivo fino al giorno dell'evento compreso. Nel
+    # giorno dell'acconto matura ancora il capitale prima del pagamento; dal
+    # giorno dopo matura il capitale residuo.
     eventi = list(acconti) + [(data_fine, 0.0)]
     for giorno_evento, importo_acconto in eventi:
-        fine_tratto = giorno_evento if importo_acconto > 0 else giorno_evento
-        # Interessi maturati fino al giorno dell'evento incluso.
-        if fine_tratto >= cursore and residuo_capitale > 0:
+        fine_tratto = giorno_evento
+        if fine_tratto > cursore and residuo_capitale > 0:
             interesse, covered, tratti = _interest_between(residuo_capitale, cursore, fine_tratto, periods)
             interessi_non_pagati = round(interessi_non_pagati + interesse, 2)
             covered_total += covered
-            expected_total += days_inclusive(cursore, fine_tratto)
+            expected_total += giorni_interesse(cursore, fine_tratto)
             segments.extend(tratti)
             for tratto in tratti:
                 sources[tratto["source"]["url"]] = tratto["source"]
@@ -146,9 +149,7 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
                     "residuo_interessi": interessi_non_pagati,
                 }
             )
-            cursore = giorno_evento + timedelta(days=1)
-        else:
-            cursore = giorno_evento
+        cursore = max(cursore, giorno_evento)
 
     if expected_total > 0 and covered_total == 0:
         raise ValueError("Il periodo richiesto non è coperto dalle basi ufficiali attualmente caricate.")
@@ -181,7 +182,7 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         "segments": segments,
         "notes": [
             "Imputazione ex art. 1194 c.c.: ogni acconto copre prima gli interessi maturati e poi il capitale.",
-            "Calcolo pro-rata die su giorni effettivi con denominatore 365/366.",
+            "Calcolo pro-rata die su giorni effettivi con denominatore 365/366; il giorno iniziale non si computa (art. 2963 c.c.).",
         ],
         "warnings": warnings,
         "sources": list(sources.values()),

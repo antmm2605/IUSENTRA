@@ -348,3 +348,38 @@ def contiene_nel_comma(chiave: str, comma: str, ancora: str) -> tuple[bool, bool
     if parte:
         return normalizza(ancora) in normalizza(parte), True
     return normalizza(ancora) in normalizza(t.testo), False
+
+
+_MESI = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre",
+         "novembre", "dicembre")
+_DECORRENZA = re.compile(
+    r"(?:si applica\w*|hanno effetto|acquista efficacia|trovano applicazione|ha effetto)[^.]{0,60}?"
+    r"(?:a decorrere |a partire )?dal\s+(\d{1,2})°?\s+(" + "|".join(_MESI) + r")\s+(\d{4})", re.I)
+# Le norme processuali si applicano secondo la data del giudizio, non dei fatti: la loro decorrenza la governa il rito.
+_PROCESSUALI = ("cpc:", "dpr115:", "dlgs28:", "dl132:", "l742:", "rd12:", "dlgs150:", "dlgs546:", "cpa:", "cpp:")
+
+
+def decorrenze(chiave: str) -> list[tuple[Any, str]]:
+    """Decorrenze delle modifiche annotate nel testo vigente («AGGIORNAMENTO (n) … si applica … a decorrere dal …»)."""
+    from datetime import date as _date
+
+    t = testo_norma(chiave)
+    if t is None:
+        return []
+    uscita = []
+    for nota in re.split(r"AGGIORNAMENTO \(\d+\)", t.testo)[1:]:
+        nota = " ".join(nota.split())
+        for m in _DECORRENZA.finditer(nota):
+            try:
+                d = _date(int(m.group(3)), _MESI.index(m.group(2).lower()) + 1, int(m.group(1)))
+            except ValueError:
+                continue
+            uscita.append((d, nota[:240]))
+    return uscita
+
+
+def modifiche_dopo(chiave: str, data_fatti) -> list[tuple[Any, str]]:
+    """Modifiche della norma con effetto successivo alla data dei fatti (solo norme sostanziali)."""
+    if data_fatti is None or chiave.startswith(_PROCESSUALI):
+        return []
+    return sorted({d: n for d, n in decorrenze(chiave) if d > data_fatti}.items())

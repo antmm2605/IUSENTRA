@@ -56,14 +56,14 @@ def citazione_caparra(f: Fatti, a: Analisi, caparra: float, doppio: float) -> st
         f"dell'art. 3 d.l. 132/2014 (invito ricevuto il {DA}); l'invito non è stato seguito da adesione entro trenta giorni "
         "[oppure: è stato rifiutato / la negoziazione si è conclusa senza accordo il " + DA + "].",
         "",
-        "FATTO (art. 163, comma 3, n. 4, c.p.c.)",
+        "IN FATTO (art. 163, comma 3, n. 4, c.p.c.)",
         *_fatti_numerati(f, "l'attore"),
         f"{len(f.eventi) + 1}. Con il contratto preliminare le parti hanno qualificato espressamente la somma di "
         f"{euro(caparra)} come caparra confirmatoria ai sensi dell'art. 1385 c.c. (clausola 6).",
         f"{len(f.eventi) + 2}. Il convenuto non ha stipulato il contratto definitivo, non si è presentato davanti al notaio "
         "nella data fissata, non ha adempiuto nel termine assegnato con la diffida e ha offerto l'immobile in vendita a terzi.",
         "",
-        "DIRITTO",
+        "IN DIRITTO",
         "1. Inadempimento grave e imputabile del promittente venditore. La mancata comparizione per la stipula, "
         "documentata dal verbale notarile, il silenzio sulla diffida ad adempiere e l'offerta dell'immobile a terzi "
         "integrano un inadempimento di non scarsa importanza (art. 1455 c.c.), che rende definitivamente impossibile "
@@ -145,30 +145,59 @@ def comparsa_generica(f: Fatti) -> str:
 
 def ricorso_generico(titolo: str, ufficio: str, f: Fatti, oggetto: str, diritto: list[str], conclusioni: str,
                      documenti: str, norme_struttura: str) -> str:
+    citazione = "citazione" in titolo.lower()
+    attivo, passivo = ("attore", "convenuto") if citazione else ("ricorrente", "resistente")
     righe = [
         (ufficio or "UFFICIO GIUDIZIARIO " + DA).upper(),
         titolo.upper(),
         f"({norme_struttura})",
         "",
         f"Per: {f.assistita.nome or DA}, codice fiscale {DA}, residente/con sede in {DA}, rappresentato e difeso dall'avv. {DA} "
-        f"(PEC {DA}) giusta procura allegata – ricorrente –",
-        f"Contro: {f.controparte.nome or DA}, codice fiscale/partita IVA {DA}, residente/con sede in {f.residenza_convenuto or DA} – resistente –",
+        f"(PEC {DA}) giusta procura allegata – {attivo} –",
+        f"Contro: {f.controparte.nome or DA}, codice fiscale/partita IVA {DA}, residente/con sede in {f.residenza_convenuto or DA} – {passivo} –",
         "",
         "OGGETTO: " + oggetto,
         "",
-        "FATTO",
-        *(_fatti_numerati(f, "il ricorrente") or ["1. " + DA]),
+        "IN FATTO",
+        *(_fatti_numerati(f, "l'" + attivo if citazione else "il ricorrente") or ["1. " + DA]),
         "",
-        "DIRITTO",
+        "MOTIVI (art. 18, comma 2, lett. e), d.lgs. 546/1992)" if "tributari" in titolo.lower() else "IN DIRITTO",
         *[f"{n}. {d}" for n, d in enumerate(diritto, 1)],
         "",
         "CONCLUSIONI",
         conclusioni,
         "",
         "DOCUMENTI: " + documenti,
+    ]
+    if citazione and "sfratto" in titolo.lower():
+        righe += [
+            "",
+            "CITAZIONE PER LA CONVALIDA E AVVERTIMENTO (artt. 660 e 663 c.p.c.)",
+            f"Si cita {f.controparte.nome or DA} a comparire all'udienza del {DA}, ore di rito, davanti al {ufficio or DA}, "
+            "con l'avvertimento che, se non comparirà o comparendo non si opporrà, il giudice convaliderà con ordinanza "
+            "esecutiva lo sfratto (art. 663 c.p.c.); che la difesa tecnica mediante avvocato è obbligatoria; che la parte, "
+            "sussistendone i presupposti di legge, può presentare istanza per l'ammissione al patrocinio a spese dello Stato.",
+        ]
+    elif citazione:
+        tribunale = "tribunale" in (ufficio or "").lower()
+        righe += [
+            "",
+            "INVITO E AVVERTIMENTI (art. 163, comma 3, n. 7, c.p.c.)",
+            f"Si cita {f.controparte.nome or DA} a comparire all'udienza del {DA}, ore di rito, davanti al "
+            f"{ufficio or DA}, con invito a costituirsi "
+            + ("nel termine di settanta giorni prima dell'udienza indicata, nelle forme dell'art. 166 c.p.c."
+               if tribunale else "nei termini di legge")
+            + ", con l'avvertimento che la costituzione oltre i suddetti termini implica le decadenze di cui agli artt. 38 "
+              "e 167 c.p.c."
+            + ("; che la difesa tecnica mediante avvocato è obbligatoria in tutti i giudizi davanti al tribunale, fuori "
+               "dei casi previsti dall'art. 86 c.p.c. o da leggi speciali" if tribunale else "")
+            + "; che la parte, sussistendone i presupposti di legge, può presentare istanza per l'ammissione al patrocinio "
+              "a spese dello Stato.",
+        ]
+    righe += [
         "",
         f"{DA}, {DA} – Avv. {DA}",
         "",
-        "— Bozza preparata da Lex: da rivedere, non salvata, non firmata, non depositata. —",
+        "— Bozza preparata da Lex: da rivedere e firmare; non depositata né notificata. —",
     ]
     return "\n".join(righe)

@@ -43,7 +43,7 @@ class FattiCausa:
     dubbi: list[str] = field(default_factory=list)
 
     def sezione(self) -> str:
-        righe = [f"**Dal fascicolo** (modello della causa di IUSENTRA, ogni punto con il documento da cui è letto)"]
+        righe = ["**Dal fascicolo** (modello della causa di IUSENTRA, ogni punto con il documento da cui è letto)"]
         testa = ", ".join(x for x in (self.ufficio, f"R.G. {self.rg}" if self.rg else "", self.rito,
                                       f"cliente {self.ruolo_cliente}" if self.ruolo_cliente and self.ruolo_cliente != "ignoto" else "") if x)
         if testa:

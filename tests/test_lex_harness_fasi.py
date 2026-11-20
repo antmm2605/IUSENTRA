@@ -192,3 +192,30 @@ def test_feriale_617_esclusa_e_1137_applicata():
 
     assert termine("LEX_ESE_OPPOSIZIONE_ATTI_617", date(2026, 7, 25)) == date(2026, 8, 14)   # art. 92 ord. giud.
     assert termine("LEX_CONDOMINIO_1137", date(2026, 7, 20)) == date(2026, 9, 19)            # Corte cost. 49/1990
+
+
+@archivio
+def test_vigenza_alla_data_dei_fatti_dalle_note_normattiva():
+    from lex.harness import rispondi
+
+    r = rispondi("Il mio cliente Mario Verdi ha commissionato a Infissi Rossi s.r.l. la fornitura e posa di finestre nella "
+                 "sua abitazione di Monopoli, corrispettivo 7.000 euro. Consegna il 10/11/2021. Il 01/03/2022 scopre "
+                 "infiltrazioni; denuncia i vizi con PEC del 10/03/2022; costo di ripristino 2.500 euro. Che azione possiamo fare?")
+    vig = r.registro["4b_vigenza_alla_data_dei_fatti"]
+    assert "2022-01-01" in vig["modifiche_successive"]["dlgs206:133"]   # d.lgs. 170/2021: contratti dal 01/01/2022
+    assert "Vigenza: art. 133 d.lgs. 206/2005" in r.testo
+
+
+def test_norme_processuali_non_seguono_la_data_dei_fatti():
+    from datetime import date as _d
+
+    from lex.harness.norme import modifiche_dopo
+
+    assert modifiche_dopo("cpc:163", _d(2020, 1, 1)) == []
+
+
+def test_registro_unico_stessi_articoli_nei_due_registri():
+    from lex.harness.registro_norme import corrispondenze
+
+    c = corrispondenze()
+    assert len(c) >= 60 and c["cpc_617"] == "cpc:617" and c["l604_art6"] == "l604:6"

@@ -11,6 +11,8 @@ Le domande operative (scadenze, PEC, agenda, clienti dello studio) non passano d
 """
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
@@ -85,7 +87,9 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
     if regola is None:
         return None
     analisi = regola[2](c, f)
+    _requisiti_bozza(analisi)
     esito = verifica_analisi(analisi)
+    _vigenza_alla_data_dei_fatti(analisi, f, esito)
     testo = componi(c.tipo, analisi, esito, domanda)
     verifica_citazioni(testo, esito)
     if esito.citazioni_non_verificate:
@@ -98,6 +102,52 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
     return RispostaHarness(testo, c.tipo, analisi.regola, _affidabilita(esito, len(analisi.punti())), fonti,
                            esito.norme_verificate, esito.affermazioni_tolte, esito.citazioni_non_verificate, analisi.bozza,
                            registro(c, f, analisi, esito))
+
+
+def _vigenza_alla_data_dei_fatti(a, f, esito) -> None:
+    """Il testo letto è quello vigente oggi: se una norma sostanziale citata è stata modificata con effetto dopo la
+    data dei fatti, la risposta lo dichiara (la nota di aggiornamento è nel testo Normattiva)."""
+    from .norme import modifiche_dopo
+
+    date_fatti = sorted(e.data for e in getattr(f, "eventi", []) if getattr(e, "data", None))
+    if not date_fatti:
+        return
+    primo = date_fatti[0]
+    a.vigenza = {"data_fatti": primo.isoformat(), "modifiche_successive": {}}
+    for chiave in esito.norme_verificate:
+        dopo = modifiche_dopo(chiave, primo)
+        if dopo:
+            d, nota = dopo[-1]
+            a.vigenza["modifiche_successive"][chiave] = [x.isoformat() for x, _ in dopo]
+            a.dubbi.append(f"Vigenza: {NORME[chiave].citazione} è citato nel testo vigente, ma una modifica ha effetto dal "
+                           f"{d.strftime('%d/%m/%Y')} e i fatti cominciano il {primo.strftime('%d/%m/%Y')}: verificare quale "
+                           f"testo si applica (nota Normattiva: «{nota[:160]}…»).")
+
+
+def requisiti_della_bozza(bozza: str) -> tuple[str, list[dict[str, str]]]:
+    """Requisiti obbligatori dell'atto (lex/procedura_atti/requisiti_atti) non rilevati nella bozza.
+
+    Il tipo d'atto si legge dal titolo della bozza con la stessa scelta della procedura atti."""
+    from lex.procedura_atti.requisiti_atti import CATALOGO, COMUNI_RICORSO, SCELTA
+
+    titolo = " ".join((bozza or "").strip().splitlines()[:3])  # ufficio, nome dell'atto, norme
+    # Vince il nome d'atto che compare per primo («COMPARSA … OPPOSIZIONE ALLA CONVALIDA DI SFRATTO» è una comparsa).
+    trovati = [(m.start(), nome) for nome, rx in SCELTA if (m := re.search(rx, titolo, re.I))]
+    modello = min(trovati)[1] if trovati else "ricorso_generico"
+    requisiti = CATALOGO.get(modello, COMUNI_RICORSO)
+    mancanti = [{k: r[k] for k in ("id", "descrizione", "norma")} for r in requisiti
+                if not any(re.search(sg, bozza, re.I) for sg in r["segnali"])]
+    return modello, mancanti
+
+
+def _requisiti_bozza(a) -> None:
+    if not a.bozza:
+        return
+    modello, mancanti = requisiti_della_bozza(a.bozza)
+    a.requisiti_bozza = {"modello": modello, "mancanti": mancanti}
+    if mancanti:
+        a.dubbi.append("Requisiti dell'atto non rilevati nella bozza (controllo della procedura atti): "
+                       + "; ".join(f"{m['descrizione']}" + (f" ({m['norma']})" if m["norma"] else "") for m in mancanti) + ".")
 
 
 def _punti(lista) -> list[dict[str, Any]]:
@@ -136,7 +186,8 @@ def registro(c: Comprensione, f, a, esito: EsitoControllo) -> dict[str, Any]:
         "12_tranelli_e_avvertenze": list(a.avvertenze),
         "13_dati_mancanti": list(a.dati_mancanti),
         "14_modello_atto": {"scheda": a.modello, "presente_nel_catalogo": bool(scheda and scheda.is_file()),
-                            "bozza": bool(a.bozza)},
+                            "bozza": bool(a.bozza), "requisiti": getattr(a, "requisiti_bozza", None)},
+        "4b_vigenza_alla_data_dei_fatti": getattr(a, "vigenza", None),
         "15_controlli": {"affermazioni_non_verificate_escluse": esito.affermazioni_tolte,
                          "citazioni_non_verificate": esito.citazioni_non_verificate, "dubbi": list(a.dubbi)},
     }

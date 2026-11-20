@@ -107,8 +107,23 @@ def _harness_http_payload(question: str, *, attachments, data: dict[str, Any]):
         return _payload(question, NEGATO, 0.0, "Fascicolo non accessibile all'utente.", [], "fascicolo_non_accessibile",
                         {"rule": "fascicolo_non_accessibile"})
 
-    return payload_harness(question, risposta_certa=_risposta_certa_http,
-                           fascicolo_id=clean_spaces(data.get("fascicolo_id")))
+    fascicolo_id = clean_spaces(data.get("fascicolo_id"))  # già controllato da _con_fascicolo_controllato
+    payload = payload_harness(question, risposta_certa=_risposta_certa_http, fascicolo_id=fascicolo_id)
+    dettaglio = (payload or {}).get("lex_harness") or {}
+    if fascicolo_id and dettaglio.get("kind") == "redazione" and dettaglio.get("draft"):
+        payload["answer"] += _salva_bozza_nel_fascicolo(fascicolo_id, dettaglio)
+    return payload
+
+
+def _salva_bozza_nel_fascicolo(fascicolo_id: str, dettaglio: dict[str, Any]) -> str:
+    """La bozza chiesta dentro un fascicolo diventa un PDF tra le bozze del fascicolo (mai firmato né inviato)."""
+    from web.services.lex_bozza_fascicolo import nota_nella_risposta, salva_bozza
+
+    righe = [r.strip() for r in str(dettaglio.get("draft") or "").splitlines() if r.strip()]
+    titolo = (righe[1] if len(righe) > 1 else (righe[0] if righe else "Bozza")).capitalize()
+    scheda = ((dettaglio.get("registro") or {}).get("14_modello_atto") or {}).get("scheda") or ""
+    esito = salva_bozza(fascicolo_id, titolo=titolo, testo=str(dettaglio.get("draft")), modello=scheda)
+    return nota_nella_risposta(esito)
 
 
 def _structured_query_stream(payload):

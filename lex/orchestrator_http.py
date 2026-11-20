@@ -77,13 +77,35 @@ def _structured_operational_http_payload(*, user, studio, data, question, attach
     )
 
 
+def _con_fascicolo_controllato(data: dict[str, Any]) -> dict[str, Any]:
+    """Il ``fascicolo_id`` del client vale solo se l'utente può vedere il fascicolo (lex/fascicolo_accesso).
+
+    Si sostituisce nella richiesta stessa, così nessun percorso a valle (harness, operativo, workflow) riceve
+    l'identificativo di un fascicolo non accessibile."""
+    from .fascicolo_accesso import fascicolo_accessibile
+
+    richiesto = clean_spaces((data or {}).get("fascicolo_id"))
+    if not richiesto:
+        return data
+    ammesso = fascicolo_accessibile(richiesto)
+    if ammesso:
+        return data
+    return {**data, "fascicolo_id": "", "_fascicolo_negato": True}
+
+
 def _harness_http_payload(question: str, *, attachments, data: dict[str, Any]):
     """Domande giuridiche (redazione, parere, termine, norma): harness di Lex prima di ogni percorso operativo."""
     from .http_bounded_bridge import _manual_free_web_enabled
 
     if attachments or _manual_free_web_enabled(data) or not clean_spaces(question):
         return None
-    from .harness.http import payload_harness
+    from .harness.http import _domanda_sul_fascicolo, _payload, payload_harness
+
+    if data.get("_fascicolo_negato") and _domanda_sul_fascicolo(question):
+        from .fascicolo_accesso import NEGATO
+
+        return _payload(question, NEGATO, 0.0, "Fascicolo non accessibile all'utente.", [], "fascicolo_non_accessibile",
+                        {"rule": "fascicolo_non_accessibile"})
 
     return payload_harness(question, risposta_certa=_risposta_certa_http,
                            fascicolo_id=clean_spaces(data.get("fascicolo_id")))
@@ -298,6 +320,7 @@ def build_context_response(
         studio=studio,
         pratica_id=str(data.get("pratica_id") or ""),
     )
+    data = _con_fascicolo_controllato(data)
     messages = list(data.get("messages", []) or [])[-12:]
     attachments = list(data.get("attachments") or [])
     fascicolo_id = clean_spaces(data.get("fascicolo_id"))
@@ -687,6 +710,7 @@ def chat_response(
         studio=studio,
         pratica_id=str(data.get("pratica_id") or ""),
     )
+    data = _con_fascicolo_controllato(data)
     messages = list(data.get("messages", []) or [])[-12:]
     attachments = list(data.get("attachments") or [])
     fascicolo_id = str(data.get("fascicolo_id", "") or "")

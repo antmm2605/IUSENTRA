@@ -69,3 +69,26 @@ def test_termine_breve_dalla_notifica_della_sentenza_segue_la_materia():
     assert breve(lavoro=False)["deadline"] == CON
     escluso = breve(lavoro=False, esclusione_feriale="opposizione all'esecuzione (art. 3 L. 742/1969 e art. 92 R.D. 12/1941)")
     assert escluso["deadline"] == SENZA and "senza sospensione feriale (opposizione all'esecuzione" in escluso["formula"]
+
+
+def test_preset_di_nuova_scadenza_usano_la_stessa_esclusione_per_materia():
+    from types import SimpleNamespace
+
+    from pct.termini_materia import NOTA_LAVORO, esclusione_feriale_fascicolo, nota_esclusione, profilo_della_richiesta
+
+    sfratto = SimpleNamespace(tipo="CIVILE", sezione="", codice_oggetto_pst="030001")
+    lavoro = SimpleNamespace(tipo="LAVORO", sezione="", codice_oggetto_pst="")
+    contratti = SimpleNamespace(tipo="CIVILE", sezione="", codice_oggetto_pst="140999")
+    fascicoli = {"S": sfratto, "L": lavoro, "C": contratti}
+    assert "procedimento di sfratto" in esclusione_feriale_fascicolo(sfratto)
+    assert esclusione_feriale_fascicolo(contratti) == "" and esclusione_feriale_fascicolo(None) == ""
+    profilo, materia_lavoro, motivo = profilo_della_richiesta("appello_breve", "", {"id_fascicolo": "S"}, fascicoli.get)
+    assert not profilo.apply_ferial_suspension and not materia_lavoro and "art. 92 R.D. 12/1941" in motivo
+    assert nota_esclusione(motivo).startswith("Sospensione feriale non applicata: procedimento di sfratto")
+    profilo, materia_lavoro, motivo = profilo_della_richiesta("appello_breve", "", {"id_fascicolo": "L"}, fascicoli.get)
+    assert not profilo.apply_ferial_suspension and materia_lavoro and nota_esclusione(motivo) == NOTA_LAVORO
+    profilo, _, motivo = profilo_della_richiesta("appello_breve", "", {"id_fascicolo": "C"}, fascicoli.get)
+    assert profilo.apply_ferial_suspension and motivo == ""
+    # «materia_lavoro» esplicito e falso: non è lavoro, ma lo sfratto resta escluso
+    _, _, motivo = profilo_della_richiesta("appello_breve", "", {"id_fascicolo": "S", "materia_lavoro": "0"}, fascicoli.get)
+    assert "sfratto" in motivo

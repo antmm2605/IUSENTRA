@@ -172,11 +172,27 @@ def riga_economia_materializzata(fascicolo_id: str, lettura: dict[str, Any] | No
     voci = dict(getattr(fascicolo, "pagamenti", {}) or {}) if fascicolo is not None else {}
     testo, livello = percorso_economico(
         conclusioni=conclusioni, atti=modello.get("atti") or [], righe_conto=righe_conto, parcelle=parcelle, voci=voci,
-        presidio_contributo=presidio, oggi=oggi or datetime.now(ROME_TZ).date())
+        presidio_contributo=presidio, oggi=oggi or datetime.now(ROME_TZ).date(), cliente=_natura_cliente(fascicolo))
     prossimo = _testo((conto.get("percorso") or {}).get("prossimoPasso"))
     if prossimo and livello != "ok":
         testo += f". {prossimo}"
     return riga("economia", testo, livello)
+
+
+def _natura_cliente(fascicolo: Any) -> str:
+    """Impresa, P.A. o consumatore dall'anagrafica del cliente del fascicolo (pct/quadro_economia.natura_cliente)."""
+    from pct.quadro_economia import natura_cliente
+
+    if fascicolo is None:
+        return ""
+
+    def leggi():
+        from web.helpers import get_clienti
+
+        id_cliente = _testo(getattr(fascicolo, "id_cliente", ""))
+        return get_clienti().get(id_cliente) if id_cliente else None
+
+    return natura_cliente(_sicuro(leggi, None, "anagrafica del cliente"), _testo(getattr(fascicolo, "nome_cliente", "")))
 
 
 def prossimo_passo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, str]:

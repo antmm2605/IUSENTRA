@@ -91,4 +91,29 @@ def bozze_certe(scadenze: Iterable[dict[str, Any]], conclusioni: Iterable[dict[s
     return certe
 
 
-__all__ = ["bozze_certe", "bozze_della_controparte", "codice_della_bozza"]
+def adempimenti_provati(scadenze: Iterable[dict[str, Any]], conclusioni: Iterable[dict[str, Any]] | None) -> dict[str, str]:
+    """Le scadenze automatiche di un adempimento che il modello della causa conclude «fatto» con la prova: id → nota.
+
+    Vale per ogni prova che il modello accetta, non solo per le ricevute PEC: per esempio la costituzione della
+    controparte, che dimostra raggiunto lo scopo della notifica dell'atto introduttivo (art. 156, terzo comma, c.p.c.).
+    Per evitare abbinamenti incerti serve una sola conclusione dello studio con quel codice: se il modello ne ha più
+    d'una (un ordine eseguito e uno ancora aperto) la scadenza non si tocca.
+    """
+    nostre = [c for c in conclusioni or [] if isinstance(c, dict) and _onerato(c) in {"noi", "tutte_le_parti", ""}]
+    chiuse: dict[str, str] = {}
+    for scadenza in scadenze or []:
+        codice = codice_della_bozza(scadenza)
+        stesse = [c for c in nostre if c.get("codice") == codice]
+        if not codice or len(stesse) != 1 or stesse[0].get("stato") != "fatto":
+            continue
+        prova = pulisci(stesse[0].get("prova_o_motivo"))
+        if not prova:
+            continue
+        letto = stesse[0].get("letto") or {}
+        fonte = f" Ordine letto in «{letto.get('documento')}»." if letto.get("documento") else ""
+        chiuse[pulisci(scadenza.get("id")) or pulisci(scadenza.get("titolo"))] = (
+            f"Adempimento compiuto secondo il modello della causa: {prova}{fonte}")
+    return chiuse
+
+
+__all__ = ["adempimenti_provati", "bozze_certe", "bozze_della_controparte", "codice_della_bozza"]

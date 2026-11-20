@@ -9879,6 +9879,11 @@ def prepara_lettura_in_cache(id_fasc: str) -> bool:
 
     if conferma_termini_certi(id_fasc, lettura):
         lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc) or lettura
+    # Le scadenze automatiche di un adempimento già provato (anche dalla costituzione della controparte) si chiudono.
+    from web.services.termini_certi_runtime import chiudi_adempimenti_provati
+
+    if chiudi_adempimenti_provati(id_fasc, lettura):
+        lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc) or lettura
     # Una definizione automatica smentita dal modello della causa (sentenza di altro procedimento, udienza successiva)
     # torna «in corso» con la voce nello storico: pct/definizione_riconvalida.
     from web.services.definizione_riconvalida_runtime import riconvalida_definizione

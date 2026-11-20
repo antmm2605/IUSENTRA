@@ -45,7 +45,7 @@ from .models import (
 # le prove automatiche precedenti senza toccare le correzioni manuali.
 # v33 (10/11/2026): le regole del 01-06/11 non erano mai arrivate al catalogo salvato perché la versione era ferma
 # alla v32; con la v33 il giro automatico ricataloga dai testi salvati, a lotti (catalogo_archivio_runtime).
-RESOLVER_VERSION = "2026.11.17.catalogo-fascicolo.v38-fonti-del-documento"
+RESOLVER_VERSION = "2026.11.20.catalogo-fascicolo.v39-provvedimento-del-giudice"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -452,6 +452,42 @@ def _pagamento_spese_di_giustizia(raw: str, head: str) -> tuple[dict[str, Any], 
     return None
 
 
+_GIUDICE_IN_PRIMA_PERSONA = re.compile(
+    r"\bil (?:giudice|g i|g e|presidente|collegio)\b[^.;]{0,90}?\b(?:nella persona d\w*|visto|vista|visti|letto|letta|letti|"
+    r"richiamato|richiamata|rilevato|rilevata|esaminat\w*|a scioglimento)\b")
+_FIRMA_DEL_GIUDICE = re.compile(r"\bil\s+(?:giudice|g\.?\s?i\.?|g\.?\s?e\.?|presidente)\b", re.I)
+_TITOLO_DI_PARTE = re.compile(r"\b(?:comparsa|memoria|note (?:scritte|difensive|autorizzate) (?:per|nell)|ricorso (?:ex|per)|"
+                              r"atto di citazione|istanza (?:di|per))\b")
+
+
+def _provvedimento_del_giudice(raw: str, head: str) -> tuple[dict[str, Any], str] | None:
+    """Decreto od ordinanza fuori udienza: ufficio in testa, il giudice che parla in prima persona, sua firma in calce.
+
+    Artt. 134 e 135 c.p.c.: l'ordinanza fuori udienza e il decreto portano data e sottoscrizione del giudice; il
+    decreto ex art. 127-ter c.p.c. sostituisce l'udienza con le note scritte. Non passa ciò che porta le formule della
+    parte («rappresentata e difesa», «il sottoscritto», «nell'interesse di»), un titolo di atto di parte in testa o la
+    firma dell'avvocato in calce: le note di parte che trascrivono il decreto restano atti di parte.
+    """
+    testa = head[:1500]
+    coda = " ".join(str(raw or "")[-450:].split())
+    if not (_UFFICIO_IN_TESTA.search(head[:350]) and _GIUDICE_IN_PRIMA_PERSONA.search(testa)
+            and _FIRMA_DEL_GIUDICE.search(coda) and not re.search(r"\bAvv\.|\bavvocat", coda, re.I)
+            and not _FORMULE_DELLA_PARTE.search(head[:4000]) and not re.search(r"\bavv\b|\bavvocat", testa)
+            and not _TITOLO_DI_PARTE.search(head[:600])):
+        return None
+    comune = {"section": "provvedimenti", "deposit_role": "fuori_busta", "deposit_candidate": False}
+    if re.search(r"\b127 ?ter\b", testa):
+        return {**comune, "role": "provvedimento", "label": "Decreto di trattazione scritta (art. 127-ter c.p.c.)", "confidence": 97,
+                "evidence": "ufficio e giudice in intestazione, sostituzione dell'udienza con note scritte (art. 127-ter c.p.c.) e firma del giudice in calce",
+                "tipo_documento": TipoDocumento.DECRETO, "excerpt_pattern": r"127\W*ter"}, "normattiva_cpc_art_127ter_note_scritte"
+    ordinanza = bool(re.search(r"\bordinanza\b", head[:500]))
+    return {**comune, "role": "provvedimento", "label": "Ordinanza dell'ufficio giudiziario" if ordinanza else "Provvedimento dell'ufficio",
+            "confidence": 95,
+            "evidence": "ufficio e giudice in intestazione e sottoscrizione del giudice in calce (artt. 134 e 135 c.p.c.)",
+            "tipo_documento": TipoDocumento.ORDINANZA if ordinanza else TipoDocumento.DECRETO,
+            "excerpt_pattern": r"\bil\s+giudice\b"}, "normattiva_cpc_artt_134_135_sottoscrizione_giudice"
+
+
 def _documento_d_ufficio(raw: str, head: str) -> tuple[dict[str, Any], str] | None:
     """Istanze POLIS del Ministero dell'istruzione, decreti di variazione tabellare e certificati della cancelleria."""
     zona = head[:900]
@@ -658,6 +694,20 @@ def _content_identity(
             tipo_documento=TipoDocumento.SENTENZA, deposit_role="allegato", deposit_candidate=True,
             excerpt_pattern=r"ha\s+(?:emesso|pronunciato)\s+la\s+seguente",
         )
+    # Il decreto ingiuntivo come lo consegna il portale («Decreto ingiuntivo n. … RG n. …», ufficio, «INGIUNGE a …»),
+    # anche quando l'estrazione del PDF unisce le righe e il titolo non sta su una riga propria: titolo in testa e
+    # ingiunzione del giudice al debitore (art. 641 c.p.c.). Il ricorso chiede «che il Giudice ingiunga», l'atto di
+    # opposizione cita il decreto: nessuno dei due si apre con il titolo del decreto (revisione del 20/11/2026: il
+    # decreto caricato dalla pagina restava «Contenuto da verificare»).
+    if (re.match(r"(?:n \d+ \d{4} )?decreto ingiuntivo\b|(?:(?:tribunale|ufficio del giudice di pace|giudice di pace|corte d appello)\b"
+                 r"[a-z ]{0,80}?)decreto ingiuntivo\b", head[:220])
+            and re.search(r"\bingiunge\s+(?:a|al|alla|allo|ai|agli|alle)\b", head[:6000])
+            and not re.match(r"(?:\S+ ){0,12}?(?:ricorso|atto di citazione|citazione|opposizione)\b", head[:160])):
+        return replace(result(role="provvedimento", label="Decreto ingiuntivo", section="provvedimenti", confidence=97,
+                              evidence="titolo del decreto in testa e ingiunzione del giudice al debitore (art. 641 c.p.c.)",
+                              tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False,
+                              excerpt_pattern=r"\bingiunge\b"),
+                       fonte="cpc_procedimento_monitorio")
     if re.search(r"^fissazione udienza", head[:120]) and re.search(r"tribunale", head[:400]) and re.search(r"letto il ricorso.{0,180}fissa", head[:900]):
         return result(role="provvedimento", label="Decreto di fissazione udienza", section="provvedimenti", confidence=99, evidence="Intestazione Fissazione udienza e disposizione FISSA del giudice dopo la lettura del ricorso.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Fissazione udienza")
     # Il decreto con cui il giudice, letto o visto il ricorso, fissa l'udienza (art. 415 c.p.c.; con la sostituzione
@@ -984,6 +1034,13 @@ def _content_identity(
             deposit_candidate=False,
             excerpt_pattern=r"\bnota\s+di\s+deposito\b",
         )
+
+    # Il provvedimento in cui il giudice parla in prima persona in intestazione e firma in calce (decreto ex art.
+    # 127-ter c.p.c., ordinanza, decreto di rinvio) chiede «note contenenti le sole istanze e conclusioni»: non è
+    # l'atto di parte (revisione del 20/11/2026, A8B49265: due decreti 127-ter letti come «Istanze e conclusioni»).
+    giudice = _provvedimento_del_giudice(raw, head)
+    if giudice is not None:
+        return replace(result(**giudice[0]), fonte=giudice[1])
 
     # Anche il decreto del giudice chiede note «contenenti le sole istanze e
     # conclusioni»: la formula identifica l'atto solo nell'intestazione.

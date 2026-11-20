@@ -133,6 +133,12 @@ CATALOG_SOURCES: dict[str, dict[str, Any]] = {
         "verification_status": "testo vigente consultato nell'archivio Normattiva del software il 10/11/2026",
         "source_type": "normativa",
     },
+    "normattiva_cpc_artt_134_135_sottoscrizione_giudice": {
+        "label": "c.p.c., artt. 134 e 135: l'ordinanza fuori udienza è redatta su documento separato con data e sottoscrizione del giudice; il decreto è datato e sottoscritto dal giudice",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art134",
+        "verification_status": "testo vigente (in vigore dal 26/11/2024) consultato su Normattiva il 20/11/2026",
+        "source_type": "normativa",
+    },
     "normattiva_cpc_art_127ter_note_scritte": {
         "label": "c.p.c., art. 127-ter: provvedimento del giudice che sostituisce l'udienza con il deposito di note scritte e note delle parti",
         "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art127ter",

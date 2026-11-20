@@ -71,9 +71,16 @@ def test_compenso_proforma_fattura_incasso():
     assert compenso([], oggi=OGGI) == ("compenso: proforma da preparare", "info")
     proforma = {"id": "P1", "numero": "2026/062", "data": "2026-09-20", "stato": "BOZZA", "operativo": "PROFORMA",
                 "totale": 617.94, "netto_a_pagare": 617.94, "incassato": 0, "data_pagamento": ""}
-    testo, livello = compenso([proforma], oggi=OGGI)
+    # cliente impresa, professionista o P.A.: transazione commerciale, termine legale di 30 giorni (artt. 2 e 4 D.Lgs. 231/2002)
+    testo, livello = compenso([proforma], oggi=OGGI, cliente="impresa")
     assert testo == ("compenso: proforma n. 2026/062 del 20/09/2026, € 617,94: non ancora incassato, da 60 giorni dalla proforma "
-                     "(oltre i 30 giorni, art. 4, comma 2, lett. a), D.Lgs. 231/2002)") and livello == "attenzione"
+                     "(oltre i 30 giorni dalla richiesta di pagamento, art. 4, comma 2, lett. a), D.Lgs. 231/2002)") and livello == "attenzione"
+    assert "D.Lgs. 231/2002" in compenso([proforma], oggi=OGGI, cliente="pa")[0]
+    # cliente consumatore o non noto: nessuna norma, promemoria di sollecito dello studio
+    for natura in ("consumatore", ""):
+        testo, livello = compenso([proforma], oggi=OGGI, cliente=natura)
+        assert testo.endswith("da 60 giorni dalla proforma (oltre i 30 giorni: promemoria dello studio per il sollecito)")
+        assert "231/2002" not in testo and livello == "attenzione"
     recente = {**proforma, "data": "2026-11-10"}
     assert compenso([recente], oggi=OGGI)[1] == "info"
     incassata = {**proforma, "incassato": 617.94, "data_pagamento": "2026-10-15"}
@@ -159,3 +166,15 @@ def test_conto_economico_mostra_il_contributo_come_il_modello():
     invariata = [{"voce": "contributo_unificato", "stato": "Versato"}]
     allinea_contributo_al_modello(invariata, None, {})
     assert invariata[0]["stato"] == "Versato"
+
+
+def test_natura_del_cliente_dall_anagrafica():
+    from types import SimpleNamespace
+
+    from pct.quadro_economia import natura_cliente
+
+    assert natura_cliente(SimpleNamespace(tipo="PERSONA_GIURIDICA", partita_iva="", nome="Alfa srl")) == "impresa"
+    assert natura_cliente(SimpleNamespace(tipo="PERSONA_FISICA", partita_iva="01234567890", nome="Avv. Bianchi")) == "impresa"
+    assert natura_cliente(SimpleNamespace(tipo="PERSONA_FISICA", partita_iva="", nome="Rossi Maria")) == "consumatore"
+    assert natura_cliente(None, "Comune di Palmi") == "pa"
+    assert natura_cliente(None, "Rossi Maria") == ""

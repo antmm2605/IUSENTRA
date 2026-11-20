@@ -15,8 +15,11 @@ In quest'ordine, con le date in gg/mm/aaaa:
    d'incasso) e se sono distratte in favore dell'avvocato (art. 93 c.p.c.).
 
 Livello: «ok» (In ordine) solo se tutto è incassato o non c'è nulla da incassare; un credito aperto è «info» (Da
-sapere) e diventa «attenzione» quando la richiesta di pagamento (la proforma) ha superato i trenta giorni del termine
-legale di pagamento (art. 4, comma 2, lett. a), D.Lgs. 231/2002); un contributo in dubbio è sempre «attenzione».
+sapere) e diventa «attenzione» oltre i trenta giorni dalla proforma. Il termine legale di trenta giorni dal ricevimento
+della fattura o di una richiesta di pagamento equivalente (art. 4, comma 2, lett. a), D.Lgs. 231/2002) vale solo per le
+transazioni commerciali, cioè con un cliente impresa, professionista o pubblica amministrazione (art. 2, comma 1, lett.
+a) e c)): solo allora si cita la norma; con un cliente consumatore (o di natura non nota) i trenta giorni sono un
+promemoria di sollecito dello studio, senza norma. Un contributo in dubbio è sempre «attenzione».
 Modulo puro: riceve i dati già calcolati, non legge e non scrive nulla.
 """
 
@@ -28,6 +31,8 @@ from typing import Any, Iterable, Mapping
 
 GIORNI_PAGAMENTO = 30
 NORMA_PAGAMENTO = "art. 4, comma 2, lett. a), D.Lgs. 231/2002"
+# Chi è il cliente ai fini del D.Lgs. 231/2002: «impresa» (anche professionista), «pa», «consumatore», «» se non noto.
+CLIENTI_COMMERCIALI = frozenset({"impresa", "pa"})
 NORMA_FATTURA = "art. 6, terzo comma, e art. 21 D.P.R. 633/1972"
 _EURO = re.compile(r"€\s*([0-9][0-9.]*,[0-9]{2})")
 
@@ -90,7 +95,21 @@ def contributo(conclusione: Mapping[str, Any] | None, voce: Mapping[str, Any] | 
     return "da verificare", True
 
 
-def compenso(parcelle: Iterable[Mapping[str, Any]] | None, *, oggi: date) -> tuple[str, str]:
+def natura_cliente(cliente: Any, nome: str = "") -> str:
+    """«impresa» (persona giuridica o titolare di partita IVA: imprenditore o professionista, art. 2, comma 1, lett. c),
+    D.Lgs. 231/2002), «pa», «consumatore» (persona fisica senza partita IVA) o «» se l'anagrafica non lo dice."""
+    from pct.ragionamento.rito import contro_pa
+
+    if contro_pa(nome, getattr(cliente, "nome", "") if cliente is not None else ""):
+        return "pa"
+    if cliente is None:
+        return ""
+    if _testo(getattr(cliente, "partita_iva", "")) or _testo(getattr(cliente, "tipo", "")).upper().endswith("PERSONA_GIURIDICA"):
+        return "impresa"
+    return "consumatore" if _testo(getattr(cliente, "tipo", "")).upper().endswith("PERSONA_FISICA") else ""
+
+
+def compenso(parcelle: Iterable[Mapping[str, Any]] | None, *, oggi: date, cliente: str = "") -> tuple[str, str]:
     """(testo, livello) del compenso dello studio: proforma, fattura, incasso."""
     from pct.proforma_unica import attive_non_superate
 
@@ -125,7 +144,9 @@ def compenso(parcelle: Iterable[Mapping[str, Any]] | None, *, oggi: date) -> tup
                 testo += f", da {giorni} giorn{'o' if giorni == 1 else 'i'} dalla {'fattura' if fattura else 'proforma'}"
             scaduto = giorni is not None and giorni > GIORNI_PAGAMENTO
             if scaduto:
-                testo += f" (oltre i {GIORNI_PAGAMENTO} giorni, {NORMA_PAGAMENTO})"
+                testo += (f" (oltre i {GIORNI_PAGAMENTO} giorni dalla richiesta di pagamento, {NORMA_PAGAMENTO})"
+                          if cliente in CLIENTI_COMMERCIALI else
+                          f" (oltre i {GIORNI_PAGAMENTO} giorni: promemoria dello studio per il sollecito)")
             livello = "attenzione" if scaduto or livello == "attenzione" else "info"
         parti.append(testo)
     return "compenso: " + "; ".join(parti), livello
@@ -180,14 +201,14 @@ _ORDINE = {"ok": 0, "info": 1, "attenzione": 2}
 def percorso_economico(*, conclusioni: Iterable[Mapping[str, Any]] | None, atti: Iterable[Mapping[str, Any]] | None,
                        righe_conto: Iterable[Mapping[str, Any]], parcelle: Iterable[Mapping[str, Any]] | None,
                        voci: Mapping[str, Mapping[str, Any]] | None, presidio_contributo: Mapping[str, Any] | None,
-                       oggi: date) -> tuple[str, str]:
+                       oggi: date, cliente: str = "") -> tuple[str, str]:
     """(testo, livello) della riga Economia."""
     conclusioni = list(conclusioni or [])
     per_voce = {_testo(r.get("voce")): r for r in righe_conto}
     voci = voci or {}
     conclusione_cu = next((c for c in conclusioni if _testo(c.get("codice")) == "contributo_unificato"), None)
     testo_cu, dubbio = contributo(conclusione_cu, voci.get("contributo_unificato"), presidio_contributo)
-    testo_compenso, livello_compenso = compenso(parcelle, oggi=oggi)
+    testo_compenso, livello_compenso = compenso(parcelle, oggi=oggi, cliente=cliente)
     testo_spese, livello_spese = spese_liquidate(
         per_voce.get("sentenza"), conclusione=next((c for c in conclusioni if _testo(c.get("codice")) == "spese_liquidate"), None),
         atti={_testo(a.get("id")): a for a in atti or []}, liquidazione=voci.get("liquidazione_giudice"))
@@ -196,4 +217,4 @@ def percorso_economico(*, conclusioni: Iterable[Mapping[str, Any]] | None, atti:
     return " · ".join(p for p in parti if p), max(livelli, key=_ORDINE.get)
 
 
-__all__ = ["GIORNI_PAGAMENTO", "NORMA_PAGAMENTO", "compenso", "contributo", "percorso_economico", "spese_liquidate"]
+__all__ = ["CLIENTI_COMMERCIALI", "GIORNI_PAGAMENTO", "NORMA_PAGAMENTO", "compenso", "natura_cliente", "contributo", "percorso_economico", "spese_liquidate"]

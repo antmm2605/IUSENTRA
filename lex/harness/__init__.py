@@ -90,6 +90,7 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
     _requisiti_bozza(analisi)
     esito = verifica_analisi(analisi)
     _vigenza_alla_data_dei_fatti(analisi, f, esito)
+    analisi.giurisprudenza = _giurisprudenza(c, analisi)
     testo = componi(c.tipo, analisi, esito, domanda)
     verifica_citazioni(testo, esito)
     if esito.citazioni_non_verificate:
@@ -102,6 +103,22 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
     return RispostaHarness(testo, c.tipo, analisi.regola, _affidabilita(esito, len(analisi.punti())), fonti,
                            esito.norme_verificate, esito.affermazioni_tolte, esito.citazioni_non_verificate, analisi.bozza,
                            registro(c, f, analisi, esito))
+
+
+def _giurisprudenza(c: Comprensione, a):
+    """Fase 5: pronunce negli archivi (Cassazione SentenzeWeb e archivio dello studio) per le norme della conclusione."""
+    import os
+
+    if os.environ.get("LEX_HARNESS_GIURISPRUDENZA", "1") == "0" or c.tipo not in {"parere", "redazione"}:
+        return None
+    from .giurisprudenza import cerca
+
+    chiavi = list(dict.fromkeys(r.chiave for p in a.conclusione for r in p.rif))[:2]
+    if not chiavi:
+        return None
+    domanda = " ".join(NORME[k].citazione for k in chiavi)
+    esito = cerca(domanda)
+    return esito
 
 
 def _vigenza_alla_data_dei_fatti(a, f, esito) -> None:
@@ -176,7 +193,8 @@ def registro(c: Comprensione, f, a, esito: EsitoControllo) -> dict[str, Any]:
                     "segnali": sorted(f.segnali), "fonte": "testo della richiesta"},
         "3_qualificazione": {"regola": a.regola, "materia": a.materia},
         "4_norme": norme,
-        "5_giurisprudenza": {"stato": "non consultata dall'harness: nessuna pronuncia è affermata senza lettura"},
+        "5_giurisprudenza": (a.giurisprudenza.to_dict() if getattr(a, "giurisprudenza", None) is not None else
+                             {"stato": "non consultata per questo tipo di domanda"}),
         "6_rimedio": {"forma": a.forma, "rimedio": a.rimedio, "conclusione": _punti(a.conclusione)},
         "7_competenza": {"giudice": a.giudice, "valore": a.valore, "punti": _punti(a.competenza)},
         "8_rito": _punti(a.rito),

@@ -90,10 +90,10 @@ contributo unificato, testo degli articoli). Per l'appello civile aggiunge la no
 
 | Termine | Feriale | Fonte |
 |---|---|---|
-| art. 617 c.p.c. (opposizione agli atti esecutivi) | **non** si applica | art. 92 r.d. 12/1941 (testo vigente da Normattiva, allegato: «opposizione all'esecuzione»), art. 3 l. 742/1969; Cass. ord. 21568/2017, Cass. 9998/2010. Modello `LEX_ESE_OPPOSIZIONE_ATTI_617`. Il modello `ESE_OPPOSIZIONE_ATTI_617` del motore applica la feriale: discordanza da correggere nel motore. |
-| art. 1137 c.c. (impugnazione della delibera) | **si** applica | Corte cost. 2 febbraio 1990 n. 49 (illegittimità dell'art. 1 l. 742/1969 nella parte in cui non si estende a questo termine). Modello `LEX_CONDOMINIO_1137`, con l'invito alla prudenza se il termine attraversa agosto. |
+| art. 617 c.p.c. (opposizione agli atti esecutivi) | **non** si applica | art. 92 r.d. 12/1941 (testo vigente da Normattiva, allegato: «opposizione all'esecuzione»), art. 3 l. 742/1969; Cass. ord. 21568/2017, Cass. 9998/2010. Modello `ESE_OPPOSIZIONE_ATTI_617`. Il modello `ESE_OPPOSIZIONE_ATTI_617` del motore applica la feriale: discordanza da correggere nel motore. |
+| art. 1137 c.c. (impugnazione della delibera) | **si** applica | Corte cost. 2 febbraio 1990 n. 49 (illegittimità dell'art. 1 l. 742/1969 nella parte in cui non si estende a questo termine). Modello `CIV_IMPUGNAZIONE_DELIBERA_1137`, con l'invito alla prudenza se il termine attraversa agosto. |
 | art. 481 c.p.c. (efficacia del precetto) | non si applica | Prassi e dottrina concordi, ricondotto all'esecuzione forzata (art. 92 ord. giud.); nessuna sentenza di Cassazione specifica trovata con estremi verificabili. Modello `ESE_PRECETTO_EFFICACIA_90GG` (senza feriale). |
-| art. 669-octies c.p.c. (inizio del merito) | **dubbio** | Nessuna pronuncia di legittimità trovata con estremi verificabili; l'art. 92 esclude i «procedimenti cautelari», non il giudizio di merito. L'harness calcola senza sospensione e segnala il dubbio se il termine attraversa agosto (`LEX_CAU_MERITO_669OCTIES`, policy `da_verificare`). |
+| art. 669-octies c.p.c. (inizio del merito) | **dubbio** | Nessuna pronuncia di legittimità trovata con estremi verificabili; l'art. 92 esclude i «procedimenti cautelari», non il giudizio di merito. L'harness calcola senza sospensione e segnala il dubbio se il termine attraversa agosto (`CIV_MERITO_669_OCTIES`, policy `da_verificare`). |
 
 L'archivio giurisprudenza locale non ha risposto (ricerca FTS oltre 30 minuti con carico > 30): queste conclusioni vengono dal sito della Corte costituzionale e dalle massime pubblicate. Vanno riscontrate sull'archivio quando la ricerca sarà disponibile.
 

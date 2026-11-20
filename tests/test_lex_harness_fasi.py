@@ -190,8 +190,8 @@ def test_prescrizione_interrotta_dalla_notifica_non_dal_deposito():
 def test_feriale_617_esclusa_e_1137_applicata():
     from lex.harness.termini import termine
 
-    assert termine("LEX_ESE_OPPOSIZIONE_ATTI_617", date(2026, 7, 25)) == date(2026, 8, 14)   # art. 92 ord. giud.
-    assert termine("LEX_CONDOMINIO_1137", date(2026, 7, 20)) == date(2026, 9, 19)            # Corte cost. 49/1990
+    assert termine("ESE_OPPOSIZIONE_ATTI_617", date(2026, 7, 25)) == date(2026, 8, 14)   # art. 92 ord. giud.
+    assert termine("CIV_IMPUGNAZIONE_DELIBERA_1137", date(2026, 7, 20)) == date(2026, 9, 19)            # Corte cost. 49/1990
 
 
 @archivio

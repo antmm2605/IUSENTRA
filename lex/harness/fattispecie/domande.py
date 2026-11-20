@@ -125,7 +125,7 @@ def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:
                            [Rif("cpc:617", "venti giorni")])]
     d = _prima_data(f)
     if d:
-        a.conclusione.append(Punto(f"Dal {data_breve(d)}: scadenza {data_breve(termine('LEX_ESE_OPPOSIZIONE_ATTI_617', d))}, "
+        a.conclusione.append(Punto(f"Dal {data_breve(d)}: scadenza {data_breve(termine('ESE_OPPOSIZIONE_ATTI_617', d))}, "
                                    "senza sospensione feriale: l'art. 92 ord. giud. esclude le cause di opposizione "
                                    "all'esecuzione e la Cassazione vi comprende l'opposizione agli atti esecutivi (Cass. ord. "
                                    "21568/2017).", [Rif("cpc:617", "venti giorni"), Rif("rd12:92", "opposizione all'esecuzione")]))
@@ -147,7 +147,7 @@ def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
     a.procedibilita = P.mediazione_obbligatoria("condominio")
     d = _prima_data(f)
     if d:
-        con = termine("LEX_CONDOMINIO_1137", d)
+        con = termine("CIV_IMPUGNAZIONE_DELIBERA_1137", d)
         senza = termine_giorni(d, 30, sostanziale=True)
         a.conclusione.append(Punto(f"Dal {data_breve(d)}: trenta giorni scadono {data_breve(con)} (termine di decadenza; "
                                    "la sospensione feriale si applica per la sentenza della Corte costituzionale n. 49/1990)"
@@ -216,7 +216,7 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
                            "giorno della notizia del fatto che costituisce il reato.", [Rif("cp:124", "tre mesi")])]
     d = _prima_data(f)
     if d:
-        a.conclusione.append(Punto(f"Notizia del fatto il {data_breve(d)}: querela entro {data_breve(termine("LEX_PEN_QUERELA_124", d))}.",
+        a.conclusione.append(Punto(f"Notizia del fatto il {data_breve(d)}: querela entro {data_breve(termine("PEN_QUERELA_124", d))}.",
                                    [Rif("cp:124", "tre mesi")]))
     a.dubbi.append("Alcuni reati hanno termini diversi stabiliti dalla legge: verifica la norma del reato specifico.")
     t = _t(f)
@@ -224,7 +224,7 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
 
     notizia = data_di(f, r"apprende|viene a sapere|ha saputo|notizia")
     if notizia:
-        lim = termine("LEX_PEN_QUERELA_124", notizia)
+        lim = termine("PEN_QUERELA_124", notizia)
         a.conclusione = [Punto(f"Il termine decorre dalla notizia del fatto ({notizia.strftime('%d/%m/%Y')}), non dalla "
                                f"pubblicazione: querela entro {data_breve(lim)}.", [Rif("cp:124", "tre mesi")])]
     if re.search(r"facebook|social|post|pubblic", t):
@@ -280,7 +280,7 @@ def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
     d = _data_di(f, r"notificat|comunicat") or _prima_data(f)
     if d:
         a.conclusione.append(Punto(f"Provvedimento notificato il {data_breve(d)}: ricorso da notificare entro "
-                                   f"{data_breve(termine('LEX_AMM_RICORSO_29', d))} (sessanta giorni con la sospensione feriale).",
+                                   f"{data_breve(termine('AMM_RICORSO_29', d))} (sessanta giorni con la sospensione feriale).",
                                    [Rif("cpa:29", "sessanta giorni"), Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")]))
     a.dubbi.append("Riti speciali (appalti, accesso agli atti, silenzio) hanno termini dimezzati o diversi: verifica il rito.")
     t = _t(f)
@@ -350,12 +350,12 @@ def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
 
     d = _data_di(f, r"notifica\w*[^.]{0,80}avviso|avviso[^.]{0,40}notificat") or _prima_data(f)
     if d:
-        cost = termine("LEX_TRIB_COSTITUZIONE_22", termine("LEX_TRIB_RICORSO_21", d))
+        cost = termine("TRIB_COSTITUZIONE_22", termine("TRIB_RICORSO_21", d))
         a.termini.append(Punto(f"Costituzione in giudizio entro trenta giorni dalla notifica del ricorso: se il ricorso è "
                                f"notificato l'ultimo giorno utile, entro {data_breve(cost)}.", [Rif("dlgs546:22", "trenta giorni")]))
     if d:
         a.conclusione.append(Punto(f"Atto notificato il {data_breve(d)}: ricorso da notificare entro "
-                                   f"{data_breve(termine('LEX_TRIB_RICORSO_21', d))} (sessanta giorni con la sospensione feriale).",
+                                   f"{data_breve(termine('TRIB_RICORSO_21', d))} (sessanta giorni con la sospensione feriale).",
                                    [Rif("dlgs546:21", "entro sessanta giorni dalla data di notificazione")]))
     t = _t(f)
     from .strumenti import data_di

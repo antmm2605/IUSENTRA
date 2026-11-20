@@ -102,6 +102,29 @@ def _termini_fts(value: Any) -> list[str]:
     return termini[:16]
 
 
+def connessione_sola_lettura(db_path: str) -> sqlite3.Connection:
+    """Connessione in sola lettura a un archivio della giurisprudenza (nativo o SentenzeWeb).
+
+    Un archivio in modalità WAL in una cartella non scrivibile (montaggio in sola lettura, file di root) non si
+    legge con ``mode=ro``: il lettore non può creare il file -shm e ogni interrogazione fallisce con «attempt to
+    write a readonly database». In quel caso, senza scrittori in questo processo, si legge l'istantanea immutabile."""
+    conn = sqlite3.connect(Path(db_path).as_uri() + "?mode=ro", uri=True, timeout=5)
+    try:
+        conn.execute("SELECT 1 FROM sqlite_master LIMIT 1").fetchone()
+    except sqlite3.OperationalError as exc:
+        if "readonly" not in str(exc).lower():
+            raise
+        conn.close()
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Archivio giurisprudenza in WAL non scrivibile (%s): lettura come istantanea immutabile", db_path)
+        conn = sqlite3.connect(Path(db_path).as_uri() + "?mode=ro&immutable=1", uri=True, timeout=5)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA query_only=ON")
+    return conn
+
+
 def derive_corpus_db_path(storage_path: str) -> str:
     target = Path(storage_path)
     stem = target.stem or "giurisprudenza"
@@ -306,24 +329,7 @@ class GestioneCorpusGiurisprudenza:
 
     def _connect(self) -> sqlite3.Connection:
         if getattr(self, "read_only", False):
-            conn = sqlite3.connect(Path(self.db_path).as_uri() + "?mode=ro", uri=True, timeout=5)
-            try:
-                conn.execute("SELECT 1 FROM sqlite_master LIMIT 1").fetchone()
-            except sqlite3.OperationalError as exc:
-                # Archivio in modalità WAL in una cartella non scrivibile (montaggio in sola lettura, file di root):
-                # il lettore non può creare il file -shm e ogni interrogazione fallisce con «attempt to write a
-                # readonly database». Senza scrittori in questo processo si legge l'istantanea immutabile.
-                if "readonly" not in str(exc).lower():
-                    raise
-                conn.close()
-                import logging
-
-                logging.getLogger(__name__).warning(
-                    "Archivio giurisprudenza in WAL non scrivibile (%s): lettura come istantanea immutabile", self.db_path)
-                conn = sqlite3.connect(Path(self.db_path).as_uri() + "?mode=ro&immutable=1", uri=True, timeout=5)
-            conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA query_only=ON")
-            return conn
+            return connessione_sola_lettura(self.db_path)
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")

@@ -2,7 +2,6 @@
 
 import os
 import re
-import sqlite3
 from pathlib import Path
 from contextlib import closing
 from urllib.parse import urlsplit
@@ -121,10 +120,9 @@ class PublicSentenzeWebCorpus(GestioneCorpusGiurisprudenza):
         return self._guard_text_availability([dict(row) for row in rows])
 
     def _connect(self):
-        connection = sqlite3.connect(Path(self.db_path).as_uri() + "?mode=ro", uri=True, timeout=5)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA query_only=ON")
-        return connection
+        from pct.giurisprudenza_corpus import connessione_sola_lettura
+
+        return connessione_sola_lettura(self.db_path)
 
 
 def configured_corpus(config=None):

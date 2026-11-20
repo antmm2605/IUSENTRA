@@ -47,6 +47,15 @@ def componi(domanda_tipo: str, a: Analisi, esito: EsitoControllo, domanda: str =
         righe += ["", "**Termini**"] + [_riga(p) for p in a.termini]
     if a.cosa_fare:
         righe += ["", "**Cosa fare**"] + [f"{n}. {x}" for n, x in enumerate(a.cosa_fare, 1)]
+    if getattr(a, "giurisprudenza", None) is not None:
+        from .giurisprudenza import sezione
+
+        blocco = sezione(a.giurisprudenza)
+        if blocco:
+            righe += ["", blocco]
+        elif a.giurisprudenza.errori:
+            righe += ["", "**Giurisprudenza**", "- Archivi non consultabili ora: " + "; ".join(a.giurisprudenza.errori)
+                      + ". Nessuna pronuncia è citata senza lettura."]
     if a.avvertenze:
         righe += ["", "**Avvertenze**"] + [f"- {x}" for x in a.avvertenze]
     if a.dubbi or a.dati_mancanti:

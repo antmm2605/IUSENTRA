@@ -40,7 +40,7 @@ def analizza_sequestro(c: Comprensione, f: Fatti) -> Analisi:
     ]
     if pronuncia:
         ese = termine("LEX_CAU_ESECUZIONE_675", pronuncia)
-        mer = termine("LEX_CAU_MERITO_669OCTIES", pronuncia)
+        mer = termine("CIV_MERITO_669_OCTIES", pronuncia)
         if tocca_agosto(pronuncia, mer):
             a.dubbi.append("Il termine per il merito attraversa agosto: l'applicazione della sospensione feriale al termine "
                            "dell'art. 669-octies va verificata sulla giurisprudenza prima di contare su giorni in più.")

@@ -264,7 +264,10 @@ def _prova(msgid, gruppo, candidati, casella, per_impronta, leggi_relata_file) -
     if not sottoscritto or sottoscritto.group(1).upper() != str(lettura.codice_fiscale_firmatario or "").upper():
         return dubbio("La relata non è firmata dall'avvocato che la sottoscrive (codice fiscale diverso o assente).")
     indirizzi_relata = frozenset(a.strip(".;,").casefold() for a in _INDIRIZZO_RELATA.findall(_blocco_destinatari(lettura.testo or "")))
-    if indirizzi_relata != destinatari:
+    # Ogni casella consegnata deve essere un destinatario della relata. Un destinatario della relata senza casella
+    # certificata (indirizzo errato o non PEC: il gestore non lo certifica) non è notificato: la notifica agli altri si
+    # perfeziona comunque destinatario per destinatario (art. 3-bis, comma 3), e il mancato recapito si dichiara.
+    if not destinatari <= indirizzi_relata or not indirizzi_relata <= indirizzati:
         return dubbio("Gli indirizzi dei destinatari nella relata non coincidono con quelli della consegna.")
     # Il ruolo di ciascun destinatario (Avvocatura, difensore, amministrazione) decide gli effetti verso la P.A.
     voci = voci_relata(_blocco_destinatari(lettura.testo or ""))
@@ -274,7 +277,8 @@ def _prova(msgid, gruppo, candidati, casella, per_impronta, leggi_relata_file) -
         consegna["voce_relata"] = voce[:300]
     atti_relata, nomi_destinatari = leggi_relata(lettura.testo or "")
     esito.relata = {"file": nome_relata, "sha256": _sha(dati_relata), "codice_fiscale": sottoscritto.group(1).upper(),
-                    "documento_id": next(iter(per_impronta.get(_sha(dati_relata), [])), ""), "destinatari": nomi_destinatari}
+                    "documento_id": next(iter(per_impronta.get(_sha(dati_relata), [])), ""), "destinatari": nomi_destinatari,
+                    "destinatari_non_consegnati": sorted(indirizzi_relata - destinatari)}
     # 5. Gli atti della relata, nel fascicolo con la stessa impronta del file consegnato.
     per_nome = {}
     for nome, data in allegati:

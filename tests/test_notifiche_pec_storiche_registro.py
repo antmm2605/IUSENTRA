@@ -216,10 +216,12 @@ def test_indirizzo_ordinario_in_piu_non_e_destinatario_della_notifica(spedizione
     invio = messaggio_inviato([A, B, ordinario], {"Sentenza.PDF": SENTENZA, "Relata di notifica.pdf": RELATA}, message_id=MSGID)
     [esito] = _prova(s, invii=[Invio("INV", invio)])
     assert esito.provata and esito.invio["destinatari_non_certificati"] == [ordinario]
-    # Se la relata elenca anche l'indirizzo ordinario, la notifica a quel destinatario non è provata.
+    # Se la relata elenca anche l'indirizzo non certificato, la notifica a quel destinatario non è provata e si
+    # dichiara; quella alle caselle consegnate resta provata (art. 3-bis, comma 3, destinatario per destinatario).
     testo = TESTO_RELATA.replace("I seguenti atti:", f"3) - TERZO mediante inoltro all'indirizzo pec: {ordinario};\nI seguenti atti:")
     [esito] = _prova(s, invii=[Invio("INV", invio)], lettore=_lettore(testo))
-    assert not esito.provata and "relata" in esito.motivo
+    assert esito.provata and esito.relata["destinatari_non_consegnati"] == [ordinario]
+    assert {c["destinatario"] for c in esito.consegne} == {A, B}
 
 
 def test_senza_inviati_vale_l_originale_nella_ricevuta_completa_firmata(spedizione, monkeypatch):

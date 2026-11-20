@@ -991,3 +991,56 @@ def test_sfondo_unisce_vecchia_chiave_e_chiave_corrente(studio):
                                 stato=200, tipo="application/json", corpo=b"{}", durata_ms=0)
     lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
     assert not any(voce.pannello == pannello for voce in lavori)
+
+
+def test_precedenza_alla_catena_notturna_fra_l_una_e_le_sei():
+    """Decisione del 19/11/2026: 01:00-06:00 il semaforo dei motori pesanti va alla catena notturna."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from web.services.pannelli_pronti_calcolatore import precedenza_catena_notturna
+
+    roma = ZoneInfo("Europe/Rome")
+    assert precedenza_catena_notturna(datetime(2026, 11, 19, 1, 0, tzinfo=roma))
+    assert precedenza_catena_notturna(datetime(2026, 11, 19, 5, 59, tzinfo=roma))
+    assert not precedenza_catena_notturna(datetime(2026, 11, 19, 6, 0, tzinfo=roma))
+    assert not precedenza_catena_notturna(datetime(2026, 11, 19, 0, 59, tzinfo=roma))
+    # 00:30 UTC = 01:30 a Roma in inverno.
+    assert precedenza_catena_notturna(datetime(2026, 11, 19, 0, 30, tzinfo=ZoneInfo("UTC")))
+
+
+def test_di_notte_il_calcolatore_non_parte_senza_una_richiesta_dell_avvocato(monkeypatch):
+    from web.services import pannelli_pronti_calcolatore as calcolatore
+
+    monkeypatch.setattr(calcolatore, "in_esecuzione", lambda: False)
+    monkeypatch.setattr(calcolatore, "precedenza_catena_notturna", lambda momento=None: True)
+    monkeypatch.setattr(calcolatore, "pannello_prioritario_richiesto", lambda app: False)
+    esito = calcolatore.avvia_se_serve(object())
+    assert esito["avviato"] is False and "catena notturna" in esito["motivo"]
+
+
+def test_di_giorno_il_lotto_cede_il_semaforo_allo_scadere_del_tetto(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from web.services import pannelli_pronti_calcolatore as calcolatore
+    from web.services import pannelli_pronti_runtime, pannelli_pronti_sfondo
+
+    archivio = SimpleNamespace(percorso=str(tmp_path), prepara_indici=lambda: None)
+    monkeypatch.setattr(pannelli_pronti_sfondo, "studi", lambda app: [(SimpleNamespace(slug="s"), {})])
+    monkeypatch.setattr(pannelli_pronti_runtime, "archivio_per_percorsi", lambda percorsi: archivio)
+    monkeypatch.setattr(pannelli_pronti_runtime, "fonti_per_percorsi", lambda percorsi: object())
+    monkeypatch.setattr(pannelli_pronti_sfondo, "da_ricalcolare", lambda *a, **k: ["v1", "v2"])
+    monkeypatch.setattr(calcolatore, "_prepara_bozze", lambda *a, **k: None)
+    tempo = {"t": 0.0}
+    monkeypatch.setattr(calcolatore.time, "monotonic", lambda: tempo["t"])
+    visti = {}
+
+    def ricalcola(app, archivio, voci, interrompi=None):
+        visti["prima"] = interrompi()
+        tempo["t"] += calcolatore.TETTO_LOTTO_SECONDI + 1
+        visti["dopo"] = interrompi()
+        return {"calcolati": 1}
+
+    monkeypatch.setattr(pannelli_pronti_sfondo, "ricalcola", ricalcola)
+    calcolatore.giro(object(), tetto_secondi=calcolatore.TETTO_LOTTO_SECONDI)
+    assert visti == {"prima": False, "dopo": True}

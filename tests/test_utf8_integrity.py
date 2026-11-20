@@ -81,3 +81,50 @@ def test_template_scheduler_include_servizio_utf8():
     keys = {template.key for template in default_scheduler_templates({})}
 
     assert "utf8_integrity_nightly" in keys
+
+
+def _albero_di_testi(root, quanti=6):
+    for indice in range(quanti):
+        cartella = root / f"c{indice % 2}"
+        cartella.mkdir(parents=True, exist_ok=True)
+        (cartella / f"f{indice}.txt").write_text(f"testo {indice}", encoding="utf-8")
+    escluso = root / "lex_dataset"
+    escluso.mkdir()
+    (escluso / "enorme.json").write_text("{}", encoding="utf-8")
+
+
+def test_giro_notturno_si_ferma_al_tempo_massimo_e_riprende_dal_punto_raggiunto(tmp_path):
+    """Verifica del 19/11/2026: il passo partito alle 03:06 non si chiudeva più e ripartiva sempre dall'inizio."""
+    import json
+
+    from pct.utf8_integrity import CARTELLE_ESCLUSE, scan_utf8_integrity
+
+    root = tmp_path / "data"
+    _albero_di_testi(root)
+    stato = tmp_path / "ripresa.json"
+    tempo = {"t": 0.0}
+
+    def orologio():  # ogni lettura dell'orologio fa passare un secondo
+        tempo["t"] += 1.0
+        return tempo["t"]
+
+    primo = scan_utf8_integrity([root], repair=False, durata_massima_s=6, stato_path=stato,
+                                esclusi=CARTELLE_ESCLUSE, orologio=orologio)
+    assert primo["completed"] is False and 0 < primo["checked_files"] < 6
+    assert json.loads(stato.read_text())["ultimo_file"] == primo["resume_from"]
+    visti = primo["checked_files"]
+    secondo = scan_utf8_integrity([root], repair=False, stato_path=stato, esclusi=CARTELLE_ESCLUSE)
+    assert secondo["resumed_from"] == primo["resume_from"]
+    assert secondo["completed"] is True
+    assert visti + secondo["checked_files"] == 6, "nessun file saltato o letto due volte; lex_dataset escluso"
+    assert json.loads(stato.read_text())["ultimo_file"] == ""
+
+
+def test_giro_notturno_del_servizio_ha_tempo_massimo_e_ripresa(tmp_path, monkeypatch):
+    from pct.utf8_integrity import run_utf8_integrity_service
+
+    root = tmp_path / "data"
+    _albero_di_testi(root, quanti=2)
+    report = run_utf8_integrity_service({}, repair=False, roots=[root], report_path=tmp_path / "r.json", notturno=True)
+    assert report["completed"] is True and report["checked_files"] == 2
+    assert (tmp_path / "utf8_integrity_ripresa.json").exists()

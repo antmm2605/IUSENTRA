@@ -13,6 +13,7 @@ I lavori hanno code distinte:
 * ``notturna``: coordinatore della sequenza notturna, un passo alla volta. I motori conservano il semaforo;
 * ``pec_acquisizione``: acquisizione, classificazione e OCR PEC, con una sola istanza;
 * ``infrastruttura``: i giri tecnici di pochi millisecondi che consegnano gli eventi alle proiezioni;
+* ``posta``: la sincronizzazione delle caselle, fuori dalla corsia rapida;
 * ``giurisprudenza``: l'alimentazione dell'archivio di giurisprudenza (SentenzeWeb e lettura delle citazioni), che
   lavora su archivi propri e può durare quasi un'ora: nella corsia lunga la occupava e faceva saltare gli altri lavori.
 
@@ -36,6 +37,7 @@ CORSIA_INFRASTRUTTURA = "infrastruttura"
 CORSIA_ACQUISIZIONE_PEC = "pec_acquisizione"
 CORSIA_NOTTURNA = "notturna"
 CORSIA_GIURISPRUDENZA = "giurisprudenza"
+CORSIA_POSTA = "posta"
 
 THREAD_PER_CORSIA = {
     CORSIA_LUNGA: 1,
@@ -44,7 +46,15 @@ THREAD_PER_CORSIA = {
     CORSIA_NOTTURNA: 1,
     CORSIA_INFRASTRUTTURA: 3,
     CORSIA_GIURISPRUDENZA: 1,
+    CORSIA_POSTA: 1,
 }
+
+# Sincronizzazione delle caselle (decisione del 19/11/2026): il 18/11 sera la corsia rapida è rimasta ferma 90 minuti
+# dietro le caselle; agenda, relata ed esiti deposito non devono mai aspettare la posta.
+LAVORI_POSTA = frozenset({
+    "mailbox_sync_runtime",
+    "poll_pec_cancelleria",
+})
 
 # Acquisizione SentenzeWeb e lettura delle citazioni: stesso blocco ``acquisizione.lock``, archivi propri.
 LAVORI_GIURISPRUDENZA = frozenset({
@@ -68,8 +78,6 @@ TOLLERANZA_RITARDO_SECONDI = {
 
 # Termini legali, PEC, avvisi e calendari: brevi e frequenti.
 LAVORI_RAPIDI = frozenset({
-    "mailbox_sync_runtime",
-    "poll_pec_cancelleria",
     "polling_esiti_deposito",
     "legal_notification_relata_presidio",
     "agenda_scadenziario_notifications",
@@ -107,6 +115,8 @@ def corsia_del_lavoro(job_id: str) -> str:
         return CORSIA_INFRASTRUTTURA
     if lavoro in LAVORI_GIURISPRUDENZA:
         return CORSIA_GIURISPRUDENZA
+    if lavoro in LAVORI_POSTA:
+        return CORSIA_POSTA
     if lavoro in LAVORI_RAPIDI:
         return CORSIA_RAPIDA
     return CORSIA_LUNGA

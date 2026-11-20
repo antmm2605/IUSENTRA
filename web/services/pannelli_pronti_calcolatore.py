@@ -30,6 +30,25 @@ CHIUSURA_DOPO_SECONDI = 600.0
 # successivo e la copertura riprende dal primo pannello non pronto.
 DURATA_MASSIMA_SECONDI = 1800.0
 FILE_LOCK = Path(os.getenv("PCT_DATA_ROOT") or tempfile.gettempdir()) / "iusentra-pannelli-pronti-calcolatore.lock"
+# Decisione del 19/11/2026 sul semaforo dei motori pesanti (il 18/11 i pannelli lo tenevano 5-10 minuti a giro e i
+# passi notturni pesanti venivano rinviati):
+# - fra le 01:00 e le 06:00 ha la precedenza la catena notturna: si preparano solo i pannelli dei fascicoli che
+#   l'avvocato sta aprendo in quel momento, senza prendere il semaforo, e niente copertura generale;
+# - di giorno resta la priorità attuale, ma ogni lotto ha un tetto di tempo e poi cede il semaforo.
+ORA_INIZIO_PRECEDENZA_NOTTURNA = 1
+ORA_FINE_PRECEDENZA_NOTTURNA = 6
+TETTO_LOTTO_SECONDI = 90.0
+
+
+def precedenza_catena_notturna(momento=None) -> bool:
+    """Vero fra le 01:00 e le 06:00 (ora di Roma), quando i passi pesanti della catena notturna passano avanti."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    ora = (momento or datetime.now(ZoneInfo("Europe/Rome")))
+    if ora.tzinfo is not None:
+        ora = ora.astimezone(ZoneInfo("Europe/Rome"))
+    return ORA_INIZIO_PRECEDENZA_NOTTURNA <= ora.hour < ORA_FINE_PRECEDENZA_NOTTURNA
 
 
 def _prendi_lock():
@@ -78,20 +97,27 @@ def sveglia_calcolatore(tenant: str = "", fascicolo_id: str = "") -> bool:
 
 
 def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, tenant: str = "", fascicolo_id: str = "",
-         con_copertura: bool = True) -> dict[str, int]:
+         con_copertura: bool = True, tetto_secondi: float | None = None) -> dict[str, int]:
     """Un lotto per studio: le voci superate dei fascicoli aperti di recente; senza, la copertura di tutto lo studio."""
     from web.services.pannelli_pronti_runtime import archivio_per_percorsi, fonti_per_percorsi
     from web.services.pannelli_pronti_sfondo import copertura, da_ricalcolare, ricalcola, studi
 
     totale = {"trovati": 0, "calcolati": 0, "non_salvati": 0, "errori": 0}
+    scadenza = time.monotonic() + tetto_secondi if tetto_secondi else None
+
+    def tempo_scaduto() -> bool:
+        return scadenza is not None and time.monotonic() >= scadenza
+
     for owner, data_paths in studi(app):
+        if tempo_scaduto():
+            break
         if tenant and str(getattr(owner, "slug", "") or "single-studio") != tenant:
             continue
         archivio, fonti = archivio_per_percorsi(data_paths), fonti_per_percorsi(data_paths)
         if archivio is None or fonti is None or not Path(archivio.percorso).exists():
             continue
         archivio.prepara_indici()
-        interrompi = None
+        interrompi = tempo_scaduto if scadenza is not None else None
         if solo_pannelli_prioritari:
             voci = da_ricalcolare(archivio, fonti, limite=lotto, solo_pannelli_prioritari=True, fascicolo_richiesto=fascicolo_id)
         else:
@@ -99,7 +125,7 @@ def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, ten
             if not voci and not fascicolo_id and con_copertura:
                 # Nessun pannello aperto di recente da aggiornare: si prepara il resto dello studio.
                 voci = copertura(archivio, fonti, limite=LOTTO_COPERTURA)
-                interrompi = lambda: pannello_prioritario_richiesto(app)  # noqa: E731
+                interrompi = lambda: tempo_scaduto() or pannello_prioritario_richiesto(app)  # noqa: E731
         totale["trovati"] += len(voci)
         if voci:
             for chiave, valore in ricalcola(app, archivio, voci, interrompi=interrompi).items():
@@ -172,11 +198,17 @@ def main(tenant: str = "", fascicolo_id: str = "") -> int:
         try:
             richiesta = pannello_prioritario_richiesto(app)
             esito = giro(app, lotto=1, solo_pannelli_prioritari=True) if richiesta else {"trovati": 0}
+            if not esito["trovati"] and precedenza_catena_notturna():
+                # 01:00-06:00: solo i fascicoli chiesti ora dall'avvocato; il semaforo resta alla catena notturna.
+                if not richiesta and time.monotonic() - ultimo_lavoro > CHIUSURA_DOPO_SECONDI:
+                    break
+                time.sleep(PAUSA_SENZA_SALVATAGGI)
+                continue
             if not esito["trovati"]:
-                # La Lettura consultiva proietta dati già archiviati. Il lock del
-                # calcolatore la serializza senza aspettare il turno di OCR e PEC.
+                # La Lettura consultiva proietta dati già archiviati. Il lock del calcolatore la serializza senza
+                # aspettare il turno di OCR e PEC; il tetto di tempo fa cedere il semaforo fra un lotto e l'altro.
                 with motore_pesante("pannelli pronti", priorita=PRIORITA_DIFFERIBILE, attesa_massima=5.0):
-                    esito = giro(app)
+                    esito = giro(app, tetto_secondi=TETTO_LOTTO_SECONDI)
         except SemaforoOccupato:
             if time.monotonic() - ultimo_lavoro > CHIUSURA_DOPO_SECONDI:
                 break
@@ -204,6 +236,8 @@ def avvia_se_serve(app) -> dict[str, object]:
 
     if in_esecuzione():
         return {"ok": True, "avviato": False, "motivo": "calcolatore già in esecuzione"}
+    if precedenza_catena_notturna() and not pannello_prioritario_richiesto(app):
+        return {"ok": True, "avviato": False, "motivo": "01:00-06:00: precedenza alla catena notturna"}
     superati = 0
     for _owner, data_paths in studi(app):
         archivio, fonti = archivio_per_percorsi(data_paths), fonti_per_percorsi(data_paths)

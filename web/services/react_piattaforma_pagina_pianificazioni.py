@@ -106,6 +106,12 @@ def adatta(payload: dict[str, Any]) -> dict[str, Any]:
             {"label": "Esiti da verificare", "value": totali.get("runs_failed", 0), "note": "ultime esecuzioni registrate", "tone": "danger" if totali.get("runs_failed") else "success"},
         ]),
     ]
+    esclusi = payload.get("studi_esclusi_posta") or []
+    if esclusi:
+        sezioni.append(notes("Posta automatica", [
+            f"{_t(studio.get('nome'))}: {_t(studio.get('motivo'))}." for studio in esclusi
+        ] + ["Sincronizzazione delle caselle, Presidio PEC, PEC nei documenti ed esiti deposito lavorano solo sugli studi veri."],
+            tone="info"))
     semaforo = payload.get("semaforo_motori") or {}
     if semaforo.get("testo"):
         if "in_corso" in semaforo:

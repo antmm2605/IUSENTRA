@@ -533,6 +533,8 @@ class StudioLegale:
     data_attivazione: str  = ""
     data_scadenza:    str  = ""
     note_admin:       str  = ""
+    # Studio di prova (dati finti, caselle non reali): escluso dai giri automatici della posta.
+    studio_di_prova:  bool = False
 
     # Moduli autorizzati (se vuota → usa quelli del piano)
     moduli_override:  List[str] = field(default_factory=list)
@@ -655,6 +657,19 @@ class StudioLegale:
             else:
                 d["storage_key"] = str(d.get("slug", "") or "")
         return StudioLegale(**{k: v for k, v in d.items() if k in StudioLegale.__dataclass_fields__})
+
+
+# Slug riservato allo studio di prova creato dall'installazione locale. Decisione dell'avvocato del 19/11/2026:
+# «il 18/11 sera sono rimasti fermi 90 minuti dietro le caselle dello studio di prova: non devono essere inclusi».
+SLUG_STUDI_DI_PROVA = frozenset({"studio-prova"})
+MOTIVO_ESCLUSO_POSTA = "studio di prova: escluso dalla posta automatica"
+
+
+def escluso_dalla_posta_automatica(studio: Any) -> bool:
+    """Vero per uno studio di prova (flag ``studio_di_prova`` o slug riservato): niente giri automatici della posta."""
+    if bool(getattr(studio, "studio_di_prova", False)):
+        return True
+    return str(getattr(studio, "slug", "") or "").strip().lower() in SLUG_STUDI_DI_PROVA
 
 
 # ============================================================== GestioneTenant

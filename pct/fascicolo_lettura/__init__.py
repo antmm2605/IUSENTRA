@@ -42,7 +42,7 @@ from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.18.lettura-fascicolo.v63"
+VERSIONE_LETTURA = "2026.11.19.lettura-fascicolo.v64"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:

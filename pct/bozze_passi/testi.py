@@ -3,7 +3,8 @@
 Ogni testo segue la norma che regola l'atto e niente di più: le istanze, le conclusioni, gli importi non letti e
 le scelte difensive restano segnaposti «[da completare: …]». Norme verificate sul testo vigente dell'archivio
 Normattiva del software (18/11/2026): art. 127-ter c.p.c.; art. 3-bis, commi 4, 5 e 6, L. 53/1994; art. 11
-R.D. 1611/1933; artt. 474, 480 e 654 c.p.c.; art. 14, commi 1 e 1-bis, D.L. 669/1996; art. 2, comma 2, D.M. 55/2014 (rimborso forfettario).
+R.D. 1611/1933; artt. 26-bis, 474, 480 (terzo comma: elezione di domicilio) e 654 c.p.c.; art. 14, commi 1 e 1-bis,
+D.L. 669/1996; art. 2, comma 2, D.M. 55/2014 (rimborso forfettario); art. 11 L. 576/1980 (contributo integrativo).
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import Any
 from pct.fascicolo_lettura._testo import data_it, pulisci
 
 from .contesto import Contesto, euro, percentuale, provvedimento
+from .amministrazioni import denominazione, preposizione_articolata, rappresentante
 from .modello import manca
 
 OGGETTO_PEC_L53 = "notificazione ai sensi della legge n. 53 del 1994"
@@ -79,7 +81,11 @@ def _destinatario_pa(ctx: Contesto) -> str:
     if not amministrazione:
         accenno = ctx.controparte_nel_titolo
         amministrazione = manca("amministrazione convenuta" + (f" (nel titolo del fascicolo: «{accenno}»)" if accenno else ""))
-    return f"{amministrazione}, in persona del legale rappresentante pro tempore, presso l'{ctx.avvocatura}" if ctx.avvocatura else amministrazione
+    else:
+        amministrazione = denominazione(amministrazione)
+    # Denominazione ufficiale e rappresentante (pct.bozze_passi.amministrazioni): «Ministero …, in persona del Ministro
+    # pro tempore», domiciliato presso l'Avvocatura dello Stato (art. 11 R.D. 1611/1933).
+    return f"{amministrazione}, {rappresentante(amministrazione)}, presso l'{ctx.avvocatura}" if ctx.avvocatura else amministrazione
 
 
 def relata_notifica(ctx: Contesto, voce: dict[str, Any], *, documenti: list[dict[str, str]]) -> str:
@@ -124,13 +130,24 @@ def relata_notifica(ctx: Contesto, voce: dict[str, Any], *, documenti: list[dict
     return _unisci(righe)
 
 
-def _accessori(compenso: Decimal, *, iva: str) -> tuple[list[str], Decimal]:
-    """Rimborso forfettario 15% (art. 2, comma 2, D.M. 55/2014) e contributo integrativo C.P.A. del 4% sul compenso e sul rimborso."""
-    forfettario = percentuale(compenso, "15")
-    cpa = percentuale(compenso + forfettario, "4")
-    righe = [f"compenso liquidato: {euro(compenso)}", f"rimborso forfettario delle spese generali (15%): {euro(forfettario)}",
-             f"C.P.A. (4%): {euro(cpa)}"]
-    totale = compenso + forfettario + cpa
+def _accessori(compenso: Decimal, *, iva: str, forfettario: bool) -> tuple[list[str], Decimal | None]:
+    """Gli accessori del compenso liquidato, scritti solo se certi; il totale solo se tutti certi (altrimenti None).
+
+    - Rimborso forfettario delle spese generali nella misura del 15% (art. 2, comma 2, D.M. 55/2014) solo se il
+      provvedimento lo liquida («oltre rimborso forfettario», «spese generali»): altrimenti un segnaposto.
+    - Contributo integrativo C.P.A. del 4% sul compenso e sul rimborso (art. 11 L. 576/1980).
+    - I.V.A. esclusa solo se il regime forfetario (RF19) o dei minimi (RF02) risulta dalla scheda dello studio.
+    """
+    righe = [f"compenso liquidato: {euro(compenso)}"]
+    if forfettario:
+        rimborso = percentuale(compenso, "15")
+        cpa = percentuale(compenso + rimborso, "4")
+        righe += [f"rimborso forfettario delle spese generali (15%): {euro(rimborso)}", f"C.P.A. (4%): {euro(cpa)}"]
+        totale: Decimal | None = compenso + rimborso + cpa
+    else:
+        righe += [f"rimborso forfettario delle spese generali: {manca('se e in che misura lo liquida il provvedimento (art. 2, comma 2, D.M. 55/2014)')}",
+                  f"C.P.A. (4%): {manca('importo sul compenso e sull’eventuale rimborso forfettario')}"]
+        totale = None
     if iva == "forfetario":
         righe.append("I.V.A.: non dovuta (regime forfetario dello studio)")
     else:
@@ -138,10 +155,35 @@ def _accessori(compenso: Decimal, *, iva: str) -> tuple[list[str], Decimal]:
     return righe, totale
 
 
+def notifica_del_titolo(titolo: dict[str, Any]) -> str:
+    """«il 20/04/2026» se la notificazione del titolo è provata, altrimenti il segnaposto."""
+    return pulisci(titolo.get("notificato_il")) or manca("data della notificazione del titolo esecutivo")
+
+
+def elezione_domicilio(ctx: Contesto, titolo: dict[str, Any]) -> str:
+    """Dichiarazione di residenza o elezione di domicilio nel comune del giudice dell'esecuzione (art. 480, terzo comma).
+
+    Il comune si scrive da sé solo quando è certo (``titolo["comune_esecuzione"]``) e coincide con la sede dello studio:
+    allora il domicilio è lo studio. Il giudice dell'esecuzione dipende dall'espropriazione scelta: per i crediti verso
+    una pubblica amministrazione è quello del luogo del terzo debitore (art. 26-bis, primo comma, c.p.c.), quindi la
+    Lettura da sola non lo dà e resta un segnaposto. In mancanza dell'elezione le opposizioni si propongono davanti al
+    giudice del luogo della notificazione del precetto (art. 480, terzo comma, c.p.c.).
+    """
+    comune = pulisci(titolo.get("comune_esecuzione"))
+    studio = ctx.studio
+    if comune and comune.lower() == pulisci(studio.get("citta")).lower() and pulisci(studio.get("indirizzo_completo")):
+        indirizzo = f"presso lo studio del difensore in {pulisci(studio.get('indirizzo_completo'))}"
+    else:
+        indirizzo = "in " + manca("indirizzo nel comune sede del giudice dell’esecuzione"
+                          + (f" ({comune})" if comune else (" (crediti verso la P.A.: luogo del terzo debitore, art. 26-bis, "
+                                                            "primo comma, c.p.c.)" if titolo.get("pa") else "")))
+    return f"Elegge domicilio {indirizzo} (art. 480, terzo comma, c.p.c.)."
+
+
 def richiesta_pagamento_pa(ctx: Contesto, credito: dict[str, Any]) -> str:
     """Richiesta di pagamento alla P.A. delle spese liquidate e distratte, prima del precetto (art. 14 D.L. 669/1996)."""
     compenso: Decimal = credito["importo"]
-    righe_importo, totale = _accessori(compenso, iva=credito.get("iva", ""))
+    righe_importo, totale = _accessori(compenso, iva=credito.get("iva", ""), forfettario=bool(credito.get("forfettario")))
     distratte = credito.get("distratte")
     beneficiario = ("in favore del sottoscritto difensore, dichiaratosi antistatario (art. 93 c.p.c.)" if distratte
                     else manca("beneficiario delle spese: parte assistita o difensore antistatario"))
@@ -160,9 +202,10 @@ def richiesta_pagamento_pa(ctx: Contesto, credito: dict[str, Any]) -> str:
         (f"- con la {credito['fonte'].lower() if credito['fonte'] else manca('sentenza')} {manca('numero della sentenza')} "
         f"il {ctx.ufficio_o_manca} ha condannato l'amministrazione al pagamento delle spese di lite, liquidate in {euro(compenso)} "
         f"per compenso, oltre accessori di legge, {beneficiario};"),
-        f"- il titolo esecutivo è stato notificato il {manca('data della notificazione del titolo esecutivo')};",
+        f"- il titolo esecutivo è stato notificato il {notifica_del_titolo(credito)};",
         "chiede",
-        f"il pagamento della somma di {euro(totale)}, così determinata:",
+        (f"il pagamento della somma di {euro(totale)}, così determinata:" if totale is not None else
+         f"il pagamento della somma di {euro(compenso)} per compenso, oltre accessori, così determinata:"),
         *[f"- {r}" for r in righe_importo],
         f"mediante bonifico sul conto {pulisci(studio.get('iban')) or manca('IBAN')} intestato a {ctx.avvocato_o_manca if distratte else manca('beneficiario')}.",
         ("Si ricorda che le amministrazioni completano le procedure per il pagamento entro centoventi giorni dalla "
@@ -172,6 +215,12 @@ def richiesta_pagamento_pa(ctx: Contesto, credito: dict[str, Any]) -> str:
         *ctx.firma(),
     ]
     return _unisci(righe)
+
+
+def _al_destinatario(nome: str, *, pa: bool) -> str:
+    """«al **Ministero …**, », «all'**Agenzia …**, » per le amministrazioni; «a **Mario Rossi**, » per le persone."""
+    preposizione = preposizione_articolata(nome) if pa else "a"
+    return f"{preposizione}{'' if preposizione.endswith("'") else ' '}**{nome}**, "
 
 
 def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
@@ -189,9 +238,13 @@ def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
         "*(artt. 474 e 480 c.p.c.)*",
         f"Su istanza {'del sottoscritto ' if titolo.get('distratte') else 'di '}{istante}" + ("" if titolo.get("distratte") else f", rappresentata e difesa da {ctx.avvocato_o_manca}"),
         f"in forza {titolo['descrizione']}, titolo esecutivo (art. 474 c.p.c.)" + (f"; {titolo['menzione_654']}" if titolo.get("menzione_654") else "")
-        + f", notificato il {manca('data della notificazione del titolo esecutivo')},",
+        + f", notificato il {notifica_del_titolo(titolo)},",
+        # Art. 14, comma 1, D.L. 669/1996: prima dei centoventi giorni dalla notifica del titolo il precetto è vietato.
+        (f"decorso il termine di centoventi giorni dalla notificazione del titolo, scaduto il {titolo['centoventi_giorni']} "
+         "(art. 14, comma 1, D.L. 669/1996)," if pa and titolo.get("centoventi_giorni") else ""),
         "## Intima e fa precetto",
-        f"a **{debitore}**, " + (manca("sede dell'amministrazione presso cui notificare il precetto") if pa
+        # «al Ministero …», «all'Agenzia …», «alla Regione …» per le amministrazioni; «a Mario Rossi» per le persone.
+        _al_destinatario(debitore, pa=pa) + (manca("sede dell'amministrazione presso cui notificare il precetto") if pa
                                   else manca("residenza, sede o domicilio del debitore")) + ",",
         "di pagare entro dieci giorni dalla notificazione del presente atto le seguenti somme:",
         *[f"- {voce}" for voce in titolo.get("voci") or []],
@@ -201,9 +254,9 @@ def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
         ("Avverte il debitore che può, con l'ausilio di un organismo di composizione della crisi o di un professionista "
         "nominato dal giudice, porre rimedio alla situazione di sovraindebitamento concludendo con i creditori un accordo "
         "di composizione della crisi o proponendo agli stessi un piano del consumatore (art. 480, secondo comma, c.p.c.)."),
-        f"Giudice competente per l'esecuzione: {manca('giudice del luogo dell’esecuzione (art. 480, terzo comma, c.p.c.)')}.",
+        elezione_domicilio(ctx, titolo),
     ]
-    if pa:
+    if pa and not titolo.get("centoventi_giorni"):
         righe.append(manca("il precetto si notifica solo decorsi centoventi giorni dalla notificazione del titolo "
                            "(art. 14, comma 1, D.L. 669/1996): indicare la data da cui è possibile, poi eliminare la riga"))
     righe += [*ctx.firma()]

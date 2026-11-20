@@ -381,3 +381,24 @@ def test_risultato_obblighi_condiviso_vuoto_e_revisione_fonti(monkeypatch):
         assert obblighi_notifica_sintesi.leggi_completi("F1") is None
         assert obblighi_notifica_sintesi.leggi("F1") is None
     assert chiamate == [("F1", True), ("F1", True)]
+
+
+def test_prossimo_passo_con_termine_che_estingue_non_e_mai_solo_da_sapere():
+    """312F9C60 (19/11/2026): note ex art. 127-ter entro il 16/12/2026 sotto pena dell'art. 631 c.p.c. — prima «Da sapere»."""
+    from pct.fascicolo_quadro import livello_del_passo
+
+    oggi = date(2026, 11, 19)
+    note = {"azione": "Depositare le note scritte ex art. 127-ter", "entro": "16/12/2026", "norma": "art. 631 c.p.c.", "urgenza": 2}
+    assert riga_prossimo_passo([note], oggi=oggi)["livello"] == "attenzione"
+    # Perentorio dichiarato, o estinzione/decadenza nel motivo: almeno «attenzione»; entro 7 giorni «urgente».
+    assert livello_del_passo({"azione": "Riassumere la causa", "natura": "perentorio", "urgenza": 3, "entro": "30/01/2027"}, oggi=oggi) == "attenzione"
+    assert livello_del_passo({"azione": "Costituirsi", "motivo": "a pena di decadenza", "urgenza": 2, "entro": "25/11/2026"}, oggi=oggi) == "urgente"
+    assert livello_del_passo({**note, "entro": "26/11/2026"}, oggi=oggi) == "urgente"
+    for norma in ("art. 181 c.p.c.", "art. 307 c.p.c.", "artt. 181 e 309 c.p.c."):
+        assert livello_del_passo({"azione": "Comparire", "norma": norma, "urgenza": 2, "entro": "20/12/2026"}, oggi=oggi) == "attenzione"
+    # Scaduto senza prova: sempre «urgente».
+    assert livello_del_passo({**note, "scaduto": True, "urgenza": 3}, oggi=oggi) == "urgente"
+    # Gli altri passi restano all'urgenza della Lettura (art. 1815 o 181-bis non sono termini di estinzione).
+    assert livello_del_passo({"azione": "Preparare la proforma", "urgenza": 2, "entro": "21/11/2026"}, oggi=oggi) == "info"
+    assert livello_del_passo({"azione": "Verificare gli interessi", "norma": "art. 1815 c.c.", "urgenza": 2}, oggi=oggi) == "info"
+    assert livello_del_passo({"azione": "Verificare", "norma": "art. 181-bis disp. att.", "urgenza": 2}, oggi=oggi) == "info"

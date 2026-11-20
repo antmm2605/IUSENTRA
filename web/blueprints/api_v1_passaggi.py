@@ -97,6 +97,45 @@ def fascicolo_bozze_passi(id_fasc: str):
         return jsonify({"ok": False, "bozze": [], "errore": "Bozze dei passi non disponibili in questo momento."}), 200
 
 
+@api_v1_passaggi.get("/fascicoli/<id_fasc>/bozze-passi/<id_doc>/testo")
+@_richiedi(PERMESSO_LETTURA)
+def fascicolo_bozza_passo_testo(id_fasc: str, id_doc: str):
+    """Il testo modificabile di una bozza dei passi, per l'editor (il documento del fascicolo è il PDF)."""
+    try:
+        from web.helpers import get_fascicoli
+        from web.services.bozze_passi_runtime import bozza_del_documento
+
+        fascicolo = get_fascicoli().get(id_fasc)
+        voce = bozza_del_documento(id_fasc, id_doc) if fascicolo is not None else None
+        if voce is None:
+            return jsonify({"ok": False, "errore": "Bozza non trovata nel fascicolo."}), 404
+        return jsonify({"ok": True, "html": voce.testo_html, "avvisi": [], "nome": voce.titolo,
+                        "meta": {"bozzaPasso": True, "daCompletare": voce.da_completare}})
+    except Exception as exc:
+        current_app.logger.exception("Testo della bozza %s del fascicolo %s non disponibile: %s", id_doc, id_fasc, exc)
+        return jsonify({"ok": False, "errore": "Testo della bozza non disponibile in questo momento."}), 200
+
+
+@api_v1_passaggi.post("/fascicoli/<id_fasc>/bozze-passi/<id_doc>/testo")
+@_richiedi(PERMESSO_SCRITTURA)
+def fascicolo_bozza_passo_salva(id_fasc: str, id_doc: str):
+    """Salva il testo della bozza e rigenera il PDF del fascicolo. Nulla si invia, deposita o notifica."""
+    from web.services.bozze_passi_runtime import salva_dall_editor
+
+    corpo = _corpo()
+    utente = g.get("utente_corrente")
+    try:
+        risultato = salva_dall_editor(id_fasc, id_doc, str(corpo.get("html") or ""),
+                                      autore=str(getattr(utente, "username", "") or "editor"))
+    except LookupError as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 404
+    except Exception:
+        current_app.logger.exception("Salvataggio della bozza %s non riuscito sul fascicolo %s", id_doc, id_fasc)
+        return jsonify({"ok": False, "errore": "Bozza non salvata: riprova."}), 200
+    _audit("bozze_passi.salvata_dall_editor", "documento", id_doc, id_fasc)
+    return jsonify({**risultato, "auto": bool(corpo.get("auto"))})
+
+
 @api_v1_passaggi.post("/fascicoli/<id_fasc>/passaggi/bozza-note")
 @_richiedi(PERMESSO_SCRITTURA)
 def fascicolo_apri_bozza_note(id_fasc: str):

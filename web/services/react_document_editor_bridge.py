@@ -190,6 +190,20 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
     }
 
 
+def _bozza_passo(fascicolo_id: str, documento_id: str, doc: Any) -> Any:
+    """La voce del registro delle bozze dei passi, se il documento è una bozza già in PDF."""
+    from pct.bozze_passi.modello import FONTE_BOZZA_PASSO
+
+    if _text(getattr(doc, "fonte_documento", "")).upper() != FONTE_BOZZA_PASSO or not has_app_context():
+        return None
+    try:
+        from web.services.bozze_passi_runtime import bozza_del_documento
+
+        return bozza_del_documento(fascicolo_id, documento_id)
+    except Exception:
+        return None
+
+
 def build_react_document_editor_payload(
     *,
     get_fascicoli: Callable[[], Any],
@@ -235,7 +249,15 @@ def build_react_document_editor_payload(
         }
 
     document = _document_payload(fid, doc)
+    bozza = _bozza_passo(fid, document["id"], doc)
+    if bozza is not None:
+        # Bozza dei passi: nel fascicolo c'è il PDF, nell'editor il suo testo; ogni salvataggio rigenera il PDF.
+        document.update(editable=True, lockedReason="", pdfOverlayAllowed=False, pdfSoloCopia=False,
+                        bozzaPasso={"daCompletare": list(bozza.da_completare), "titolo": bozza.titolo})
     warnings: list[str] = []
+    if bozza is not None:
+        warnings.append("Bozza da rivedere e firmare: nel fascicolo resta il PDF, che si rigenera a ogni salvataggio "
+                        "di questo testo. Nulla viene inviato, depositato o notificato.")
     if document["extension"] == "eml":
         warnings.append(
             "Formato EML rilevato: l'email originale resta intatta; con «Modifica PDF» lavori su una sua copia PDF."
@@ -247,6 +269,24 @@ def build_react_document_editor_payload(
     ):
         warnings.append(document["lockedReason"])
 
+    endpoints = {
+        "loadHtml": f"/api/editor/{fid}/{document['id']}/html",
+        "language": f"/api/editor/{fid}/{document['id']}/lingua",
+        "save": f"/api/editor/{fid}/{document['id']}/salva",
+        "importFile": f"/api/editor/{fid}/{document['id']}/importa",
+        "exportPdf": f"/api/editor/{fid}/{document['id']}/pdf",
+        "exportDocx": f"/api/editor/{fid}/{document['id']}/docx",
+        "exportRtf": f"/api/editor/{fid}/{document['id']}/rtf",
+        "printPreview": f"/api/editor/{fid}/{document['id']}/anteprima-stampa",
+        "pdfMeta": f"/api/editor/{fid}/{document['id']}/pdf-meta",
+        "pdfPageImage": f"/api/editor/{fid}/{document['id']}/pdf-pagina",
+        "pdfOverlay": f"/api/editor/{fid}/{document['id']}/pdf-overlay",
+    }
+    if bozza is not None:
+        testo = f"/api/v1/ui/fascicoli/{fid}/bozze-passi/{document['id']}/testo"
+        endpoints.update(loadHtml=testo, save=testo)
+        for chiave in ("importFile", "pdfMeta", "pdfPageImage", "pdfOverlay"):
+            endpoints.pop(chiave)
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
@@ -263,19 +303,7 @@ def build_react_document_editor_payload(
             "quadroHref": f"/fascicoli/{fid}/quadro",
         },
         "document": document,
-        "endpoints": {
-            "loadHtml": f"/api/editor/{fid}/{document['id']}/html",
-            "language": f"/api/editor/{fid}/{document['id']}/lingua",
-            "save": f"/api/editor/{fid}/{document['id']}/salva",
-            "importFile": f"/api/editor/{fid}/{document['id']}/importa",
-            "exportPdf": f"/api/editor/{fid}/{document['id']}/pdf",
-            "exportDocx": f"/api/editor/{fid}/{document['id']}/docx",
-            "exportRtf": f"/api/editor/{fid}/{document['id']}/rtf",
-            "printPreview": f"/api/editor/{fid}/{document['id']}/anteprima-stampa",
-            "pdfMeta": f"/api/editor/{fid}/{document['id']}/pdf-meta",
-            "pdfPageImage": f"/api/editor/{fid}/{document['id']}/pdf-pagina",
-            "pdfOverlay": f"/api/editor/{fid}/{document['id']}/pdf-overlay",
-        },
+        "endpoints": endpoints,
         "editorAI": _editor_ai_payload(fid, document["id"]),
         "capabilities": {
             "formats": [".docx", ".doc", ".pdf", ".txt", ".html", ".htm", ".md"],

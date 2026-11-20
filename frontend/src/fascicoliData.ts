@@ -408,6 +408,10 @@ export type FascicoloDocument = {
   signatureReadyForDeposit: boolean
   signatureMissingAttributes: string[]
   signatureNeedsRefresh: boolean
+  // Esito della verifica sui byte: 'valida', 'non_confermata' (firma presente ma non confermata), 'assente' (nessuna firma nel file).
+  signatureCheck: 'valida' | 'non_confermata' | 'assente'
+  // Bozza preparata dal software: non è un documento del fascicolo, il catalogo la mostra a parte.
+  studioDraft: boolean
   statusLabel: string
   statusTone: Tone
   source: string
@@ -2632,6 +2636,8 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
         signatureNeedsRefresh: row.signatureNeedsRefresh === undefined && row.signature_needs_refresh === undefined
           ? signed && !signatureReadyForDeposit
           : bool(row.signatureNeedsRefresh ?? row.signature_needs_refresh),
+        signatureCheck: signed ? 'valida' : text(row.signatureCheck) === 'non_confermata' ? 'non_confermata' : 'assente',
+        studioDraft: bool(row.studioDraft),
         statusLabel: signed ? text(row.statusLabel ?? row.status_label, 'Firmato') : 'Da firmare',
         statusTone: signed ? text(row.statusTone ?? row.status_tone, 'success') as Tone : 'warning',
         source: text(row.source ?? row.fonte_documento),

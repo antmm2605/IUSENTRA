@@ -1588,6 +1588,17 @@ class DocumentAIRepository:
         ).fetchall()
         return [dataclass_from_dict(DocumentCatalogCandidate, self._dict_row(row)) for row in rows]
 
+    def catalog_assignment_ids_with_evidence(self, tenant_id: str, fascicolo_id: str) -> set[str]:
+        """Le voci attive del fascicolo con almeno una prova letta, in una query (stato «catalogato in automatico»)."""
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            "SELECT DISTINCT a.id AS id FROM document_catalog_assignments a "
+            "JOIN document_catalog_evidence e ON e.assignment_id = a.id "
+            "WHERE a.tenant_id = ? AND a.fascicolo_id = ? AND a.status NOT IN ('superseded', 'rejected')",
+            (tenant_id, fascicolo_id),
+        ).fetchall()
+        return {str(self._dict_row(row).get("id") or "") for row in rows}
+
     def list_catalog_evidence(self, assignment_id: str) -> list[DocumentCatalogEvidence]:
         self._require_catalog_sql()
         rows = self._conn().execute(

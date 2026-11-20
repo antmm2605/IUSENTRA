@@ -1746,6 +1746,8 @@ type CatalogAssignmentView = {
   confidence: number
   source_state: 'verified_snapshot' | 'manual_browser_evidence' | 'review_required' | string
   reason: string
+  // Perché la proposta chiede ancora la conferma (sotto la soglia di certezza o senza prova); vuoto se certa.
+  certainty_note?: string
   legal_area?: string
   legal_branch?: string
   legal_subfamily?: string
@@ -1808,9 +1810,10 @@ type CatalogDocumentView = {
 }
 
 type CatalogPayload = {
-  summary: { total: number; catalogued?: number; proposed: number; confirmed: number; review_required: number; errors: number; waiting_for_index: number; source_documents: number }
+  summary: { total: number; catalogued?: number; proposed: number; confirmed: number; review_required: number; errors: number; waiting_for_index: number; source_documents: number; certainty_threshold?: number; studio_drafts?: number }
   run: { processed: number; proposed: number; review_required: number; waiting_for_index: number; errors: string[] }
   documents: CatalogDocumentView[]
+  studio_drafts?: Array<{ document_id: string; filename: string }>
 }
 
 function catalogTone(status: string): FascicoloRow['tone'] {
@@ -1941,9 +1944,18 @@ function CatalogazioneDocumentalePanel({
   const endpoint = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/catalogazione-documentale`
   const documentsById = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents])
   const documentRevision = documents.map((document) => `${document.id}:${document.hash || ''}`).join('|')
+  const draftIds = useMemo(() => new Set([
+    ...documents.filter((document) => document.studioDraft).map((document) => document.id),
+    ...(payload?.studio_drafts || []).map((item) => item.document_id),
+  ]), [documents, payload])
+  const studioDrafts = useMemo(() => documents.filter((document) => draftIds.has(document.id)), [documents, draftIds])
+  const proposalsToConfirm = useMemo(() => (payload?.documents || [])
+    .filter((item) => item.assignment?.status === 'proposed')
+    .map((item) => ({ id: item.document_id, label: item.assignment?.document_label || documentsById.get(item.document_id)?.name || item.filename, note: item.assignment?.certainty_note || '' })), [payload, documentsById])
   const documentEntries = useMemo<DocumentListEntry<CatalogDocumentView>[]>(() => {
     const catalogById = new Map((payload?.documents || []).map((item) => [item.document_id, item]))
-    return documents.map((document) => {
+    // Le bozze preparate dal software non sono documenti del fascicolo: restano fuori da elenco e conteggi.
+    return documents.filter((document) => !draftIds.has(document.id)).map((document) => {
       const item = catalogById.get(document.id) || { document_id: document.id, filename: document.name, supported: true, indexed: false, assignment: null }
       const assignment = item.assignment
       const sectionId = assignment && documentListSectionIds.has(assignment.document_section) ? assignment.document_section : documentAutoSectionId(document)
@@ -1957,7 +1969,7 @@ function CatalogazioneDocumentalePanel({
         value: item,
       }
     })
-  }, [documents, payload])
+  }, [documents, payload, draftIds])
   const listControls = useDocumentListControls(documentEntries)
 
   const loadRequestRef = useRef(0)
@@ -2150,7 +2162,7 @@ function CatalogazioneDocumentalePanel({
         <div className="iu-fas-catalog__header-actions">
           {summary ? <Badge tone={summary.errors ? 'danger' : summary.review_required ? 'warning' : summary.total ? 'success' : 'neutral'}>{summary.errors ? 'Aggiornamento parziale' : summary.review_required ? 'Revisione richiesta' : summary.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge> : null}
           <button type="button" disabled={busy || loading || !summary} onClick={() => void update()} title="Riesegui la catalogazione sul contenuto SQL corrente"><RefreshCw size={15}/> {busy ? 'Catalogazione in corso…' : 'Aggiorna catalogazione'}</button>
-          <button type="button" disabled={busy || !summary?.proposed} onClick={() => { setBulkOpen((current) => !current); setBulkAttested(false) }} title={summary?.proposed ? `Conferma in blocco le ${summary.proposed} proposte con prova letta dal contenuto` : 'Nessuna proposta da confermare'} aria-expanded={bulkOpen}><CheckCircle2 size={15}/> Conferma tutte le proposte{summary?.proposed ? ` (${summary.proposed})` : ''}</button>
+          <button type="button" disabled={busy || !summary?.proposed} onClick={() => { setBulkOpen((current) => !current); setBulkAttested(false) }} title={summary?.proposed ? `Conferma in blocco le ${summary.proposed} proposte sotto la soglia di certezza, con prova letta dal contenuto` : 'Nessuna proposta da confermare: i documenti riconosciuti con certezza sono catalogati in automatico'} aria-expanded={bulkOpen}><CheckCircle2 size={15}/> Conferma tutte le proposte{summary?.proposed ? ` (${summary.proposed})` : ''}</button>
           <button
             type="button"
             className="iu-fas-catalog__toggle"
@@ -2169,7 +2181,8 @@ function CatalogazioneDocumentalePanel({
         {bulkOpen && summary?.proposed ? (
           <div className="iu-fas-catalog__bulk" role="group" aria-label="Conferma di tutte le proposte">
             <strong>Confermi in blocco {summary.proposed} propost{summary.proposed === 1 ? 'a' : 'e'}?</strong>
-            <span>Vengono confermate solo le proposte che hanno una prova letta dal contenuto; le altre restano proposte e ti vengono elencate. Ogni conferma è registrata nella revisione del fascicolo.</span>
+            <span>I documenti riconosciuti con certezza dal contenuto (affidabilità almeno {summary.certainty_threshold ?? 90}% e prova letta) sono già catalogati in automatico. Restano da confermare queste proposte; vengono confermate solo quelle con una prova letta dal contenuto. Ogni conferma è registrata nella revisione del fascicolo.</span>
+            {proposalsToConfirm.length ? <ul className="iu-fas-catalog__bulk-list">{proposalsToConfirm.map((item) => <li key={item.id}><b>{item.label}</b>{item.note ? <span> — {item.note}</span> : null}</li>)}</ul> : null}
             <label className="iu-fas-catalog__check"><input type="checkbox" checked={bulkAttested} onChange={(event) => setBulkAttested(event.currentTarget.checked)}/> Ho letto le prove delle proposte e attesto la conferma</label>
             <div>
               <button type="button" disabled={busy || !bulkAttested} onClick={() => void confirmAllProposals()}><CheckCircle2 size={14}/> {busy ? 'Conferma in corso…' : `Conferma ${summary.proposed} propost${summary.proposed === 1 ? 'a' : 'e'}`}</button>
@@ -2234,6 +2247,12 @@ function CatalogazioneDocumentalePanel({
           })}
         </div>
         {!loading && payload && !payload.documents.length ? <p className="iu-empty">Nessun documento disponibile per la catalogazione nel fascicolo.</p> : null}
+        {studioDrafts.length ? (
+          <section className="iu-fas-catalog__drafts" aria-label="Bozze dello studio">
+            <header><strong>Bozze dello studio ({studioDrafts.length})</strong><span>Preparate dal software per i prossimi passi: non sono documenti della causa e non entrano nei conteggi. Vanno riviste, completate e firmate; nessuna è stata inviata, depositata o notificata.</span></header>
+            {studioDrafts.map((document) => <DocumentRow key={document.id} doc={document} hideCatalogSummary onPreview={onPreview} onDone={onDone} onError={onError} depositoHref={depositoHref} notificaHref={notificaHref}/>)}
+          </section>
+        ) : null}
         <footer>
           <span>La lettura non scarica fonti esterne e non modifica il documento originale.</span>
         </footer>
@@ -8453,7 +8472,7 @@ function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = fal
           {renameMessage ? <small>{renameMessage}</small> : null}
         </form>
       ) : null}
-      <div className="iu-fas-doc-badges" hidden={onApriChiudi ? !aperto : false}><Badge tone={doc.signed ? doc.statusTone : 'neutral'}>{doc.signed ? (doc.statusLabel || 'Firmato') : 'Firma non verificata'}</Badge>{doc.pdfa ? <Badge tone="success">{doc.pdfa}</Badge> : null}{doc.catalogLabel ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
+      <div className="iu-fas-doc-badges" hidden={onApriChiudi ? !aperto : false}><Badge tone={doc.signed ? doc.statusTone : doc.signatureCheck === 'non_confermata' ? 'warning' : 'neutral'}>{doc.signed ? (doc.statusLabel || 'Firmato') : doc.studioDraft ? 'Bozza da firmare' : doc.signatureCheck === 'non_confermata' ? 'Firma da verificare' : 'Senza firma digitale'}</Badge>{doc.pdfa ? <Badge tone="success">{doc.pdfa}</Badge> : null}{doc.catalogLabel ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
       <div className="iu-fas-actions iu-fas-actions--wrap iu-fas-doc-actions" hidden={onApriChiudi ? !aperto : false} aria-label={`Azioni per ${doc.name}`}>
         {doc.actions.acquire ? <a className="iu-fas-doc-action" href={doc.actions.acquire} title="Acquisisci il file dal portale con sessione autenticata o Local Signer"><Download size={15}/><span>Acquisisci dal PST</span></a> : null}
         {doc.actions.preview ? <button type="button" className="iu-fas-doc-action" title="Apri il documento nel lettore interno" aria-label={`Apri ${doc.name} nel lettore interno`} onClick={() => onPreview({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}><Eye size={15}/><span>Visualizza</span></button> : null}

@@ -20,6 +20,7 @@ from zoneinfo import ZoneInfo
 from flask import g, has_request_context
 
 from pct.bozze_passi.archivio import (
+    FORMATO_PDF,
     STATO_DATI_CAMBIATI,
     STATO_MODIFICATA,
     STATO_PRONTA,
@@ -79,7 +80,19 @@ def dati_studio() -> dict[str, str]:
     return {"avvocato": _testo(studio.avvocato), "cf_avvocato": _testo(studio.codice_fiscale_avvocato or studio.cf),
             "indirizzo": _testo(studio.indirizzo), "cap": _testo(studio.cap), "citta": citta,
             "provincia": _testo(studio.province), "indirizzo_completo": completo,
-            "pec": _testo(getattr(config.pec, "indirizzo", "")), "iban": _testo(studio.iban)}
+            "pec": _testo(getattr(config.pec, "indirizzo", "")), "iban": _testo(studio.iban),
+            "regime_fiscale": _regime_dichiarato(percorso)}
+
+
+def _regime_dichiarato(percorso: str) -> str:
+    """Il regime fiscale solo se la scheda dello studio lo dichiara: il valore predefinito (RF01) non è un dato letto."""
+    try:
+        with open(percorso, encoding="utf-8") as file:
+            grezzo = json.load(file)
+    except (OSError, ValueError):
+        return ""
+    fatturazione = grezzo.get("fatturazione") if isinstance(grezzo, dict) else None
+    return _testo((fatturazione or {}).get("regime_fiscale")).upper() if isinstance(fatturazione, dict) else ""
 
 
 def _cliente_cf(fascicolo: Any) -> str:
@@ -104,17 +117,35 @@ def _documento(fascicolo: Any, documento_id: str) -> Any:
     return next((d for d in getattr(fascicolo, "documenti", []) or [] if d.id == documento_id), None)
 
 
-def _crea_documento(repository: Any, fascicolo_id: str, bozza: Bozza) -> tuple[str, str]:
-    from pct.editor_ai.editor_renderer import create_editor_document
+def _testo_editor(bozza: Bozza) -> str:
+    """Il testo modificabile della bozza: l'HTML impaginato dell'editor, già ripulito."""
+    from pct.editor_ai.editor_renderer import sanitize_editor_html
+
+    return sanitize_editor_html(impagina(bozza.testo))
+
+
+def _pdf(titolo: str, testo_html: str) -> bytes:
+    from pct.bozze_passi.pdf import bozza_pdf
+
+    return bozza_pdf(titolo, testo_html)
+
+
+def _crea_documento(repository: Any, fascicolo_id: str, bozza: Bozza) -> tuple[str, str, str]:
+    """Il PDF della bozza entra nel fascicolo; il testo dell'editor resta nel registro delle bozze."""
+    from pct.bozze_passi.pdf import nome_file_pdf
+    from pct.fascicoli import TipoDocumento
     from web.services.document_crypto import encrypt_doc
 
-    creato = create_editor_document(
-        fascicoli_repository=repository, fascicolo_id=fascicolo_id, title=bozza.titolo, html_content=impagina(bozza.testo),
-        created_by=AUTORE, encrypt=encrypt_doc, fonte_documento=FONTE_BOZZA_PASSO, note=_nota(bozza),
-        tags=["bozza", "bozza-passo", f"bozza-passo:{bozza.chiave}"], salvataggio_mirato=True,
+    testo_html = _testo_editor(bozza)
+    grezzo = _pdf(bozza.titolo, testo_html)
+    nome = nome_file_pdf(bozza.titolo)
+    documento = repository.aggiungi_documento(
+        fascicolo_id, nome, TipoDocumento.ATTO_GIUDIZIARIO, encrypt_doc(grezzo), note=_nota(bozza),
+        tags=["bozza", "bozza-passo", f"bozza-passo:{bozza.chiave}"], caricato_da=AUTORE,
+        fonte_documento=FONTE_BOZZA_PASSO, nome_originale=nome, hash_contenuto_sha256=hashlib.sha256(grezzo).hexdigest(),
+        salvataggio_mirato=True,
     )
-    documento = _documento(repository.get(fascicolo_id), creato["document_id"])
-    return creato["document_id"], _testo(getattr(documento, "hash_contenuto_sha256", ""))
+    return documento.id, hashlib.sha256(grezzo).hexdigest(), testo_html
 
 
 def _archivio_intero(repository: Any) -> None:
@@ -125,21 +156,37 @@ def _archivio_intero(repository: Any) -> None:
         completa()
 
 
-def _riscrivi_documento(repository: Any, fascicolo_id: str, documento: Any, bozza: Bozza) -> str:
-    from pct.editor_ai.editor_renderer import sanitize_editor_html
+def scrivi_pdf(repository: Any, fascicolo_id: str, documento: Any, *, titolo: str, testo_html: str, note: str,
+               autore: str = AUTORE) -> str:
+    """Rigenera il PDF della bozza dal testo dell'editor e lo sostituisce nel fascicolo; restituisce l'impronta.
+
+    La versione precedente resta nello storico del documento (``preserve_version_snapshot``)."""
+    from pct.bozze_passi.pdf import nome_file_pdf
     from web.services.document_crypto import encrypt_doc
 
     _archivio_intero(repository)
-    grezzo = sanitize_editor_html(impagina(bozza.testo)).encode("utf-8")
+    grezzo = _pdf(titolo, testo_html)
     impronta = hashlib.sha256(grezzo).hexdigest()
-    repository.sostituisci_documento(fascicolo_id, documento.id, nome_file=documento.nome, contenuto=encrypt_doc(grezzo),
-                                     caricato_da=AUTORE, note=_nota(bozza), hash_contenuto_sha256=impronta)
+    repository.sostituisci_documento(fascicolo_id, documento.id, nome_file=nome_file_pdf(titolo), contenuto=encrypt_doc(grezzo),
+                                     caricato_da=autore, note=note, hash_contenuto_sha256=impronta)
     return impronta
 
 
+def _riscrivi_documento(repository: Any, fascicolo_id: str, documento: Any, bozza: Bozza) -> tuple[str, str]:
+    testo_html = _testo_editor(bozza)
+    return scrivi_pdf(repository, fascicolo_id, documento, titolo=bozza.titolo, testo_html=testo_html,
+                      note=_nota(bozza)), testo_html
+
+
 def _nota(bozza: Bozza) -> str:
-    mancano = len(bozza.segnaposti)
-    return (f"{AVVISO_BOZZA}. Preparata dal software il {oggi_roma():%d/%m/%Y} con il modello «{bozza.modello_titolo}»"
+    return nota_bozza(bozza.modello_titolo, len(bozza.segnaposti))
+
+
+def nota_bozza(modello_titolo: str, mancano: int, *, modificata: bool = False) -> str:
+    """La nota del documento: bozza da rivedere, modello, dati da completare, mai inviata."""
+    origine = (f"Modificata dall'avvocato il {oggi_roma():%d/%m/%Y}" if modificata
+               else f"Preparata dal software il {oggi_roma():%d/%m/%Y}")
+    return (f"{AVVISO_BOZZA}. {origine} con il modello «{modello_titolo}»"
             + (f"; {mancano} dati da completare" if mancano else "") + ". Non è stata inviata, depositata né notificata.")
 
 
@@ -155,12 +202,15 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
     from pct.procedura_fasi.fonti import norme
     from web.helpers import get_fascicoli
 
-    esiti = {"create": 0, "aggiornate": 0, "invariate": 0, "dati_cambiati": 0, "superate": 0}
+    esiti = {"create": 0, "aggiornate": 0, "invariate": 0, "dati_cambiati": 0, "superate": 0, "convertite": 0}
     g.fascicoli_sql_puntuali = True
     repository = get_fascicoli()
     fascicolo = repository.get(fascicolo_id)
     if fascicolo is None or lettura is None:
         return esiti
+    esiti["convertite"] = _converti_del_fascicolo(repository, fascicolo, archivio)
+    if esiti["convertite"]:
+        fascicolo = repository.get(fascicolo_id)
     bozze = bozze_del_fascicolo(lettura, oggi=oggi or oggi_roma(), conto=conto, studio=dati_studio(),
                                 cliente_cf=_cliente_cf(fascicolo))
     passi = list(lettura.get("prossimi_passi") or [])
@@ -171,12 +221,13 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
         comune = {"titolo": bozza.titolo, "modello": bozza.modello, "modello_titolo": bozza.modello_titolo,
                   "norma": norme(bozza.fonti), "passi": bozza.passi(passi)}
         if voce is None or documento is None:
-            documento_id, impronta = _crea_documento(repository, fascicolo_id, bozza)
+            documento_id, impronta, testo_html = _crea_documento(repository, fascicolo_id, bozza)
             ora = adesso()
             archivio.salva(VoceBozza(fascicolo_id=fascicolo_id, chiave=bozza.chiave, documento_id=documento_id, tipo=bozza.tipo,
                                      da_completare=list(bozza.segnaposti), impronta_testo=bozza.impronta,
                                      impronta_contenuto=impronta, impronta_fonti_attuali=bozza.impronta,
-                                     stato=STATO_PRONTA, creata_il=ora, aggiornata_il=ora, **comune))
+                                     stato=STATO_PRONTA, creata_il=ora, aggiornata_il=ora, testo_html=testo_html,
+                                     formato=FORMATO_PDF, **comune))
             fascicolo = repository.get(fascicolo_id)
             esiti["create"] += 1
             continue
@@ -187,7 +238,8 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
             voce.__dict__.update(comune, stato=stato, impronta_fonti_attuali=bozza.impronta)
             esiti["invariate"] += 1
         elif not toccata:
-            voce.impronta_contenuto = _riscrivi_documento(repository, fascicolo_id, documento, bozza)
+            voce.impronta_contenuto, voce.testo_html = _riscrivi_documento(repository, fascicolo_id, documento, bozza)
+            voce.formato = FORMATO_PDF
             voce.__dict__.update(comune, impronta_testo=bozza.impronta, impronta_fonti_attuali=bozza.impronta,
                                  da_completare=list(bozza.segnaposti), stato=STATO_PRONTA, aggiornata_il=adesso())
             fascicolo = repository.get(fascicolo_id)
@@ -211,9 +263,128 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
             voce.stato, voce.passi = STATO_SUPERATA, []
             archivio.salva(voce)
         esiti["superate"] += 1
-    if esiti["create"] or esiti["aggiornate"] or esiti["superate"]:
+    if esiti["create"] or esiti["aggiornate"] or esiti["superate"] or esiti["convertite"]:
         _segnala_documenti(fascicolo_id)
     return esiti
+
+
+def _contenuto_come_html(repository: Any, fascicolo_id: str, documento: Any) -> str:
+    """Il testo di una bozza creata prima del PDF: l'HTML scritto dal software o il Word salvato dall'editor."""
+    from pct.editor import documento_to_html
+    from pct.editor_ai.editor_renderer import sanitize_editor_html
+    from web.services.document_crypto import decrypt_doc
+
+    leggi = getattr(repository, "percorso_documento_lettura", None) or repository.percorso_documento
+    grezzo = decrypt_doc(leggi(fascicolo_id, documento.id).read_bytes())
+    nome = str(getattr(documento, "nome", "") or "")
+    if nome.lower().endswith((".html", ".htm")):
+        return sanitize_editor_html(grezzo.decode("utf-8", errors="replace"))
+    html, _avvisi, _meta = documento_to_html(grezzo, nome)
+    return sanitize_editor_html(html)
+
+
+def converti_bozza(repository: Any, fascicolo: Any, voce: VoceBozza, archivio: ArchivioBozze) -> bool:
+    """Una bozza HTML (o Word, se l'avvocato l'aveva salvata dall'editor) diventa PDF senza perdere il testo.
+
+    Il testo attuale del documento, comprese le modifiche dell'avvocato, diventa il testo dell'editor e il PDF
+    lo riproduce. Se l'avvocato l'aveva modificata la bozza resta «modificata»: l'impronta registrata del testo del
+    software non coincide con il nuovo PDF, quindi il giro successivo non la riscrive. La versione precedente
+    resta nello storico del documento."""
+    documento = _documento(fascicolo, voce.documento_id)
+    if documento is None:
+        return False
+    if str(getattr(documento, "nome", "")).lower().endswith(".pdf") and voce.testo_html:
+        voce.formato = FORMATO_PDF
+        archivio.salva(voce)
+        return False
+    toccata = _toccata(documento, voce)
+    testo_html = _contenuto_come_html(repository, fascicolo.id, documento)
+    nota = nota_bozza(voce.modello_titolo, len(da_completare_html(testo_html)), modificata=toccata)
+    impronta = scrivi_pdf(repository, fascicolo.id, documento, titolo=voce.titolo, testo_html=testo_html, note=nota)
+    if not toccata:
+        voce.impronta_contenuto = impronta
+    voce.testo_html, voce.formato = testo_html, FORMATO_PDF
+    voce.da_completare = list(da_completare_html(testo_html))
+    archivio.salva(voce)
+    return True
+
+
+def _converti_del_fascicolo(repository: Any, fascicolo: Any, archivio: ArchivioBozze) -> int:
+    convertite = 0
+    for voce in archivio.del_fascicolo(fascicolo.id):
+        if voce.formato == FORMATO_PDF:
+            continue
+        try:
+            if converti_bozza(repository, fascicolo, voce, archivio):
+                convertite += 1
+                fascicolo = repository.get(fascicolo.id) or fascicolo
+        except Exception as exc:  # una bozza illeggibile non ferma le altre: si riprova al giro successivo
+            logger.warning("Bozza %s di %s non convertita in PDF: %s", voce.chiave, fascicolo.id, exc)
+    return convertite
+
+
+def converti_bozze_html(archivio: ArchivioBozze, *, limite: int = 200) -> int:
+    """Converte in PDF le bozze di tutti i fascicoli dello studio create prima del PDF (contesto già impostato)."""
+    from web.helpers import get_fascicoli
+
+    g.fascicoli_sql_puntuali = True
+    repository = get_fascicoli()
+    convertite = 0
+    for fascicolo_id in dict.fromkeys(v.fascicolo_id for v in archivio.da_convertire(limite)):
+        fascicolo = repository.get(fascicolo_id)
+        if fascicolo is None:
+            continue
+        quante = _converti_del_fascicolo(repository, fascicolo, archivio)
+        if quante:
+            convertite += quante
+            _segnala_documenti(fascicolo_id)
+    return convertite
+
+
+def da_completare_html(testo_html: str) -> tuple[str, ...]:
+    import html as html_mod
+
+    from pct.bozze_passi.modello import da_completare
+
+    return da_completare(html_mod.unescape(re.sub(r"<[^>]+>", " ", str(testo_html or ""))))
+
+
+def bozza_del_documento(fascicolo_id: str, documento_id: str) -> VoceBozza | None:
+    """La voce del registro se il documento è una bozza dei passi già in PDF (con il testo dell'editor)."""
+    archivio = archivio_corrente()
+    voce = archivio.per_documento(fascicolo_id, documento_id) if archivio else None
+    return voce if voce is not None and voce.formato == FORMATO_PDF and voce.testo_html else None
+
+
+def salva_dall_editor(fascicolo_id: str, documento_id: str, testo_html: str, *, autore: str) -> dict[str, Any]:
+    """Il salvataggio dell'avvocato: il testo resta nel registro, il PDF del fascicolo si rigenera.
+
+    La bozza diventa «modificata dall'avvocato»: il giro in sfondo non la riscrive più (segnala solo i dati
+    cambiati). Nulla si invia, si deposita o si notifica."""
+    from pct.editor_ai.editor_renderer import sanitize_editor_html
+    from web.helpers import get_fascicoli
+
+    archivio = archivio_corrente()
+    voce = bozza_del_documento(fascicolo_id, documento_id)
+    if archivio is None or voce is None:
+        raise LookupError("La bozza non risulta nel registro delle bozze dei passi.")
+    repository = get_fascicoli()
+    fascicolo = repository.get(fascicolo_id)
+    documento = _documento(fascicolo, documento_id) if fascicolo is not None else None
+    if documento is None:
+        raise LookupError("Documento non trovato nel fascicolo.")
+    pulito = sanitize_editor_html(testo_html)
+    mancano = da_completare_html(pulito)
+    scrivi_pdf(repository, fascicolo_id, documento, titolo=voce.titolo, testo_html=pulito,
+               note=nota_bozza(voce.modello_titolo, len(mancano), modificata=True), autore=autore)
+    voce.testo_html, voce.da_completare, voce.aggiornata_il = pulito, list(mancano), adesso()
+    if voce.stato == STATO_PRONTA:
+        voce.stato = STATO_MODIFICATA
+    archivio.salva(voce)
+    _segnala_documenti(fascicolo_id)
+    aggiornato = _documento(repository.get(fascicolo_id), documento_id)
+    return {"ok": True, "nome": str(getattr(aggiornato, "nome", "") or documento.nome), "formato": "pdf",
+            "daCompletare": list(mancano)}
 
 
 def _segnala_documenti(fascicolo_id: str) -> None:
@@ -259,7 +430,8 @@ def giro(app, *, fascicoli: dict[str, set[str]] | None = None, ore: float = 72.0
     from web.services.pannelli_pronti_runtime import archivio_per_percorsi, fonti_per_percorsi
     from web.services.pannelli_pronti_sfondo import studi
 
-    totale = {"fascicoli": 0, "create": 0, "aggiornate": 0, "invariate": 0, "dati_cambiati": 0, "superate": 0, "errori": 0}
+    totale = {"fascicoli": 0, "create": 0, "aggiornate": 0, "invariate": 0, "dati_cambiati": 0, "superate": 0,
+              "convertite": 0, "errori": 0}
     for owner, data_paths in studi(app):
         slug = str(getattr(owner, "slug", "") or "single-studio")
         if fascicoli is not None and slug not in fascicoli:
@@ -267,6 +439,14 @@ def giro(app, *, fascicoli: dict[str, set[str]] | None = None, ore: float = 72.0
         archivio_pannelli, fonti, archivio = archivio_per_percorsi(data_paths), fonti_per_percorsi(data_paths), archivio_corrente(data_paths)
         if archivio_pannelli is None or fonti is None or archivio is None:
             continue
+        if archivio.da_convertire(1):
+            # Le bozze create in HTML prima del 19/11/2026 diventano PDF al primo giro, in ogni fascicolo.
+            try:
+                with _contesto_studio(app, owner):
+                    totale["convertite"] += converti_bozze_html(archivio)
+            except Exception as exc:
+                logger.warning("Conversione in PDF delle bozze non completata per %s: %s", slug, exc)
+                totale["errori"] += 1
         elenco = sorted(fascicoli[slug]) if fascicoli is not None else archivio_pannelli.fascicoli_aperti_dal(ore)[:limite]
         for fascicolo_id in elenco:
             try:
@@ -322,6 +502,9 @@ def payload_bozze(fascicolo_id: str) -> dict[str, Any]:
             "passi": voce.passi, "stato": stato, "statoEtichetta": STATI_ETICHETTE.get(stato, stato),
             "documentoId": voce.documento_id,
             "apri": f"/fascicoli/{fascicolo_id}/documenti/{voce.documento_id}/editor",
+            # Il documento del fascicolo è il PDF; l'editor apre il suo testo modificabile.
+            "pdf": (f"/fascicoli/{fascicolo_id}/documenti/{voce.documento_id}/visualizza"
+                    if str(getattr(documento, "nome", "")).lower().endswith(".pdf") else ""),
             "preparataIl": data_it(voce.creata_il), "aggiornataIl": data_it(voce.aggiornata_il),
             "datiCambiatiIl": data_it(voce.dati_cambiati_il),
         })
@@ -330,4 +513,6 @@ def payload_bozze(fascicolo_id: str) -> dict[str, Any]:
                       "Nessuna è stata inviata, depositata o notificata."}
 
 
-__all__ = ["STATI_ETICHETTE", "archivio_corrente", "dati_studio", "giro", "impagina", "payload_bozze", "prepara_bozze_fascicolo"]
+__all__ = ["STATI_ETICHETTE", "archivio_corrente", "bozza_del_documento", "converti_bozza", "converti_bozze_html",
+           "dati_studio", "giro", "impagina", "nota_bozza", "payload_bozze", "prepara_bozze_fascicolo", "salva_dall_editor",
+           "scrivi_pdf"]

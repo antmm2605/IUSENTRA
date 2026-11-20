@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 
+from pct.destinatari_notifica_pa import effetti_verso_pa
 from pct.percorso_pratica.esito import codice_esito_dispositivo, dispositivo, improcedibile_per_interesse
 from pct.percorso_pratica.giurisdizioni import AMMINISTRATIVO, CIVILE, IMPUGNAZIONI_PER_GRADO, PRIMO, giurisdizione_e_grado
 from pct.riconvalida_termine_lungo import CODICE_TERMINE_LUNGO, DALLA_DECISIONE, MARCATORE_PEC, NON_CERTA
@@ -61,12 +62,18 @@ def termini_lunghi_prudenziali(atti, documenti, scadenze) -> dict[str, str]:
     return esiti
 
 
-def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, titolo_verificato: bool) -> list[Conclusione]:
+def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, titolo_verificato: bool,
+                    motivo_pa: str = "", solo_esecuzione: bool = False) -> list[Conclusione]:
+    """Effetti della notifica provata. ``motivo_pa``: perché i 120 giorni non decorrono (destinatario sbagliato);
+    ``solo_esecuzione``: la notifica non vale per il termine breve, solo per i 120 giorni."""
     lavoro = ctx.rito.codice == "lavoro"
     esiti: list[Conclusione] = []
     termine_breve = ""
-    for calcolo in termini_dalla_notifica(base, lavoro=lavoro, contro_pa=ctx.rito.contro_pa, condanna=condanna and titolo_verificato,
+    titolo_notificato = titolo_verificato and not motivo_pa
+    for calcolo in termini_dalla_notifica(base, lavoro=lavoro, contro_pa=ctx.rito.contro_pa, condanna=condanna and titolo_notificato,
                                           oggi=ctx.oggi, esclusione_feriale=ctx.rito.motivo_feriale):
+        if solo_esecuzione and calcolo["codice"] != "esecuzione_pa_120_giorni":
+            continue
         scadenza = giorno(calcolo.get("deadline"))
         if calcolo["codice"] == "termine_breve_impugnazione":
             termine_breve = scadenza.isoformat() if scadenza else ""
@@ -106,8 +113,8 @@ def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, t
                 "da_fare" if dopo else "non_dovuto", "" if dopo else f"non ancora: i 120 giorni scadono il {data_it(scadenza)}",
                 termine, "builtin-tmp-ese-001",
             ))
-    if ctx.rito.contro_pa and condanna and not titolo_verificato and ctx.posizione == "attiva":
-        motivo = "Per i 120 giorni occorre provare la notificazione del titolo esecutivo all'amministrazione obbligata."
+    if ctx.rito.contro_pa and condanna and not titolo_notificato and ctx.posizione == "attiva":
+        motivo = motivo_pa or "Per i 120 giorni occorre provare la notificazione del titolo esecutivo all'amministrazione obbligata."
         esiti.append(Conclusione(
             "esecuzione_pa", "Verificare la notifica del titolo prima del precetto", fonte,
             norme("dl669_art14", "cpc_475"), "controllare la copia conforme o il duplicato, la relata e la consegna",
@@ -281,8 +288,21 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
                  if oid in ctx.consegne_verificate]
         date_provate = {prova.get("data", "") for prova in prove if prova.get("riferimento")}
         base = next(iter(date_provate)) if len(date_provate) == 1 else ""
+        motivo_destinatario = ""
         if giorno(base) and giorno(base) <= ctx.oggi and (not pubblicata or giorno(base) >= pubblicata):
             prova = next(p for p in prove if p.get("data") == base and p.get("riferimento"))
+            motivo_breve, motivo_pa = ("", "")
+            if ctx.rito.contro_pa and prova.get("destinatari") is not None:
+                # Termine breve dal procuratore costituito (Avvocatura), 120 giorni dall'amministrazione debitrice.
+                motivo_breve, motivo_pa = effetti_verso_pa(prova.get("destinatari"))
+            titolo = prova.get("titolo_esecutivo") == "verificato"
+            if motivo_breve:
+                motivo_destinatario = motivo_breve
+                risultato.extend(_dalla_notifica(
+                    ctx, fonte, base, condanna_al_pagamento(sentenza.testo), titolo_verificato=titolo,
+                    motivo_pa=motivo_pa, solo_esecuzione=True,
+                ))
+        if not motivo_destinatario and giorno(base) and giorno(base) <= ctx.oggi and (not pubblicata or giorno(base) >= pubblicata):
             risultato.append(Conclusione(
                 "notifica_sentenza", "Notificare la sentenza alla controparte", fonte, norme("cpc_326", "l53_art3bis"),
                 "notifica a mezzo PEC con relata (art. 3-bis L. 53/1994)",
@@ -293,7 +313,7 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
             ))
             risultato.extend(_dalla_notifica(
                 ctx, fonte, base, condanna_al_pagamento(sentenza.testo),
-                titolo_verificato=prova.get("titolo_esecutivo") == "verificato",
+                titolo_verificato=titolo, motivo_pa=motivo_pa,
             ))
             continue
         lungo = None
@@ -310,7 +330,18 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
              if oid in ctx.notifiche_storiche), ("", ""),
         )
         condanna_pa = ctx.rito.contro_pa and ctx.posizione == "attiva" and condanna_al_pagamento(sentenza.testo)
-        if lungo and lungo.scaduto:
+        if motivo_destinatario:
+            # Notifica consegnata ma non al destinatario da cui decorre il termine breve.
+            condanna_pa = False  # l'esecuzione è già decisa dalla stessa notifica (120 giorni o dubbio)
+            risultato.append(Conclusione(
+                "notifica_sentenza", "Verificare il destinatario della notifica della sentenza", fonte,
+                norme("cpc_285", "rd1611_art11", "cpc_326"), "notifica della sentenza al procuratore costituito (Avvocatura dello Stato)",
+                "il termine breve decorre solo dalla notifica al procuratore costituito", "dubbio", motivo_destinatario,
+                motivo_senza_termine="Il termine breve richiede la consegna al difensore costituito dell'amministrazione.",
+                dubbi=[Dubbio("destinatario_notifica_sentenza", motivo_destinatario,
+                              "la consegna della sentenza all'Avvocatura dello Stato o la prova della difesa con propri dipendenti", fonte)],
+            ))
+        elif lungo and lungo.scaduto:
             risultato.append(Conclusione(
                 "notifica_sentenza", "Notifica ai fini del termine breve", fonte,
                 norme("cpc_326", "cpc_327"), "Conservare le ricevute e la relata eventualmente acquisite.",

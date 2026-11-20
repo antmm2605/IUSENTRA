@@ -209,8 +209,44 @@ def _consegne_verificate(fascicolo_id: str) -> dict[str, dict[str, str]]:
             atto, giorno = str(caso["act_document_id"]), next(iter(date))
             if atto in per_atto and per_atto[atto]["data"] != giorno:
                 ambigui.add(atto)
-            per_atto[atto] = {"data": giorno, "riferimento": str(caso["bundle_id"])}
+            prova = {"data": giorno, "riferimento": str(caso["bundle_id"])}
+            destinatari = _ruoli_destinatari(conn, caso["id"])
+            if destinatari is not None:
+                prova["destinatari"] = destinatari
+            if _copia_attestata_notificata(conn, caso["id"], atto):
+                # Notificata la copia attestata conforme del provvedimento: è la notifica del titolo
+                # (art. 475 c.p.c.; art. 196-octies disp. att. c.p.c.), da cui decorrono i 120 giorni
+                # dell'art. 14 D.L. 669/1996. La condanna la verifica la regola sul testo della sentenza.
+                prova["titolo_esecutivo"] = "verificato"
+            per_atto[atto] = prova
     return {atto: prova for atto, prova in per_atto.items() if atto not in ambigui}
+
+
+def _ruoli_destinatari(conn: Any, caso_id: Any) -> list[dict[str, str]] | None:
+    """Indirizzo e ruolo (dalla relata) dei destinatari consegnati; None se il registro non li ha classificati."""
+    righe = conn.execute(
+        "SELECT recipient_address, recipient_type FROM notification_recipients WHERE notification_case_id=? AND status<>'CANCELLED'",
+        (caso_id,),
+    ).fetchall()
+    ruoli = [str(r[1] or "") for r in righe]
+    if not righe or not all(r.startswith("RELATA_") for r in ruoli):
+        return None
+    return [{"indirizzo": str(r[0] or ""), "ruolo": ruolo[len("RELATA_"):].lower()} for r, ruolo in zip(righe, ruoli)]
+
+
+def _copia_attestata_notificata(conn: Any, caso_id: Any, atto: str) -> bool:
+    """Attestazione di conformità verificata, nella relata dello stesso caso, per l'atto notificato."""
+    try:
+        return conn.execute(
+            """SELECT 1 FROM conformity_attestations a JOIN notification_relata r
+                 ON r.notification_case_id=a.notification_case_id AND r.validation_status='VERIFIED'
+                AND r.contains_conformity_attestation=1
+               WHERE a.notification_case_id=? AND a.document_attested_id=? AND a.validation_status='VERIFIED'
+                 AND a.destination='NOTIFICA' LIMIT 1""",
+            (caso_id, atto),
+        ).fetchone() is not None
+    except Exception:  # registro senza la tabella delle attestazioni: nessun titolo dichiarato
+        return False
 
 
 _MASSIMO_COLLEGATI = 8

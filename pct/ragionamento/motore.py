@@ -41,7 +41,9 @@ from .udienze_esito import esiti_udienze
 from .rito import determina_rito
 from .testo import pulito, rg_normale, semplice
 
-VERSIONE = "2026.11.20.ragionamento.v42-catena-note-ritroso-644-posizione-coerenza-scopo-raggiunto-parti"
+# v42 (20/11/2026): unisce la v41 della catena (note, ritroso, art. 644, posizione), la v41 della coerenza
+# (scopo raggiunto, parti) e gli effetti delle notifiche PEC storiche provate dalle ricevute del gestore.
+VERSIONE = "2026.11.20.ragionamento.v42-catena-note-ritroso-644-posizione-coerenza-scopo-raggiunto-parti-pec-storiche"
 ROMA = ZoneInfo("Europe/Rome")
 
 

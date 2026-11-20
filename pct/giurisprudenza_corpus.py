@@ -102,6 +102,29 @@ def _termini_fts(value: Any) -> list[str]:
     return termini[:16]
 
 
+def connessione_sola_lettura(db_path: str) -> sqlite3.Connection:
+    """Connessione in sola lettura a un archivio della giurisprudenza (nativo o SentenzeWeb).
+
+    Un archivio in modalità WAL in una cartella non scrivibile (montaggio in sola lettura, file di root) non si
+    legge con ``mode=ro``: il lettore non può creare il file -shm e ogni interrogazione fallisce con «attempt to
+    write a readonly database». In quel caso, senza scrittori in questo processo, si legge l'istantanea immutabile."""
+    conn = sqlite3.connect(Path(db_path).as_uri() + "?mode=ro", uri=True, timeout=5)
+    try:
+        conn.execute("SELECT 1 FROM sqlite_master LIMIT 1").fetchone()
+    except sqlite3.OperationalError as exc:
+        if "readonly" not in str(exc).lower():
+            raise
+        conn.close()
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Archivio giurisprudenza in WAL non scrivibile (%s): lettura come istantanea immutabile", db_path)
+        conn = sqlite3.connect(Path(db_path).as_uri() + "?mode=ro&immutable=1", uri=True, timeout=5)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA query_only=ON")
+    return conn
+
+
 def derive_corpus_db_path(storage_path: str) -> str:
     target = Path(storage_path)
     stem = target.stem or "giurisprudenza"
@@ -166,7 +189,11 @@ _DOMANDA_PROCESSUALE = re.compile(
 _ECLI_RE = re.compile(r"\bECLI:[A-Z]{2}:[A-Z]+:\d{4}:[0-9A-Z.]+", re.IGNORECASE)
 _ESTREMI_RE = re.compile(
     r"(?:\b(?:sent(?:enza|\.)?|ord(?:inanza|\.)?|pronuncia|decisione|cost(?:ituzionale|\.)?|consulta"
-    r"|cass(?:azione|\.)?) ?,? ?(?:(?:sent|ord)\. ?)?(?:n\.|nr\.?|numero)? ?)"
+    r"|cass(?:azione|\.)?) ?,? ?"
+    # Sezione fra organo e numero: «Cass. S.U. n.», «Cass., sez. lav., n.», «Cass. sez. III n.», «Cass. civ. n.».
+    r"(?:(?:civ(?:ile|\.)?|pen(?:ale|\.)?|s\. ?u\.|sez(?:ioni|ione|\.)? ?(?:un(?:ite|\.)|lav(?:oro|\.)?|trib(?:utaria|\.)?"
+    r"|[ivx]+|\d(?:-\d)?)?\.?) ?,? ?){0,2}"
+    r"(?:(?:sent|ord)\. ?)?(?:n\.|nr\.?|numero)? ?)"
     r"(\d{1,6}) ?(?:/| del(?:l'anno)? )((?:19|20)\d{2})\b",
     re.IGNORECASE,
 )
@@ -306,10 +333,7 @@ class GestioneCorpusGiurisprudenza:
 
     def _connect(self) -> sqlite3.Connection:
         if getattr(self, "read_only", False):
-            conn = sqlite3.connect(Path(self.db_path).as_uri() + "?mode=ro", uri=True, timeout=5)
-            conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA query_only=ON")
-            return conn
+            return connessione_sola_lettura(self.db_path)
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
@@ -1091,7 +1115,10 @@ class GestioneCorpusGiurisprudenza:
                 try:
                     for row in conn.execute(sql, (ricerca, *filtri_params, rosa)).fetchall():
                         candidati.setdefault(int(row["id"]), dict(row))
-                except sqlite3.OperationalError:
+                except sqlite3.OperationalError as exc:
+                    # Una sintassi FTS non valida si salta; un archivio illeggibile non è «nessun risultato».
+                    if "fts5" not in str(exc).lower() and "syntax" not in str(exc).lower():
+                        raise
                     continue
             gia = {int(row["id"]) for row in per_estremi}
             ordinate = _riordina([row for key, row in candidati.items() if key not in gia], domanda, termini)
@@ -1177,11 +1204,12 @@ class GestioneCorpusGiurisprudenza:
             _aggiungi(conn.execute(
                 f"""
                 SELECT {_COLONNE_RICERCA} FROM sentenze s
-                WHERE s.anno_sentenza = ? AND s.numero_sentenza IN (?, ?) {organo_sql} {filtri}
+                WHERE s.anno_sentenza = ? AND s.numero_sentenza IN (?, ?, ?, ?) {organo_sql} {filtri}
                 ORDER BY {_ORDINE_STORICO}
                 LIMIT 5
                 """,
-                (anno, numero, f"{numero}/{anno}", *filtri_params),
+                # La Cassazione (SentenzeWeb) scrive il numero con gli zeri iniziali («05425»): l'avvocato cita «5425/2021».
+                (anno, numero, numero.zfill(5), numero.zfill(6), f"{numero}/{anno}", *filtri_params),
             ).fetchall())
         return righe
 

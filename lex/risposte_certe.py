@@ -163,7 +163,8 @@ def _risposta_impugnazione(testo: str, date_: list[date]) -> RispostaCerta | Non
     per_nome = "per il ricorso per cassazione" if cassazione else "per l'appello"
     breve = "CIV_CASSAZIONE_BREVE" if cassazione else "CIV_APPELLO_BREVE"
     giorni = 60 if cassazione else 30
-    notificata = bool(re.search(r"(?<!non )notificat", testo))
+    # «non è stata notificata» (testo senza accenti: «non e stata notificata») non è una notificazione.
+    notificata = bool(re.search(r"notificat", testo)) and not re.search(r"\bnon (?:e |e' )?(?:stata |stato )?notificat", testo)
     pubblicata = bool(re.search(r"pubblicat|depositat", testo)) and not notificata
     if not date_:
         return RispostaCerta(

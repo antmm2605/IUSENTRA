@@ -261,6 +261,13 @@ class OperationalQueryRouter:
                 reason="La richiesta sembra chiedere un'azione dispositiva, non una consultazione.",
             )
 
+        # Redazioni, pareri e termini giuridici (anche dentro un racconto di fatti con «oggi», «PEC», «parte»,
+        # «termine») non sono ricerche sui dati dello studio: li tratta l'harness di Lex (lex/harness).
+        from lex.harness.comprensione import e_richiesta_giuridica
+
+        if e_richiesta_giuridica(question):
+            return None
+
         entity_query = self._entity_query(text)
         from .query_selection import is_plain_pec_query, is_plain_notification_query, is_plain_calendar_query, is_plain_deposit_query, is_plain_receipt_query, has_scoped_query_context
 

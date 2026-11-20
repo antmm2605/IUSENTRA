@@ -60,6 +60,7 @@ FASI: tuple[Fase, ...] = (
          "Scadenze, avvisi e presidio economico usano i fatti appena letti; il piano del giorno chiude la fase.",
          (Passo("aggiorna_scadute"), Passo("aggiorna_parcelle_scadute"), Passo("agenda_scadenziario_notifications"),
           Passo("fascicoli_document_economic_presidio"), Passo("profili_procedurali_riconvalida"),
+          Passo("collaudo_catena"), Passo("guardiano_catena_notturno"),
           Passo("patrocinio_adeguamento_bimestrale", mesi=(1, 3, 5, 7, 9, 11)))),
     Fase(6, "Indici e Lex (AI locale)",
          "Catalogo, RAG, embedding e apprendimento di Lex: l'AI locale si carica solo qui e si scarica alla fine.",

@@ -728,7 +728,7 @@ export function DocumentEditorPage() {
       })
       const payload = await response.json().catch(() => ({} as Record<string, unknown>))
       if (!response.ok || payload.ok === false) throw new Error(String(payload.errore || payload.messaggio || 'Salvataggio non riuscito.'))
-      if (text(payload.nome)) setData((current) => ({ ...current, document: { ...current.document, name: text(payload.nome), extension: 'docx' } }))
+      if (text(payload.nome)) setData((current) => ({ ...current, document: { ...current.document, name: text(payload.nome), extension: text(payload.formato) || 'docx' } }))
       const hasNewEdits = editRevisionRef.current !== submittedRevision
       setDirty(hasNewEdits)
       const now = new Date()

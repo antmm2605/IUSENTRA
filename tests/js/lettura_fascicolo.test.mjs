@@ -194,3 +194,13 @@ test('la coda SQL resta distinta dagli errori anche con indice parziale', () => 
   dati.documenti.non_indicizzati = [{}]
   assert.match(presidiCards(dati).find((voce) => voce.id === 'documenti').nota, /2 letture non riuscite.*3 da indicizzare/)
 })
+
+test('i documenti riconosciuti con certezza dal contenuto contano come automatici, non come proposte (9A681FDF, 19/11/2026)', () => {
+  const documenti = { totale: 43, catalogati: 41, automatici: 41, confermati: 0, proposti: 0, da_verificare: [{}, {}], non_indicizzati: [], conteggi: {} }
+  const card = presidiCards(lettura({ documenti })).find((c) => c.id === 'documenti')
+  assert.equal(card.valore, '41/43')
+  assert.equal(card.nota, '2 da classificare · 41 catalogati in automatico · 0 confermati')
+  const tutti = presidiCards(lettura({ documenti: { ...documenti, catalogati: 43, automatici: 43, da_verificare: [] } })).find((c) => c.id === 'documenti')
+  assert.equal(tutti.nota, 'tutti letti e catalogati · 43 in automatico')
+  assert.equal(tutti.tono, 'success')
+})

@@ -153,7 +153,35 @@ def _udienze(frase: str, data_atto: date | None) -> list[tuple[date, str]]:
     return esito
 
 
-def _scadenze(frase: str, udienze: list[tuple[date, str]]) -> list[tuple[date, str, str]]:
+_RITROSO = re.compile(r"(?:almeno|fino a|sino a|entro e non oltre il termine di)\s+(\w+)\s+giorni prima dell?(?:a|')?\s*"
+                      r"(?:prossima\s+)?(?:udienza|termine)")
+# La parola che lega il «N giorni prima» al suo adempimento quando un periodo ne contiene più d'uno
+# (caso reale RG 2691/2026: «costituirsi almeno 10 giorni prima» e «depositare, sino a cinque giorni prima, note»).
+_PAROLE_DELL_ADEMPIMENTO = {"note_127ter": r"\bnote\b", "costituzione_convenuto": r"costitu"}
+
+
+_DEPOSITO_NOTE = re.compile(r"deposit\w*[^.;]{0,80}\bnote\b|\bnote\b[^.;]{0,60}deposit")
+
+
+def _ritroso(s: str, codice: str = "") -> re.Match | None:
+    """Il «N giorni prima dell'udienza» dell'adempimento del periodo: la clausola (fra «;» o «.») che lo nomina."""
+    trovati = list(_RITROSO.finditer(s))
+    parola = _PAROLE_DELL_ADEMPIMENTO.get(codice)
+    if not parola:
+        return trovati[0] if trovati else None
+    for m in trovati:
+        # La clausola: dal «;», dal «.» di fine periodo o dal «*» precedenti al «;» o «.» seguenti («c.p.c.» non chiude).
+        prima = re.sub(r"c\.p\.c\.|c\.c\.|artt?\.", lambda x: "_" * len(x.group(0)), s[:m.start()])
+        dopo = re.sub(r"c\.p\.c\.|c\.c\.|artt?\.", lambda x: "_" * len(x.group(0)), s[m.end():])
+        inizio = max(prima.rfind(";"), prima.rfind("."), prima.rfind("*")) + 1
+        fine = min([i for i in (dopo.find(";"), dopo.find("."), dopo.find("*")) if i >= 0] or [len(dopo)])
+        if re.search(parola, s[inizio:m.end() + fine]):
+            return m
+    # Il «N giorni prima» del periodo riguarda un altro adempimento (per esempio la costituzione del convenuto).
+    return None
+
+
+def _scadenze(frase: str, udienze: list[tuple[date, str]], codice: str = "") -> list[tuple[date, str, str]]:
     """(data, ora, come è scritta) dei termini con data nella frase.
 
     Il termine «almeno N giorni prima dell'udienza» porta qui la data grezza (udienza meno N giorni) e la
@@ -167,7 +195,7 @@ def _scadenze(frase: str, udienze: list[tuple[date, str]]) -> list[tuple[date, s
             esito.append((valore, _ora(frase[inizio:inizio + 40]), "data scritta nel provvedimento"))
     if re.search(r"termine perentorio del giorno dell'udienza", s) and udienze:
         esito.append((udienze[0][0], _ora(frase) or udienze[0][1], "giorno dell'udienza fissata"))
-    m = re.search(r"(?:almeno|fino a|sino a|entro e non oltre il termine di)\s+(\w+)\s+giorni prima dell?(?:a|')?\s*(?:prossima\s+)?(?:udienza|termine)", s)
+    m = _ritroso(s, codice)
     if m and udienze and _numero(m.group(1)):
         giorni = _numero(m.group(1))
         esito.append((udienze[0][0] - timedelta(days=giorni), "", f"a_ritroso:{giorni}:{udienze[0][0].isoformat()}"))
@@ -222,12 +250,17 @@ def leggi_provvedimento(atto: Atto, rg: str) -> LetturaProvvedimento:
         }
         if len(date_note) == 1:
             udienze_atto = [(next(iter(date_note)), "")]
+    trattazione_scritta = any(_adempimento(p)[0] == "note_127ter" for p in periodi)
     for indice, periodo in enumerate(periodi):
         contesto = periodo + (" " + periodi[indice + 1] if norma_rischio and indice + 1 < len(periodi)
                               and re.search(r"631|181", periodi[indice + 1]) else "")
         fonte = Fonte(atto.id, atto.nome, pulito(contesto)[:400], atto.data)
         codice, testo = _adempimento(periodo)
-        scadenze = _scadenze(periodo, _udienze(periodo, data_atto) or udienze_atto)
+        if not codice and trattazione_scritta and _DEPOSITO_NOTE.search(semplice(periodo)):
+            # «INVITA le parti a depositare, sino a cinque giorni prima dell'udienza, coincise note»: nel provvedimento
+            # che dispone la trattazione scritta è il termine per le note (art. 127-ter c.p.c.).
+            codice, testo = "note_127ter", "Depositare le note scritte ex art. 127-ter c.p.c. (sole istanze e conclusioni)"
+        scadenze = _scadenze(periodo, _udienze(periodo, data_atto) or udienze_atto, codice)
         onerato = "tutte_le_parti" if codice == "note_127ter" else _onerato(periodo)
         perentorio = codice == "note_127ter" or bool(re.search(r"perentori|a pena di decadenza", semplice(periodo)))
         if not codice and not re.search(r"\b(assegna|fissa|concede|dispone|ordina|onera)\b|termine perentorio", semplice(periodo)):

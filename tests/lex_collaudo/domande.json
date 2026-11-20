@@ -1,0 +1,812 @@
+{
+ "versione": "18/11/2026",
+ "domande": [
+  {
+   "id": "ferrandina",
+   "materia": "civile",
+   "tipo": "redazione",
+   "domanda": "Data di oggi 16/11/2026 Parte assistita Luca Ferrandina (promissario acquirente, attore) Controparte Giorgio Salvemini (promittente venditore, convenuto) Richiesta dell'avvocato Redigimi l'atto di citazione per il mio cliente: il venditore si è rifiutato di stipulare il definitivo e vogliamo recedere trattenendo... anzi, ottenendo il doppio della caparra. Valuta tu rito e giudice. Fatti del fascicolo Preliminare di compravendita del 12/02/2026 (scrittura privata non trascritta) per un appartamento in Bari, via immaginaria Delle Ginestre 14, prezzo 210.000 euro. Il 12/02/2026 Ferrandina ha versato 25.000 euro a titolo di caparra confirmatoria con bonifico (contabile in atti); clausola 6 qualifica espressamente la somma come caparra confirmatoria ex art. 1385 c.c. Rogito fissato entro il 30/06/2026 presso notaio indicato dal promissario acquirente. Il 10/06/2026 Ferrandina ha convocato Salvemini dal notaio per il 29/06/2026 (PEC/raccomandata in atti, ricevuta 12/06/2026). Il 29/06/2026 Salvemini non si è presentato: verbale di mancata comparizione del notaio. Il 15/07/2026 diffida ad adempiere ex art. 1454 c.c. con termine di 15 giorni, ricevuta il 17/07/2026; nessuna risposta. Il 20/09/2026 Ferrandina ha appreso che l'immobile è stato offerto in vendita a terzi tramite agenzia (annuncio stampato). Residenza del convenuto: Bari. Il cliente non vuole il trasferimento coattivo ex 2932 c.c., vuole chiudere il rapporto. Nessuna procedura di mediazione avviata.",
+   "norme_attese": [
+    "cc:1385",
+    "cc:1454",
+    "cpc:10",
+    "cpc:14",
+    "cpc:7",
+    "cpc:18",
+    "cpc:20",
+    "cpc:163bis",
+    "cpc:171ter",
+    "cpc:281decies",
+    "dl132:3",
+    "dlgs28:5"
+   ],
+   "conclusione": [
+    "tribunale di bari",
+    "50\\.000",
+    "doppio della caparra",
+    "negoziazione assistita obbligatoria",
+    "non richied\\w+ la prova del danno",
+    "atto di citazione",
+    "conclusioni",
+    "patrocinio a spese dello stato",
+    "\\[da completare\\]"
+   ],
+   "vietate": [
+    "giudice di pace di bari",
+    "pec dello studio",
+    "scadenze di oggi"
+   ],
+   "percorso": "harness",
+   "nota": "art. 1385 c.2 c.c.; valore 50.000 (artt. 10, 14 c.p.c.); Tribunale (art. 7 limite 10.000 vigente); Bari (art. 18)"
+  },
+  {
+   "id": "ferrandina_solo_question",
+   "materia": "civile",
+   "tipo": "redazione",
+   "domanda": "Data di oggi 16/11/2026 Parte assistita Luca Ferrandina (promissario acquirente, attore) Controparte Giorgio Salvemini (promittente venditore, convenuto) Richiesta dell'avvocato Redigimi l'atto di citazione per il mio cliente: il venditore si è rifiutato di stipulare il definitivo e vogliamo recedere trattenendo... anzi, ottenendo il doppio della caparra. Valuta tu rito e giudice. Fatti del fascicolo Preliminare di compravendita del 12/02/2026 (scrittura privata non trascritta) per un appartamento in Bari, via immaginaria Delle Ginestre 14, prezzo 210.000 euro. Il 12/02/2026 Ferrandina ha versato 25.000 euro a titolo di caparra confirmatoria con bonifico (contabile in atti); clausola 6 qualifica espressamente la somma come caparra confirmatoria ex art. 1385 c.c. Rogito fissato entro il 30/06/2026 presso notaio indicato dal promissario acquirente. Il 10/06/2026 Ferrandina ha convocato Salvemini dal notaio per il 29/06/2026 (PEC/raccomandata in atti, ricevuta 12/06/2026). Il 29/06/2026 Salvemini non si è presentato: verbale di mancata comparizione del notaio. Il 15/07/2026 diffida ad adempiere ex art. 1454 c.c. con termine di 15 giorni, ricevuta il 17/07/2026; nessuna risposta. Il 20/09/2026 Ferrandina ha appreso che l'immobile è stato offerto in vendita a terzi tramite agenzia (annuncio stampato). Residenza del convenuto: Bari. Il cliente non vuole il trasferimento coattivo ex 2932 c.c., vuole chiudere il rapporto. Nessuna procedura di mediazione avviata.",
+   "norme_attese": [
+    "cc:1385",
+    "dl132:3"
+   ],
+   "conclusione": [
+    "tribunale di bari",
+    "50\\.000"
+   ],
+   "vietate": [
+    "pec dello studio"
+   ],
+   "percorso": "harness_question",
+   "nota": "stesso caso inviato con il solo campo question"
+  },
+  {
+   "id": "caparra_variante_milano",
+   "materia": "civile",
+   "tipo": "redazione",
+   "domanda": "Redigi un atto di citazione per la mia cliente Anna Neri, promissaria acquirente: il promittente venditore Paolo Riva, residente a Milano, non si è presentato al rogito fissato per il 15/05/2026. Con il preliminare del 10/01/2026 Anna Neri ha versato 10.000 euro a titolo di caparra confirmatoria. Vuole recedere e ottenere il doppio della caparra. Nessuna mediazione avviata.",
+   "norme_attese": [
+    "cc:1385",
+    "cpc:7",
+    "dl132:3"
+   ],
+   "conclusione": [
+    "20\\.000",
+    "tribunale di milano",
+    "negoziazione assistita obbligatoria"
+   ],
+   "vietate": [
+    "giudice di pace di milano"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "caparra_parere_60000",
+   "materia": "civile",
+   "tipo": "parere",
+   "domanda": "Il mio cliente, promissario acquirente, ha versato 30.000 euro di caparra confirmatoria; il promittente venditore, residente a Lecce, si rifiuta di stipulare il definitivo e ha venduto a terzi il 03/09/2026. Cosa possiamo chiedere e serve la negoziazione assistita?",
+   "norme_attese": [
+    "cc:1385",
+    "dl132:3"
+   ],
+   "conclusione": [
+    "60\\.000",
+    "doppio della caparra",
+    "supera la soglia",
+    "tribunale di lecce"
+   ],
+   "vietate": [
+    "negoziazione assistita obbligatoria"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "negoziazione_50000",
+   "materia": "procedibilità",
+   "tipo": "parere",
+   "domanda": "La negoziazione assistita è obbligatoria per una domanda di pagamento di 50.000 euro? Indica la norma.",
+   "norme_attese": [
+    "dl132:3"
+   ],
+   "conclusione": [
+    "negoziazione assistita obbligatoria",
+    "non eccedenti",
+    "art\\. 3 d\\.l\\. 132/2014"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": "domanda del coordinatore n. 3"
+  },
+  {
+   "id": "negoziazione_60000",
+   "materia": "procedibilità",
+   "tipo": "parere",
+   "domanda": "Serve la negoziazione assistita per una domanda di pagamento di 60.000 euro?",
+   "norme_attese": [
+    "dl132:3"
+   ],
+   "conclusione": [
+    "non e obbligatoria",
+    "supera la soglia"
+   ],
+   "vietate": [
+    "negoziazione assistita obbligatoria:"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "negoziazione_consumatore",
+   "materia": "consumatori",
+   "tipo": "parere",
+   "domanda": "Un consumatore deve chiedere a un negozio di elettronica la restituzione di 3.000 euro per un televisore difettoso: quale giudice è competente e serve la negoziazione assistita?",
+   "norme_attese": [
+    "cpc:7",
+    "dlgs206:33",
+    "dl132:3"
+   ],
+   "conclusione": [
+    "giudice di pace",
+    "residenza o domicilio elettivo del consumatore",
+    "non e obbligatoria"
+   ],
+   "vietate": [
+    "negoziazione assistita obbligatoria:"
+   ],
+   "percorso": "harness",
+   "nota": "foro del consumatore: art. 33, comma 2, lett. u), cod. cons. (l'art. 66-bis vale per i contratti a distanza e fuori dei locali)"
+  },
+  {
+   "id": "mediazione_condominio",
+   "materia": "condominio",
+   "tipo": "parere",
+   "domanda": "Per una causa contro il condominio per infiltrazioni dal lastrico solare è obbligatoria la mediazione?",
+   "norme_attese": [
+    "dlgs28:5"
+   ],
+   "conclusione": [
+    "mediazione obbligatoria",
+    "condominio"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "mediazione_banca",
+   "materia": "bancario",
+   "tipo": "parere",
+   "domanda": "È obbligatoria la mediazione per contestare alla banca gli interessi di un mutuo?",
+   "norme_attese": [
+    "dlgs28:5"
+   ],
+   "conclusione": [
+    "mediazione obbligatoria",
+    "bancari"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "locazione_cauzione",
+   "materia": "locazione",
+   "tipo": "parere",
+   "domanda": "Il mio cliente, ex conduttore di un appartamento a Lecce, vuole la restituzione del deposito cauzionale di 2.000 euro dal locatore: serve la mediazione? Quale giudice?",
+   "norme_attese": [
+    "dlgs28:5",
+    "cpc:447bis"
+   ],
+   "conclusione": [
+    "mediazione obbligatoria",
+    "locazione",
+    "luogo in cui si trova l'immobile|luogo dove e posto l'immobile"
+   ],
+   "vietate": [
+    "competente per valore e il giudice di pace"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "competenza_8000",
+   "materia": "civile",
+   "tipo": "parere",
+   "domanda": "Quale giudice è competente per una domanda di pagamento di 8.000 euro per la vendita di un'auto usata tra privati?",
+   "norme_attese": [
+    "cpc:7"
+   ],
+   "conclusione": [
+    "giudice di pace"
+   ],
+   "vietate": [
+    "competente per valore e il tribunale"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "competenza_incidente",
+   "materia": "civile",
+   "tipo": "parere",
+   "domanda": "Risarcimento dei danni da incidente stradale per 22.000 euro: quale giudice è competente e quale condizione di procedibilità serve?",
+   "norme_attese": [
+    "cpc:7",
+    "dl132:3"
+   ],
+   "conclusione": [
+    "giudice di pace",
+    "circolazione di veicoli e natanti"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "competenza_30000",
+   "materia": "civile",
+   "tipo": "parere",
+   "domanda": "Quale giudice è competente per una domanda di pagamento di 30.000 euro per un prestito non restituito, debitore residente a Taranto?",
+   "norme_attese": [
+    "cpc:7",
+    "cpc:9",
+    "cpc:18"
+   ],
+   "conclusione": [
+    "tribunale",
+    "taranto",
+    "negoziazione assistita obbligatoria"
+   ],
+   "vietate": [
+    "giudice di pace di taranto"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "rito_semplificato",
+   "materia": "civile",
+   "tipo": "parere",
+   "domanda": "Quando posso usare il rito semplificato di cognizione?",
+   "norme_attese": [
+    "cpc:281decies"
+   ],
+   "conclusione": [
+    "prova documentale",
+    "non sono controversi",
+    "ricorso"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "art_1385",
+   "materia": "civile",
+   "tipo": "norma",
+   "domanda": "Cosa prevede l'art. 1385 del codice civile sulla caparra confirmatoria?",
+   "norme_attese": [
+    "cc:1385"
+   ],
+   "conclusione": [
+    "doppio della caparra",
+    "normattiva"
+   ],
+   "vietate": [
+    "vigenza attuale non attestata"
+   ],
+   "percorso": "harness",
+   "nota": "domanda del coordinatore n. 1: veloce e senza avviso inutile"
+  },
+  {
+   "id": "appello_civile",
+   "materia": "civile",
+   "tipo": "termine",
+   "domanda": "Qual è il termine per proporre appello contro una sentenza del Tribunale notificata il 20/04/2026?",
+   "norme_attese": [],
+   "conclusione": [
+    "20/05/2026",
+    "325",
+    "434"
+   ],
+   "vietate": [],
+   "percorso": "certa",
+   "nota": "domanda del coordinatore n. 2: con nota sul lavoro"
+  },
+  {
+   "id": "cassazione",
+   "materia": "civile",
+   "tipo": "termine",
+   "domanda": "Entro quando posso proporre ricorso per cassazione contro una sentenza d'appello notificata il 15/09/2026?",
+   "norme_attese": [],
+   "conclusione": [
+    "16/11/2026",
+    "sessanta|60 giorni"
+   ],
+   "vietate": [],
+   "percorso": "certa",
+   "nota": "14/11/2026 è sabato: art. 155 c.5 c.p.c."
+  },
+  {
+   "id": "appello_lungo",
+   "materia": "civile",
+   "tipo": "termine",
+   "domanda": "Una sentenza del Tribunale pubblicata il 10/03/2026 non è stata notificata: entro quando posso appellarla?",
+   "norme_attese": [],
+   "conclusione": [
+    "12/10/2026",
+    "327"
+   ],
+   "vietate": [],
+   "percorso": "certa",
+   "nota": "6 mesi + 31 giorni di sospensione feriale = 11/10/2026 domenica"
+  },
+  {
+   "id": "opposizione_di",
+   "materia": "monitorio",
+   "tipo": "termine",
+   "domanda": "Termine per opporsi a un decreto ingiuntivo notificato il 03/11/2026?",
+   "norme_attese": [],
+   "conclusione": [
+    "14/12/2026",
+    "641"
+   ],
+   "vietate": [],
+   "percorso": "certa",
+   "nota": "13/12/2026 è domenica"
+  },
+  {
+   "id": "contributo_di",
+   "materia": "monitorio",
+   "tipo": "calcolo",
+   "domanda": "Quanto è il contributo unificato per un ricorso per decreto ingiuntivo di 12.000 euro?",
+   "norme_attese": [],
+   "conclusione": [
+    "€ 118,50|118,50"
+   ],
+   "vietate": [],
+   "percorso": "certa",
+   "nota": "scaglione 5.200,01-26.000: € 237, ridotto alla metà (art. 13 c.3 d.P.R. 115/2002)"
+  },
+  {
+   "id": "memorie_171ter",
+   "materia": "civile",
+   "tipo": "termine",
+   "domanda": "Calcola le memorie integrative 171-ter per l'udienza del 20/01/2027",
+   "norme_attese": [],
+   "conclusione": [
+    "171-ter",
+    "memoria n\\. 1"
+   ],
+   "vietate": [],
+   "percorso": "certa",
+   "nota": ""
+  },
+  {
+   "id": "lavoro_crediti",
+   "materia": "lavoro",
+   "tipo": "redazione",
+   "domanda": "Prepara il ricorso per differenze retributive: il mio cliente Marco Bianchi, lavoratore dipendente di Alfa s.r.l. con sede a Lecce, ha lavorato a Brindisi dal 01/03/2022 al 31/05/2026; credito di 18.000 euro per straordinari non pagati.",
+   "norme_attese": [
+    "cpc:409",
+    "cpc:413",
+    "cpc:414",
+    "cpc:429",
+    "cc:2948"
+   ],
+   "conclusione": [
+    "giudice del lavoro",
+    "brindisi",
+    "ricorso",
+    "rivalutazione"
+   ],
+   "vietate": [
+    "atto di citazione"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "lavoro_licenziamento",
+   "materia": "lavoro",
+   "tipo": "termine",
+   "domanda": "Entro quando devo impugnare un licenziamento comunicato per iscritto il 05/10/2026?",
+   "norme_attese": [
+    "l604:6"
+   ],
+   "conclusione": [
+    "04/12/2026",
+    "sessanta giorni",
+    "centottanta giorni"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "lavoro_appello",
+   "materia": "lavoro",
+   "tipo": "termine",
+   "domanda": "Termine per l'appello in una causa di lavoro contro la sentenza notificata il 20/07/2026?",
+   "norme_attese": [
+    "cpc:434"
+   ],
+   "conclusione": [
+    "19/08/2026",
+    "trenta giorni"
+   ],
+   "vietate": [
+    "sospensione feriale.{0,30}si applica\\b(?! alle)"
+   ],
+   "percorso": "harness",
+   "nota": "senza sospensione feriale"
+  },
+  {
+   "id": "lavoro_competenza",
+   "materia": "lavoro",
+   "tipo": "parere",
+   "domanda": "Quale giudice è competente per una causa di lavoro subordinato? Il dipendente lavora a Foggia.",
+   "norme_attese": [
+    "cpc:409",
+    "cpc:413"
+   ],
+   "conclusione": [
+    "giudice del lavoro",
+    "foggia"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "separazione",
+   "materia": "famiglia",
+   "tipo": "redazione",
+   "domanda": "Prepara il ricorso per separazione giudiziale: assisto la moglie Laura Conte; i coniugi vivono a Bari e il figlio minore è residente con la madre a Bari.",
+   "norme_attese": [
+    "cpc:473bis",
+    "cpc:473bis11",
+    "cpc:473bis12",
+    "cc:151"
+   ],
+   "conclusione": [
+    "tribunale di bari",
+    "residenza abituale",
+    "ricorso"
+   ],
+   "vietate": [
+    "atto di citazione"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "divorzio_tempi",
+   "materia": "famiglia",
+   "tipo": "parere",
+   "domanda": "Dopo la separazione giudiziale, quando posso chiedere il divorzio?",
+   "norme_attese": [
+    "l898:3"
+   ],
+   "conclusione": [
+    "dodici mesi",
+    "sei mesi"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "figlio_maggiorenne",
+   "materia": "famiglia",
+   "tipo": "parere",
+   "domanda": "Il figlio maggiorenne non ancora indipendente può ricevere direttamente l'assegno di mantenimento?",
+   "norme_attese": [
+    "cc:337septies"
+   ],
+   "conclusione": [
+    "assegno periodico",
+    "maggiorenni non indipendenti"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "sfratto",
+   "materia": "locazione",
+   "tipo": "redazione",
+   "domanda": "Redigi l'intimazione di sfratto per morosità: il conduttore dell'appartamento in Lecce non paga quattro mensilità da 700 euro. Assisto il locatore Giovanni Russo.",
+   "norme_attese": [
+    "cpc:658",
+    "cpc:661",
+    "l392:5"
+   ],
+   "conclusione": [
+    "tribunale di lecce",
+    "2\\.800",
+    "convalida"
+   ],
+   "vietate": [
+    "lecce non"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "sanatoria",
+   "materia": "locazione",
+   "tipo": "parere",
+   "domanda": "Il conduttore di un'abitazione, moroso, può sanare la morosità in udienza?",
+   "norme_attese": [
+    "l392:55"
+   ],
+   "conclusione": [
+    "novanta giorni",
+    "tre volte|quattro anni"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "ricorso_di",
+   "materia": "monitorio",
+   "tipo": "redazione",
+   "domanda": "Redigi il ricorso per decreto ingiuntivo: la mia cliente Beta s.r.l. con sede a Bari ha una fattura non pagata di 12.000 euro verso Gamma s.r.l. con sede a Taranto.",
+   "norme_attese": [
+    "cpc:633",
+    "cpc:634",
+    "cpc:637",
+    "cpc:641",
+    "cpc:644"
+   ],
+   "conclusione": [
+    "tribunale",
+    "12\\.000",
+    "quaranta giorni",
+    "estratti autentici",
+    "tribunale di taranto"
+   ],
+   "vietate": [
+    "negoziazione assistita obbligatoria",
+    "giudice di pace di taranto"
+   ],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "notifica_di",
+   "materia": "monitorio",
+   "tipo": "termine",
+   "domanda": "Entro quanto va notificato il decreto ingiuntivo dopo l'emissione?",
+   "norme_attese": [
+    "cpc:644"
+   ],
+   "conclusione": [
+    "sessanta giorni"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "precetto_efficacia",
+   "materia": "esecuzione",
+   "tipo": "termine",
+   "domanda": "Entro quando va iniziata l'esecuzione dopo la notifica del precetto?",
+   "norme_attese": [
+    "cpc:481",
+    "cpc:482"
+   ],
+   "conclusione": [
+    "novanta giorni",
+    "dieci giorni"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "opposizione_atti",
+   "materia": "esecuzione",
+   "tipo": "termine",
+   "domanda": "Qual è il termine per proporre opposizione agli atti esecutivi?",
+   "norme_attese": [
+    "cpc:617"
+   ],
+   "conclusione": [
+    "venti giorni"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "precetto_redazione",
+   "materia": "esecuzione",
+   "tipo": "redazione",
+   "domanda": "Redigi l'atto di precetto: sentenza esecutiva del Tribunale di Bari che condanna Mario Rossi a pagare 15.000 euro al mio cliente.",
+   "norme_attese": [
+    "cpc:480",
+    "cpc:481"
+   ],
+   "conclusione": [
+    "dieci giorni",
+    "novanta giorni",
+    "precetto"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "delibera",
+   "materia": "condominio",
+   "tipo": "termine",
+   "domanda": "Termine per impugnare una delibera condominiale per un condomino assente?",
+   "norme_attese": [
+    "cc:1137"
+   ],
+   "conclusione": [
+    "trenta giorni",
+    "comunicazione"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "ricorso_straordinario",
+   "materia": "amministrativo",
+   "tipo": "termine",
+   "domanda": "Qual è il termine per il ricorso straordinario al Presidente della Repubblica?",
+   "norme_attese": [
+    "dpr1199:9"
+   ],
+   "conclusione": [
+    "centoventi giorni"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "tar",
+   "materia": "amministrativo",
+   "tipo": "termine",
+   "domanda": "Entro quando si impugna al TAR un provvedimento amministrativo notificato il 01/07/2026?",
+   "norme_attese": [
+    "cpa:29"
+   ],
+   "conclusione": [
+    "sessanta giorni",
+    "30/09/2026"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": "60 giorni (art. 29 c.p.a.) con sospensione feriale"
+  },
+  {
+   "id": "tributario",
+   "materia": "tributario",
+   "tipo": "termine",
+   "domanda": "Entro quando si ricorre contro un avviso di accertamento notificato il 10/06/2026?",
+   "norme_attese": [
+    "dlgs546:21"
+   ],
+   "conclusione": [
+    "sessanta giorni",
+    "09/09/2026"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": "art. 21 d.lgs. 546/1992 (in vigore fino al 31/12/2026); 60 giorni + sospensione feriale"
+  },
+  {
+   "id": "querela",
+   "materia": "penale",
+   "tipo": "termine",
+   "domanda": "Entro quanto tempo si può presentare querela? Ho saputo del fatto il 10/09/2026.",
+   "norme_attese": [
+    "cp:124"
+   ],
+   "conclusione": [
+    "tre mesi",
+    "10/12/2026"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "appello_penale",
+   "materia": "penale",
+   "tipo": "termine",
+   "domanda": "Quali sono i termini per l'appello penale contro una sentenza di condanna dell'imputato?",
+   "norme_attese": [
+    "cpp:585"
+   ],
+   "conclusione": [
+    "quindici giorni",
+    "trenta giorni",
+    "quarantacinque giorni"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "comparsa",
+   "materia": "civile",
+   "tipo": "redazione",
+   "domanda": "Scrivimi una comparsa di costituzione e risposta per il convenuto in una causa di pagamento di 30.000 euro davanti al Tribunale di Bari.",
+   "norme_attese": [
+    "cpc:166",
+    "cpc:167"
+   ],
+   "conclusione": [
+    "settanta giorni",
+    "decadenza"
+   ],
+   "vietate": [],
+   "percorso": "harness",
+   "nota": ""
+  },
+  {
+   "id": "operativa_1",
+   "materia": "operativa",
+   "tipo": "operativa",
+   "domanda": "Cosa scade oggi?",
+   "norme_attese": [],
+   "conclusione": [],
+   "vietate": [],
+   "percorso": "operativa",
+   "nota": ""
+  },
+  {
+   "id": "operativa_2",
+   "materia": "operativa",
+   "tipo": "operativa",
+   "domanda": "PEC di oggi",
+   "norme_attese": [],
+   "conclusione": [],
+   "vietate": [],
+   "percorso": "operativa",
+   "nota": ""
+  },
+  {
+   "id": "operativa_3",
+   "materia": "operativa",
+   "tipo": "operativa",
+   "domanda": "Mostrami le udienze di domani",
+   "norme_attese": [],
+   "conclusione": [],
+   "vietate": [],
+   "percorso": "operativa",
+   "nota": ""
+  },
+  {
+   "id": "operativa_4",
+   "materia": "operativa",
+   "tipo": "operativa",
+   "domanda": "Quali scadenze ho questa settimana?",
+   "norme_attese": [],
+   "conclusione": [],
+   "vietate": [],
+   "percorso": "operativa",
+   "nota": ""
+  },
+  {
+   "id": "operativa_5",
+   "materia": "operativa",
+   "tipo": "operativa",
+   "domanda": "Dammi la situazione del cliente Bianchi",
+   "norme_attese": [],
+   "conclusione": [],
+   "vietate": [],
+   "percorso": "operativa",
+   "nota": ""
+  }
+ ]
+}

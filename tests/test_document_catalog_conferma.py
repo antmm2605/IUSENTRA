@@ -24,13 +24,15 @@ class _Repository:
 
 def test_conferma_solo_le_proposte_con_prova_e_lascia_le_altre(monkeypatch):
     assegnazioni = [
-        SimpleNamespace(id="A1", document_id="D1", document_label="Atto di citazione", status="proposed"),
+        SimpleNamespace(id="A1", document_id="D1", document_label="Atto di citazione", status="proposed", confidence=72),
         SimpleNamespace(id="A2", document_id="D2", document_label="Procura", status="proposed"),
         SimpleNamespace(id="A3", document_id="D3", document_label="Sentenza", status="confirmed"),
         SimpleNamespace(id="A4", document_id="D4", document_label="Documento", status="review_required"),
-        SimpleNamespace(id="A5", document_id="D5", document_label="Ricevuta", status="proposed"),
+        SimpleNamespace(id="A5", document_id="D5", document_label="Ricevuta", status="proposed", confidence=80),
+        # Riconosciuta con certezza dal contenuto (≥ 90 con prova): già catalogata in automatico, non si conferma.
+        SimpleNamespace(id="A6", document_id="D6", document_label="Sentenza", status="proposed", confidence=96),
     ]
-    repository = _Repository(assegnazioni, {"A1": ["prova"], "A5": ["prova"]})
+    repository = _Repository(assegnazioni, {"A1": ["prova"], "A5": ["prova"], "A6": ["prova"]})
     confermate: list[tuple] = []
 
     def finto_resolve(fascicolo_id, document_id, *, status, note, evidence_acknowledged, user_context=None, modalita="singola"):

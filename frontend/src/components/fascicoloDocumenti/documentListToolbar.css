@@ -57,3 +57,4 @@
 .iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="true"],.iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="true"]:hover,.iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="true"]:focus-visible{background:#0756d6;color:#fff;border-color:#0756d6}
 .iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="true"] b{color:#fff}
 .iu-fas-catalog .iu-doclist-toolbar__chips--status button[aria-pressed="true"]{background:#0f6478;border-color:#0f6478}
+.iu-doclist-toolbar__firma-avviso{align-self:center;font-size:.78rem;color:#8a4b00;background:#fff4e0;border:1px solid #f0c58a;border-radius:999px;padding:2px 10px}

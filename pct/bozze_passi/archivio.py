@@ -43,9 +43,14 @@ CREATE TABLE IF NOT EXISTS bozze_passi (
     creata_il TEXT NOT NULL,
     aggiornata_il TEXT NOT NULL,
     dati_cambiati_il TEXT NOT NULL DEFAULT '',
+    testo_html TEXT NOT NULL DEFAULT '',
+    formato TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (fascicolo_id, chiave)
 );
 """
+# Colonne aggiunte il 19/11/2026 (bozze in PDF): i registri già creati le ricevono all'apertura.
+_COLONNE_AGGIUNTE = {"testo_html": "TEXT NOT NULL DEFAULT ''", "formato": "TEXT NOT NULL DEFAULT ''"}
+FORMATO_PDF = "pdf"
 
 
 def adesso() -> str:
@@ -71,6 +76,9 @@ class VoceBozza:
     creata_il: str = ""
     aggiornata_il: str = ""
     dati_cambiati_il: str = ""
+    # Il testo modificabile della bozza (HTML dell'editor): il documento del fascicolo è il PDF che ne deriva.
+    testo_html: str = ""
+    formato: str = ""  # «pdf» per le bozze nel fascicolo come PDF; vuoto per le bozze HTML da convertire
 
 
 class ArchivioBozze:
@@ -82,6 +90,10 @@ class ArchivioBozze:
         conn = sqlite3.connect(self.percorso, timeout=10)
         conn.row_factory = sqlite3.Row
         conn.executescript(_SCHEMA)
+        presenti = {riga[1] for riga in conn.execute("PRAGMA table_info(bozze_passi)")}
+        for colonna, definizione in _COLONNE_AGGIUNTE.items():
+            if colonna not in presenti:
+                conn.execute(f"ALTER TABLE bozze_passi ADD COLUMN {colonna} {definizione}")
         return conn
 
     @staticmethod
@@ -112,6 +124,23 @@ class ArchivioBozze:
                 [dati[c] for c in colonne],
             )
 
+    def da_convertire(self, limite: int = 200) -> list[VoceBozza]:
+        """Le bozze create prima del PDF (documento HTML o Word nel fascicolo), da convertire in sfondo."""
+        if not self.percorso.exists():
+            return []
+        with closing(self._conn()) as conn:
+            righe = conn.execute("SELECT * FROM bozze_passi WHERE formato <> ? ORDER BY creata_il, chiave LIMIT ?",
+                                 (FORMATO_PDF, max(1, int(limite)))).fetchall()
+        return [self._voce(r) for r in righe]
+
+    def per_documento(self, fascicolo_id: str, documento_id: str) -> VoceBozza | None:
+        if not self.percorso.exists():
+            return None
+        with closing(self._conn()) as conn:
+            riga = conn.execute("SELECT * FROM bozze_passi WHERE fascicolo_id = ? AND documento_id = ?",
+                                (fascicolo_id, documento_id)).fetchone()
+        return self._voce(riga) if riga else None
+
     def elimina(self, fascicolo_id: str, chiave: str) -> None:
         if not self.percorso.exists():
             return
@@ -124,5 +153,5 @@ def percorso_archivio(data_paths: dict[str, Any]) -> Path | None:
     return Path(studio_db).parent / "intelligence" / NOME_FILE if studio_db else None
 
 
-__all__ = ["STATO_DATI_CAMBIATI", "STATO_MODIFICATA", "STATO_PRONTA", "STATO_SUPERATA", "ArchivioBozze", "VoceBozza",
+__all__ = ["FORMATO_PDF", "STATO_DATI_CAMBIATI", "STATO_MODIFICATA", "STATO_PRONTA", "STATO_SUPERATA", "ArchivioBozze", "VoceBozza",
            "adesso", "percorso_archivio"]

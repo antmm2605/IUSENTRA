@@ -496,8 +496,13 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         code="ESE_OPPOSIZIONE_ATTI_617",
         name="Opposizione agli atti esecutivi",
         base_value=20,
-        reference_law="Art. 617 c.p.c.",
+        # Art. 92 R.D. 12/1941 (testo da Normattiva: «opposizione all'esecuzione» fra gli affari del periodo feriale),
+        # esteso dalla Cassazione all'art. 617 c.p.c. (Cass. ord. 21568/2017; Cass. 9998/2010): niente sospensione.
+        suspend_august=False,
+        ferial_suspension_policy="not_applicable",
+        reference_law="Art. 617 c.p.c.; art. 92 R.D. 12/1941; art. 3 l. 742/1969 (Cass. ord. 21568/2017)",
         metadata={"source_event": "compimento_atto"},
+        version=2,
     ),
     DeadlineTemplate(
         code="ESE_ISCRIZIONE_RUOLO_MOBILIARE",
@@ -531,6 +536,10 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
 )
 
 
+# Processo amministrativo, tributario e penale, delibere condominiali e art. 669-octies: stesso motore (pct/termini_riti.py).
+from pct.termini_riti import TEMPLATES_RITI as _TEMPLATES_RITI  # noqa: E402
+
+DEFAULT_TEMPLATES = DEFAULT_TEMPLATES + _TEMPLATES_RITI
 _DEFAULT_TEMPLATES_BY_CODE = {template.code: template for template in DEFAULT_TEMPLATES}
 
 
@@ -672,6 +681,12 @@ class ItalianDeadlineCalculator:
             "legalSources": list(LEGAL_SOURCES),
             "notificationPlan": self.notification_plan(adjusted, case_reference, effective.code),
         }
+        from pct.termini_riti import dubbio_feriale
+
+        dubbio = dubbio_feriale(effective, input_date, adjusted)
+        if dubbio:
+            result["dubbio"] = dubbio
+            result["requiresLegalReview"] = True
         result["resultHash"] = canonical_sha256(result)
         return result
 

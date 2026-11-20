@@ -246,8 +246,11 @@ def _scadenza(ctx: Contesto, termine: TermineAssegnato, codice: str) -> tuple[da
     norma = (_NORME.get(codice) or ("cpc_155",))[0]
     if termine.formula.startswith("a_ritroso:"):
         _f, giorni, base = termine.formula.split(":")
+        # La lettura prudenziale a giorni liberi vale per gli adempimenti dello studio; il termine della controparte
+        # (es. la sua costituzione, art. 416 c.p.c.) si misura con la scadenza di legge a giorni pieni.
+        dello_studio = chi(termine.onerato, ctx.posizione) not in {"controparte", "terzo"}
         calcolo = a_ritroso(date.fromisoformat(base), int(giorni), rito=ctx.rito, oggi=ctx.oggi, perentorio=termine.perentorio,
-                            evento="udienza fissata dal giudice", norma=norma)
+                            evento="udienza fissata dal giudice", norma=norma, prudenziale=dello_studio)
         return giorno(calcolo.scadenza), {"termine": calcolo}, dubbi
     if termine.formula.startswith("da_"):
         _evento, giorni = termine.formula[3:].split(":")

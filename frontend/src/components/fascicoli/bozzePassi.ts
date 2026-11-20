@@ -18,6 +18,7 @@ export interface BozzaPasso {
   statoEtichetta: string
   documentoId: string
   apri: string
+  pdf?: string
   preparataIl: string
   aggiornataIl: string
   datiCambiatiIl: string

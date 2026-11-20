@@ -24,6 +24,12 @@ from .contesto import Contesto
 
 def _decreto(ctx: Contesto):
     candidati = [a for a in ctx.della_causa() if a.autore == "giudice" and "decreto ingiuntivo" in semplice(a.etichetta)]
+    # Il decreto è l'atto in cui il giudice «ingiunge»: un ricorso per decreto ingiuntivo catalogato come decreto non
+    # lo è (la sua data non è la pronuncia, art. 644 c.p.c.; collaudo della catena del 19/11/2026).
+    ingiunzioni = [a for a in candidati if re.search(r"\bingiung[eo]\b", semplice(a.testo or ""))
+                   and not re.search(r"\bricorso per (?:decreto )?ingiunzione|\bricorso per decreto ingiuntivo",
+                                     semplice((a.testo or "")[:300]))]
+    candidati = ingiunzioni or candidati
     return min(candidati, key=lambda a: a.data or "9999") if candidati else None
 
 
@@ -101,6 +107,26 @@ def _notifica_attestata(ctx: Contesto, decreto, pronuncia):
     return data, prova
 
 
+_ESTERO = re.compile(r"\ball['’]\s*estero\b|fuori dal territorio della repubblica|\bstato estero\b")
+
+
+def _termine_644(ctx: Contesto, decreto, pronuncia, ricorsi):
+    """Art. 644 c.p.c.: il decreto è inefficace se non notificato entro sessanta giorni dalla pronuncia (novanta se la
+    notifica va eseguita all'estero). Per lo studio ricorrente il termine è sempre certo: sessanta giorni sono comunque
+    prudenti anche senza conoscere il luogo della notifica; novanta solo se gli atti dicono che si notifica all'estero.
+    Termine processuale: si applica la sospensione feriale (art. 1 L. 742/1969)."""
+    dello_studio = decreto.dello_studio or ctx.posizione == "attiva" or any(a.dello_studio for a in ricorsi)
+    if not pronuncia or not dello_studio:
+        return None
+    estero = bool(_ESTERO.search(semplice(" ".join([decreto.testo or "", *(a.testo or "" for a in ricorsi)]))))
+    giorni = 90 if estero else 60
+    return in_avanti(
+        pronuncia, giorni, rito=ctx.rito, oggi=ctx.oggi, perentorio=True, evento="pronuncia del decreto ingiuntivo",
+        norma="art. 644 c.p.c.", conseguenze="senza notifica nel termine il decreto diventa inefficace; la domanda può "
+        "essere riproposta (art. 644 c.p.c.)" + ("" if estero else "; novanta giorni solo se la notifica va eseguita all'estero"),
+    )
+
+
 def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
     if ctx.rito.codice != "monitorio":
         return []
@@ -133,7 +159,8 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
     if da_verificare and not prova_congiunta:
         dubbi.append(Dubbio("consegna_monitorio_da_verificare", "È presente una traccia della notifica.",
                             "la prova di consegna che collega sia il ricorso sia il decreto al destinatario", fonte))
-    if not prova_congiunta:
+    termine_644 = _termine_644(ctx, decreto, pronuncia, ricorsi) if not prova_congiunta else None
+    if not prova_congiunta and termine_644 is None:
         dubbi.append(Dubbio("destinazione_monitorio_da_verificare", "La destinazione determina il termine di notifica.",
                             "il luogo di notificazione dell'ingiunzione per applicare l'art. 644 c.p.c.", fonte))
     esito.append(Conclusione(
@@ -145,7 +172,7 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
         "fatto" if prova_congiunta else "dubbio" if da_verificare else "da_fare",
         (f"Notificato il {data_it(prova_decreto['data'])}: {riferimento}." if attestata else
          f"Consegna verificata del {data_it(prova_decreto['data'])}, prova {riferimento}.") if prova_congiunta else "",
-        None, "builtin-tmp-not-003", dubbi=dubbi,
+        termine_644, "builtin-tmp-not-003", dubbi=dubbi,
         motivo_senza_termine="Consegna verificata. Il computo della tempestività richiede la destinazione e la prova lato mittente."
         if prova_congiunta else "",
     ))

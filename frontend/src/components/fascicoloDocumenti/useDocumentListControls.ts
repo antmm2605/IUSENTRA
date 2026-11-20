@@ -161,7 +161,8 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
       tutti: inSection.length,
       da_firmare: inSection.filter((entry) => matchesStatus(entry, 'da_firmare')).length,
       da_verificare: inSection.filter((entry) => matchesStatus(entry, 'da_verificare')).length,
-    } satisfies Record<DocumentStatusFilter, number>
+      firma_non_confermata: inSection.filter((entry) => entry.document.signatureCheck === 'non_confermata').length,
+    } satisfies Record<DocumentStatusFilter, number> & { firma_non_confermata: number }
   }, [matchingQuery, sezioneVisibile])
 
   const visible = useMemo(

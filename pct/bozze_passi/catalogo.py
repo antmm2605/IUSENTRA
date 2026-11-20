@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -129,9 +129,36 @@ def _riga_conto(conto: dict[str, Any] | None, voce: str) -> dict[str, Any]:
     return next((r for r in (conto or {}).get("righe") or [] if r.get("voce") == voce), {})
 
 
-def _regime_iva(conto: dict[str, Any] | None) -> str:
-    dettaglio = pulisci(_riga_conto(conto, "sentenza").get("dettaglio")).lower()
-    return "forfetario" if "regime forfetario" in dettaglio else ""
+def _regime_iva(ctx: Contesto) -> str:
+    """«forfetario» solo se il regime forfetario (RF19) o dei minimi (RF02) risulta dalla scheda dello studio."""
+    return "forfetario" if pulisci(ctx.studio.get("regime_fiscale")).upper() in {"RF19", "RF02"} else ""
+
+
+# Il provvedimento liquida il rimborso delle spese generali (art. 2, comma 2, D.M. 55/2014) solo se lo dice.
+# Il brano salvato nella Lettura può essere troncato («oltre rimborso forfettar»): basta la radice della parola.
+_RE_FORFETTARIO = re.compile(r"rimborso\s+(?:delle\s+)?(?:spese\s+)?(?:generali\s+)?forfet+ar|spese\s+generali|spese\s+forfet+ar",
+                             re.IGNORECASE)
+
+
+def _forfettario_liquidato(*testi_letti: Any) -> bool:
+    return any(_RE_FORFETTARIO.search(pulisci(t)) for t in testi_letti)
+
+
+def _notifica_titolo_provata(conclusioni: list[dict[str, Any]]) -> dict[str, str]:
+    """Data della notificazione del titolo e fine dei 120 giorni, se il modello della causa li ha provati.
+
+    Il modello (pct/ragionamento/regole/sentenza.py) produce «esecuzione_pa» con il termine dei centoventi giorni
+    decorrente dalla notifica del titolo solo quando la notifica è provata; con il dubbio («dubbio») non c'è data.
+    """
+    for voce in conclusioni:
+        if voce.get("codice") != "esecuzione_pa" or voce.get("stato") == "dubbio":
+            continue
+        termine = voce.get("termine") or {}
+        notificato, scadenza = data_da(termine.get("decorrenza")), data_da(termine.get("scadenza_iso") or termine.get("scadenza"))
+        if notificato and scadenza:
+            return {"notificato_il": data_it(notificato), "centoventi_giorni": data_it(scadenza),
+                    "precetto_dal": data_it(scadenza + timedelta(days=1))}
+    return {}
 
 
 def _credito_pa(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[dict[str, Any]], oggi: date, conto: dict[str, Any] | None) -> list[Bozza]:
@@ -147,8 +174,12 @@ def _credito_pa(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[dict[s
         return []
     distratte = "distratt" in pulisci(_riga_conto(conto, "sentenza").get("stato")).lower()
     fonte = pulisci(liquidazione.get("fonte")) or "Sentenza"
-    credito = {"importo": compenso, "fonte": fonte, "distratte": distratte, "iva": _regime_iva(conto)}
-    voci, totale = testi._accessori(compenso, iva=credito["iva"])
+    spese = next((v for v in conclusioni if v.get("codice") == "spese_liquidate"), {})
+    forfettario = _forfettario_liquidato(liquidazione.get("nota"), (spese.get("letto") or {}).get("brano"), spese.get("cosa"))
+    notifica = _notifica_titolo_provata(conclusioni)
+    credito = {"importo": compenso, "fonte": fonte, "distratte": distratte, "iva": _regime_iva(ctx),
+               "forfettario": forfettario, **notifica}
+    voci, totale = testi._accessori(compenso, iva=credito["iva"], forfettario=forfettario)
     agganci = (AggancioPasso((r"riscuot|incass|pagamento",)),)
     riferimento = re.sub(r"\W+", "-", fonte.lower()).strip("-")
     articolo = "della " if fonte.lower().startswith("sentenza") else "del provvedimento: "
@@ -158,7 +189,7 @@ def _credito_pa(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[dict[s
               testi.richiesta_pagamento_pa(ctx, credito), agganci, importo=euro(compenso), distratte=distratte),
         _crea("precetto_pa", riferimento, "Atto di precetto contro la P.A. (dopo 120 giorni dalla notifica del titolo)",
               testi.precetto(ctx, {"descrizione": descrizione, "pa": True, "distratte": distratte, "totale": totale,
-                                   "voci": voci}), agganci, importo=euro(compenso)),
+                                   "voci": voci, **notifica}), agganci, importo=euro(compenso), **notifica),
     ]
 
 
@@ -196,10 +227,11 @@ def _precetto_decreto(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[
             totale += somma
         liquidate = re.search(r"€\s*([\d.,]+) di compensi e €\s*([\d.,]+) di spese", pulisci(spese.get("cosa")))
         if liquidate and (compenso := importo(liquidate.group(1))) is not None and (esborsi := importo(liquidate.group(2))) is not None:
-            righe, accessori = testi._accessori(compenso, iva=_regime_iva(conto))
+            forfettario = _forfettario_liquidato(dispositivo, spese.get("cosa"))
+            righe, accessori = testi._accessori(compenso, iva=_regime_iva(ctx), forfettario=forfettario)
             voci.append(f"spese del procedimento monitorio, esborsi: {euro(esborsi)}")
             voci.extend(f"spese del procedimento monitorio, {riga}" for riga in righe)
-            totale += esborsi + accessori
+            totale += esborsi + (accessori if accessori is not None else compenso)
     if not voci:
         voci.append(testi.manca("somme ingiunte, interessi e spese liquidate nel decreto"))
     cf_debitore = _cf_nel_testo(brano, ctx.controparte)

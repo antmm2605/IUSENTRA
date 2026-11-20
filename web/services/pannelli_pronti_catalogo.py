@@ -30,7 +30,7 @@ def impronta_del_pannello(nome: str, fonti: str | None) -> str | None:
     if nome == "relata":
         return sha256(f"{fonti}\x1fprova-notifica-v3".encode()).hexdigest()
     if nome == "quadro":
-        return sha256(f"{fonti}\x1fquadro-pec-casella-v1".encode()).hexdigest()
+        return sha256(f"{fonti}\x1fquadro-pec-casella-v1\x1fquadro-certezza-passo-v2".encode()).hexdigest()
     if nome == "scadenze":
         return sha256(f"{fonti}\x1ffonti-processuali-v6".encode()).hexdigest()
     if nome == "dettaglio":
@@ -40,7 +40,8 @@ def impronta_del_pannello(nome: str, fonti: str | None) -> str | None:
     if nome == "catalogazione-documentale":
         from pct.document_intelligence.catalog_resolver import RESOLVER_VERSION
 
-        return sha256(f"{fonti}\x1f{RESOLVER_VERSION}".encode()).hexdigest()
+        # «certezza-v1» (19/11/2026): conteggi unici, catalogati in automatico e bozze dello studio a parte.
+        return sha256(f"{fonti}\x1f{RESOLVER_VERSION}\x1fcertezza-v1".encode()).hexdigest()
     if nome not in {"lettura", "conto-economico"}:
         return fonti
     from pct.fascicolo_lettura import VERSIONE_LETTURA

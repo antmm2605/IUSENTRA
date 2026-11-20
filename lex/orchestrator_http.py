@@ -77,6 +77,55 @@ def _structured_operational_http_payload(*, user, studio, data, question, attach
     )
 
 
+def _con_fascicolo_controllato(data: dict[str, Any]) -> dict[str, Any]:
+    """Il ``fascicolo_id`` del client vale solo se l'utente può vedere il fascicolo (lex/fascicolo_accesso).
+
+    Si sostituisce nella richiesta stessa, così nessun percorso a valle (harness, operativo, workflow) riceve
+    l'identificativo di un fascicolo non accessibile."""
+    from .fascicolo_accesso import fascicolo_accessibile
+
+    richiesto = clean_spaces((data or {}).get("fascicolo_id"))
+    if not richiesto:
+        return data
+    ammesso = fascicolo_accessibile(richiesto)
+    if ammesso:
+        return data
+    return {**data, "fascicolo_id": "", "_fascicolo_negato": True}
+
+
+def _harness_http_payload(question: str, *, attachments, data: dict[str, Any]):
+    """Domande giuridiche (redazione, parere, termine, norma): harness di Lex prima di ogni percorso operativo."""
+    from .http_bounded_bridge import _manual_free_web_enabled
+
+    if attachments or _manual_free_web_enabled(data) or not clean_spaces(question):
+        return None
+    from .harness.http import _domanda_sul_fascicolo, _payload, payload_harness
+
+    if data.get("_fascicolo_negato") and _domanda_sul_fascicolo(question):
+        from .fascicolo_accesso import NEGATO
+
+        return _payload(question, NEGATO, 0.0, "Fascicolo non accessibile all'utente.", [], "fascicolo_non_accessibile",
+                        {"rule": "fascicolo_non_accessibile"})
+
+    fascicolo_id = clean_spaces(data.get("fascicolo_id"))  # già controllato da _con_fascicolo_controllato
+    payload = payload_harness(question, risposta_certa=_risposta_certa_http, fascicolo_id=fascicolo_id)
+    dettaglio = (payload or {}).get("lex_harness") or {}
+    if fascicolo_id and dettaglio.get("kind") == "redazione" and dettaglio.get("draft"):
+        payload["answer"] += _salva_bozza_nel_fascicolo(fascicolo_id, dettaglio)
+    return payload
+
+
+def _salva_bozza_nel_fascicolo(fascicolo_id: str, dettaglio: dict[str, Any]) -> str:
+    """La bozza chiesta dentro un fascicolo diventa un PDF tra le bozze del fascicolo (mai firmato né inviato)."""
+    from web.services.lex_bozza_fascicolo import nota_nella_risposta, salva_bozza
+
+    righe = [r.strip() for r in str(dettaglio.get("draft") or "").splitlines() if r.strip()]
+    titolo = (righe[1] if len(righe) > 1 else (righe[0] if righe else "Bozza")).capitalize()
+    scheda = ((dettaglio.get("registro") or {}).get("14_modello_atto") or {}).get("scheda") or ""
+    esito = salva_bozza(fascicolo_id, titolo=titolo, testo=str(dettaglio.get("draft")), modello=scheda)
+    return nota_nella_risposta(esito)
+
+
 def _structured_query_stream(payload):
     def generate():
         yield f"data: {json.dumps({'payload': payload})}\n\n"
@@ -286,6 +335,7 @@ def build_context_response(
         studio=studio,
         pratica_id=str(data.get("pratica_id") or ""),
     )
+    data = _con_fascicolo_controllato(data)
     messages = list(data.get("messages", []) or [])[-12:]
     attachments = list(data.get("attachments") or [])
     fascicolo_id = clean_spaces(data.get("fascicolo_id"))
@@ -296,6 +346,10 @@ def build_context_response(
     )
     if not current_user_message:
         return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
+
+    giuridica = _harness_http_payload(current_user_message, attachments=attachments, data=data)
+    if giuridica is not None:
+        return giuridica, 200
 
     structured = _structured_operational_http_payload(user=user, studio=studio, data=data,
                                               question=current_user_message, attachments=attachments)
@@ -671,14 +725,21 @@ def chat_response(
         studio=studio,
         pratica_id=str(data.get("pratica_id") or ""),
     )
+    data = _con_fascicolo_controllato(data)
     messages = list(data.get("messages", []) or [])[-12:]
     attachments = list(data.get("attachments") or [])
     fascicolo_id = str(data.get("fascicolo_id", "") or "")
     mode = clean_spaces(data.get("mode")) or "general"
+    # Il widget manda «messages»; un client che manda solo «question» deve avere lo stesso percorso.
+    ha_messaggio_utente = any(str((m or {}).get("role") or "") == "user" and clean_spaces((m or {}).get("content"))
+                              for m in messages if isinstance(m, dict))
     current_user_message, previous_user_text, history_messages = resolve_messages(
-        explicit_question="",
+        explicit_question="" if ha_messaggio_utente else clean_spaces(data.get("question")),
         messages=messages,
     )
+    giuridica = _harness_http_payload(current_user_message, attachments=attachments, data=data)
+    if giuridica is not None:
+        return _structured_query_stream(giuridica)
     structured = _structured_operational_http_payload(user=user, studio=studio, data=data,
                                               question=current_user_message, attachments=attachments)
     if structured is not None:

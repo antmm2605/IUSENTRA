@@ -97,8 +97,11 @@ def _documento_leggero(documento: Any) -> dict[str, Any]:
 
 
 def _catalogo_da_archivio(documenti: list[dict[str, Any]], fascicolo: Any = None) -> list[dict[str, Any]]:
+    from web.services.catalogo_conteggi_runtime import stato_assegnazione, voci_con_prova
     from web.services.react_fascicoli_bridge import _sql_document_catalog_by_id
     assegnazioni = _sql_document_catalog_by_id(fascicolo) if fascicolo is not None else {}
+    # Stessa regola del pannello e del quadro: proposta certa dal contenuto = catalogata in automatico.
+    con_prova = voci_con_prova(_clean(getattr(fascicolo, "id", ""))) if assegnazioni else set()
     catalogo: list[dict[str, Any]] = []
     for documento in documenti:
         identificativo = _clean(documento.get("id"))
@@ -106,7 +109,8 @@ def _catalogo_da_archivio(documenti: list[dict[str, Any]], fascicolo: Any = None
             continue
         assegnazione = assegnazioni.get(identificativo)
         if assegnazione is not None:
-            catalogo.append({**assegnazione.to_dict(), "status": "catalogued" if assegnazione.status == "proposed" and bool((assegnazione.metadata or {}).get("automatic_classification")) else assegnazione.status, "indexed": bool(documento.get("lex_read")), "supported": True})
+            catalogo.append({**assegnazione.to_dict(), "status": stato_assegnazione(assegnazione, con_prova),
+                             "indexed": bool(documento.get("lex_read")), "supported": True})
             continue
         tipo = _clean(documento.get("tipo")).replace("_", " ").title() or "Documento"
         catalogo.append({

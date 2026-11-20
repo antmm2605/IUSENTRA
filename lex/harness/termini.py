@@ -1,0 +1,68 @@
+"""Calcolo delle date con il motore dei termini di IUSENTRA (pct/termini_processuali.py).
+
+Termini processuali: si esclude il giorno iniziale, si sospende dal 1° al 31 agosto quando la legge lo prevede
+(art. 1 l. 742/1969) e la scadenza di sabato o festiva è prorogata al primo giorno non festivo (art. 155, commi 4 e 5,
+c.p.c.). Termini sostanziali (decadenze, prescrizioni, termini di pagamento): niente sospensione feriale e niente
+proroga del sabato, che vale solo per gli atti processuali; resta la proroga del giorno festivo (art. 2963, comma 3, c.c.).
+"""
+from __future__ import annotations
+
+from datetime import date
+
+
+def _calcola(dal: date, quanti: int, tipo: str, sospensione_feriale: bool, sostanziale: bool) -> date:
+    from pct.termini_processuali import ItalianDeadlineCalculator
+
+    esito = ItalianDeadlineCalculator().calculate(dal, quanti, period_type=tipo, suspend_august=sospensione_feriale,
+                                                  extend_saturday=not sostanziale, template_code="LEX_HARNESS",
+                                                  reference_law="")
+    return date.fromisoformat(esito["deadline"])
+
+
+def termine_giorni(dal: date, giorni: int, *, sospensione_feriale: bool = True, sostanziale: bool = False) -> date:
+    return _calcola(dal, giorni, "days", sospensione_feriale and not sostanziale, sostanziale)
+
+
+def termine_mesi(dal: date, mesi: int, *, sospensione_feriale: bool = True, sostanziale: bool = False) -> date:
+    return _calcola(dal, mesi, "months", sospensione_feriale and not sostanziale, sostanziale)
+
+
+def termine_anni(dal: date, anni: int, *, sostanziale: bool = True) -> date:
+    return _calcola(dal, anni * 12, "months", False, sostanziale)
+
+
+_GIORNI = ("lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica")
+
+
+def data_breve(d: date) -> str:
+    return f"{_GIORNI[d.weekday()]} {d.strftime('%d/%m/%Y')}"
+
+
+# ------------------------------------------------------------------ modelli dei termini processuali
+# Ogni termine processuale passa da un modello con la sua norma: quelli collaudati del motore (DEFAULT_TEMPLATES) e,
+# per i termini che il motore non ha, i modelli qui sotto. La sospensione feriale non si decide nelle regole.
+# Fonti della sospensione: art. 1 l. 742/1969 (sospensione dal 1° al 31 agosto per le giurisdizioni ordinarie e
+# amministrative) e art. 3 l. 742/1969 (esclusi i procedimenti dell'art. 92 ord. giud. e le controversie di lavoro).
+def _modelli_harness():
+    from pct.termini_processuali import DeadlineTemplate
+
+    return {m.code: m for m in (
+        DeadlineTemplate(code="LEX_LAV_APPELLO_434", name="Appello nel rito del lavoro", base_value=30, matter_type="labor",
+                         suspend_august=False, ferial_suspension_policy="not_applicable",
+                         reference_law="Art. 434, comma 2, c.p.c.; art. 3 l. 742/1969"),
+        DeadlineTemplate(code="LEX_CAU_ESECUZIONE_675", name="Esecuzione del sequestro", base_value=30,
+                         suspend_august=False, ferial_suspension_policy="not_applicable",
+                         reference_law="Art. 675 c.p.c.; art. 3 l. 742/1969 e art. 92 ord. giud. (procedimenti cautelari)"),
+    )}
+
+
+def termine(codice: str, dal: date) -> date:
+    """Scadenza con il modello indicato (motore dei termini di IUSENTRA)."""
+    from pct.termini_processuali import DEFAULT_TEMPLATES, ItalianDeadlineCalculator
+
+    modello = _modelli_harness().get(codice) or next(t for t in DEFAULT_TEMPLATES if t.code == codice)
+    return date.fromisoformat(ItalianDeadlineCalculator().calculate_template(dal, modello)["deadline"])
+
+
+def tocca_agosto(dal: date, al: date) -> bool:
+    return any(date(a, 8, 1) <= al and date(a, 8, 31) >= dal for a in range(dal.year, al.year + 1))

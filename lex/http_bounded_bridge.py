@@ -244,6 +244,10 @@ def _is_communication_lookup(
     focus_topic = _clean_spaces(studio_context.get("focus_topic")).lower()
     if profile_intent == "comunicazioni_lookup":
         return True
+    from lex.harness.comprensione import e_richiesta_giuridica
+
+    if e_richiesta_giuridica(question):
+        return False
     if _looks_like_communication_attachment_question(text):
         return True
     if any(token in text for token in _COMMUNICATION_LOOKUP_TERMS):

@@ -68,15 +68,28 @@ def in_avanti(base: date, giorni: int, *, rito: Rito, oggi: date, perentorio: bo
 
 
 def a_ritroso(udienza: date, giorni: int, *, rito: Rito, oggi: date, perentorio: bool | None, evento: str,
-              norma: str, conseguenze: str = "") -> Termine:
-    """«Almeno N giorni prima dell'udienza»: si conta all'indietro e la scadenza che cade di festivo si anticipa."""
-    calcolo = _CALCOLATORE.calculate(
-        udienza, giorni, direction="backward", period_type="days", suspend_august=rito.sospensione_feriale,
-        ferial_suspension_policy="applies" if rito.sospensione_feriale else "not_applicable", reference_law=norma,
-    )
-    scadenza = giorno(calcolo.get("deadline"))
-    computo = (f"{giorni} giorni prima dell'udienza del {data_it(udienza)}, contati a ritroso; se l'ultimo giorno utile è "
-               f"sabato o festivo si anticipa al giorno non festivo precedente (art. 155 c.p.c.)")
+              norma: str, conseguenze: str = "", prudenziale: bool = True) -> Termine:
+    """«Almeno N giorni prima dell'udienza»: si conta all'indietro e la scadenza che cade di festivo si anticipa.
+
+    Regola unica dello studio per i termini a ritroso (decisione dell'avvocato del 29/10/2026, la stessa dello
+    scadenziario e delle proposte dalla PEC, ``pct.termini_processuali.LETTURA_PRUDENZIALE``): la data da rispettare è
+    quella a giorni liberi (esclusi il giorno dell'udienza e quello della scadenza); accanto, la scadenza di legge
+    a giorni pieni. Un deposito alla data prudenziale non è tardivo sotto nessuna delle due letture.
+    """
+    opzioni = dict(direction="backward", period_type="days", suspend_august=rito.sospensione_feriale,
+                   ferial_suspension_policy="applies" if rito.sospensione_feriale else "not_applicable", reference_law=norma)
+    di_legge = giorno(_CALCOLATORE.calculate(udienza, giorni, **opzioni).get("deadline"))
+    if not prudenziale:
+        computo = (f"{giorni} giorni prima dell'udienza del {data_it(udienza)}, contati a ritroso a giorni pieni; se "
+                   f"l'ultimo giorno utile è sabato o festivo si anticipa al giorno non festivo precedente (art. 155 c.p.c.)")
+        return esito(di_legge, oggi=oggi, perentorio=perentorio, decorrenza=udienza.isoformat(), evento=evento,
+                     computo=computo, rito=rito, conseguenze=conseguenze)
+    scadenza = giorno(_CALCOLATORE.calculate(udienza, giorni, free_term=True, **opzioni).get("deadline"))
+    computo = (f"{giorni} giorni prima dell'udienza del {data_it(udienza)}, contati a ritroso a giorni liberi (data da "
+               f"rispettare, lettura prudenziale dello studio); se l'ultimo giorno utile è sabato o festivo si anticipa "
+               f"al giorno non festivo precedente (art. 155 c.p.c.)")
+    if di_legge and scadenza and di_legge != scadenza:
+        computo += f"; scadenza di legge secondo la lettura a giorni pieni: {data_it(di_legge)}"
     return esito(scadenza, oggi=oggi, perentorio=perentorio, decorrenza=udienza.isoformat(), evento=evento,
                  computo=computo, rito=rito, conseguenze=conseguenze)
 

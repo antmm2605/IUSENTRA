@@ -1,0 +1,748 @@
+{
+ "fonte": "test_avvocato_Lex.docx (19/11/2026), schede verificate sulla norma vigente",
+ "casi": [
+  {
+   "id": "V7A_01",
+   "titolo": "V7A_01 — civile ordinario - contratti",
+   "domanda": "Data di oggi 16/11/2026 Parte assistita Luca Ferrandina (promissario acquirente, attore) Controparte Giorgio Salvemini (promittente venditore, convenuto) Richiesta dell'avvocato Redigimi l'atto di citazione per il mio cliente: il venditore si è rifiutato di stipulare il definitivo e vogliamo recedere trattenendo... anzi, ottenendo il doppio della caparra. Valuta tu rito e giudice. Fatti del fascicolo Preliminare di compravendita del 12/02/2026 (scrittura privata non trascritta) per un appartamento in Bari, via immaginaria Delle Ginestre 14, prezzo 210.000 euro. Il 12/02/2026 Ferrandina ha versato 25.000 euro a titolo di caparra confirmatoria con bonifico (contabile in atti); clausola 6 qualifica espressamente la somma come caparra confirmatoria ex art. 1385 c.c. Rogito fissato entro il 30/06/2026 presso notaio indicato dal promissario acquirente. Il 10/06/2026 Ferrandina ha convocato Salvemini dal notaio per il 29/06/2026 (PEC/raccomandata in atti, ricevuta 12/06/2026). Il 29/06/2026 Salvemini non si è presentato: verbale di mancata comparizione del notaio. Il 15/07/2026 diffida ad adempiere ex art. 1454 c.c. con termine di 15 giorni, ricevuta il 17/07/2026; nessuna risposta. Il 20/09/2026 Ferrandina ha appreso che l'immobile è stato offerto in vendita a terzi tramite agenzia (annuncio stampato). Residenza del convenuto: Bari. Il cliente non vuole il trasferimento coattivo ex 2932 c.c., vuole chiudere il rapporto. Nessuna procedura di mediazione avviata.",
+   "attese": {
+    "rimedio": [
+     "atto di citazione",
+     "recesso",
+     "doppio della caparra"
+    ],
+    "giudice_rito": [
+     "tribunale di bari",
+     "rito ordinario",
+     "semplificato"
+    ],
+    "norme": [
+     "cc:1385",
+     "cc:1454",
+     "cpc:163",
+     "cpc:163bis",
+     "cpc:281decies",
+     "cpc:7",
+     "cpc:18",
+     "dl132:3",
+     "dlgs28:5"
+    ],
+    "termini_importi": [
+     "01/08/2026",
+     "50\\.000",
+     "centoventi giorni",
+     "settanta giorni"
+    ],
+    "avvertenze": [
+     "negoziazione assistita obbligatoria",
+     "mediazione"
+    ],
+    "dati": [
+     "codice fiscale",
+     "procura"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "V7A_17",
+   "titolo": "V7A_17 — esecuzioni - opposizione a precetto",
+   "domanda": "Data di oggi 14/12/2026 Parte assistita Nicola Petruzzelli (opponente, intimato) Controparte Finanziaria Levante Credit S.p.A. (immaginaria) (creditore procedente, opposto) Richiesta dell'avvocato Al cliente è arrivato un precetto per un debito che ha già pagato tutto, ho le quietanze. Redigi l'opposizione e chiedi la sospensione dell'efficacia esecutiva. Fatti del fascicolo Sentenza del Tribunale di Bari n. 3120/2025, passata in giudicato, che condanna Petruzzelli a pagare 18.500 euro più interessi e spese (totale indicato nel precetto: 21.340 euro). Atto di precetto notificato il 04/12/2026, con intimazione a pagare entro 10 giorni. Accordo transattivo scritto del 10/03/2026 tra Petruzzelli e il creditore: saldo di 17.000 euro in due rate, a tacitazione integrale di ogni pretesa. Bonifici del 15/03/2026 (8.500 euro) e del 15/06/2026 (8.500 euro), con causale corrispondente all'accordo. Quietanza liberatoria del creditore del 20/06/2026, firmata dal procuratore speciale. Nessun pignoramento ancora eseguito. Residenza dell'opponente: Bari.",
+   "attese": {
+    "rimedio": [
+     "opposizione a precetto",
+     "615",
+     "sospensione dell.efficacia esecutiva"
+    ],
+    "giudice_rito": [
+     "tribunale di bari",
+     "citazione"
+    ],
+    "norme": [
+     "cpc:615",
+     "cpc:27",
+     "cpc:480",
+     "cc:1965",
+     "cc:1199",
+     "cpc:96",
+     "cpc:617"
+    ],
+    "termini_importi": [
+     "14/12/2026",
+     "17\\.000"
+    ],
+    "avvertenze": [
+     "urgenza",
+     "ricorso al giudice dell.esecuzione",
+     "esecuzione forzata"
+    ],
+    "dati": [
+     "procuratore speciale"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "V7C_09",
+   "titolo": "V7C_09 — stragiudiziale",
+   "domanda": "Data di oggi 11/01/2027 Parte assistita Termoidraulica Adriatica S.r.l. (creditore, fornitore) Controparte Edilsud Costruzioni S.p.A. (debitore, impresa committente) Richiesta dell'avvocato Mi scrivi la diffida e messa in mora per il cliente che deve incassare tre fatture da un'impresa edile? Voglio anche interrompere la prescrizione e chiedere gli interessi commerciali. Fatti del fascicolo Termoidraulica Adriatica S.r.l. ha fornito e installato impianti termici in un cantiere di Edilsud Costruzioni S.p.A. in base a ordine del 10/02/2026. Ha emesso tre fatture: n. 88 del 30/04/2026 per 15.200 euro, n. 131 del 30/06/2026 per 18.900 euro, n. 170 del 31/08/2026 per 14.500 euro (IVA inclusa), totale 48.600 euro. L'ordine prevede pagamento a 60 giorni data fattura. I lavori sono stati collaudati senza contestazioni con verbale del 15/09/2026. Edilsud ha pagato solo un acconto di 5.000 euro il 20/10/2026 imputandolo alla fattura n. 88. Solleciti via e-mail del 02/11/2026 e 01/12/2026 senza riscontro. Le parti non hanno pattuito tassi di interesse. Il cliente vuole agire con decreto ingiuntivo se non paga entro 15 giorni. Documenti: ordine, fatture, verbale di collaudo, contabile acconto, e-mail.",
+   "attese": {
+    "rimedio": [
+     "diffida",
+     "messa in mora",
+     "decreto ingiuntivo"
+    ],
+    "giudice_rito": [
+     "stragiudizial"
+    ],
+    "norme": [
+     "cc:1219",
+     "cc:2943",
+     "dlgs231:4",
+     "dlgs231:5",
+     "dlgs231:2",
+     "dlgs231:6",
+     "dl132:3"
+    ],
+    "termini_importi": [
+     "29/06/2026",
+     "29/08/2026",
+     "30/10/2026",
+     "48\\.600",
+     "10\\.200",
+     "43\\.600"
+    ],
+    "avvertenze": [
+     "15 giorni",
+     "bce"
+    ],
+    "dati": [
+     "ricevimento"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "V7B_04",
+   "titolo": "V7B_04 — locazioni",
+   "domanda": "Data di oggi 15/03/2027 Parte assistita Bar Centrale di Notarnicola Vito (conduttore (ditta individuale)) Controparte Paola Carbonara (locatrice) Richiesta dell'avvocato Il mio cliente, che ha un bar in locazione, ha ricevuto uno sfratto per morosità con udienza tra dieci giorni. Prepariamo una memoria per chiedere il termine di grazia di novanta giorni ex art. 55 così ha tempo di pagare. Fatti del fascicolo Contratto di locazione ad uso commerciale (bar) del 01/09/2020, durata 6+6, canone mensile euro 1.400. Intimazione di sfratto per morosità notificata il 01/03/2027, udienza di convalida fissata al 25/03/2027 davanti al Tribunale di Bari. Canoni non pagati: novembre 2026 - marzo 2027 (5 mensilità, euro 7.000). Il conduttore dichiara di poter pagare euro 3.000 subito e il resto entro giugno 2027. Il conduttore lamenta infiltrazioni dal solaio segnalate via PEC il 10/10/2026, mai riparate, che hanno reso inutilizzabile la saletta interna (circa 20% della superficie). Documenti: contratto, intimazione, PEC del 10/10/2026, foto delle infiltrazioni.",
+   "attese": {
+    "rimedio": [
+     "opposizione alla convalida",
+     "665"
+    ],
+    "giudice_rito": [
+     "tribunale di bari",
+     "mutamento del rito"
+    ],
+    "norme": [
+     "l392:55",
+     "cpc:663",
+     "cpc:665",
+     "cpc:667",
+     "cc:1575",
+     "cc:1578",
+     "dlgs28:5"
+    ],
+    "termini_importi": [
+     "25/03/2027",
+     "7\\.000",
+     "4\\.000"
+    ],
+    "avvertenze": [
+     "inadatta",
+     "pagare integralmente",
+     "mediazione obbligatoria"
+    ],
+    "dati": [
+     "interessi e spese",
+     "deposito cauzionale"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "V7C_12",
+   "titolo": "V7C_12 — stragiudiziale",
+   "domanda": "Data di oggi 12/04/2027 Parte assistita Giuseppe Lamanna (locatore) Controparte Rocco Pastore (conduttore moroso) Richiesta dell'avvocato Il mio cliente ha un inquilino che non paga da quattro mesi. Preparami l'invito alla negoziazione assistita obbligatoria, così poi possiamo fare causa per riavere casa e i canoni. Fatti del fascicolo Contratto di locazione abitativa 4+4 stipulato il 01/09/2023, registrato, canone mensile 850 euro da pagare entro il giorno 5 di ogni mese. Il conduttore non ha pagato i canoni di dicembre 2026, gennaio, febbraio e marzo 2027, per complessivi 3.400 euro. Il locatore ha inviato un sollecito con raccomandata del 15/02/2027, senza riscontro. Il conduttore continua a occupare l'immobile. Non ci sono contestazioni sull'immobile né richieste di riduzione del canone. Il deposito cauzionale è di 1.700 euro. Documenti: contratto registrato, ricevuta di registrazione, sollecito, estratti conto senza accrediti.",
+   "attese": {
+    "rimedio": [
+     "intimazione di sfratto",
+     "nessun invito alla negoziazione"
+    ],
+    "giudice_rito": [
+     "luogo dell.immobile",
+     "convalida"
+    ],
+    "norme": [
+     "dl132:3",
+     "dlgs28:5",
+     "cpc:658",
+     "cpc:661"
+    ],
+    "termini_importi": [
+     "3\\.400"
+    ],
+    "avvertenze": [
+     "inadatto",
+     "termine di grazia",
+     "deposito cauzionale"
+    ],
+    "dati": [
+     "comune e indirizzo dell.immobile"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "V7A_04",
+   "titolo": "V7A_04 — civile ordinario - appalto",
+   "domanda": "Data di oggi 10/11/2026 Parte assistita Paolo Divella (committente) Controparte Clima Sud Impianti S.n.c. di Ruggiero e Lomuscio (appaltatore) Richiesta dell'avvocato Prepara la citazione contro l'installatore: l'impianto di climatizzazione che ha montato al cliente non ha mai funzionato bene. Chiediamo riduzione del prezzo e danni. Fatti del fascicolo Contratto d'appalto del 15/01/2026 per la fornitura e posa di un impianto di climatizzazione multisplit nell'abitazione Divella a Monopoli; corrispettivo 9.800 euro, interamente pagato. Collaudo e consegna il 20/02/2026 (verbale firmato senza riserve). Il 10/03/2026, alla prima accensione in caldo, l'impianto andava in blocco e due split perdevano condensa: lo dicono la mail del cliente alla figlia del 10/03/2026 e le foto dello stesso giorno. Il cliente ha telefonato più volte all'impresa, ma non ci sono prove scritte né riconoscimenti dei vizi da parte dell'appaltatore. Prima contestazione scritta: PEC del 20/06/2026 all'impresa, che il 25/06/2026 ha risposto eccependo la tardività della denuncia. Perizia di parte del 10/09/2026: errata carica di refrigerante e pendenze errate degli scarichi; costo di ripristino 3.200 euro. Nessun altro atto.",
+   "attese": {
+    "rimedio": [
+     "garanzia di conformita",
+     "codice del consumo"
+    ],
+    "giudice_rito": [
+     "giudice di pace di monopoli"
+    ],
+    "norme": [
+     "cc:1667",
+     "cc:1668",
+     "dlgs206:128",
+     "dlgs206:133",
+     "dlgs206:135bis",
+     "dlgs206:33",
+     "cpc:7",
+     "dl132:3"
+    ],
+    "termini_importi": [
+     "09/05/2026",
+     "21/02/2028",
+     "20/04/2028",
+     "3\\.200"
+    ],
+    "avvertenze": [
+     "decadenza",
+     "non e obbligatoria"
+    ],
+    "dati": [
+     "telefonate"
+    ],
+    "bozza": true
+   },
+   "nota": "verifica del 19/11: contratto impresa-consumatore → garanzia di conformità (artt. 128, 133, 135-bis cod. cons.) senza onere di denuncia nel testo vigente; negoziazione esclusa; foro del consumatore (art. 33 c. 2 lett. u)"
+  },
+  {
+   "id": "V7B_16",
+   "titolo": "V7B_16 — lavoro",
+   "domanda": "Data di oggi 12/11/2026 Parte assistita Cosimo Lattarulo (lavoratore licenziato) Controparte Logistica Peucetia s.r.l. (nome inventato) (datore di lavoro) Richiesta dell'avvocato Un magazziniere è stato licenziato per giusta causa a inizio settembre, secondo lui ingiustamente. Mandiamo oggi la lettera di impugnazione all'azienda e poi prepariamo il ricorso per la reintegra. Fatti del fascicolo Assunto il 10/01/2017 come magazziniere, CCNL Logistica, Trasporto merci e Spedizione; azienda con 80 dipendenti, sede a Bari. Contestazione disciplinare del 05/08/2026 per presunto ammanco di merce; giustificazioni scritte del lavoratore del 08/08/2026. Lettera di licenziamento per giusta causa datata 01/09/2026, consegnata a mano e sottoscritta per ricevuta dal lavoratore il 02/09/2026. Il lavoratore riferisce di aver telefonato al sindacato a settembre ma nessuna comunicazione scritta è stata inviata all'azienda. Nessun altro atto scritto è stato inviato al datore di lavoro fino ad oggi. Documenti: lettera di contestazione, giustificazioni, lettera di licenziamento con firma per ricevuta, buste paga.",
+   "attese": {
+    "rimedio": [
+     "decadenza",
+     "tfr"
+    ],
+    "giudice_rito": [
+     "giudice del lavoro"
+    ],
+    "norme": [
+     "l604:6",
+     "l183:32",
+     "cc:2120"
+    ],
+    "termini_importi": [
+     "02/11/2026"
+    ],
+    "avvertenze": [
+     "inadatta",
+     "per iscritto"
+    ],
+    "dati": [
+     "ricezione"
+    ],
+    "bozza": false
+   }
+  },
+  {
+   "id": "V7A_19",
+   "titolo": "V7A_19 — esecuzioni - precetto",
+   "domanda": "Data di oggi 10/12/2026 Parte assistita Rocco Lacatena (creditore, locatore) Controparte Daniele Pastore (debitore, ex conduttore) Richiesta dell'avvocato Abbiamo notificato il precetto il 4 dicembre. Da quando possiamo pignorare e fino a quando il precetto resta valido? Se il debitore paga solo una parte, che succede? Fatti del fascicolo Ordinanza di convalida di sfratto per morosità del Tribunale di Bari dell'08/06/2026 e successivo decreto ingiuntivo per canoni scaduti (11.200 euro), dichiarato esecutivo e munito di formula esecutiva. Titolo e precetto notificati al debitore personalmente il 04/12/2026, per 12.150 euro tra capitale, interessi e spese. Il 09/12/2026 il debitore ha bonificato 3.000 euro scrivendo che \"il resto lo verso a rate\". Il creditore ha individuato un conto corrente del debitore e un'autovettura intestata a lui. Il debitore non ha proposto opposizioni.",
+   "attese": {
+    "rimedio": [
+     "pignoramento"
+    ],
+    "giudice_rito": [
+     "ufficiale giudiziario"
+    ],
+    "norme": [
+     "cpc:482",
+     "cpc:481",
+     "cc:1194",
+     "cpc:543",
+     "cpc:492bis"
+    ],
+    "termini_importi": [
+     "14/12/2026",
+     "04/03/2027",
+     "9\\.150"
+    ],
+    "avvertenze": [
+     "atti esecutivi"
+    ],
+    "dati": [
+     "banca"
+    ],
+    "bozza": false
+   }
+  },
+  {
+   "id": "V7B_14",
+   "titolo": "V7B_14 — lavoro",
+   "domanda": "Data di oggi 20/11/2026 Parte assistita Giovanna Defrancesco (lavoratrice licenziata) Controparte Plastiche Apulia s.r.l. (nome inventato) (datore di lavoro) Richiesta dell'avvocato Un'operaia assunta nel 2019 è stata licenziata per giustificato motivo oggettivo per soppressione del posto, ma l'azienda ha assunto subito dopo un'altra persona con le stesse mansioni. Che termini abbiamo, che tutela possiamo chiedere e con quale rito? Fatti del fascicolo Assunta a tempo indeterminato il 15/04/2019 come operaia addetta al confezionamento, CCNL Gomma-Plastica; sede di lavoro Modugno (BA). L'azienda occupa 34 dipendenti nell'unità produttiva. Licenziamento per GMO comunicato con lettera consegnata a mano il 30/10/2026: 'soppressione della posizione per riorganizzazione e automazione della linea di confezionamento'. Il 16/11/2026 l'azienda ha assunto con contratto a termine un'altra addetta al confezionamento sulla stessa linea (fonte: colleghi e annuncio di lavoro). Retribuzione mensile globale di fatto: euro 1.780. Nessuna offerta di conciliazione ex art. 6 d.lgs. 23/2015 ricevuta finora. Documenti: lettera di assunzione, lettera di licenziamento, buste paga, annuncio di lavoro, nominativi di due colleghe testimoni.",
+   "attese": {
+    "rimedio": [
+     "impugnazione stragiudiziale",
+     "414"
+    ],
+    "giudice_rito": [
+     "giudice del lavoro",
+     "modugno|bari",
+     "92/2012"
+    ],
+    "norme": [
+     "l604:6",
+     "dlgs23:1",
+     "dlgs23:3",
+     "dlgs23:11",
+     "l604:3",
+     "l604:5"
+    ],
+    "termini_importi": [
+     "29/12/2026",
+     "10\\.680",
+     "21\\.360",
+     "64\\.080"
+    ],
+    "avvertenze": [
+     "centottanta giorni"
+    ],
+    "dati": [
+     "tfr"
+    ],
+    "bozza": false
+   }
+  },
+  {
+   "id": "V7C_10",
+   "titolo": "V7C_10 — stragiudiziale",
+   "domanda": "Data di oggi 15/03/2027 Parte assistita Pasquale Diomede (danneggiato, conducente e proprietario del veicolo) Controparte Assicurazioni Meridiane S.p.A.; Carlo Scarola (impresa di assicurazione del responsabile; conducente responsabile) Richiesta dell'avvocato Cliente tamponato al semaforo, danni all'auto e un colpo di frusta. Come procedo con l'assicurazione prima di fare causa? Devo fare la negoziazione assistita o la mediazione? Fatti del fascicolo Il 02/02/2027 il veicolo del sig. Diomede, fermo al semaforo rosso, è stato tamponato dall'auto condotta e di proprietà del sig. Scarola. I conducenti hanno compilato e sottoscritto il modulo CAI con riconoscimento della responsabilità di Scarola. Il veicolo di Diomede ha riportato danni per 6.200 euro (preventivo di carrozzeria); il cliente è andato al pronto soccorso il giorno stesso con diagnosi di distorsione cervicale, prognosi 10 giorni, poi fisioterapia. Entrambi i veicoli sono immatricolati in Italia e regolarmente assicurati; l'assicuratore di Diomede è Polizza Sicura S.p.A. Il cliente non ha ancora inviato alcuna richiesta di risarcimento. Documenti: CAI, preventivo, foto, referto PS, fatture fisioterapia per 420 euro.",
+   "attese": {
+    "rimedio": [
+     "risarcimento diretto",
+     "negoziazione assistita"
+    ],
+    "giudice_rito": [
+     "giudice di pace"
+    ],
+    "norme": [
+     "dlgs209:149",
+     "dlgs209:148",
+     "dlgs209:145",
+     "dl132:3",
+     "cc:2947",
+     "cpc:7"
+    ],
+    "termini_importi": [
+     "02/02/2029",
+     "6\\.620"
+    ],
+    "avvertenze": [
+     "a prescindere dal valore",
+     "ricezione della richiesta"
+    ],
+    "dati": [
+     "luogo del sinistro"
+    ],
+    "bozza": false
+   }
+  },
+  {
+   "id": "D4_1_01",
+   "titolo": "D4_1_01 — civile ordinario",
+   "domanda": "Data di oggi 12/11/2026 Parte assistita Ginevra Lattanzi (committente) Controparte Falegnameria Dell'Erba s.r.l. (appaltatore) Richiesta dell'avvocato La signora Lattanzi vuole sapere se puo' ancora agire contro la falegnameria per la cucina difettosa e con quali tempi. Per me c'e' la garanzia decennale dell'art. 1669, quindi possiamo prendercela comoda: preparami un parere. Fatti del fascicolo 10/03/2025 - Ginevra Lattanzi stipula con Falegnameria Dell'Erba s.r.l. un contratto di appalto per la realizzazione e posa di una cucina su misura in legno massello nella sua abitazione di Monopoli, corrispettivo euro 18.400 (contratto scritto). 14/07/2025 - consegna e posa della cucina, con verbale di consegna sottoscritto da entrambe le parti senza riserve. 14/07/2025 - la committente salda il corrispettivo di euro 18.400 con bonifico. 02/02/2026 - la committente scopre che le ante dei pensili e il piano di lavoro presentano rigonfiamenti e distacchi del bordo; la perizia del geom. Saverio Lomuscio del 05/02/2026 li attribuisce a difetto di incollaggio e a legno non stagionato, non visibili alla consegna. 20/02/2026 - la committente denuncia i vizi alla Falegnameria Dell'Erba s.r.l. con PEC, allegando la perizia. 03/03/2026 - la Falegnameria risponde per PEC negando ogni responsabilita' e attribuendo i danni all'uso. 05/02/2026 - la perizia stima il costo di sostituzione di ante e piano di lavoro in euro 6.900. Dopo il 03/03/2026 nessuna altra comunicazione scritta tra le parti.",
+   "attese": {
+    "rimedio": [
+     "garanzia per vizi",
+     "1668"
+    ],
+    "giudice_rito": [
+     "giudice di pace di monopoli"
+    ],
+    "norme": [
+     "cc:1667",
+     "cc:1668",
+     "cc:1669",
+     "cc:2943",
+     "dlgs206:128",
+     "dlgs206:133",
+     "dlgs206:33",
+     "dl132:3"
+    ],
+    "termini_importi": [
+     "03/04/2026",
+     "14/07/2027",
+     "14/09/2027",
+     "6\\.900"
+    ],
+    "avvertenze": [
+     "non e applicabile|non si applica",
+     "non e obbligatoria"
+    ],
+    "dati": [
+     "ricevuta di consegna"
+    ],
+    "bozza": false
+   },
+   "nota": "verifica del 19/11: consumatore → negoziazione esclusa (art. 3 c. 1 d.l. 132/2014), garanzia di conformità concorrente, giudice di pace (valore 6.900) del foro del consumatore"
+  },
+  {
+   "id": "D4_1_02",
+   "titolo": "D4_1_02 — procedimento monitorio",
+   "domanda": "Data di oggi 05/11/2026 Parte assistita Officine Ruvo s.n.c. di Ferrante Lucio & C. (ingiunta opponente) Controparte Metalcarb s.r.l. (creditore opposto) Richiesta dell'avvocato Prepara l'atto di citazione in opposizione al decreto ingiuntivo n. 812/2026 per Officine Ruvo: paghiamo solo quello che e' davvero dovuto. Fatti del fascicolo 10/02/2016 - Metalcarb s.r.l. emette nei confronti di Officine Ruvo s.n.c. di Ferrante Lucio & C. la fattura n. 14 di euro 2.300 per fornitura di lamiere, con scadenza di pagamento al 10/03/2016. 05/02/2026 - Metalcarb s.r.l. emette la fattura n. 57 di euro 4.500 per fornitura di profilati, scadenza 05/03/2026. 08/04/2026 - Metalcarb s.r.l. emette la fattura n. 63 di euro 6.000 per fornitura di profilati, scadenza 08/05/2026. 15/06/2026 - Officine Ruvo paga a Metalcarb euro 4.000 con bonifico recante la causale «saldo parziale fattura n. 63». Tra il 10/03/2016 e il deposito del ricorso monitorio Metalcarb non ha mai chiesto per iscritto il pagamento della fattura n. 14 e Officine Ruvo non l'ha mai riconosciuta. 25/09/2026 - Metalcarb deposita ricorso per decreto ingiuntivo per euro 12.800 (fatture n. 14, 57 e 63), senza menzionare il bonifico del 15/06/2026. 20/10/2026 - viene notificato a Officine Ruvo, presso la sede di Corato, il decreto ingiuntivo n. 812/2026 del Tribunale di Trani che ingiunge il pagamento di euro 12.800 oltre interessi e spese, entro quaranta giorni. Officine Ruvo non contesta le forniture delle fatture n. 57 e 63. Legale rappresentante: Lucio Ferrante; codice fiscale e PEC della societa' da acquisire.",
+   "attese": {
+    "rimedio": [
+     "opposizione a decreto ingiuntivo"
+    ],
+    "giudice_rito": [
+     "tribunale di trani",
+     "citazione"
+    ],
+    "norme": [
+     "cpc:641",
+     "cpc:645",
+     "cc:2946",
+     "cc:2935",
+     "cc:1193"
+    ],
+    "termini_importi": [
+     "30/11/2026",
+     "10/03/2026",
+     "6\\.500",
+     "6\\.300"
+    ],
+    "avvertenze": [
+     "650"
+    ],
+    "dati": [
+     "codici fiscali"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "D4_1_03",
+   "titolo": "D4_1_03 — cautelare",
+   "domanda": "Data di oggi 09/11/2026 Parte assistita Rosaria Cifarelli (ricorrente cautelare, creditrice) Controparte Donato Pastore (resistente, debitore) Richiesta dell'avvocato Abbiamo ottenuto il sequestro contro Pastore. Faccio eseguire il pignoramento con calma a gennaio e poi abbiamo sessanta giorni dall'esecuzione per la causa di merito, giusto? Fammi un parere con le scadenze. Fatti del fascicolo 10/01/2025 - Rosaria Cifarelli presta a Donato Pastore euro 35.000 con scrittura privata che prevede la restituzione in unica soluzione entro il 10/01/2026, senza interessi corrispettivi. 20/12/2025 - Donato Pastore restituisce euro 5.000 con bonifico recante la causale «restituzione parziale prestito». Dopo il 10/01/2026 Pastore non paga il residuo e, secondo visura del 05/10/2026, ha messo in vendita l'unico immobile di sua proprieta' in Altamura. 12/10/2026 - Rosaria Cifarelli deposita al Tribunale di Bari ricorso per sequestro conservativo ante causam fino a euro 30.000. 02/11/2026 - l'ordinanza di accoglimento, pronunciata fuori udienza, e' depositata in cancelleria e comunicata via PEC al difensore della ricorrente; autorizza il sequestro conservativo dei beni di Pastore fino a euro 30.000 e non fissa il termine per l'inizio del giudizio di merito. Alla data odierna il sequestro non e' stato ancora eseguito e nessun giudizio di merito e' stato iniziato.",
+   "attese": {
+    "rimedio": [
+     "trenta giorni",
+     "sessanta giorni"
+    ],
+    "giudice_rito": [
+     "ufficiale giudiziario",
+     "tribunale"
+    ],
+    "norme": [
+     "cpc:675",
+     "cpc:669octies",
+     "cpc:669novies",
+     "dl132:3"
+    ],
+    "termini_importi": [
+     "02/12/2026",
+     "04/01/2027",
+     "30\\.000"
+    ],
+    "avvertenze": [
+     "con calma"
+    ],
+    "dati": [
+     "ricezione della pec"
+    ],
+    "bozza": false
+   }
+  },
+  {
+   "id": "D4_1_04",
+   "titolo": "D4_1_04 — giudice di pace",
+   "domanda": "Data di oggi 05/11/2026 Parte assistita Teresa Mangione (ricorrente, proprietaria del veicolo) Controparte Comune di Altamura (amministrazione resistente) Richiesta dell'avvocato La signora Mangione ha ricevuto una multa per autovelox notificata a ottobre per un fatto di giugno. Prepara il ricorso al giudice di pace. Fatti del fascicolo 03/06/2026 - alle ore 10:12, sulla strada provinciale 235 nel territorio del Comune di Altamura, un apparecchio fisso di rilevamento della velocita' gestito dalla Polizia Locale di Altamura accerta il superamento del limite da parte dell'autovettura intestata a Teresa Mangione; la violazione non viene contestata immediatamente. Teresa Mangione risulta intestataria del veicolo al P.R.A. dal 2020, con residenza in Gravina in Puglia invariata; nel verbale non e' indicato alcun motivo che abbia ritardato l'identificazione. 09/10/2026 - il Comune di Altamura consegna all'ufficio postale per la notifica il verbale n. 4471/2026, che irroga la sanzione di euro 173 oltre spese. 14/10/2026 - il verbale n. 4471/2026 e' notificato a Teresa Mangione a mezzo posta, con consegna a mani proprie. Teresa Mangione non ha pagato la sanzione ne' proposto ricorso al prefetto. Codice fiscale da acquisire.",
+   "attese": {
+    "rimedio": [
+     "ricorso in opposizione al verbale"
+    ],
+    "giudice_rito": [
+     "giudice di pace di altamura",
+     "rito del lavoro"
+    ],
+    "norme": [
+     "dlgs285:201",
+     "dlgs150:7"
+    ],
+    "termini_importi": [
+     "01/09/2026",
+     "13/11/2026",
+     "173"
+    ],
+    "avvertenze": [
+     "prefetto"
+    ],
+    "dati": [
+     "codice fiscale"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "D4_1_05",
+   "titolo": "D4_1_05 — esecuzioni",
+   "domanda": "Data di oggi 10/06/2027 Parte assistita Leonardo Spadavecchia (creditore procedente) Controparte Saverio Iannone (debitore esecutato) Richiesta dell'avvocato Notifichiamo subito il pignoramento presso terzi su Banca Daunia contro Iannone in base al precetto del 05/02/2027, per l'intero importo di euro 11.450. Mi serve un parere veloce per il cliente. Fatti del fascicolo 14/09/2026 - il Tribunale di Foggia, con sentenza n. 1290/2026 provvisoriamente esecutiva, condanna Saverio Iannone a pagare a Leonardo Spadavecchia euro 9.600 a titolo di capitale, oltre interessi legali dalla domanda, e le spese di lite liquidate in euro 1.850. 05/02/2027 - Leonardo Spadavecchia notifica a Saverio Iannone la sentenza in forma esecutiva e, contestualmente, l'atto di precetto per euro 11.450 oltre interessi. 20/03/2027 - Saverio Iannone versa euro 3.000 con bonifico recante la causale «euro 1.850 spese di lite sentenza 1290/2026 ed euro 1.150 acconto capitale»; Spadavecchia accetta il pagamento e l'imputazione con PEC del 22/03/2027. Alla data odierna non e' stato notificato alcun atto di pignoramento e Iannone non ha proposto opposizione al precetto. Risulta che Iannone e' titolare di un conto corrente presso Banca Daunia s.p.a.",
+   "attese": {
+    "rimedio": [
+     "rinnovare il precetto"
+    ],
+    "giudice_rito": [
+     "ufficiale giudiziario"
+    ],
+    "norme": [
+     "cpc:481",
+     "cc:1193",
+     "cc:1194"
+    ],
+    "termini_importi": [
+     "06/05/2027",
+     "8\\.450"
+    ],
+    "avvertenze": [
+     "inefficace",
+     "intero importo"
+    ],
+    "dati": [],
+    "bozza": false
+   }
+  },
+  {
+   "id": "D4_1_06",
+   "titolo": "D4_1_06 — locazioni",
+   "domanda": "Data di oggi 16/11/2026 Parte assistita Tommaso Iacobellis (ex conduttore) Controparte Carmela Abbatangelo (locatrice) Richiesta dell'avvocato Iacobellis vuole indietro le somme in nero pagate alla Abbatangelo. E' un indebito: prescrizione decennale, quindi mandiamo una diffida e trattiamo con calma. Mi serve un parere. Fatti del fascicolo 01/07/2024 - Carmela Abbatangelo, locatrice, e Tommaso Iacobellis, conduttore, stipulano un contratto di locazione ad uso abitativo per un appartamento in Bari, durata 4+4 anni, canone mensile di euro 520, registrato il 15/07/2024. 01/07/2024 - le stesse parti sottoscrivono una scrittura non registrata con cui il conduttore si obbliga a versare ulteriori euro 130 al mese «per l'uso degli arredi», gia' compresi nella locazione secondo il contratto registrato. Per 24 mensilita', da luglio 2024 a giugno 2026, il conduttore versa in contanti euro 130 al mese oltre al canone, per complessivi euro 3.120, con ricevute firmate dalla locatrice. 30/06/2026 - dopo regolare recesso, il conduttore riconsegna l'immobile, come da verbale di riconsegna sottoscritto dalle parti. 10/09/2026 - la locatrice versa al conduttore euro 400 con bonifico recante la causale «parziale restituzione somme extra canone». Nessuna domanda giudiziale o di mediazione e' stata ancora proposta.",
+   "attese": {
+    "rimedio": [
+     "restituzione",
+     "mediazione obbligatoria"
+    ],
+    "giudice_rito": [
+     "organismo di mediazione"
+    ],
+    "norme": [
+     "l431:13",
+     "dlgs28:5",
+     "dlgs28:8",
+     "cc:2964",
+     "cc:2966"
+    ],
+    "termini_importi": [
+     "30/12/2026",
+     "3\\.120",
+     "2\\.720"
+    ],
+    "avvertenze": [
+     "decadenza",
+     "prescrizione decennale"
+    ],
+    "dati": [],
+    "bozza": false
+   }
+  },
+  {
+   "id": "D4_1_07",
+   "titolo": "D4_1_07 — famiglia",
+   "domanda": "Data di oggi 20/11/2026 Parte assistita Francesco Loiudice (ricorrente, marito e presunto padre) Controparte Martina Sansone (resistente, madre) Richiesta dell'avvocato Prepara il ricorso per il disconoscimento di paternita' di Gabriele per conto di Francesco Loiudice. Fatti del fascicolo 20/05/2019 - Francesco Loiudice e Martina Sansone contraggono matrimonio a Matera. 12/03/2024 - nasce a Matera il figlio Gabriele, registrato come figlio dei coniugi; Francesco Loiudice era presente a Matera il giorno della nascita. 20/06/2026 - Francesco Loiudice riceve l'esito di un test genetico eseguito da laboratorio accreditato, che esclude la sua paternita' biologica di Gabriele; fino ad allora ignorava qualunque relazione extraconiugale della moglie. 22/06/2026 - Martina Sansone ammette con messaggio scritto al marito una relazione extraconiugale nel periodo del concepimento. 01/07/2026 - i coniugi cessano la convivenza; Gabriele vive con la madre a Matera. Codici fiscali e dati anagrafici completi delle parti e del minore da acquisire.",
+   "attese": {
+    "rimedio": [
+     "disconoscimento"
+    ],
+    "giudice_rito": [
+     "tribunale di matera",
+     "ricorso"
+    ],
+    "norme": [
+     "cc:243bis",
+     "cc:244",
+     "cpc:473bis12",
+     "cpc:473bis11"
+    ],
+    "termini_importi": [
+     "21/06/2027",
+     "12/03/2029"
+    ],
+    "avvertenze": [
+     "curatore speciale"
+    ],
+    "dati": [
+     "codici fiscali"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "D4_1_08",
+   "titolo": "D4_1_08 — volontaria giurisdizione e successioni",
+   "domanda": "Data di oggi 25/11/2026 Parte assistita Michele Dicorato (chiamato all'eredita') Controparte creditori della defunta Anna Maria Carbonara (creditori ereditari) Richiesta dell'avvocato Michele Dicorato vuole evitare i debiti della madre: prepariamo la rinuncia all'eredita' dal notaio e chiudiamo la questione. Fammi un parere da consegnargli. Fatti del fascicolo 10/06/2026 - muore a Bitonto, dove aveva l'ultimo domicilio, Anna Maria Carbonara, vedova, senza testamento; unico chiamato per legge e' il figlio Michele Dicorato, presente al decesso. Michele Dicorato conviveva con la madre nella casa di proprieta' di lei in Bitonto e, dopo il decesso, continua ad abitarvi, ne detiene le chiavi e ne paga le utenze. L'attivo ereditario comprende la casa, stimata euro 40.000 da perizia del 15/09/2026, e un conto corrente con saldo di euro 2.000. 05/10/2026 - due finanziarie comunicano a Michele Dicorato crediti verso la defunta per complessivi euro 95.000. Michele Dicorato non ha redatto inventario, non ha fatto dichiarazioni di accettazione o di rinuncia e non ha chiesto proroghe.",
+   "attese": {
+    "rimedio": [
+     "erede puro e semplice",
+     "rinuncia"
+    ],
+    "giudice_rito": [
+     "stragiudizial"
+    ],
+    "norme": [
+     "cc:485",
+     "cc:519"
+    ],
+    "termini_importi": [
+     "10/09/2026",
+     "42\\.000",
+     "53\\.000"
+    ],
+    "avvertenze": [
+     "non produrrebbe effetti"
+    ],
+    "dati": [
+     "contratti di finanziamento"
+    ],
+    "bozza": false
+   }
+  },
+  {
+   "id": "D4_1_09",
+   "titolo": "D4_1_09 — lavoro",
+   "domanda": "Data di oggi 01/12/2026 Parte assistita Vito Lorusso (lavoratore ricorrente) Controparte Logistica Adriatica s.r.l. (datore di lavoro resistente) Richiesta dell'avvocato Prepara il ricorso al giudice del lavoro di Bari contro il licenziamento di Vito Lorusso. Fatti del fascicolo 01/09/2018 - Vito Lorusso e' assunto a tempo indeterminato da Logistica Adriatica s.r.l., con sede in Modugno e 42 dipendenti, come magazziniere; ultima retribuzione mensile utile per il TFR euro 2.100. 15/05/2026 - Vito Lorusso riceve a mani la lettera con cui Logistica Adriatica lo licenzia per giustificato motivo oggettivo «per riorganizzazione aziendale», senza indicare quale posizione sia soppressa. 30/06/2026 - l'avvocato di Vito Lorusso impugna il licenziamento con PEC ricevuta lo stesso giorno da Logistica Adriatica. 20/07/2026 - Logistica Adriatica assume un nuovo magazziniere con le stesse mansioni e nello stesso reparto, come risulta dalla comunicazione obbligatoria acquisita dal lavoratore. Non e' stata chiesta la conciliazione o l'arbitrato e non e' stato depositato alcun ricorso. Codici fiscali e PEC da acquisire.",
+   "attese": {
+    "rimedio": [
+     "414"
+    ],
+    "giudice_rito": [
+     "giudice del lavoro",
+     "modugno|bari"
+    ],
+    "norme": [
+     "l604:6",
+     "dlgs23:3",
+     "cpc:414"
+    ],
+    "termini_importi": [
+     "14/07/2026",
+     "28/12/2026",
+     "12\\.600"
+    ],
+    "avvertenze": [],
+    "dati": [
+     "codici fiscali"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "D4_1_10",
+   "titolo": "D4_1_10 — tributario",
+   "domanda": "Data di oggi 16/11/2026 Parte assistita Nicola Montefusco (contribuente ricorrente) Controparte Agenzia delle Entrate - Direzione provinciale di Bari (ente impositore resistente) Richiesta dell'avvocato Prepara il ricorso contro l'avviso di accertamento IRPEF 2019 notificato a Montefusco. Fatti del fascicolo 30/11/2020 - Nicola Montefusco, architetto residente a Molfetta, presenta la dichiarazione dei redditi relativa all'anno d'imposta 2019. 08/10/2026 - l'Agenzia delle Entrate, Direzione provinciale di Bari, notifica a Nicola Montefusco l'avviso di accertamento n. TB1K0447/2026 per IRPEF dell'anno d'imposta 2019: maggior reddito di euro 18.000 desunto da versamenti bancari non giustificati, maggiore imposta di euro 6.120 oltre sanzioni e interessi. I versamenti contestati corrispondono alla restituzione di un prestito fatto da Nicola Montefusco al fratello, documentata da scrittura privata del 2018 e da bonifici con causale «restituzione prestito». L'avviso non contesta l'omessa presentazione della dichiarazione ne' reati tributari; il contribuente non ha presentato istanza di accertamento con adesione. Codice fiscale e PEC da acquisire.",
+   "attese": {
+    "rimedio": [
+     "corte di giustizia tributaria"
+    ],
+    "giudice_rito": [
+     "corte di giustizia tributaria"
+    ],
+    "norme": [
+     "dpr600:43",
+     "dlgs546:21",
+     "dlgs546:18",
+     "dlgs546:22"
+    ],
+    "termini_importi": [
+     "07/12/2026",
+     "07/01/2027",
+     "31/12/2025",
+     "6\\.120"
+    ],
+    "avvertenze": [
+     "decadut"
+    ],
+    "dati": [
+     "relata"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "D4_1_11",
+   "titolo": "D4_1_11 — amministrativo",
+   "domanda": "Data di oggi 10/11/2026 Parte assistita Giuseppina Clemente (ricorrente, titolare del permesso di costruire) Controparte Comune di Gravina in Puglia (amministrazione resistente) Richiesta dell'avvocato Prepara il ricorso al TAR contro l'annullamento d'ufficio del permesso di costruire della signora Clemente. Fatti del fascicolo 12/01/2026 - il Comune di Gravina in Puglia rilascia a Giuseppina Clemente il permesso di costruire n. 3/2026 per l'ampliamento della sua villetta in contrada Murgetta. 20/03/2026 - iniziano i lavori; al 30/09/2026 la proprietaria ha sostenuto spese documentate per euro 48.000. 10/07/2026 - il vicino Rocco Matera presenta un esposto al Comune lamentando un errato calcolo della volumetria. 25/09/2026 - il dirigente dell'Area tecnica adotta la determinazione n. 711/2026 di annullamento d'ufficio del permesso n. 3/2026 per errato calcolo della volumetria, richiamando l'esposto di Rocco Matera; l'atto non contesta false rappresentazioni o dichiarazioni mendaci e non motiva sull'affidamento della titolare. 01/10/2026 - la determinazione n. 711/2026 e' notificata a Giuseppina Clemente via PEC. Codice fiscale della ricorrente e indirizzo di Rocco Matera da acquisire.",
+   "attese": {
+    "rimedio": [
+     "ricorso al tar",
+     "cautelare"
+    ],
+    "giudice_rito": [
+     "tar puglia"
+    ],
+    "norme": [
+     "l241:21nonies",
+     "cpa:29",
+     "cpa:41",
+     "cpa:40"
+    ],
+    "termini_importi": [
+     "13/07/2026",
+     "30/11/2026",
+     "48\\.000"
+    ],
+    "avvertenze": [
+     "tardivo"
+    ],
+    "dati": [
+     "controinteressato"
+    ],
+    "bozza": true
+   }
+  },
+  {
+   "id": "D4_1_12",
+   "titolo": "D4_1_12 — penale",
+   "domanda": "Data di oggi 03/11/2026 Parte assistita Donatella Fiore (persona offesa) Controparte Ettore Galasso (autore del post) Richiesta dell'avvocato Per la querela della signora Fiore contro Galasso abbiamo sei mesi: aspettiamo l'esito della trattativa e, se va male, la presentiamo a febbraio. Scrivimi un parere per la cliente. Fatti del fascicolo 20/09/2026 - Ettore Galasso pubblica sul proprio profilo Facebook pubblico, seguito da circa 3.000 persone, un post in cui afferma che l'erboristeria di Donatella Fiore a Ostuni «vende prodotti scaduti e contraffatti», indicandone nome e indirizzo. 28/09/2026 - Donatella Fiore apprende del post da uno screenshot inviatole da una cliente; conserva lo screenshot e il link. 15/10/2026 - Galasso scrive privatamente a Donatella Fiore offrendo di cancellare il post se lei «lascia perdere»; la trattativa e' in corso e il post e' ancora visibile. Donatella Fiore non ha ancora presentato querela e non ha accettato alcuna proposta.",
+   "attese": {
+    "rimedio": [
+     "querela"
+    ],
+    "giudice_rito": [
+     "procura della repubblica"
+    ],
+    "norme": [
+     "cp:124",
+     "cp:595",
+     "cp:597",
+     "cpp:336"
+    ],
+    "termini_importi": [
+     "28/12/2026"
+    ],
+    "avvertenze": [
+     "sei mesi",
+     "rinuncia"
+    ],
+    "dati": [],
+    "bozza": false
+   }
+  }
+ ]
+}

@@ -6,10 +6,12 @@ import './documentListToolbar.css'
 
 export type DocumentSectionOption = { id: string; label: string }
 
-const STATUS_OPTIONS: ReadonlyArray<{ id: DocumentStatusFilter; label: string }> = [
-  { id: 'tutti', label: 'Tutti gli stati' },
-  { id: 'da_firmare', label: 'Firma non verificata' },
-  { id: 'da_verificare', label: 'Da confermare o verificare' },
+// «Senza firma digitale»: la firma si verifica in automatico sui byte di ogni file (busta CAdES/.p7m e firma PAdES).
+// Copie, PEC e ricevute di norma non hanno firma: non è un difetto, la firma serve agli atti che lo studio deposita.
+const STATUS_OPTIONS: ReadonlyArray<{ id: DocumentStatusFilter; label: string; title: string }> = [
+  { id: 'tutti', label: 'Tutti gli stati', title: 'Tutti i documenti del fascicolo (le bozze dello studio sono a parte)' },
+  { id: 'da_firmare', label: 'Senza firma digitale', title: 'File senza una firma digitale valida: la verifica è automatica sul contenuto (CAdES/.p7m e PAdES). Per copie, PEC e ricevute è la condizione normale; la firma serve solo agli atti da depositare o notificare.' },
+  { id: 'da_verificare', label: 'Da confermare o verificare', title: 'Proposte di catalogazione sotto la soglia di certezza e documenti da verificare' },
 ]
 
 export function DocumentListToolbar<T>({
@@ -82,10 +84,11 @@ export function DocumentListToolbar<T>({
       </div>
       <div className="iu-doclist-toolbar__chips iu-doclist-toolbar__chips--status" aria-label="Filtra per stato">
         {STATUS_OPTIONS.map((option) => (
-          <button key={option.id} type="button" aria-pressed={status === option.id} disabled={option.id === 'da_verificare' && !catalogoDisponibile} onClick={() => setStatus(status === option.id && option.id !== 'tutti' ? 'tutti' : option.id)}>
+          <button key={option.id} type="button" title={option.title} aria-pressed={status === option.id} disabled={option.id === 'da_verificare' && !catalogoDisponibile} onClick={() => setStatus(status === option.id && option.id !== 'tutti' ? 'tutti' : option.id)}>
             {option.label} {option.id !== 'da_verificare' || catalogoDisponibile ? <b>{statusCounts[option.id]}</b> : null}
           </button>
         ))}
+        {statusCounts.firma_non_confermata ? <span className="iu-doclist-toolbar__firma-avviso" role="note">{statusCounts.firma_non_confermata === 1 ? '1 file ha una firma che la verifica non conferma' : `${statusCounts.firma_non_confermata} file hanno una firma che la verifica non conferma`}</span> : null}
       </div>
       <div className="iu-doclist-toolbar__vista">
         {/* La vista salvata vale per tutti i fascicoli: si salva quando l'avvocato

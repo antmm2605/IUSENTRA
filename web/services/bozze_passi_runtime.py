@@ -119,9 +119,9 @@ def _documento(fascicolo: Any, documento_id: str) -> Any:
 
 def _testo_editor(bozza: Bozza) -> str:
     """Il testo modificabile della bozza: l'HTML impaginato dell'editor, già ripulito."""
-    from pct.editor_ai.editor_renderer import sanitize_editor_html
+    from pct.bozze_passi.sanifica import sanifica_testo_bozza
 
-    return sanitize_editor_html(impagina(bozza.testo))
+    return sanifica_testo_bozza(impagina(bozza.testo))
 
 
 def _pdf(titolo: str, testo_html: str) -> bytes:
@@ -270,17 +270,17 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
 
 def _contenuto_come_html(repository: Any, fascicolo_id: str, documento: Any) -> str:
     """Il testo di una bozza creata prima del PDF: l'HTML scritto dal software o il Word salvato dall'editor."""
+    from pct.bozze_passi.sanifica import sanifica_testo_bozza
     from pct.editor import documento_to_html
-    from pct.editor_ai.editor_renderer import sanitize_editor_html
     from web.services.document_crypto import decrypt_doc
 
     leggi = getattr(repository, "percorso_documento_lettura", None) or repository.percorso_documento
     grezzo = decrypt_doc(leggi(fascicolo_id, documento.id).read_bytes())
     nome = str(getattr(documento, "nome", "") or "")
     if nome.lower().endswith((".html", ".htm")):
-        return sanitize_editor_html(grezzo.decode("utf-8", errors="replace"))
+        return sanifica_testo_bozza(grezzo.decode("utf-8", errors="replace"))
     html, _avvisi, _meta = documento_to_html(grezzo, nome)
-    return sanitize_editor_html(html)
+    return sanifica_testo_bozza(html)
 
 
 def converti_bozza(repository: Any, fascicolo: Any, voce: VoceBozza, archivio: ArchivioBozze) -> bool:
@@ -361,7 +361,7 @@ def salva_dall_editor(fascicolo_id: str, documento_id: str, testo_html: str, *, 
 
     La bozza diventa «modificata dall'avvocato»: il giro in sfondo non la riscrive più (segnala solo i dati
     cambiati). Nulla si invia, si deposita o si notifica."""
-    from pct.editor_ai.editor_renderer import sanitize_editor_html
+    from pct.bozze_passi.sanifica import sanifica_testo_bozza
     from web.helpers import get_fascicoli
 
     archivio = archivio_corrente()
@@ -373,7 +373,8 @@ def salva_dall_editor(fascicolo_id: str, documento_id: str, testo_html: str, *, 
     documento = _documento(fascicolo, documento_id) if fascicolo is not None else None
     if documento is None:
         raise LookupError("Documento non trovato nel fascicolo.")
-    pulito = sanitize_editor_html(testo_html)
+    # Lista di tag ammessi: il testo torna nell'editor e nel PDF, nessuno script salvato (XSS memorizzato).
+    pulito = sanifica_testo_bozza(testo_html)
     mancano = da_completare_html(pulito)
     scrivi_pdf(repository, fascicolo_id, documento, titolo=voce.titolo, testo_html=pulito,
                note=nota_bozza(voce.modello_titolo, len(mancano), modificata=True), autore=autore)

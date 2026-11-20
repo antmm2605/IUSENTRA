@@ -499,3 +499,84 @@ def test_preposizione_articolata_davanti_all_amministrazione():
               "Ministero dell'Economia e delle Finanze": "al Ministero dell'Economia e delle Finanze"}
     for nome, atteso in attesi.items():
         assert destinatario_con_preposizione(nome) == atteso
+
+
+# --- Sicurezza degli endpoint del testo della bozza (19/11/2026) ---------------------------------------------------
+
+def test_il_testo_salvato_dall_editor_perde_script_e_gestori_ma_tiene_i_segnaposti():
+    from pct.bozze_passi.sanifica import sanifica_testo_bozza
+
+    sporco = ('<section class="iu-doc-pagina" data-pagina="1" style="font-family:Times"><p onclick="x()">Atto '
+              '<mark>[da completare: data]</mark></p><img src=x onerror=alert(1)><script>alert(2)</script>'
+              '<a href="javascript:alert(3)">link</a><iframe src="https://x"></iframe>'
+              '<p style="background:url(javascript:alert(4))">fine</p></section>')
+    pulito = sanifica_testo_bozza(sporco)
+    for vietato in ("<img", "onerror", "<script", "alert(", "javascript:", "<iframe", "onclick", "url(", "<a "):
+        assert vietato not in pulito
+    assert "<mark>[da completare: data]</mark>" in pulito and "link" in pulito and "fine" in pulito
+    assert '<section class="iu-doc-pagina" data-pagina="1" style="font-family:Times">' in pulito
+
+
+def test_salvataggio_dall_editor_salva_solo_testo_ripulito(ambiente_pdf):
+    runtime, repository, archivio = ambiente_pdf
+    runtime.prepara_bozze_fascicolo("F1", lettura=_lettura_note(), archivio=archivio, oggi=OGGI)
+    [documento] = repository.documenti.values()
+    runtime.salva_dall_editor("F1", documento.id, '<p>Testo <mark>[da completare: x]</mark></p><img src=x onerror=alert(1)>'
+                                                  '<script>alert(1)</script>', autore="avv")
+    [voce] = archivio.del_fascicolo("F1")
+    assert "onerror" not in voce.testo_html and "<script" not in voce.testo_html and "<mark>" in voce.testo_html
+    assert voce.da_completare == ["x"]
+
+
+def _app_passaggi(monkeypatch, *, fascicolo, voce, visibile=True, scrittura=True, permessi=("fascicoli.leggi", "fascicoli.scrivi")):
+    from types import SimpleNamespace as NS
+
+    from flask import Flask, g
+
+    from web.blueprints import api_v1_passaggi as modulo
+
+    app = Flask(__name__)
+    app.register_blueprint(modulo.api_v1_passaggi)
+    app.extensions["core_runtime"] = {"cliente_accessibile": lambda _id, _ruolo: scrittura}
+    salvati = []
+    monkeypatch.setattr(modulo, "api_key_valid_for_request", lambda: False)
+    monkeypatch.setattr("web.helpers.get_fascicoli", lambda: NS(get=lambda fid: fascicolo if fascicolo and fid == fascicolo.id else None))
+    monkeypatch.setattr("web.services.bozze_passi_runtime.bozza_del_documento", lambda fid, did: voce)
+    monkeypatch.setattr("web.services.clienti_visibilita.cliente_visibile", lambda _id: visibile)
+    monkeypatch.setattr("web.services.bozze_passi_runtime.salva_dall_editor",
+                        lambda fid, did, html, autore: salvati.append(html) or {"ok": True, "nome": "b.pdf", "formato": "pdf"})
+
+    @app.before_request
+    def utente():
+        g.utente_corrente = NS(username="avv", ha_permesso=lambda p: p in permessi)
+
+    return app, salvati
+
+
+def test_endpoint_testo_bozza_rispetta_fascicolo_cliente_e_bozza(monkeypatch):
+    from types import SimpleNamespace as NS
+
+    fascicolo = NS(id="F1", id_cliente="C1", documenti=[NS(id="D1")])
+    voce = NS(testo_html="<p>ok</p>", titolo="Bozza", da_completare=[])
+    url = "/api/v1/ui/fascicoli/F1/bozze-passi/D1/testo"
+    # Tutto in regola: lettura e salvataggio.
+    app, salvati = _app_passaggi(monkeypatch, fascicolo=fascicolo, voce=voce)
+    with app.test_client() as client:
+        assert client.get(url).status_code == 200
+        assert client.post(url, json={"html": "<p>nuovo</p>"}).status_code == 200 and salvati == ["<p>nuovo</p>"]
+        # Fascicolo di un altro studio, documento non del fascicolo: 404.
+        assert client.get("/api/v1/ui/fascicoli/ALTRO/bozze-passi/D1/testo").status_code == 404
+        assert client.post("/api/v1/ui/fascicoli/F1/bozze-passi/D9/testo", json={"html": "x"}).status_code == 404
+    # Cliente non visibile: niente lettura; senza scrittura sulla cartella: niente salvataggio.
+    app, salvati = _app_passaggi(monkeypatch, fascicolo=fascicolo, voce=voce, visibile=False, scrittura=False)
+    with app.test_client() as client:
+        assert client.get(url).status_code == 404
+        assert client.post(url, json={"html": "x"}).status_code == 404 and salvati == []
+    # Il documento non è una bozza dei passi: 404.
+    app, salvati = _app_passaggi(monkeypatch, fascicolo=fascicolo, voce=None)
+    with app.test_client() as client:
+        assert client.get(url).status_code == 404 and client.post(url, json={"html": "x"}).status_code == 404
+    # Senza il permesso di scrittura sui fascicoli: 403 prima di ogni lettura.
+    app, salvati = _app_passaggi(monkeypatch, fascicolo=fascicolo, voce=voce, permessi=("fascicoli.leggi",))
+    with app.test_client() as client:
+        assert client.post(url, json={"html": "x"}).status_code == 403 and salvati == []

@@ -38,6 +38,7 @@ from zoneinfo import ZoneInfo
 
 from pct.notifica_atto_l53 import NORMA as NORMA_L53
 from pct.notifica_atto_l53 import chiave_nome, e_notificazione_l53, leggi_relata
+from pct.destinatari_notifica_pa import ruolo_destinatario, voci_relata
 from pct.ricevute_pec_gestore import EsitoRicevuta
 
 _PARSER = BytesParser(policy=policy.default)
@@ -145,10 +146,14 @@ def prova_spedizioni(
     casella_studio: str,
     documenti: Mapping[str, str],
     leggi_relata_file: LettoreRelata,
+    originali: Mapping[str, Invio] | None = None,
 ) -> list[EsitoSpedizione]:
     """Una prova (o un dubbio motivato) per ogni spedizione L. 53/1994 di cui ci sono ricevute verificate.
 
     ``documenti``: documento del fascicolo → impronta SHA-256 del contenuto (dal registro delle letture).
+    ``originali``: identificativo del messaggio → messaggio originale contenuto (``postacert.eml``) in una ricevuta
+    di avvenuta consegna completa verificata. Vale come prova del contenuto spedito quando manca la copia in
+    Inviati: la ricevuta completa è firmata dal gestore e lo contiene (D.P.R. 68/2005, art. 6, comma 3).
     """
     casella = casella_studio.strip().casefold()
     verificate = [r for r in ricevute if r.verificata and r.ricevuta is not None]
@@ -170,7 +175,14 @@ def prova_spedizioni(
     for msgid, gruppo in sorted(per_msgid.items()):
         if not msgid or not any(r.ricevuta.notifica_l53 for r in gruppo):
             continue  # una ricevuta senza oggetto di notificazione non è una notifica (art. 3-bis, c. 4)
-        esiti.append(_prova(msgid, gruppo, invii_per_msgid.get(msgid, []), casella, per_impronta, leggi_relata_file))
+        candidati = invii_per_msgid.get(msgid, [])
+        originale = (originali or {}).get(msgid)
+        if originale is not None:
+            try:
+                candidati = candidati + [(originale, _PARSER.parsebytes(originale.raw))]
+            except Exception:
+                pass
+        esiti.append(_prova(msgid, gruppo, candidati, casella, per_impronta, leggi_relata_file))
     return esiti
 
 
@@ -183,10 +195,12 @@ def _prova(msgid, gruppo, candidati, casella, per_impronta, leggi_relata_file) -
 
     # 1. Il messaggio inviato dallo studio.
     propri = [(i, m) for i, m in candidati if _indirizzi(m.get_all("From", [])) == {casella}]
-    distinti = {_sha(i.raw): (i, m) for i, m in propri}
+    # Prima la copia di Inviati o dei documenti; senza, l'originale certificato dentro la ricevuta completa.
+    distinti = {_sha(i.raw): (i, m) for i, m in propri if i.fonte != "ricevuta_completa"} or \
+        {_sha(i.raw): (i, m) for i, m in propri if i.fonte == "ricevuta_completa"}
     if not distinti:
-        return dubbio("Manca il messaggio inviato dallo studio (cartella Inviati o copia tra i documenti) "
-                      "con lo stesso identificativo delle ricevute.")
+        return dubbio("Manca il messaggio inviato dallo studio (cartella Inviati, copia tra i documenti o originale "
+                      "nella ricevuta completa del gestore) con lo stesso identificativo delle ricevute.")
     # Copie identiche della stessa spedizione contano una volta; contenuti diversi non sono univoci.
     if len({_sha(b"".join(d for _, d in _allegati(m))) for i, m in distinti.values()}) != 1:
         return dubbio("Il messaggio inviato con questo identificativo non è univoco: allegati diversi.")
@@ -199,7 +213,7 @@ def _prova(msgid, gruppo, candidati, casella, per_impronta, leggi_relata_file) -
     allegati = _allegati(messaggio)
     impronte = frozenset(_sha(d) for _, d in allegati)
     esito.invio = {"riferimento": invio.riferimento, "fonte": invio.fonte, "sha256": _sha(invio.raw),
-                   "message_id": str(messaggio["Message-ID"] or "").strip(), "oggetto": " ".join(str(messaggio["Subject"] or "").split()),
+                   "message_id": str(messaggio["Message-ID"] or "").strip() or f"<{msgid}>", "oggetto": " ".join(str(messaggio["Subject"] or "").split()),
                    "destinatari": sorted(indirizzati)}
     # 2. L'accettazione.
     accettazioni = {r.ricevuta.identificativo: r for r in gruppo if r.ricevuta.tipo == "accettazione"}
@@ -252,6 +266,12 @@ def _prova(msgid, gruppo, candidati, casella, per_impronta, leggi_relata_file) -
     indirizzi_relata = frozenset(a.strip(".;,").casefold() for a in _INDIRIZZO_RELATA.findall(_blocco_destinatari(lettura.testo or "")))
     if indirizzi_relata != destinatari:
         return dubbio("Gli indirizzi dei destinatari nella relata non coincidono con quelli della consegna.")
+    # Il ruolo di ciascun destinatario (Avvocatura, difensore, amministrazione) decide gli effetti verso la P.A.
+    voci = voci_relata(_blocco_destinatari(lettura.testo or ""))
+    for consegna in consegne:
+        voce = voci.get(consegna["destinatario"], "")
+        consegna["ruolo"] = ruolo_destinatario(consegna["destinatario"], voce)
+        consegna["voce_relata"] = voce[:300]
     atti_relata, nomi_destinatari = leggi_relata(lettura.testo or "")
     esito.relata = {"file": nome_relata, "sha256": _sha(dati_relata), "codice_fiscale": sottoscritto.group(1).upper(),
                     "documento_id": next(iter(per_impronta.get(_sha(dati_relata), [])), ""), "destinatari": nomi_destinatari}

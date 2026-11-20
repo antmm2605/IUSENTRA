@@ -127,7 +127,10 @@ def test_registro_e_consegne_verificate_con_titolo_notificato(spedizione, monkey
     spedizioni = _prova(spedizione)
     assert registra_spedizioni(conn, tenant="studio", fascicolo_id="F1", casella=STUDIO, spedizioni=spedizioni)["creati"] == 1
     [(bundle,)] = conn.execute("SELECT bundle_id FROM notification_proof_bundles").fetchall()
-    assert _consegne_verificate("F1") == {"SEN": {"data": "2026-04-20", "riferimento": bundle, "titolo_esecutivo": "verificato"}}
+    assert _consegne_verificate("F1") == {"SEN": {
+        "data": "2026-04-20", "riferimento": bundle, "titolo_esecutivo": "verificato",
+        "destinatari": [{"indirizzo": A, "ruolo": "avvocatura_stato"}, {"indirizzo": B, "ruolo": "amministrazione"}],
+    }}
     # Rieseguito con le stesse prove: nulla cambia.
     assert registra_spedizioni(conn, tenant="studio", fascicolo_id="F1", casella=STUDIO, spedizioni=_prova(spedizione))["invariati"] == 1
     # La ricevuta di consegna a B sparisce: il caso torna da rivedere e la prova non vale più.
@@ -217,3 +220,43 @@ def test_indirizzo_ordinario_in_piu_non_e_destinatario_della_notifica(spedizione
     testo = TESTO_RELATA.replace("I seguenti atti:", f"3) - TERZO mediante inoltro all'indirizzo pec: {ordinario};\nI seguenti atti:")
     [esito] = _prova(s, invii=[Invio("INV", invio)], lettore=_lettore(testo))
     assert not esito.provata and "relata" in esito.motivo
+
+
+def test_senza_inviati_vale_l_originale_nella_ricevuta_completa_firmata(spedizione, monkeypatch):
+    from pct.ricevute_pec_gestore import originale_certificato
+    from web.services.ragionamento_raccolta import _consegne_verificate
+
+    s = spedizione
+    originale = originale_certificato(s.ricevute["RDA"])
+    assert originale and b"Sentenza.PDF" in originale
+    [esito] = prova_spedizioni(s.esiti, [], casella_studio=STUDIO, documenti=s.documenti, leggi_relata_file=_lettore(),
+                               originali={"invio-1@studio.test": Invio("RDA#postacert.eml", originale, "ricevuta_completa")})
+    assert esito.provata and esito.invio["fonte"] == "ricevuta_completa" and esito.data_consegna == "2026-04-20"
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    _registro_in_memoria(monkeypatch, conn)
+    registra_spedizioni(conn, tenant="studio", fascicolo_id="F1", casella=STUDIO, spedizioni=[esito])
+    assert _consegne_verificate("F1")["SEN"]["data"] == "2026-04-20"
+    # Senza la consegna a B l'originale certificato non basta: serve una ricevuta completa per ogni destinatario.
+    [parziale] = prova_spedizioni([e for e in s.esiti if e.riferimento != "RDB"], [], casella_studio=STUDIO, documenti=s.documenti,
+                                  leggi_relata_file=_lettore(),
+                                  originali={"invio-1@studio.test": Invio("RDA#postacert.eml", originale, "ricevuta_completa")})
+    assert not parziale.provata and B in parziale.motivo
+
+
+def test_lavoro_in_sfondo_usa_l_originale_certificato_se_manca_l_invio(spedizione, monkeypatch):
+    from pct.registro_letture.modello import Oggetto
+    from web.services import notifiche_pec_storiche_runtime as runtime
+
+    s = spedizione
+    monkeypatch.setattr(runtime, "_ricalcola", lambda _f: None)
+    contenuti = {"SEN": SENTENZA, **s.ricevute}
+    documenti = [SimpleNamespace(id=k, percorso=f"F1/{k}.{'pdf' if k == 'SEN' else 'eml'}", nome=k, hash_sha256=_sha(v))
+                 for k, v in contenuti.items()]
+    registro = _Registro([Oggetto("documento", k, sha256=_sha(v)) for k, v in contenuti.items()])
+    esito = runtime.esamina_fascicolo(
+        SimpleNamespace(id="F1", documenti=documenti), conn=sqlite3.connect(":memory:"), tenant="studio", casella=STUDIO,
+        registro=registro, indice=runtime.IndiceCasella(), leggi_bytes=lambda _f, d: contenuti[d.id],
+        verifica=lambda raw, **kw: verifica_ricevuta_gestore(raw, fiducia=s.p.fiducia, revoche=s.p.revoche(), **kw),
+        lettore_relata=_lettore())
+    assert esito["provate"] == 1 and esito["creati"] == 1

@@ -30,7 +30,9 @@ from pct.notifica_atto_l53 import e_notificazione_l53
 from pct.notifiche_pec_storiche_prova import Invio, LetturaRelata, prova_spedizioni
 from pct.pec_ricevute_archivio import tipo_eml_storico
 from pct.registro_notifiche_storiche import assicura_schema, esiti_salvati, registra_esiti, registra_spedizioni
-from pct.ricevute_pec_gestore import VERSIONE, EsitoRicevuta, esito_da_dizionario, verifica_ricevuta_gestore
+from pct.ricevute_pec_gestore import (
+    VERSIONE, EsitoRicevuta, esito_da_dizionario, originale_certificato, verifica_ricevuta_gestore,
+)
 
 logger = logging.getLogger(__name__)
 LETTORE = "ricevute_pec_gestore"
@@ -165,8 +167,11 @@ def esamina_fascicolo(fascicolo: Any, *, conn: Any, tenant: str, casella: str, r
     invii: list[Invio] = []
     da_ripetere = False
 
+    lettori: dict[str, Callable[[], bytes]] = {}
+
     def esamina(riferimento: str, sha: str, leggi: Callable[[], bytes], fonte: str) -> None:
         nonlocal da_ripetere
+        lettori[riferimento] = leggi
         noto = salvati.get(sha) if sha else None
         if (noto and noto.get("_versione") == VERSIONE and noto.get("riferimento") == riferimento
                 and not noto.get("ripetibile") and noto.get("tipo_eml") != "invio"):
@@ -199,7 +204,8 @@ def esamina_fascicolo(fascicolo: Any, *, conn: Any, tenant: str, casella: str, r
                 invii.append(Invio(f"casella:{voce.get('id')}", raw, "casella"))
         for voce in indice.ricevute.get(m, []):
             esamina(f"casella:{voce.get('id')}", str(voce.get("eml_sha256") or "").lower(), lambda v=voce: indice.raw(v), "casella")
-    spedizioni = prova_spedizioni(esiti, invii, casella_studio=casella, documenti=impronte, leggi_relata_file=lettore_relata)
+    spedizioni = prova_spedizioni(esiti, invii, casella_studio=casella, documenti=impronte, leggi_relata_file=lettore_relata,
+                                  originali=_originali_certificati(esiti, invii, lettori))
     dettagli = {e.riferimento: e.come_dizionario() for e in esiti if e.ricevuta}
     righe = []
     for e in esiti:
@@ -228,6 +234,29 @@ def esamina_fascicolo(fascicolo: Any, *, conn: Any, tenant: str, casella: str, r
             "ricevute": sum(1 for e in esiti if e.codice != "non_ricevuta"),
             "ricevute_verificate": sum(1 for e in esiti if e.verificata),
             "provate": sum(1 for s in spedizioni if s.provata), "dubbi": sum(1 for s in spedizioni if not s.provata)}
+
+
+def _originali_certificati(esiti: list[EsitoRicevuta], invii: list[Invio],
+                            lettori: dict[str, Callable[[], bytes]]) -> dict[str, Invio]:
+    """Per le spedizioni senza copia del messaggio inviato: l'originale contenuto in una ricevuta completa verificata."""
+    inviati = set()
+    for invio in invii:
+        try:
+            inviati.add(_id(_PARSER.parsebytes(invio.raw[:65536], headersonly=True)["Message-ID"]))
+        except Exception:
+            continue
+    originali: dict[str, Invio] = {}
+    for esito in sorted((e for e in esiti if e.verificata and e.ricevuta.tipo == "avvenuta-consegna"), key=lambda e: e.riferimento):
+        msgid = _id(esito.ricevuta.message_id)
+        if not msgid or msgid in inviati or msgid in originali or esito.riferimento not in lettori:
+            continue
+        raw = lettori[esito.riferimento]()
+        if hashlib.sha256(raw).hexdigest() != esito.impronta:
+            continue  # il file non è più quello verificato
+        originale = originale_certificato(raw)
+        if originale:
+            originali[msgid] = Invio(f"{esito.riferimento}#postacert.eml", originale, "ricevuta_completa")
+    return originali
 
 
 def _ricalcola(fascicolo_id: str) -> None:

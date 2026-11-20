@@ -122,6 +122,31 @@ class Fiducia:
 Revoche = Callable[[Fiducia], Iterable[x509.CertificateRevocationList]]
 
 
+def originale_certificato(raw: bytes) -> bytes | None:
+    """Il messaggio originale (``postacert.eml``) contenuto in una ricevuta di avvenuta consegna completa,
+    estratto dal solo contenuto coperto dalla firma del gestore. Il chiamante usa solo ricevute già verificate
+    con la stessa impronta."""
+    executable = shutil.which("openssl")
+    if not executable:
+        return None
+    from email import policy as _policy
+    from email.parser import BytesParser as _Parser
+
+    with TemporaryDirectory(prefix="iusentra-originale-pec-") as directory:
+        cartella = Path(directory)
+        (cartella / "r.eml").write_bytes(raw)
+        try:
+            estrai_contenuto_cms(executable, cartella / "r.eml", cartella / "c.mime", cartella / "s.pem")
+            contenuto = _Parser(policy=_policy.default).parsebytes((cartella / "c.mime").read_bytes())
+        except Exception:
+            return None
+    originali = [p for p in contenuto.iter_parts() if p.get_content_type() == "message/rfc822"
+                 and (p.get_filename() or "").casefold() == "postacert.eml"]
+    if len(originali) != 1 or not isinstance(originali[0].get_payload(), list) or len(originali[0].get_payload()) != 1:
+        return None
+    return originali[0].get_payload()[0].as_bytes()
+
+
 def esito_da_dizionario(dati: dict) -> EsitoRicevuta:
     """L'esito salvato di una ricevuta già verificata (stessa impronta e stessa versione del verificatore)."""
     ricevuta = None
@@ -318,4 +343,4 @@ def verifica_ricevuta_gestore(raw: bytes, *, riferimento: str, casella_studio: s
 
 
 __all__ = ["EsitoRicevuta", "Fiducia", "LIVELLO", "MOTIVI", "NORMA", "RIPETIBILI", "VERSIONE",
-           "esito_da_dizionario", "fiducia_ufficiale", "revoche_ufficiali", "verifica_ricevuta_gestore"]
+           "esito_da_dizionario", "fiducia_ufficiale", "originale_certificato", "revoche_ufficiali", "verifica_ricevuta_gestore"]

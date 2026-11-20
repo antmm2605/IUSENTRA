@@ -210,6 +210,9 @@ def _consegne_verificate(fascicolo_id: str) -> dict[str, dict[str, str]]:
             if atto in per_atto and per_atto[atto]["data"] != giorno:
                 ambigui.add(atto)
             prova = {"data": giorno, "riferimento": str(caso["bundle_id"])}
+            destinatari = _ruoli_destinatari(conn, caso["id"])
+            if destinatari is not None:
+                prova["destinatari"] = destinatari
             if _copia_attestata_notificata(conn, caso["id"], atto):
                 # Notificata la copia attestata conforme del provvedimento: è la notifica del titolo
                 # (art. 475 c.p.c.; art. 196-octies disp. att. c.p.c.), da cui decorrono i 120 giorni
@@ -217,6 +220,18 @@ def _consegne_verificate(fascicolo_id: str) -> dict[str, dict[str, str]]:
                 prova["titolo_esecutivo"] = "verificato"
             per_atto[atto] = prova
     return {atto: prova for atto, prova in per_atto.items() if atto not in ambigui}
+
+
+def _ruoli_destinatari(conn: Any, caso_id: Any) -> list[dict[str, str]] | None:
+    """Indirizzo e ruolo (dalla relata) dei destinatari consegnati; None se il registro non li ha classificati."""
+    righe = conn.execute(
+        "SELECT recipient_address, recipient_type FROM notification_recipients WHERE notification_case_id=? AND status<>'CANCELLED'",
+        (caso_id,),
+    ).fetchall()
+    ruoli = [str(r[1] or "") for r in righe]
+    if not righe or not all(r.startswith("RELATA_") for r in ruoli):
+        return None
+    return [{"indirizzo": str(r[0] or ""), "ruolo": ruolo[len("RELATA_"):].lower()} for r, ruolo in zip(righe, ruoli)]
 
 
 def _copia_attestata_notificata(conn: Any, caso_id: Any, atto: str) -> bool:

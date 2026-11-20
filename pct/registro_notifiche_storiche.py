@@ -158,10 +158,11 @@ def _scrivi_caso(conn, tenant: str, fascicolo_id: str, esito: EsitoSpedizione, a
                  ruolo, impronta)
     for consegna in esito.consegne:
         destinatario_id = int(conn.execute(
-            """INSERT INTO notification_recipients (tenant_id, notification_case_id, fascicolo_id, recipient_address,
+            """INSERT INTO notification_recipients (tenant_id, notification_case_id, fascicolo_id, recipient_name, recipient_address,
                    recipient_address_source, recipient_type, status, updated_at)
-               VALUES (?, ?, ?, ?, 'relata di notifica', 'ALTRO', 'DELIVERY_RECEIVED', CURRENT_TIMESTAMP)""",
-            (tenant, caso_id, fascicolo_id, consegna["destinatario"]),
+               VALUES (?, ?, ?, ?, ?, 'relata di notifica', ?, 'DELIVERY_RECEIVED', CURRENT_TIMESTAMP)""",
+            (tenant, caso_id, fascicolo_id, consegna.get("voce_relata", ""), consegna["destinatario"],
+             f"RELATA_{str(consegna.get('ruolo') or 'altro').upper()}"),
         ).lastrowid)
         for tipo, ruolo, voce, completezza in (("ACCETTAZIONE", "RICEVUTA_ACCETTAZIONE", rac, "UNKNOWN"),
                                                ("AVVENUTA_CONSEGNA", "RICEVUTA_AVVENUTA_CONSEGNA", consegna, "COMPLETA")):

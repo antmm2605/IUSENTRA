@@ -60,19 +60,25 @@ def _it(giorno: date) -> str:
 
 
 def termini_dalla_notifica(data_notifica: str, *, lavoro: bool, contro_pa: bool, condanna: bool,
-                           oggi: date | None = None) -> list[dict[str, Any]]:
-    """I calcoli che nascono dalla notifica della sentenza, in ordine di data."""
+                           oggi: date | None = None, esclusione_feriale: str = "") -> list[dict[str, Any]]:
+    """I calcoli che nascono dalla notifica della sentenza, in ordine di data.
+
+    ``esclusione_feriale``: il motivo per cui la materia è esclusa dalla sospensione feriale (art. 3 L. 742/1969 e
+    art. 92 R.D. 12/1941, `pct/ragionamento/feriale.py`); il lavoro è sempre escluso.
+    """
     base = _giorno(data_notifica)
     if base is None:
         return []
+    sospende = not lavoro and not esclusione_feriale
     calcolatore = ItalianDeadlineCalculator()
     breve = calcolatore.calculate(
-        base, 30, direction="forward", period_type="days", suspend_august=not lavoro,
-        ferial_suspension_policy="not_applicable" if lavoro else "applies",
+        base, 30, direction="forward", period_type="days", suspend_august=sospende,
+        ferial_suspension_policy="applies" if sospende else "not_applicable",
         reference_law=NORMA_BREVE_LAVORO if lavoro else NORMA_BREVE, template_code="sentenza_notificata:termine_breve",
     )
     scade = _giorno(breve.get("deadline")) or base + timedelta(days=30)
     feriale = ("senza sospensione feriale (controversia di lavoro, art. 3 L. 742/1969)" if lavoro
+               else f"senza sospensione feriale ({esclusione_feriale})" if esclusione_feriale
                else "con la sospensione feriale dal 1° al 31 agosto (art. 1 L. 742/1969)")
     calcoli = [{
         **breve,

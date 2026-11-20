@@ -61,4 +61,35 @@ def conferma_termini_certi(fascicolo_id: str, lettura: dict[str, Any]) -> int:
         return 0
 
 
-__all__ = ["conferma_termini_certi"]
+def chiudi_adempimenti_provati(fascicolo_id: str, lettura: dict[str, Any]) -> list[str]:
+    """Completa le scadenze automatiche di un adempimento che il modello conclude «fatto» con la prova (anche la
+    costituzione della controparte, art. 156, terzo comma, c.p.c.), con il motivo e il documento nella nota.
+    Mai le scadenze scritte o assegnate dall'avvocato. Un errore non ferma la Lettura."""
+    try:
+        from pct.fascicolo_lettura.termini_certi import adempimenti_provati
+        from pct.scadenziario import StatoTermine
+        from web.helpers import get_scadenziario
+
+        if (lettura or {}).get("aggiornamento_pendente"):
+            return []
+        scadenziario = get_scadenziario()
+        candidate = [s for s in scadenziario.tutte(id_fascicolo=str(fascicolo_id), solo_aperte=False)
+                     if s.stato in {StatoTermine.BOZZA, StatoTermine.APERTO} and any(m in (s.note or "") for m in _AUTOMATICHE)
+                     and not str(getattr(s, "id_utente_responsabile", "") or "").strip()]
+        if not candidate:
+            return []
+        righe = [{"id": s.id, "titolo": s.titolo, "note": s.note, "stato": str(getattr(s.stato, "value", s.stato))} for s in candidate]
+        chiuse = adempimenti_provati(righe, ((lettura or {}).get("ragionamento") or {}).get("conclusioni"))
+        completate = []
+        for scadenza in candidate:
+            nota = chiuse.get(scadenza.id)
+            if nota:
+                scadenziario.completa(scadenza.id, note=nota)
+                completate.append(scadenza.id)
+        return completate
+    except Exception as exc:  # la chiusura automatica non deve fermare la Lettura
+        logger.warning("Adempimenti provati non chiusi per %s: %s", fascicolo_id, exc)
+        return []
+
+
+__all__ = ["chiudi_adempimenti_provati", "conferma_termini_certi"]

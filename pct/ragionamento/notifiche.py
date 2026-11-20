@@ -9,11 +9,13 @@ non precede l'atto (G-3, G-5). Qui le spedizioni diventano eventi del modello, c
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import re
 from typing import Iterable
 
 from pct.notifica_atto_l53 import documenti_dell_atto, e_notificazione_l53, notifiche_pec
 
 from .modello import Atto
+from .testo import data_it, semplice
 
 
 @dataclass
@@ -61,4 +63,41 @@ def notifiche_di(atto_id: str, notifiche: Iterable[NotificaEseguita], atti: Iter
     return [n for n in notifiche if copie & set(n.atti)]
 
 
-__all__ = ["NotificaEseguita", "e_notificazione_l53", "leggi_notifiche", "notifiche_di"]
+# L'atto con cui la controparte si costituisce: comparsa (artt. 166-167 c.p.c.), memoria difensiva (art. 416 c.p.c.),
+# memoria di costituzione; nel monitorio l'atto di opposizione (art. 645 c.p.c.).
+_COSTITUZIONE = re.compile(r"\b(?:comparsa\s+di\s+(?:costituzione|risposta)|costituzione\s+e\s+risposta|memoria\s+difensiva|"
+                           r"memoria\s+di\s+costituzione|si\s+costituisce|costituzione\s+in\s+giudizio)\b")
+_OPPOSIZIONE = re.compile(r"\bopposizione\s+(?:al|a)\s+decreto\s+ingiuntivo\b|\bpropone\s+opposizione\b")
+
+
+def costituzione_controparte(atti: Iterable[Atto], *, dal: str = "", opposizione: bool = False) -> Atto | None:
+    """L'atto di costituzione della controparte nella causa, non anteriore all'atto da notificare.
+
+    La costituzione del destinatario dimostra che l'atto introduttivo gli è pervenuto: la notifica ha raggiunto
+    lo scopo a cui è destinata e un suo vizio non può più essere pronunciato (art. 156, terzo comma, c.p.c.; per
+    l'atto di citazione, art. 164, terzo comma, c.p.c.). Vale per tutti i riti: comparsa, memoria difensiva del
+    rito del lavoro (art. 416 c.p.c.) e, con ``opposizione``, l'atto di opposizione al decreto ingiuntivo
+    (art. 645 c.p.c.). Solo atti della causa scritti dalla controparte: un precedente o un atto di altro
+    procedimento non prova nulla (G-8). Un atto senza data letta vale se appartiene alla causa: la costituzione
+    presuppone l'atto introduttivo già pervenuto.
+    """
+    candidati = []
+    for atto in atti:
+        if atto.appartenenza != "causa" or atto.autore != "controparte" or (dal and atto.data and atto.data < dal):
+            continue
+        testo = semplice(f"{atto.etichetta} {atto.nome} {atto.testo[:2500]}")
+        if atto.natura == "atto_difensivo" and _COSTITUZIONE.search(testo):
+            candidati.append(atto)
+        elif opposizione and atto.natura == "atto_principale" and _OPPOSIZIONE.search(testo):
+            candidati.append(atto)
+    return min(candidati, key=lambda a: a.data or "9999") if candidati else None
+
+
+def scopo_raggiunto(costituzione: Atto) -> str:
+    """La prova scritta per l'avvocato: quale atto, di quando, e la norma."""
+    quando = f" del {data_it(costituzione.data)}" if costituzione.data else ""
+    return (f"La controparte si è costituita con «{costituzione.nome}»{quando}: la notifica ha raggiunto il suo scopo "
+            "e un suo eventuale vizio è sanato (art. 156, terzo comma, c.p.c.).")
+
+
+__all__ = ["NotificaEseguita", "costituzione_controparte", "e_notificazione_l53", "leggi_notifiche", "notifiche_di", "scopo_raggiunto"]

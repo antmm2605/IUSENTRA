@@ -163,6 +163,8 @@ class Rito:
     padre: str = ""  # voce padre del codice oggetto PST
     sospensione_feriale: bool = True
     contro_pa: bool = False
+    # Perché la sospensione feriale non si applica, con la norma (pct/ragionamento/feriale): vuoto se si applica.
+    motivo_feriale: str = ""
 
 
 @dataclass
@@ -190,6 +192,8 @@ class Causa:
     esiti_udienze: list[dict[str, str]] = field(default_factory=list)
     # I fascicoli collegati della stessa vicenda, con la prova del collegamento (collegamenti).
     collegati: list[dict[str, Any]] = field(default_factory=list)
+    # Controparte, suo difensore e valore della causa letti negli atti (parti), per la testata del fascicolo.
+    parti: dict[str, Any] = field(default_factory=dict)
 
     def come_dizionario(self) -> dict[str, Any]:
         dati = asdict(self)

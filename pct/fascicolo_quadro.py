@@ -24,6 +24,7 @@ _LIVELLO_URGENZA = {0: "urgente", 1: "attenzione", 2: "info", 3: "info"}
 _PARCELLA = {"Da preparare": "proforma da preparare", "Proforma": "proforma preparata", "Fatturata": "parcella fatturata"}
 _STATI_NOTIFICA = {
     "notificato": "notificato",
+    "scopo_raggiunto": "la controparte si è costituita: notifica a buon fine (art. 156, terzo comma, c.p.c.)",
     "facoltativo": "notifica facoltativa",
     "da_verificare": "notifica da verificare",
     "riscontro_storico": "riscontro storico della notifica ai fini del termine breve",
@@ -237,7 +238,7 @@ def obblighi_dal_modello(conclusioni: Iterable[Mapping[str, Any]] | None) -> lis
             continue
         termine = voce.get("termine") or {}
         if stato == "fatto":
-            obblighi.append({"atto": atto, "stato": "notificato"})
+            obblighi.append({"atto": atto, "stato": _stato_fatto(voce)})
         elif stato == "da_fare" and codice == "notifica_sentenza" and not termine:
             obblighi.append({"atto": atto, "stato": "facoltativo"})
         elif stato == "da_fare":
@@ -246,6 +247,94 @@ def obblighi_dal_modello(conclusioni: Iterable[Mapping[str, Any]] | None) -> lis
         else:
             obblighi.append({"atto": atto, "stato": "da_verificare"})
     return obblighi
+
+
+def _stato_fatto(conclusione: Mapping[str, Any]) -> str:
+    """«Notificato», o «scopo raggiunto» quando la prova è la costituzione della controparte (art. 156 c.p.c.)."""
+    sanata = any("art. 156" in _testo(n.get("norma")) for n in conclusione.get("norme") or [] if isinstance(n, Mapping))
+    return "scopo_raggiunto" if sanata or "si è costituita" in _testo(conclusione.get("prova_o_motivo")) else "notificato"
+
+
+def codice_modello(conclusione: Mapping[str, Any]) -> str:
+    """Il codice del modello, con l'ordine di notifica del giudice ricondotto all'atto che riguarda."""
+    codice = _testo(conclusione.get("codice"))
+    if codice == "notifica_ordinata":
+        cosa = _testo(conclusione.get("cosa")).casefold()
+        if "decreto ingiuntivo" in cosa:
+            return "notifica_decreto_ingiuntivo"
+        if "ricorso" in cosa and "decreto" in cosa:
+            return "notifica_ricorso_decreto_415"
+    return codice
+
+
+_CODICE_DI_REGOLA = {"lavoro_415": "notifica_ricorso_decreto_415", "decreto_ingiuntivo_644": "notifica_decreto_ingiuntivo",
+                     "sentenza_notifica_breve": "notifica_sentenza"}
+
+
+def codice_obbligo(obbligo: Mapping[str, Any]) -> str:
+    """A quale conclusione del modello corrisponde un obbligo del calcolo per atto (pct/obblighi_notifica_atto)."""
+    regola = _testo(obbligo.get("regola"))
+    if regola in _CODICE_DI_REGOLA:
+        return _CODICE_DI_REGOLA[regola]
+    atto = _testo(obbligo.get("atto") or obbligo.get("etichetta")).casefold()
+    if "decreto ingiuntivo" in atto:
+        return "notifica_decreto_ingiuntivo"
+    if "415" in atto or "fissazione" in atto:
+        return "notifica_ricorso_decreto_415"
+    if atto.startswith("sentenza"):
+        return "notifica_sentenza"
+    return ""
+
+
+def allinea_al_modello(obblighi: Iterable[Mapping[str, Any]], conclusioni: Iterable[Mapping[str, Any]] | None, *,
+                       pannello: bool = False) -> list[dict[str, Any]]:
+    """Una sola verità per atto: dove il modello della causa conclude sulla notifica, vale la sua conclusione.
+
+    Il calcolo per atto (`pct/obblighi_notifica_atto`) resta la fonte degli atti che il modello non tratta; per gli
+    altri lo stato è quello del modello (fatto, da fare, dubbio; «non dovuto» toglie la voce), con il suo motivo. I
+    riscontri storici già marcati restano: coincidono con il «non dovuto» del modello. Senza modello nulla cambia.
+    """
+    obblighi = [dict(o) for o in obblighi]
+    if conclusioni is None:
+        return obblighi
+    nostre = [c for c in conclusioni if _testo(c.get("codice")) in _ATTI_NOTIFICA_MODELLO
+              and c.get("onerato_codice") not in {"controparte", "terzo"}]
+    per_codice: dict[str, list[Mapping[str, Any]]] = {}
+    for conclusione in nostre:
+        per_codice.setdefault(codice_modello(conclusione), []).append(conclusione)
+    usati: set[str] = set()
+    esito: list[dict[str, Any]] = []
+    for obbligo in obblighi:
+        codice = codice_obbligo(obbligo)
+        if not codice or codice not in per_codice or _testo(obbligo.get("stato")).startswith("riscontro_storico"):
+            esito.append(obbligo)
+            continue
+        candidate = per_codice[codice]
+        if codice == "notifica_sentenza":
+            # La notifica della sentenza è per documento: vale la conclusione sulla stessa sentenza (o sua copia).
+            documenti = {_testo(obbligo.get("documentoId")), *map(_testo, obbligo.get("documenti") or ()),
+                         *(_testo(f.get("documentoId")) for f in obbligo.get("fonti_documentali") or () if isinstance(f, Mapping))} - {""}
+            candidate = [c for c in candidate if _testo((c.get("letto") or {}).get("documento_id")) in documenti]
+            if not candidate:
+                esito.append(obbligo)
+                continue
+        usati.add(codice)
+        aperte = [c for c in candidate if _testo(c.get("stato")) != "non_dovuto"]
+        if not aperte:
+            continue
+        for voce in obblighi_dal_modello(aperte) or []:
+            if pannello and voce["stato"] == "scopo_raggiunto":
+                voce["stato"] = "notificato"
+            esito.append({**obbligo, **voce, "atto": _testo(obbligo.get("atto")) or voce["atto"],
+                          "motivo_modello": _testo(aperte[0].get("prova_o_motivo"))})
+            break
+    if not pannello:
+        # Un ordine di notifica del giudice che il modello non ha ricondotto a un atto può essere la stessa voce che il
+        # calcolo per atto descrive con un'altra etichetta: si aggiunge solo se il calcolo non ha voci senza codice.
+        senza_codice = any(not codice_obbligo(o) for o in obblighi)
+        esito += obblighi_dal_modello([c for codice, voci in per_codice.items() if codice not in usati
+                                       and not (senza_codice and codice == "notifica_ordinata") for c in voci]) or []
+    return esito
 
 
 def riga_documenti(totale: int, da_classificare: int | None, pec: Mapping[str, Any]) -> dict[str, str]:
@@ -266,4 +355,4 @@ def riga_documenti(totale: int, da_classificare: int | None, pec: Mapping[str, A
     return riga("documenti", " · ".join(parti), livello)
 
 
-__all__ = ["SEZIONI", "livello_del_passo", "obblighi_dal_modello", "riga", "riga_documenti", "riga_economia", "riga_notifiche", "riga_prossimo_passo", "riga_termini", "termine_grave"]
+__all__ = ["SEZIONI", "allinea_al_modello", "codice_modello", "codice_obbligo", "livello_del_passo", "obblighi_dal_modello", "riga", "riga_documenti", "riga_economia", "riga_notifiche", "riga_prossimo_passo", "riga_termini", "termine_grave"]

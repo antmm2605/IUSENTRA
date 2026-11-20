@@ -42,7 +42,8 @@ from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.19.lettura-fascicolo.v64"
+# v65 (20/11/2026): unione della catena (v64) con la coerenza del modello della causa: le Letture salvate si ricalcolano.
+VERSIONE_LETTURA = "2026.11.20.lettura-fascicolo.v65"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:

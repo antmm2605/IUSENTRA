@@ -225,7 +225,7 @@ def parcelle_del_fascicolo(fascicolo_id: str) -> list[dict[str, Any]]:
             incassato = 0
         ricevute = (saldi.get(p.id) or {}).get("receipts") or []
         data_pagamento = max((str(r.get("paid_on") or "") for r in ricevute), default="") or _testo(p.data_pagamento)
-        righe.append({"id": p.id, "numero": p.numero, "stato": stato, "operativo": operativo, "totale": p.totale,
+        righe.append({"id": p.id, "numero": p.numero, "data": _testo(p.data_emissione)[:10], "stato": stato, "operativo": operativo, "totale": p.totale,
                       "netto_a_pagare": p.netto_a_pagare, "onorari": p.totale_competenze, "spese": p.totale_spese_imponibili, "anticipazioni": p.totale_anticipazioni,
                       "incassato": incassato, "data_pagamento": data_pagamento, "sdi_stato": _testo(p.sdi_stato),
                       "superata": (p.dati_personalizzati or {}).get("superata") if isinstance(p.dati_personalizzati, dict) else None})
@@ -281,8 +281,28 @@ def conto_economico_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | No
                                 documenti_contributo=[], stato_contributo=contributo or stato_contributo_fascicolo(fascicolo),
                                 parcelle=parcelle_del_fascicolo(fascicolo_id), esecuzione=_esecuzione_pa(lettura),
                                 amministrativo=giurisdizione == AMMINISTRATIVO)
+    allinea_contributo_al_modello(risultato.get("righe") or [], lettura, voci.get("contributo_unificato") or {})
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}
 
 
-__all__ = ["conto_economico_fascicolo", "credito_da_liquidazione_registrata", "crediti_da_provvedimenti", "crediti_da_sentenza", "crediti_dalle_sentenze_lette",
+def allinea_contributo_al_modello(righe: list[dict[str, Any]], lettura: dict[str, Any] | None, voce: dict[str, Any]) -> None:
+    """La riga del contributo dice la conclusione del modello della causa, la stessa del Quadro e dei prossimi passi.
+
+    Il presidio resta la fonte del modello (stato condiviso, `pct/ragionamento/regole/economia.py`); qui si mostra il
+    suo esito giuridico: versato, non dovuto con la norma, o il dubbio come il modello lo scrive (19/11/2026).
+    """
+    from pct.quadro_economia import contributo
+
+    conclusione = next((c for c in ((lettura or {}).get("ragionamento") or {}).get("conclusioni") or []
+                        if c.get("codice") == "contributo_unificato"), None)
+    riga = next((r for r in righe if r.get("voce") == "contributo_unificato"), None)
+    if not conclusione or riga is None:
+        return
+    testo, dubbio = contributo(conclusione, voce)
+    riga.update(stato=testo[:1].upper() + testo[1:], tono="warning" if dubbio else "success",
+                dettaglio=_testo(conclusione.get("prova_o_motivo")) or riga.get("dettaglio", ""),
+                fonteGiuridica="modello della causa")
+
+
+__all__ = ["allinea_contributo_al_modello", "conto_economico_fascicolo", "credito_da_liquidazione_registrata", "crediti_da_provvedimenti", "crediti_da_sentenza", "crediti_dalle_sentenze_lette",
            "documenti_contributo", "parcelle_del_fascicolo", "sentenze_dall_archivio"]

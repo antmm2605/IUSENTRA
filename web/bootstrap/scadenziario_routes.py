@@ -11,7 +11,7 @@ from flask import Flask, flash, g, jsonify, redirect, request, url_for
 from markupsafe import escape
 from pct.ora_italiana import oggi_roma
 from pct.scadenze_titolo_avvocato import traccia_titolo_avvocato
-from pct.termini_materia import NOTA_LAVORO, profilo_della_richiesta
+from pct.termini_materia import nota_esclusione, profilo_della_richiesta
 from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
@@ -95,7 +95,7 @@ def register_scadenziario_routes(
             operational_lead_business_days=operational_lead_business_days,
         )
         if senza_sospensione:
-            result.trace.insert(0, NOTA_LAVORO)
+            result.trace.insert(0, nota_esclusione(senza_sospensione))
         return {
             "profile": profile,
             "result": result,

@@ -55,6 +55,49 @@ def lavoro_da_richiesta(payload: Mapping[str, Any], carica_fascicolo: Callable[[
         return False
 
 
+def esclusione_feriale_fascicolo(fascicolo: Any) -> str:
+    """Perché nel fascicolo la sospensione feriale non si applica, con la norma; vuoto se si applica.
+
+    Una sola regola nel software: `pct/ragionamento/feriale.esclusione_feriale` (art. 3 L. 742/1969 e art. 92
+    R.D. 12/1941), applicata al codice oggetto PST del fascicolo; il lavoro si riconosce anche da tipo e sezione.
+    """
+    from pct.ragionamento.feriale import esclusione_feriale
+    from pct.ragionamento.rito import rito_da_codice
+
+    if fascicolo is None:
+        return ""
+    if fascicolo_di_lavoro(fascicolo):
+        return esclusione_feriale("lavoro", {})
+    codice = _testo(getattr(fascicolo, "codice_oggetto_pst", "")).strip()
+    rito, voce = rito_da_codice(codice) if codice else ("", {})
+    return esclusione_feriale(rito, voce) if voce else ""
+
+
+def esclusione_da_richiesta(payload: Mapping[str, Any], carica_fascicolo: Callable[[str], Any]) -> str:
+    """Il motivo dell'esclusione dalla sospensione feriale per la richiesta: ``materia_lavoro`` esplicito o fascicolo."""
+    from pct.ragionamento.feriale import esclusione_feriale
+
+    if "materia_lavoro" in payload and lavoro_da_richiesta(payload, carica_fascicolo):
+        return esclusione_feriale("lavoro", {})
+    id_fascicolo = str(payload.get("id_fascicolo") or "").strip()
+    if not id_fascicolo:
+        return ""
+    try:
+        motivo = esclusione_feriale_fascicolo(carica_fascicolo(id_fascicolo))
+        # «materia_lavoro» esplicito e falso: l'avvocato ha detto che non è lavoro; restano le altre materie escluse.
+        return "" if "materia_lavoro" in payload and motivo.startswith("controversia di lavoro") else motivo
+    except Exception:  # fascicolo non leggibile: resta la regola generale, con il log per la verifica
+        logger.exception("Materia del fascicolo %s non leggibile per la sospensione feriale", id_fascicolo)
+        return ""
+
+
+def nota_esclusione(motivo: str) -> str:
+    """La nota del calcolo: per il lavoro quella storica, per le altre materie il motivo con la norma."""
+    if not motivo or motivo.startswith("controversia di lavoro"):
+        return NOTA_LAVORO
+    return f"Sospensione feriale non applicata: {motivo}."
+
+
 def profilo_per_materia(profilo: Any, *, lavoro: bool) -> Any:
     """Toglie la sospensione feriale al profilo se la controversia è di lavoro o previdenza."""
     if lavoro and getattr(profilo, "apply_ferial_suspension", False):
@@ -62,15 +105,16 @@ def profilo_per_materia(profilo: Any, *, lavoro: bool) -> Any:
     return profilo
 
 
-__all__ = ["NOTA_LAVORO", "fascicolo_di_lavoro", "lavoro_da_richiesta", "profilo_per_materia"]
+__all__ = ["NOTA_LAVORO", "esclusione_da_richiesta", "esclusione_feriale_fascicolo", "fascicolo_di_lavoro", "lavoro_da_richiesta",
+           "nota_esclusione", "profilo_per_materia"]
 
 
 def profilo_della_richiesta(preset_key: str, profile_code: str, payload: Mapping[str, Any],
                             trova_fascicolo: Callable[[str], Any]) -> tuple[Any, bool, bool]:
     """Profilo del termine scelto (preset o profilo) adattato alla materia della richiesta.
 
-    Restituisce (profilo, materia di lavoro, sospensione feriale tolta). Art. 3 L. 742/1969: nessuna
-    sospensione feriale nelle controversie di lavoro e previdenza.
+    Restituisce (profilo, materia di lavoro, motivo della sospensione feriale tolta o «»). Art. 3 L. 742/1969 e
+    art. 92 R.D. 12/1941: nessuna sospensione feriale nel lavoro e previdenza e nelle altre materie escluse.
     """
     from pct.scadenziario import ProfiloTermine, profili_termine_builtin, profilo_da_preset
 
@@ -83,6 +127,7 @@ def profilo_della_richiesta(preset_key: str, profile_code: str, payload: Mapping
         profilo = ProfiloTermine.from_dict(profili[profile_code])
     else:
         raise ValueError("Seleziona un preset o un profilo termine")
-    lavoro = lavoro_da_richiesta(payload, trova_fascicolo)
-    adattato = profilo_per_materia(profilo, lavoro=lavoro)
-    return adattato, lavoro, adattato is not profilo
+    escluso = esclusione_da_richiesta(payload, trova_fascicolo)
+    adattato = profilo_per_materia(profilo, lavoro=bool(escluso))
+    # Il terzo valore è il motivo dell'esclusione (vuoto se la sospensione resta): la nota del calcolo lo riporta.
+    return adattato, escluso.startswith("controversia di lavoro"), escluso if adattato is not profilo else ""

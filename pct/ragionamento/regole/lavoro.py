@@ -16,6 +16,7 @@ from pct.notifica_ricorso_lavoro import proposte_art_415
 
 from ..modello import Conclusione, Dubbio
 from ..norme import norme
+from ..notifiche import costituzione_controparte, scopo_raggiunto
 from ..testo import data_it, giorno
 from .calcolo import esito as esito_termine
 from .contesto import Contesto, chi
@@ -61,6 +62,18 @@ def conclusioni_lavoro(ctx: Contesto) -> list[Conclusione]:
                 perche="L’ordine riguardava la trattazione precedente alla decisione.",
                 stato="non_dovuto", prova_o_motivo=motivo, onerato="noi",
                 motivo_senza_termine="Adempimento storico. La verifica della notifica resta distinta.",
+            ))
+            continue
+        costituzione = costituzione_controparte(ctx.della_causa(), dal=atto.data)
+        if costituzione:
+            # La controparte si è costituita: la notifica di ricorso e decreto ha raggiunto lo scopo (art. 156, comma 3, c.p.c.).
+            esito.append(Conclusione(
+                codice="notifica_ricorso_decreto_415", cosa="Notifica del ricorso e del decreto: la controparte si è costituita",
+                letto=ordine.fonte, norme=fonti + norme("cpc_156"),
+                come="Nessuna nuova notifica: consultare la memoria di costituzione della controparte nel fascicolo.",
+                perche="la costituzione del convenuto dimostra che ricorso e decreto gli sono pervenuti",
+                stato="fatto", prova_o_motivo=scopo_raggiunto(costituzione), onerato="noi",
+                motivo_senza_termine="Adempimento compiuto: la costituzione della controparte attesta il raggiungimento dello scopo.",
             ))
             continue
         dubbi = []

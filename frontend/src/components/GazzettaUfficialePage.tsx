@@ -83,7 +83,7 @@ function TestoAtto({ id }: { id: string }) {
       {testoAtto.heading ? <h4>{testo(testoAtto.heading)}</h4> : null}
       <pre>{testoAtto.text}</pre>
       <p className="iu-gazzetta-atto__testo-fonte">
-        Testo della Gazzetta Ufficiale (vista «originario»){testoAtto.articles ? `, ${testoAtto.articles} articoli` : ''}, acquisito il {formatDateTimeIt(testoAtto.readAt)}
+        Fonte del testo: {testo(testoAtto.source || 'Gazzetta Ufficiale, vista «originario»')}{testoAtto.articles ? `, ${testoAtto.articles} articoli` : ''}, acquisito il {formatDateTimeIt(testoAtto.readAt)}
         {fonte ? <> · <a href={fonte} target="_blank" rel="noopener noreferrer">fonte ufficiale</a></> : null}
       </p>
     </section>

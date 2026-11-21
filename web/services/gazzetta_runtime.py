@@ -142,6 +142,8 @@ def testo_dell_atto(archivio: ArchivioGazzetta | None, atto_id: str) -> dict[str
         "textUrl": str(dati.get("url_testo") or ""),
         "articles": int(dati.get("articoli") or 0),
         "readAt": str(dati.get("testo_letto_il") or ""),
+        # Da dove viene il testo: la pagina dell'atto sul sito della Gazzetta o la biblioteca Normattiva.
+        "source": str(dati.get("fonte") or "Gazzetta Ufficiale, vista «originario»"),
         "message": "" if testo else "Il testo di questo atto non è ancora stato acquisito: si legge sul sito ufficiale.",
     }
 

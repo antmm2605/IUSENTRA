@@ -31,6 +31,19 @@ def esegui_da_pianificazione(config: Mapping[str, Any], *, con_storico: bool = F
     if con_storico and str(config.get("GAZZETTA_RECUPERO_STORICO", "1")).lower() not in {"0", "false", "no", "off"}:
         from pct.gazzetta.storico import TEMPO_TRATTO, esegui_tratto
 
+        # Prima gli atti normativi già nella biblioteca Normattiva: non si riscaricano dal sito.
+        import os
+
+        normattiva = str(config.get("GAZZETTA_NORMATTIVA_DB") or os.environ.get("GAZZETTA_NORMATTIVA_DB")
+                         or os.environ.get("PCT_NORMATTIVA_DB") or "")
+        if normattiva and Path(normattiva).is_file():
+            from pct.gazzetta.da_normattiva import collega
+
+            try:
+                esito["da_normattiva"] = collega(archivio, normattiva)
+            except Exception as exc:  # la biblioteca non risponde: il recupero dal sito resta
+                esito["da_normattiva"] = {"errore": str(exc)}
+
         try:
             esito["storico"] = esegui_tratto(archivio, tempo_massimo=float(config.get("GAZZETTA_TEMPO_STORICO") or TEMPO_TRATTO))
         except Exception as exc:  # il giro dei 30 giorni resta valido

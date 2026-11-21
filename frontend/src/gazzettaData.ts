@@ -35,6 +35,8 @@ export type GazzettaTesto = {
   textUrl: string
   articles: number
   readAt: string
+  /** «Gazzetta Ufficiale, vista «originario»» oppure «Normattiva, testo originario (codice redazionale …)». */
+  source?: string
   message: string
 }
 

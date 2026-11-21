@@ -156,8 +156,33 @@ def _accessori(compenso: Decimal, *, iva: str, forfettario: bool) -> tuple[list[
 
 
 def notifica_del_titolo(titolo: dict[str, Any]) -> str:
-    """«il 20/04/2026» se la notificazione del titolo è provata, altrimenti il segnaposto."""
-    return pulisci(titolo.get("notificato_il")) or manca("data della notificazione del titolo esecutivo")
+    """«20/04/2026 all'amministrazione (…) e all'Avvocatura …» se la notificazione del titolo è provata, altrimenti il
+    segnaposto. I destinatari sono quelli delle ricevute di consegna verificate (relata, art. 3-bis L. 53/1994)."""
+    data = pulisci(titolo.get("notificato_il"))
+    if not data:
+        return manca("data della notificazione del titolo esecutivo")
+    elenco = titolo.get("destinatari_titolo") or []
+    amministrazione = [d for d in elenco if d.get("ruolo") == "amministrazione"]
+    avvocatura = [d for d in elenco if d.get("ruolo") == "avvocatura_stato"]
+    parti = []
+    if amministrazione:
+        parti.append("all'amministrazione (" + "; ".join(_ufficio(d) for d in amministrazione) + ")")
+    if avvocatura:
+        parti.append(("e all'" if parti else "alla sola ") + "Avvocatura dello Stato (" + "; ".join(_ufficio(d) for d in avvocatura) + ")")
+    return f"{data} " + " ".join(parti) if parti else data
+
+
+def _ufficio(destinatario: dict[str, str]) -> str:
+    voce = destinatario.get("denominazione") or destinatario.get("pec") or ""
+    if destinatario.get("sede"):
+        voce += f", {destinatario['sede']}"
+    return voce + (f", PEC {destinatario['pec']}" if destinatario.get("pec") else "")
+
+
+def uffici_del_titolo(titolo: dict[str, Any]) -> str:
+    """Gli uffici dell'amministrazione a cui è stato consegnato il titolo: proposta per precetto e richiesta."""
+    amministrazione = [d for d in titolo.get("destinatari_titolo") or [] if d.get("ruolo") == "amministrazione"]
+    return "; ".join(_ufficio(d) for d in amministrazione)
 
 
 def elezione_domicilio(ctx: Contesto, titolo: dict[str, Any]) -> str:
@@ -212,7 +237,8 @@ def richiesta_pagamento_pa(ctx: Contesto, credito: dict[str, Any]) -> str:
         pulisci(studio.get("indirizzo_completo")) or manca("indirizzo dello studio"),
         f"PEC: {pulisci(studio.get('pec')) or manca('PEC dello studio')}",
         f"Spett.le **{_destinatario_pa(ctx).split(', in persona')[0]}**",
-        manca("ufficio dell'amministrazione competente al pagamento e suo indirizzo PEC dal Registro PP.AA."),
+        (f"presso gli uffici a cui è stato notificato il titolo: {uffici_del_titolo(credito)}" if uffici_del_titolo(credito)
+         else manca("ufficio dell'amministrazione competente al pagamento e suo indirizzo PEC dal Registro PP.AA.")),
         f"e, per conoscenza, {ctx.avvocatura}" if ctx.avvocatura else "",
         (f"**Oggetto:** {ctx.ufficio_o_manca}, R.G. n. {ctx.rg_o_manca}, {credito['fonte']} — {ctx.cliente or manca('parte assistita')} "
         "— richiesta di pagamento delle spese di lite liquidate"),
@@ -295,9 +321,11 @@ def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
         # alla parte personalmente (art. 480, ultimo comma, c.p.c.), cioè direttamente all'amministrazione destinataria
         # (art. 144, secondo comma, c.p.c.); notificato presso l'Avvocatura è inefficace e non interrompe la prescrizione
         # (Cass. civ., sez. V, 19 dicembre 2003, n. 19512). L'ufficio e la PEC del Registro PP.AA. restano da indicare.
+        uffici = uffici_del_titolo(titolo)
         recapito = ("da notificarsi direttamente all'amministrazione (artt. 480, ultimo comma, e 144, secondo comma, c.p.c.; "
                     "Cass. civ., sez. V, 19 dicembre 2003, n. 19512), presso "
-                    + manca("ufficio dell'amministrazione debitrice e suo indirizzo PEC dal Registro PP.AA. (non l'Avvocatura dello Stato)"))
+                    + (f"gli uffici a cui è stato notificato il titolo: {uffici}" if uffici else
+                       manca("ufficio dell'amministrazione debitrice e suo indirizzo PEC dal Registro PP.AA. (non l'Avvocatura dello Stato)")))
     else:
         recapito = manca("residenza, sede o domicilio del debitore")
     # Dal 28/02/2023 il provvedimento vale come titolo in copia attestata conforme, senza formula esecutiva (art. 475 c.p.c.).
@@ -333,7 +361,9 @@ def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
         giudice_dell_esecuzione(titolo),
         elezione_domicilio(ctx, titolo),
     ]
-    if pa and not titolo.get("centoventi_giorni"):
+    if pa and titolo.get("rischio_120"):
+        righe.append(manca("ATTENZIONE: " + titolo["rischio_120"] + " Poi eliminare la riga"))
+    elif pa and not titolo.get("centoventi_giorni"):
         righe.append(manca("il precetto si notifica solo decorsi centoventi giorni dalla notificazione del titolo "
                            "(art. 14, comma 1, D.L. 669/1996): indicare la data da cui è possibile, poi eliminare la riga"))
     righe += [*ctx.firma()]

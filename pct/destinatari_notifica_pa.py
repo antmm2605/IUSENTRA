@@ -67,8 +67,26 @@ def effetti_verso_pa(destinatari: list[dict] | None) -> tuple[str, str]:
         "(art. 417-bis c.p.c.).")
     centoventi = "" if AMMINISTRAZIONE in ruoli else (
         f"Il titolo risulta consegnato a {elenco}, ma non all'amministrazione debitrice: i 120 giorni decorrono dalla "
-        "notifica del titolo esecutivo all'amministrazione obbligata (art. 14 D.L. 669/1996), non alla sola Avvocatura.")
+        "notifica del titolo esecutivo all'amministrazione obbligata, che deve completare le procedure di pagamento "
+        "(art. 14, comma 1, D.L. 669/1996), non alla sola Avvocatura dello Stato, la cui rappresentanza e domiciliazione "
+        "riguardano l'attività giudiziale (Cass. civ., sez. V, 19 dicembre 2003, n. 19512, sul precetto). Notificare il "
+        "titolo all'amministrazione prima del precetto.")
     return breve, centoventi
 
 
-__all__ = ["ALTRO", "AMMINISTRAZIONE", "AVVOCATURA", "DIFENSORE", "RUOLI", "effetti_verso_pa", "ruolo_destinatario", "voci_relata"]
+_SEDE = re.compile(r"pro[\s-]*tempore\s+(?P<sede>.+?)\s+mediante\s+inoltro", re.I)
+
+
+def descrizione_destinatario(destinatario: dict) -> dict[str, str]:
+    """Denominazione, sede e PEC dalla voce della relata («MINISTERO ... C.F: ... in persona ... viale Trastevere,
+    76 - Roma mediante inoltro all'indirizzo pec: ...»)."""
+    voce = " ".join(str(destinatario.get("voce") or "").split())
+    denominazione = re.split(r"\s+C\.?\s?F\.?\s*:|\s+in\s+persona\b|\s+mediante\s+inoltro", voce, maxsplit=1)[0].strip(" ,;")
+    sede = _SEDE.search(voce)
+    sede_letta = re.sub(r"\((?:difensore|domiciliatari)[^)]*\)", " ", sede.group("sede")) if sede else ""
+    return {"denominazione": denominazione, "sede": " ".join(sede_letta.split()).strip(" ,;"),
+            "pec": str(destinatario.get("indirizzo") or ""), "ruolo": str(destinatario.get("ruolo") or ALTRO)}
+
+
+__all__ = ["ALTRO", "AMMINISTRAZIONE", "AVVOCATURA", "DIFENSORE", "RUOLI", "descrizione_destinatario", "effetti_verso_pa",
+           "ruolo_destinatario", "voci_relata"]

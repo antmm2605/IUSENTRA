@@ -162,15 +162,29 @@ def _notifica_titolo_provata(conclusioni: list[dict[str, Any]], percorso: list[d
         return {"notificato_il": data_it(notificato), "centoventi_giorni": data_it(scadenza),
                 "precetto_dal": data_it(scadenza + timedelta(days=1))}
 
+    from pct.destinatari_notifica_pa import descrizione_destinatario
+
+    def destinatari(voce: dict[str, Any]) -> list[dict[str, str]]:
+        return [descrizione_destinatario(d) for d in ((voce.get("prova_notifica") or {}).get("destinatari") or [])]
+
     for voce in conclusioni:
         if voce.get("codice") != "esecuzione_pa" or voce.get("stato") == "dubbio":
             continue
         termine = voce.get("termine") or {}
         notificato, scadenza = data_da(termine.get("decorrenza")), data_da(termine.get("scadenza_iso") or termine.get("scadenza"))
         if notificato and scadenza:
-            return esito(notificato, scadenza)
-    if any(v.get("codice") == "esecuzione_pa" for v in conclusioni):
-        return {}  # il modello ha un dubbio sulla notifica (destinatario, prova): la bozza non lo scavalca
+            return {**esito(notificato, scadenza), "destinatari_titolo": destinatari(voce)}
+    for voce in conclusioni:
+        if voce.get("codice") != "esecuzione_pa":
+            continue
+        # Il modello ha un dubbio: la bozza non lo scavalca. Se la consegna è provata ma solo all'Avvocatura, lo dice
+        # come rischio (i 120 giorni decorrono dalla notifica all'amministrazione, art. 14 D.L. 669/1996).
+        prova = voce.get("prova_notifica") or {}
+        notificato, elenco = data_da(prova.get("data")), destinatari(voce)
+        if notificato and elenco and not any(d["ruolo"] == "amministrazione" for d in elenco):
+            return {"notificato_il": data_it(notificato), "destinatari_titolo": elenco,
+                    "rischio_120": pulisci(voce.get("prova_o_motivo"))}
+        return {}
     consegne = {data_da(evento.get("data")) for evento in percorso or []
                 if evento.get("tipo") == "consegna_notifica" and evento.get("stato") == "verificato"
                 and re.search(r"sentenz", pulisci(evento.get("descrizione")), re.IGNORECASE)}

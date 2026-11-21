@@ -63,7 +63,7 @@ def termini_lunghi_prudenziali(atti, documenti, scadenze) -> dict[str, str]:
 
 
 def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, titolo_verificato: bool,
-                    motivo_pa: str = "", solo_esecuzione: bool = False) -> list[Conclusione]:
+                    motivo_pa: str = "", solo_esecuzione: bool = False, prova: dict | None = None) -> list[Conclusione]:
     """Effetti della notifica provata. ``motivo_pa``: perché i 120 giorni non decorrono (destinatario sbagliato);
     ``solo_esecuzione``: la notifica non vale per il termine breve, solo per i 120 giorni."""
     lavoro = ctx.rito.codice == "lavoro"
@@ -111,7 +111,7 @@ def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, t
                 "prima dei centoventi giorni il precetto è vietato; dopo, se l'amministrazione non ha pagato, è il primo atto "
                 "dell'esecuzione forzata (art. 14 D.L. 669/1996; art. 480 c.p.c.)",
                 "da_fare" if dopo else "non_dovuto", "" if dopo else f"non ancora: i 120 giorni scadono il {data_it(scadenza)}",
-                termine, "builtin-tmp-ese-001",
+                termine, "builtin-tmp-ese-001", prova_notifica=_prova_titolo(prova),
             ))
     if ctx.rito.contro_pa and condanna and not titolo_notificato and ctx.posizione == "attiva":
         motivo = motivo_pa or "Per i 120 giorni occorre provare la notificazione del titolo esecutivo all'amministrazione obbligata."
@@ -120,8 +120,16 @@ def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, t
             norme("dl669_art14", "cpc_475"), "controllare la copia conforme o il duplicato, la relata e la consegna",
             "l'attesa minima decorre dalla notifica del titolo esecutivo", "dubbio", motivo,
             dubbi=[Dubbio("notifica_titolo_da_verificare", motivo, "la prova della notificazione del titolo esecutivo", fonte)],
+            prova_notifica=_prova_titolo(prova),
         ))
     return esiti
+
+
+def _prova_titolo(prova: dict | None) -> dict:
+    """Data, riferimento e destinatari della consegna del titolo: le bozze dicono a chi è stato notificato."""
+    if not prova:
+        return {}
+    return {chiave: prova[chiave] for chiave in ("data", "riferimento", "destinatari") if prova.get(chiave)}
 
 
 _ORDINE_OTTEMPERANZA = re.compile(
@@ -300,7 +308,7 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
                 motivo_destinatario = motivo_breve
                 risultato.extend(_dalla_notifica(
                     ctx, fonte, base, condanna_al_pagamento(sentenza.testo), titolo_verificato=titolo,
-                    motivo_pa=motivo_pa, solo_esecuzione=True,
+                    motivo_pa=motivo_pa, solo_esecuzione=True, prova=prova,
                 ))
         if not motivo_destinatario and giorno(base) and giorno(base) <= ctx.oggi and (not pubblicata or giorno(base) >= pubblicata):
             risultato.append(Conclusione(
@@ -313,7 +321,7 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
             ))
             risultato.extend(_dalla_notifica(
                 ctx, fonte, base, condanna_al_pagamento(sentenza.testo),
-                titolo_verificato=titolo, motivo_pa=motivo_pa,
+                titolo_verificato=titolo, motivo_pa=motivo_pa, prova=prova,
             ))
             continue
         lungo = None

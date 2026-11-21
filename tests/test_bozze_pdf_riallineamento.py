@@ -379,3 +379,61 @@ def test_la_richiesta_di_pagamento_dice_che_il_bollo_resta_allo_studio():
     richiesta, _precetto = _bozze_carbone(percorso=[_CONSEGNA_SENTENZA])
     assert "L'imposta di bollo sulla fattura resta a carico dello scrivente (art. 8 D.P.R. 642/1972)" in richiesta.testo
     assert "il pagamento della somma di € 615,94" in richiesta.testo
+
+
+# --- A chi è stato notificato il titolo (ricevute PEC verificate del caso UOVMccJb, 20/04/2026) --------------------
+
+_AVVOCATURA_RC = {"indirizzo": "ads.rc@mailcert.avvocaturastato.it", "ruolo": "avvocatura_stato",
+                  "voce": "AVVOCATURA DISTRETTUALE DI STATO DI REGGIO CALABRIA C.F: 92006980806 in persona del Suo legale "
+                          "rappresentante pro-tempore (difensore di MIM) via Plebiscito,15 - Reggio Calabria mediante inoltro "
+                          "all'indirizzo pec: ads.rc@mailcert.avvocaturastato.it estratto dal pubblico elenco: IPA;"}
+_MIM = {"indirizzo": "dgosv@postacert.istruzione.it", "ruolo": "amministrazione",
+        "voce": "MINISTERO DELL'ISTRUZIONE E DEL MERITO C.F: 80185250588 in persona del Suo legale rappresentante pro-tempore "
+                "viale Trastevere, 76 - Roma mediante inoltro all'indirizzo pec: dgosv@postacert.istruzione.it estratto dal pubblico elenco: IPA;"}
+_USR = {"indirizzo": "usprc@postacert.istruzione.it", "ruolo": "amministrazione",
+        "voce": "UFFICIO SCOLASTICO REGIONALE - REGGIO CALABRIA C.F: 80185250588 in persona del Suo legale rappresentante "
+                "pro-tempore mediante inoltro all'indirizzo pec: usprc@postacert.istruzione.it estratto dal pubblico elenco: RegInde;"}
+
+
+def _esecuzione(stato, destinatari, motivo=""):
+    voce = {"codice": "esecuzione_pa", "stato": stato, "onerato_codice": "noi", "prova_o_motivo": motivo,
+            "prova_notifica": {"data": "2026-04-20", "riferimento": "UOVMccJb", "destinatari": destinatari}}
+    if stato != "dubbio":
+        voce["termine"] = {"decorrenza": "2026-04-20", "scadenza_iso": "2026-08-18"}
+    return voce
+
+
+def test_la_bozza_dice_a_chi_e_stato_notificato_il_titolo_e_propone_gli_uffici():
+    from pct.destinatari_notifica_pa import descrizione_destinatario
+
+    assert descrizione_destinatario(_MIM) == {"denominazione": "MINISTERO DELL'ISTRUZIONE E DEL MERITO", "sede": "viale Trastevere, 76 - Roma",
+                                               "pec": "dgosv@postacert.istruzione.it", "ruolo": "amministrazione"}
+    assert descrizione_destinatario(_AVVOCATURA_RC)["sede"] == "via Plebiscito,15 - Reggio Calabria"
+    richiesta, precetto = _bozze_carbone(conclusioni=[_esecuzione("da_fare", [_AVVOCATURA_RC, _MIM, _USR])])
+    assert ("notificato il 20/04/2026 all'amministrazione (MINISTERO DELL'ISTRUZIONE E DEL MERITO, viale Trastevere, 76 - Roma, "
+            "PEC dgosv@postacert.istruzione.it; UFFICIO SCOLASTICO REGIONALE - REGGIO CALABRIA, PEC usprc@postacert.istruzione.it) "
+            "e all'Avvocatura dello Stato (AVVOCATURA DISTRETTUALE DI STATO DI REGGIO CALABRIA") in precetto.testo
+    assert "presso gli uffici a cui è stato notificato il titolo: MINISTERO DELL'ISTRUZIONE E DEL MERITO" in precetto.testo
+    assert "presso gli uffici a cui è stato notificato il titolo" in richiesta.testo
+    assert not any("ufficio dell'amministrazione" in s for s in precetto.segnaposti + richiesta.segnaposti)
+    assert "scaduto il 18/08/2026" in precetto.testo
+
+
+def test_titolo_notificato_alla_sola_avvocatura_e_un_rischio_per_i_120_giorni():
+    from pct.destinatari_notifica_pa import effetti_verso_pa
+
+    _breve, motivo = effetti_verso_pa([{"indirizzo": _AVVOCATURA_RC["indirizzo"], "ruolo": "avvocatura_stato"}])
+    assert "non all'amministrazione debitrice" in motivo and "Cass. civ., sez. V, 19 dicembre 2003, n. 19512" in motivo
+    assert effetti_verso_pa([{"indirizzo": "a", "ruolo": "avvocatura_stato"}, {"indirizzo": "b", "ruolo": "amministrazione"}])[1] == ""
+    _r, precetto = _bozze_carbone(conclusioni=[_esecuzione("dubbio", [_AVVOCATURA_RC], motivo)])
+    assert "notificato il 20/04/2026 alla sola Avvocatura dello Stato" in precetto.testo
+    assert "decorso il termine di centoventi giorni" not in precetto.testo
+    assert any(s.startswith("ATTENZIONE: Il titolo risulta consegnato") for s in precetto.segnaposti)
+
+
+def test_il_modello_conserva_i_destinatari_della_consegna_del_titolo():
+    from pct.ragionamento.regole.sentenza import _prova_titolo
+
+    prova = {"data": "2026-04-20", "riferimento": "UOVMccJb", "destinatari": [_MIM], "titolo_esecutivo": "verificato"}
+    assert _prova_titolo(prova) == {"data": "2026-04-20", "riferimento": "UOVMccJb", "destinatari": [_MIM]}
+    assert _prova_titolo(None) == {}

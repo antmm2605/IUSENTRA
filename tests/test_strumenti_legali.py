@@ -50,7 +50,11 @@ def test_contributo_unificato_civile_appello(tmp_path):
     assert result["anticipazione_forfettaria"] == 27.0
     assert result["totale"] == 382.5
     assert any("dpr_115" in source["code"] for source in result["sources"])
-    assert any("Articolo+13" in source["url"] for source in result["sources"])
+    # Fonte ufficiale su Normattiva per URN (art. 13 D.P.R. 115/2002), indirizzo stabile dal 21/11/2026.
+    assert any(
+        source["url"].startswith("https://www.normattiva.it/") and source["url"].endswith(";115~art13")
+        for source in result["sources"]
+    )
 
 
 def test_contributo_unificato_civile_valore_non_indicato(tmp_path):

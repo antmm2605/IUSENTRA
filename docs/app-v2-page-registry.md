@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 0.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 337.
+- Route Flask GET candidate rilevate fuori manifest: 338.
 
 ### Distribuzione rischio
 
@@ -501,26 +501,26 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | routes.appV2.billing.compensi | IUSENTRA_FF_ROUTES_APPV2_BILLING_COMPENSI | Compensi forensi nella shell App V2 sperimentale. | on |
 | routes.appV2.billing.tariffario | IUSENTRA_FF_ROUTES_APPV2_BILLING_TARIFFARIO | Tariffario nella shell App V2 sperimentale. | on |
 | routes.appV2.notifications.mobilePush | IUSENTRA_FF_ROUTES_APPV2_NOTIFICATIONS_MOBILEPUSH | Notifiche Web Push su dispositivo mobile/tablet. | on |
-| lex.legalSkills.enabled | IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED | Legal Skills Engine governato per Lex. | on |
+| lex.legalSkills.enabled | IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED | Procedure guidate e revisioni con Lex. | on |
 | lex.autonomousLearning | IUSENTRA_FF_LEX_AUTONOMOUSLEARNING | Superficie read-only dell'apprendimento autonomo Lex (memoria, letture, proposte in revisione umana). | on |
 | lex.procedureCompletion.enabled | IUSENTRA_FF_LEX_PROCEDURECOMPLETION_ENABLED | Procedure Completion Engine: schede procedura governate con review avvocato. | on |
 | lex.procedureCompletion.voiceRead.enabled | IUSENTRA_FF_LEX_PROCEDURECOMPLETION_VOICEREAD_ENABLED | Lettura vocale delle schede procedura (TTS locale del browser, opt-in). | off |
 | lex.procedureCompletion.voiceRead.localOnly | IUSENTRA_FF_LEX_PROCEDURECOMPLETION_VOICEREAD_LOCALONLY | Vincola la lettura vocale al solo TTS locale, senza provider esterni. | on |
 | routes.appV2.procedureCompletion.home | IUSENTRA_FF_ROUTES_APPV2_PROCEDURECOMPLETION_HOME | Pagina Procedure Completion nella shell App V2. | on |
-| lex.legalSkills.trustLayer | IUSENTRA_FF_LEX_LEGALSKILLS_TRUSTLAYER | Controllo di fiducia per skill legali custom. | off |
-| lex.legalSkills.customSkills | IUSENTRA_FF_LEX_LEGALSKILLS_CUSTOMSKILLS | Installazione skill Legal Skills custom. | off |
-| lex.legalSkills.scheduledAgents | IUSENTRA_FF_LEX_LEGALSKILLS_SCHEDULEDAGENTS | Agenti Legal Skills schedulati read-only. | off |
-| lex.workflowAgents.enabled | IUSENTRA_FF_LEX_WORKFLOWAGENTS_ENABLED | Regia Agentica Studio in preview read-only governata. | on |
-| lex.workflowAgents.writeActions | IUSENTRA_FF_LEX_WORKFLOWAGENTS_WRITEACTIONS | Scritture agentiche approvabili dopo revisione umana. | off |
+| lex.legalSkills.trustLayer | IUSENTRA_FF_LEX_LEGALSKILLS_TRUSTLAYER | Controllo di fiducia per le revisioni personalizzate. | off |
+| lex.legalSkills.customSkills | IUSENTRA_FF_LEX_LEGALSKILLS_CUSTOMSKILLS | Installazione di revisioni personalizzate. | off |
+| lex.legalSkills.scheduledAgents | IUSENTRA_FF_LEX_LEGALSKILLS_SCHEDULEDAGENTS | Revisioni pianificate in sola lettura. | off |
+| lex.workflowAgents.enabled | IUSENTRA_FF_LEX_WORKFLOWAGENTS_ENABLED | Lavori automatici di Lex in anteprima, in sola lettura. | on |
+| lex.workflowAgents.writeActions | IUSENTRA_FF_LEX_WORKFLOWAGENTS_WRITEACTIONS | Modifiche dei lavori automatici di Lex dopo la tua approvazione. | off |
 | lex.workflowAgents.scheduledRuns | IUSENTRA_FF_LEX_WORKFLOWAGENTS_SCHEDULEDRUNS | Esecuzioni programmate degli agenti Lex. | off |
 | lex.dailyPlan.enabled | IUSENTRA_FF_LEX_DAILYPLAN_ENABLED | Piano del giorno (Lex Oggi): lettura snapshot e azioni sugli item. | on |
 | lex.dailyPlan.scheduledRuns | IUSENTRA_FF_LEX_DAILYPLAN_SCHEDULEDRUNS | Generazione automatica del piano del giorno dallo scheduler. | on |
 | lex.dailyPlan.writeProposals | IUSENTRA_FF_LEX_DAILYPLAN_WRITEPROPOSALS | Proposte applicative approvabili dalla pagina Oggi. | off |
-| routes.appV2.legalSkills.catalog | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_CATALOG | Catalogo Legal Skills nella shell App V2. | on |
-| routes.appV2.legalSkills.profile | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROFILE | Profilo Legal Skills nella shell App V2. | on |
-| routes.appV2.legalSkills.run | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_RUN | Esecuzione Legal Skills nella shell App V2. | on |
-| routes.appV2.legalSkills.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_REVIEWQUEUE | Revisione risultati Legal Skills nella shell App V2. | on |
-| routes.appV2.legalSkills.promptLibrary | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROMPTLIBRARY | Libreria prompt LegalSkills Italia nella shell App V2. | on |
+| routes.appV2.legalSkills.catalog | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_CATALOG | Pagina Procedure guidate. | on |
+| routes.appV2.legalSkills.profile | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROFILE | Profilo dello studio per le Procedure guidate. | on |
+| routes.appV2.legalSkills.run | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_RUN | Avvio di una revisione guidata. | on |
+| routes.appV2.legalSkills.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_REVIEWQUEUE | Revisione dei risultati delle procedure guidate. | on |
+| routes.appV2.legalSkills.promptLibrary | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROMPTLIBRARY | Richieste pronte per Lex. | on |
 | routes.appV2.legalSkills.pathways | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PATHWAYS | Percorsi guidati per procedimento nella shell App V2. | on |
 | routes.appV2.workflowAgents.home | IUSENTRA_FF_ROUTES_APPV2_WORKFLOWAGENTS_HOME | Regia Agentica Studio nella shell App V2. | on |
 | routes.appV2.workflowAgents.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_WORKFLOWAGENTS_REVIEWQUEUE | Coda approvazioni agentiche nella shell App V2. | on |

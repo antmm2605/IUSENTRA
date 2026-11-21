@@ -34,7 +34,7 @@ La fase 4 prepara redirect e fallback senza attivare redirect globali. Ogni pass
 | /app/telematico | Telematico | telematico | /api/v1/ui/telematico | routes.appV2.telematico.center |
 | /app/comunicazioni | Comunicazioni | comunicazioni | /api/v1/ui/messaggi | routes.appV2.comms.deposits |
 | /app/lex | Lex | lex | /api/v1/ui/legal-intelligence | routes.appV2.legalResearch.home |
-| /app/legal-skills | Legal Skills | legal-skills | /api/v1/legal-skills/packs | routes.appV2.legalSkills.catalog |
+| /app/legal-skills | Procedure guidate | legal-skills | /api/v1/legal-skills/packs | routes.appV2.legalSkills.catalog |
 | /app/procedure-completion | Schede procedura | lex | /api/v1/ui/procedure-completion | routes.appV2.procedureCompletion.home |
 | /app/portale-clienti | Portale Clienti | portale-clienti | /api/v1/ui/client-portal/dashboard | routes.appV2.clientPortal.enabled |
 | /app/amministrazione | Amministrazione | amministrazione | /api/v1/ui/amministrazione | routes.appV2.admin.home |

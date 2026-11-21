@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.490.1
+  version: 2.490.2
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -18863,7 +18863,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/visualizza'
-      description: 'Contratto fase 6 derivato da `normativa_visualizza` in `web/blueprints/api_v1_ricerca_legale.py:463`.
+      description: 'Contratto fase 6 derivato da `normativa_visualizza` in `web/blueprints/api_v1_ricerca_legale.py:465`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_normativa_visualizza_get
       security:

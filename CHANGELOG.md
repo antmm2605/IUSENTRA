@@ -1,3 +1,14 @@
+## 2.490.2 — Ricerche veloci, sentenze per norma, commi dalla fonte ufficiale e collaudo del 21/11
+
+- Ricerche veloci e server stabile: numero d'articolo per indice (da 240 s a 0,4 s), indice esterno dei numeri per gli archivi in sola lettura, tempo massimo che ferma davvero le ricerche nella giurisprudenza con posti contati per utente, controllo di salute senza processi orfani.
+- Sentenze per norma precalcolate per 308 norme (harness di Lex e i 139 articoli della Costituzione) con estremi e indirizzo ufficiale; sentenze sull'articolo anche dal vivo per citazione della norma.
+- Archivio sentenze per corte: apertura da oltre 67 s a 0,7 s, sezione Corte costituzionale, ricerca per numero e anno in Cassazione, schede con corte, sezione, numero, data di deposito e materia.
+- Commi numerati dalla fonte ufficiale (Akoma Ntoso di Normattiva, vigenza 21/11/2026) per 5.506 articoli; Codici e leggi con testo pulito, materie dall'oggetto dell'atto e Costituzione riconosciuta.
+- Lex: norma vigente dalla rubrica ufficiale per le domande di diritto senza fatti (art. 166 c.p.c. in 0,1 s), stato «Fonti certe», limiti di carico per utente, testo libero del widget legato ai fatti, stesura scartata se perde una norma dello schema.
+- Modelli d'atto e procedure guidate ricontrollati sul testo vigente: norme dall'atto specifico, 13 modelli «Da associare» collegati alle norme verificate, monitorio, decreto esecutivo e pignoramento presso terzi corretti.
+- Letture del fascicolo: esito dell'indice della sentenza salvato sul solo fascicolo, sentenza esclusa per un ufficio letto tagliato; avviso «dati non aggiornati» solo dopo tre tentativi falliti.
+- Bundle React ricompilato da zero.
+
 ## 2.490.1 — Catena continua del fascicolo, notifiche PEC provate, Lex con harness deterministico
 
 - Catena del fascicolo continua: mappa scritta come codice, guardiano che controlla di notte i fascicoli aperti e collaudo da capo a fondo per ogni materia (anche le pratiche monitorie, ora che il decreto ingiuntivo caricato è riconosciuto dal catalogo).

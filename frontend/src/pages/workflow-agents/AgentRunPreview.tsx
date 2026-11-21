@@ -14,7 +14,7 @@ const statusLabel: Record<string, string> = {
   needs_approval: 'Da approvare',
   executed: 'Eseguito',
   blocked: 'Bloccato',
-  failed: 'Errore',
+  failed: 'Non riuscito',
   cancelled: 'Rifiutato',
 }
 
@@ -51,11 +51,6 @@ export function AgentRunPreview({ run, onRunChange }: { run: AgentRun; onRunChan
         </CardHeader>
         <CardContent className="grid gap-3 text-sm text-muted-foreground">
           <p>{run.plan.description}</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <span>Base manuale: <strong className="text-foreground">{run.plan.baseline_minutes} min</strong></span>
-            <span>Revisione stimata: <strong className="text-foreground">{run.plan.expected_review_minutes} min</strong></span>
-            <span>Risparmio: <strong className="text-foreground">{run.metrics?.saving_percentage ?? 0}%</strong></span>
-          </div>
           {run.plan.warnings?.length ? (
             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
               {run.plan.warnings.map((warning) => <p key={warning}>{warning}</p>)}

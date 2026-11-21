@@ -35,3 +35,20 @@ test('codice esatto esclude richiami incrociati e conserva le identità delle pr
  assert.deepEqual(filtraModelli(indexed,{...filtriModelliVuoti,testo:'civ_ord_001'}).map(r=>r.id),['diretto','altra-fonte'])
  assert.deepEqual(filtraModelli(indexed,{...filtriModelliVuoti,testo:'CIV ORD 001',provenienza:'Catalogo'}).map(r=>r.id),['altra-fonte'])
 })
+
+test('stesso codice da archivio e catalogo: una sola voce, con tutte le provenienze; materie unificate',async()=>{
+ const { raggruppaPerCodice, materiaCanonica } = await import('../../frontend/src/schedeModelliCatalogo.ts')
+ const data=[
+  {id:'tpl_a',codice:'CIV_ORD_034',titolo:'Accettazione rinuncia',materia:'Diritto civile',tipo:'Modello di catalogo',provenienza:'Catalogo professionale',stato_norme:'associate',numero_riferimenti:3,ricerca:'art306',compilazione_url:'/template-atti/compila/CIV_CIT_001'},
+  {id:'tpl_b',codice:'CIV_ORD_034',titolo:'Accettazione rinuncia',materia:'Diritto civile',tipo:'Modello documentale',provenienza:'Archivio dei modelli',stato_norme:'associate',numero_riferimenti:3,ricerca:'art306',compilazione_url:'/template-atti/CIV_ORD_034/usa'},
+  {id:'tpl_c',codice:'MON_001',titolo:'Ricorso per decreto ingiuntivo',materia:'Civile',tipo:'Modello guidato',provenienza:'Compilatore guidato',stato_norme:'associate',numero_riferimenti:5,ricerca:'art633'},
+ ]
+ const out=raggruppaPerCodice(data)
+ assert.equal(out.length,2)
+ const rinuncia=out.find(r=>r.codice==='CIV_ORD_034')
+ assert.equal(rinuncia.id,'tpl_b')
+ assert.equal(rinuncia.compilazione_url,'/template-atti/CIV_ORD_034/usa')
+ assert.deepEqual(rinuncia.provenienze,['Archivio dei modelli','Catalogo professionale'])
+ assert.deepEqual(filtraModelli(indicizzaModelli(out),{...filtriModelliVuoti,provenienza:'Catalogo professionale'}).map(r=>r.id),['tpl_b'])
+ assert.equal(materiaCanonica('Diritto di famiglia'),materiaCanonica('Famiglia e Persone'))
+})

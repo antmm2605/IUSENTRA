@@ -93,6 +93,14 @@ export type WorkflowAgentsHomePayload = {
   workflows: WorkflowAgentSummary[]
   latest_runs: AgentRun[]
   metrics: WorkflowAgentMetrics
+  ultimi_giri?: Record<string, { run_id: string; data: string; esito: string; problemi: string[] }>
+  presidio_mattutino?: {
+    titolo: string
+    attivo: boolean
+    pianificazione: string
+    href: string
+    ultimo_giro: { data?: string; esito?: string; messaggio?: string }
+  }
   message?: string
 }
 

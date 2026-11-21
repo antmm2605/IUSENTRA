@@ -53,7 +53,7 @@ export const APP_ROUTES: AppRouteDefinition[] = [
   { path: '/app/telematico', label: 'Telematico', family: 'telematico', icon: Landmark, api: '/api/v1/ui/telematico', featureFlag: 'routes.appV2.telematico.center' },
   { path: '/app/comunicazioni', label: 'Comunicazioni', family: 'comunicazioni', icon: Mail, api: '/api/v1/ui/messaggi', featureFlag: 'routes.appV2.comms.deposits' },
   { path: '/app/lex', label: 'Lex', family: 'lex', icon: BookOpen, api: '/api/v1/ui/legal-intelligence', featureFlag: 'routes.appV2.legalResearch.home' },
-  { path: '/app/legal-skills', label: 'Legal Skills', family: 'legal-skills', icon: BookOpenCheck, api: '/api/v1/legal-skills/packs', featureFlag: 'routes.appV2.legalSkills.catalog' },
+  { path: '/app/legal-skills', label: 'Procedure guidate', family: 'legal-skills', icon: BookOpenCheck, api: '/api/v1/legal-skills/packs', featureFlag: 'routes.appV2.legalSkills.catalog' },
   { path: '/app/procedure-completion', label: 'Schede procedura', family: 'lex', icon: BookOpenCheck, api: '/api/v1/ui/procedure-completion', featureFlag: 'routes.appV2.procedureCompletion.home' },
   { path: '/app/portale-clienti', label: 'Portale Clienti', family: 'portale-clienti', icon: MessageCircle, api: '/api/v1/ui/client-portal/dashboard', featureFlag: 'routes.appV2.clientPortal.enabled' },
   { path: '/app/amministrazione', label: 'Amministrazione', family: 'amministrazione', icon: ShieldCheck, api: '/api/v1/ui/amministrazione', featureFlag: 'routes.appV2.admin.home' },

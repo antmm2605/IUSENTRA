@@ -48,7 +48,7 @@ export function AgentApprovalQueue() {
   return (
     <IusPageShell
       title="Coda Approvazioni Agentiche"
-      description="Azioni proposte dalla regia: nessuna scrittura parte senza conferma umana."
+      description="Azioni proposte da Lex: nulla cambia senza la tua conferma."
       icon={ShieldCheck}
       area="lex"
     >
@@ -71,7 +71,7 @@ export function AgentApprovalQueue() {
               </div>
             </CardContent>
           </Card>
-        )) : <IusEmptyState title="Nessuna proposta in attesa" message="Le prossime anteprime della regia appariranno qui prima di qualsiasi scrittura." icon={ShieldCheck} />}
+        )) : <IusEmptyState title="Nessuna proposta in attesa" message="Le proposte dei prossimi lavori di Lex compariranno qui prima di qualsiasi modifica." icon={ShieldCheck} />}
       </div>
     </IusPageShell>
   )

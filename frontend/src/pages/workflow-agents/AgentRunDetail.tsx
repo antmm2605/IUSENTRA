@@ -26,13 +26,13 @@ export function AgentRunDetail() {
     return () => controller.abort()
   }, [runId])
 
-  if (loading) return <IusLoadingState title="Caricamento regia" message="Recupero piano, proposte e metriche." />
+  if (loading) return <IusLoadingState title="Caricamento del lavoro" message="Recupero piano e proposte." />
   if (error || !run) return <IusErrorState title="Percorso non disponibile" message={error || 'Il percorso richiesto non è disponibile per questo studio.'} />
 
   return (
     <IusPageShell
       title="Dettaglio del lavoro automatico di Lex"
-      description="Piano, letture, proposte approvabili, audit e risparmio misurato."
+      description="Piano, letture, proposte da approvare e registro delle azioni."
       icon={Bot}
       area="lex"
       actions={<a className="iu-btn" href="/workflow-agents/approvals"><FileSearch size={16} /> Coda approvazioni</a>}

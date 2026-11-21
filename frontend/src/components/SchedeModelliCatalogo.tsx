@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Button, ButtonLink } from '../ui/Button'
-import { filtraModelli, filtriModelliVuoti, indicizzaModelli, materiaCanonica, type ModelloNorme } from '../schedeModelliCatalogo'
+import { filtraModelli, filtriModelliVuoti, indicizzaModelli, materiaCanonica, raggruppaPerCodice, type ModelloNorme } from '../schedeModelliCatalogo'
 
-export function SchedeModelliCatalogo({ modelli, onSelect, busy }: { modelli: ModelloNorme[]; onSelect: (id: string) => void; busy: boolean }) {
+export function SchedeModelliCatalogo({ modelli: voci, onSelect, busy }: { modelli: ModelloNorme[]; onSelect: (id: string) => void; busy: boolean }) {
+  const modelli = useMemo(() => raggruppaPerCodice(voci), [voci])
   const [filtri, setFiltri] = useState(filtriModelliVuoti)
   const [pagina, setPagina] = useState(1)
   const index = useMemo(() => indicizzaModelli(modelli), [modelli])
@@ -10,7 +11,7 @@ export function SchedeModelliCatalogo({ modelli, onSelect, busy }: { modelli: Mo
   const opzioni = useMemo(() => ({
     materia: [...new Set(modelli.map(row => materiaCanonica(row.materia)))].sort((a,b) => a.localeCompare(b,'it')),
     tipo: [...new Set(modelli.map(row => row.tipo))].sort((a,b) => a.localeCompare(b,'it')),
-    provenienza: [...new Set(modelli.map(row => row.provenienza))].sort((a,b) => a.localeCompare(b,'it')),
+    provenienza: [...new Set(modelli.flatMap(row => row.provenienze || [row.provenienza]))].sort((a,b) => a.localeCompare(b,'it')),
   }), [modelli])
   const perPagina = 24
   const pagine = Math.max(1, Math.ceil(risultati.length / perPagina))
@@ -19,7 +20,7 @@ export function SchedeModelliCatalogo({ modelli, onSelect, busy }: { modelli: Mo
   const collegate = modelli.filter(row => row.stato_norme === 'associate').length
   function filtra(key: keyof typeof filtri, value: string) { setFiltri(previous => ({ ...previous, [key]: value })); setPagina(1) }
   return <section className="iu-od-source-card iu-sf-catalogo" aria-label="Catalogo completo dei modelli" aria-busy={busy}>
-    <header><h2>Trova il modello d’atto</h2><p>{busy && !modelli.length ? 'Caricamento del catalogo completo…' : `${modelli.length.toLocaleString('it-IT')} voci del catalogo · cerca per titolo, codice, materia o riferimento normativo.`}</p></header>
+    <header><h2>Trova il modello d’atto</h2><p>{busy && !modelli.length ? 'Caricamento del catalogo completo…' : `${modelli.length.toLocaleString('it-IT')} modelli d’atto · cerca per titolo, codice, materia o riferimento normativo.`}</p></header>
     {modelli.length ? <div className="iu-sf-catalogo-stati" aria-label="Copertura delle associazioni normative">
       <Button tone="neutral" aria-pressed={!filtri.norme} onClick={() => filtra('norme','')}>Tutti: {modelli.length.toLocaleString('it-IT')}</Button>
       <Button tone="neutral" aria-pressed={filtri.norme === 'associate'} onClick={() => filtra('norme','associate')}>Norme collegate: {collegate.toLocaleString('it-IT')}</Button>

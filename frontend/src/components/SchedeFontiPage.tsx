@@ -12,7 +12,7 @@ import { SchedeFontiDettaglio } from './SchedeFontiDettaglio'
 import './LegalIntelligencePage.css'
 import './SchedeFontiPage.css'
 
-type Proposta = { id: string; impronta: string; tipo: string; etichetta: string; scheda: string; titolo_scheda: string; atto: string; articolo: string; motivo: string; differenze: string; creata_il: string; decisa_da: string; nota: string }
+type Proposta = { id: string; codice_scheda?: string; impronta: string; tipo: string; etichetta: string; scheda: string; titolo_scheda: string; atto: string; articolo: string; motivo: string; differenze: string; creata_il: string; decisa_da: string; nota: string }
 type Riepilogo = { eseguito_il: string; norme: number; stati: Record<string, number>; commi_abrogati: number; acquisiti: { chiave: string; articoli: number; url: string }[]; proposte_aperte: number; per_tipo: { tipo: string; etichetta: string; numero: number }[] }
 type Risposta = { riepilogo: Riepilogo; proposte: Proposta[]; puo_decidere: boolean; modelli: ModelloNorme[]; paginazione: { pagina: number; pagine: number; totale: number } }
 const base = '/api/v1/ui/schede-fonti'
@@ -76,7 +76,7 @@ export function SchedeFontiPage() {
         <section className="iu-od-source-card iu-sf-proposte" aria-label="Proposte di revisione" aria-busy={busy}>
           {!busy && dati && !dati.proposte.length ? <p>Nessuna proposta in questo elenco.</p> : null}
           <ul>{(dati?.proposte || []).map(p => <li key={p.id}>
-            <div className="iu-sf-badges"><Badge tone={p.tipo === 'fonte_suggerita' ? 'info' : 'primary'}>{p.etichetta}</Badge><Button tone="neutral" onClick={() => setScheda(p.scheda)}>{p.scheda} — {p.titolo_scheda}</Button></div>
+            <div className="iu-sf-badges"><Badge tone={p.tipo === 'fonte_suggerita' ? 'info' : 'primary'}>{p.etichetta}</Badge><Button tone="neutral" onClick={() => setScheda(p.scheda)}>{p.codice_scheda || p.scheda} — {p.titolo_scheda}</Button></div>
             <p>{p.motivo}</p>
             {p.differenze ? (p.differenze.startsWith('http') ? <a href={p.differenze} rel="noreferrer">Fonte ufficiale indicata dal registro</a> : <details><summary>Differenze di testo</summary><pre className="iu-sf-diff">{p.differenze}</pre></details>) : null}
             {p.decisa_da ? <small>Decisa da {p.decisa_da}{p.nota ? `: ${p.nota}` : ''}</small> : null}

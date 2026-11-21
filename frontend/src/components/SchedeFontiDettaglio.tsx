@@ -8,7 +8,7 @@ import { Button } from '../ui/Button'
 import { useBusyActivity } from '../ui/useBusyActivity'
 
 type Norma = { atto: string; articolo: string; perche: string; origine: string; stato: string; url: string; aggiornato_al: string; commi_abrogati: number; testo: string; sha256: string; differenze: string; approvata: boolean; approvata_da: string }
-type Scheda = { id: string; titolo: string; norme: Norma[]; impronta: string; stato_collegamento?: string; schede_collegate?: string[] }
+type Scheda = { id: string; codice?: string; titolo: string; norme: Norma[]; impronta: string; stato_collegamento?: string; schede_collegate?: string[] }
 const base = '/api/v1/ui/schede-fonti'
 const STATI: Record<string, string> = { presente: 'Presente in biblioteca', abrogato: 'Abrogata', atto_assente: 'Atto assente', articolo_assente: 'Articolo assente' }
 export function SchedeFontiDettaglio({ schedaId, puoDecidere, onClose, onChanged }: { schedaId: string; puoDecidere: boolean; onClose: () => void; onChanged: () => void }) {
@@ -56,7 +56,7 @@ export function SchedeFontiDettaglio({ schedaId, puoDecidere, onClose, onChanged
   }
   const daApprovare = scheda?.norme.filter(n => n.stato === 'presente' && !n.approvata).length || 0
   return <section ref={dettaglioRef} tabIndex={-1} className="iu-od-source-card iu-sf-dettaglio" aria-label="Norme del modello d’atto" aria-busy={busy || salva}>
-    <header className="iu-sf-dettaglio-head"><div><p>{schedaId}</p><h2>{scheda?.titolo || 'Modello d’atto'}</h2></div><Button tone="neutral" aria-label="Chiudi" onClick={onClose}><X size={16} /></Button></header>
+    <header className="iu-sf-dettaglio-head"><div>{scheda?.codice ? <p>{scheda.codice}</p> : null}<h2>{scheda?.titolo || 'Modello d’atto'}</h2></div><Button tone="neutral" aria-label="Chiudi" onClick={onClose}><X size={16} /></Button></header>
     {busy ? <p role="status">Caricamento delle norme del modello…</p> : null}
     {errore ? <p role="alert">{errore} <Button tone="neutral" onClick={() => setCarica(n => n + 1)}>Riprova</Button></p> : null}
     {messaggio ? <p role="status">{messaggio}</p> : null}

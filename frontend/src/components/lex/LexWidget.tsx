@@ -56,7 +56,7 @@ export function LexWidget({ versione = '' }: { versione?: string }) {
         <span className="visually-hidden">Apri l'assistente Lex</span>
       </button>
 
-      <section id="pct-ai-panel" className="pct-ai-panel" hidden role="dialog" aria-label="Assistente PCT" aria-modal="false">
+      <section id="pct-ai-panel" className="pct-ai-panel" hidden role="dialog" aria-label="Lex, l'assistente" aria-modal="false">
         <header id="pct-ai-header" className="pct-ai-header" data-pct-ai-drag-handle="true" title="Trascina il pannello per spostarlo">
           <div className="pct-ai-header__brand">
             <div className="pct-ai-header__icon">
@@ -112,9 +112,9 @@ export function LexWidget({ versione = '' }: { versione?: string }) {
                 <i className="bi bi-mic-fill"/>
                 <span>Microfono</span>
               </button>
-              <button id="pct-ai-free-web" className="pct-ai-tool-btn" type="button" title="Attiva ricerca web libera solo per le prossime domande" aria-label="Attiva ricerca web libera" aria-pressed="false">
+              <button id="pct-ai-free-web" className="pct-ai-tool-btn" type="button" title="Cerca anche sulle pagine web pubbliche, solo per le prossime domande" aria-label="Cerca anche sulle pagine web pubbliche" aria-pressed="false">
                 <i className="bi bi-globe2"/>
-                <span>Web libero</span>
+                <span>Cerca sul web</span>
               </button>
               <button id="pct-ai-export" className="pct-ai-tool-btn" type="button" title="Scarica il riepilogo della conversazione" aria-label="Scarica il riepilogo della conversazione">
                 <i className="bi bi-download"/>

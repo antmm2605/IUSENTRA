@@ -1,12 +1,18 @@
 import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
-import { Bot, Clock3, PlayCircle, ShieldCheck } from 'lucide-react'
+import { Bot, Clock3, PlayCircle, ShieldCheck, Sunrise } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
-import { AgentMetricsPanel, percentualeIt } from './AgentMetricsPanel'
 import { fetchWorkflowAgentsHome, previewWorkflowAgent, type WorkflowAgentsHomePayload } from './api'
+
+export function dataOraIt(valore?: string): string {
+  if (!valore) return ''
+  const data = new Date(valore)
+  if (Number.isNaN(data.getTime())) return ''
+  return data.toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
 
 export function WorkflowAgentsHome() {
   const [payload, setPayload] = useState<WorkflowAgentsHomePayload | null>(null)
@@ -34,10 +40,10 @@ export function WorkflowAgentsHome() {
       window.location.href = `/workflow-agents/runs/${result.run.id}`
       return
     }
-    setError(result.message || 'Preview non avviata.')
+    setError(result.message || 'Anteprima non avviata.')
   }
 
-  if (loading) return <IusLoadingState title="Caricamento dei lavori automatici di Lex" message="Recupero percorsi, metriche e ultime attività." />
+  if (loading) return <IusLoadingState title="Caricamento dei lavori automatici di Lex" message="Recupero dei lavori e degli ultimi giri." />
   if (!payload) return <IusErrorState title="Lavori automatici non disponibili" message={error || 'Dati non disponibili.'} />
 
   const canPreview = payload.feature_flags.enabled
@@ -45,13 +51,28 @@ export function WorkflowAgentsHome() {
   return (
     <IusPageShell
       title="Lavori automatici di Lex"
-      description="Lex pianifica letture operative, prepara proposte e misura il tempo risparmiato senza scritture automatiche."
+      description="Lex legge i dati dello studio e prepara proposte: nulla cambia finché non approvi."
       icon={Bot}
       area="lex"
       actions={<Button asChild variant="outline"><a href="/workflow-agents/approvals"><ShieldCheck aria-hidden="true" /> Coda approvazioni</a></Button>}
     >
       {error ? <IusErrorState title="Avviso operativo" message={error} /> : null}
-      <AgentMetricsPanel metrics={payload.metrics} titoli={Object.fromEntries(payload.workflows.map((workflow) => [workflow.code, workflow.title]))} />
+      {payload.presidio_mattutino ? (
+        <Card size="sm">
+          <CardContent className="flex flex-wrap items-center gap-2 pt-4 text-sm text-muted-foreground">
+            <Sunrise size={16} aria-hidden="true" />
+            <span>
+              Il controllo automatico di ogni mattina (fascicoli, scadenze, agenda e comunicazioni) è{' '}
+              <a className="underline" href={payload.presidio_mattutino.href}>{payload.presidio_mattutino.titolo}</a>
+              {payload.presidio_mattutino.pianificazione ? `, ${payload.presidio_mattutino.pianificazione.toLowerCase()}` : ''}.
+              {payload.presidio_mattutino.ultimo_giro?.data
+                ? ` Ultimo giro: ${dataOraIt(payload.presidio_mattutino.ultimo_giro.data)} · ${payload.presidio_mattutino.ultimo_giro.esito || 'esito non indicato'}.`
+                : ' Nessun giro registrato.'}
+              {' '}I lavori qui sotto si avviano a mano.
+            </span>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {payload.workflows.map((workflow) => (
@@ -64,7 +85,14 @@ export function WorkflowAgentsHome() {
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-muted-foreground">
               <p>{workflow.description}</p>
-              <span className="flex items-center gap-2"><Clock3 size={15} /> Base manuale stimata: {workflow.baseline_minutes} minuti</span>
+              {payload.ultimi_giri?.[workflow.code] ? (
+                <div className="grid gap-1">
+                  <a className="flex items-center gap-2 underline" href={`/workflow-agents/runs/${payload.ultimi_giri[workflow.code].run_id}`}>
+                    <Clock3 size={15} aria-hidden="true" /> Ultimo giro: {dataOraIt(payload.ultimi_giri[workflow.code].data)} · {payload.ultimi_giri[workflow.code].esito}
+                  </a>
+                  {payload.ultimi_giri[workflow.code].problemi.map((problema) => <span key={problema} className="text-destructive">{problema}</span>)}
+                </div>
+              ) : <span className="flex items-center gap-2"><Clock3 size={15} aria-hidden="true" /> Mai avviato</span>}
             </CardContent>
             <CardFooter className="justify-between gap-2">
               <Button type="button" onClick={() => runPreview(workflow.code)} disabled={!canPreview || busyCode === workflow.code}>
@@ -77,12 +105,11 @@ export function WorkflowAgentsHome() {
       </section>
 
       <section className="grid gap-3">
-        <h2 className="text-lg font-semibold">Ultimi percorsi</h2>
+        <h2 className="text-lg font-semibold">Ultimi giri</h2>
         {payload.latest_runs.length ? payload.latest_runs.map((run) => (
           <a key={run.id} className="rounded-md border px-3 py-2 text-sm transition hover:bg-muted" href={`/workflow-agents/runs/${run.id}`}>
             <strong>{run.plan.title}</strong>
-            {run.created_at ? <span className="ml-2 text-muted-foreground">{new Date(run.created_at).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span> : null}
-            <span className="ml-2 text-muted-foreground">{percentualeIt(run.metrics?.saving_percentage)} riduzione stimata</span>
+            {run.created_at ? <span className="ml-2 text-muted-foreground">{dataOraIt(run.created_at)}</span> : null}
           </a>
         )) : <IusEmptyState title="Nessun percorso ancora eseguito" message="Avvia un'anteprima per generare piano, evidenze e proposte approvabili." icon={Bot} />}
       </section>

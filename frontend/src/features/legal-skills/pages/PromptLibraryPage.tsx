@@ -145,7 +145,7 @@ export function PromptLibraryPage() {
           return
         }
         if (payload.code === 'profile_incomplete') {
-          setErroreEsecuzione('Completa prima il profilo studio Legal Skills: serve per generare bozze governate.')
+          setErroreEsecuzione('Completa prima il profilo dello studio: serve a Lex per preparare le bozze da approvare.')
         } else {
           setErroreEsecuzione(payload.message || 'Esecuzione non disponibile in questo momento.')
         }
@@ -164,19 +164,19 @@ export function PromptLibraryPage() {
   )
   const contesto = dettaglio?.contesto_fascicolo
 
-  if (loading) return <IusLoadingState title="Caricamento libreria prompt" message="Recupero aree e catalogo LegalSkills Italia." />
+  if (loading) return <IusLoadingState title="Caricamento libreria prompt" message="Recupero le aree del diritto e le richieste pronte." />
   if (error && !aree.length) return <IusErrorState title="Libreria prompt non attiva" message={error} />
 
   return (
     <IusPageShell
-      title="Libreria Prompt — LegalSkills Italia"
+      title="Richieste pronte per Lex"
       description={`${totalePrompt} prompt operativi in ${aree.length} aree del diritto, con riferimenti normativi e forme di lavoro della prassi forense.`}
       icon={Library}
       area="lex"
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline"><a href="/legal-skills/percorsi"><Route aria-hidden="true" /> Percorsi guidati</a></Button>
-          <Button asChild variant="outline"><a href="/legal-skills"><BookMarked aria-hidden="true" /> Catalogo skill</a></Button>
+          <Button asChild variant="outline"><a href="/legal-skills"><Route aria-hidden="true" /> Procedure guidate</a></Button>
+          <Button asChild variant="outline"><a href="/legal-skills#revisioni-guidate"><BookMarked aria-hidden="true" /> Revisioni guidate</a></Button>
         </div>
       }
     >

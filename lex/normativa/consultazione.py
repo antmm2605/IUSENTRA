@@ -35,6 +35,17 @@ from lex.tempo_ricerca import applica as applica_tempo_massimo, traduci_interruz
 # Oltre questa soglia l'elenco dice «più di 1.000 articoli» invece di contare tutto l'archivio.
 LIMITE_CONTEGGIO = 1000
 COLLECTION = 'Lex fonti: '
+# Edizione mostrata di ogni atto: quella verificata vigente alla data più recente. Un'edizione scaricata da Normattiva
+# come «testo vigente al giorno X» porta ``vigenza = 'VIGENTE_AL:X'``: conta X, non la data dell'ultima modifica
+# (``redazione_id``). Così un'edizione di una raccolta più vecchia, datata con il giorno della raccolta e con
+# abrogazioni non ancora efficaci, non prevale sul testo verificato vigente oggi (collaudo 21/11/2026: d.lgs.
+# 546/1992, d.P.R. 602/1973 e 633/1972, l. 392/1978 mostrati «abrogati» ma vigenti su Normattiva).
+VIGENTE_AL = 'VIGENTE_AL:'
+
+
+def ordine_edizione(alias: str) -> str:
+    return (f"max(coalesce({alias}.redazione_id,''), CASE WHEN {alias}.vigenza LIKE '{VIGENTE_AL}%' "
+            f"THEN substr({alias}.vigenza, {len(VIGENTE_AL) + 1}, 10) ELSE '' END) DESC, {alias}.id DESC")
 HOST_FONTI_UFFICIALI = frozenset({
     'www.normattiva.it', 'eur-lex.europa.eu', 'publications.europa.eu',
     'www.gazzettaufficiale.it', 'www.consigliodistrettuale.it',
@@ -414,7 +425,7 @@ def _catalogo_da_archivio(db: Path) -> list[dict]:
             FROM collezioni c
             JOIN normative_documents d ON d.id = (
                 SELECT x.id FROM normative_documents x WHERE x.collection_name=c.collection_name
-                ORDER BY x.redazione_id DESC, x.id DESC LIMIT 1
+                ORDER BY """ + ordine_edizione("x") + """ LIMIT 1
             )
             JOIN normative_articles a ON a.document_id=d.id
             GROUP BY d.id ORDER BY d.titolo COLLATE NOCASE
@@ -430,7 +441,7 @@ def _atto_di_consultazione(db: Path, atto: int) -> int:
         corrente = conn.execute("""
             SELECT d.id FROM normative_documents d
             WHERE d.collection_name=?
-            ORDER BY d.redazione_id DESC,d.id DESC LIMIT 1
+            ORDER BY """ + ordine_edizione("d") + """ LIMIT 1
         """, (row[0],)).fetchone()
         if corrente and corrente[0] != atto and conn.execute(
             'SELECT 1 FROM normative_articles WHERE document_id=? LIMIT 1', (corrente[0],),

@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from lex.normativa.biblioteca.fabbisogno import norm_articolo
-from lex.normativa.consultazione import COLLECTION, dettaglio
+from lex.normativa.consultazione import COLLECTION, dettaglio, ordine_edizione
 from lex.testi_ufficiali import CODICI, _urn_canonico, collegamento_normattiva
 
 HOST_UFFICIALI = {'www.normattiva.it', 'normattiva.it', 'eur-lex.europa.eu', 'publications.europa.eu', 'www.gazzettaufficiale.it', 'www.consigliodistrettuale.it', 'www.consiglionazionaleforense.it'}
@@ -77,7 +77,8 @@ def risolvi(db, *, ident=0, atto="", articolo="", url="", sha=""):
         else:
             sql = ("SELECT a.id FROM normative_articles a JOIN normative_documents d ON d.id=a.document_id "
                    "WHERE d.collection_name LIKE ? AND replace(replace(replace(replace(lower(a.article_number),'art.',''),'-',''),' ',''),'.','')=? "
-                   "AND d.id=(SELECT x.id FROM normative_documents x WHERE x.collection_name=d.collection_name ORDER BY x.redazione_id DESC,x.id DESC LIMIT 1)")
+                   "AND d.id=(SELECT x.id FROM normative_documents x WHERE x.collection_name=d.collection_name ORDER BY "
+                   + ordine_edizione("x") + " LIMIT 1)")
             params = [COLLECTION+'%', numero.replace('.', '')]
             if atto:
                 sql += " AND d.collection_name=?"

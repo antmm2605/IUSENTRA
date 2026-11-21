@@ -63,11 +63,13 @@ def presenza_biblioteca(db: Path, *, chiavi: set[str] | None = None) -> Presenza
     p = Presenza()
     if not Path(db).is_file():
         return p
+    from lex.normativa.consultazione import ordine_edizione
+
     with closing(sqlite3.connect(Path(db).resolve().as_uri() + "?mode=ro", uri=True, timeout=10)) as conn:
         for doc_id, coll in conn.execute(
                 "SELECT d.id, d.collection_name FROM normative_documents d WHERE d.collection_name LIKE ? AND d.id = ("
                 "SELECT x.id FROM normative_documents x WHERE x.collection_name = d.collection_name "
-                "ORDER BY x.redazione_id DESC, x.id DESC LIMIT 1)", (COLLEZIONE + "%",)):
+                "ORDER BY " + ordine_edizione("x") + " LIMIT 1)", (COLLEZIONE + "%",)):
             p.atti[coll[len(COLLEZIONE):]] = int(doc_id)
         ids = list(p.atti.items())
         inverso = {v: k for k, v in ids}

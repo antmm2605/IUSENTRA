@@ -36,6 +36,11 @@ def frasi(f: Fatti) -> list[str]:
     """Le frasi dei fatti. Nel racconto strutturato l'intestazione (data di oggi, parti, richiesta) non è un fatto:
     si legge dopo «Fatti del fascicolo»; ogni riga datata («12/01/2026 - …») è una frase a sé."""
     testo = f.testo
+    righe = getattr(f, "righe", None) or []
+    i_fatti = next((i for i, r in enumerate(righe) if re.match(r"(?i)(?:fatti del fascicolo|fatti|i fatti)\s*:?\s*$", r)), None)
+    if i_fatti is not None:
+        # Testo libero con «Fatti:» e l'elenco puntato: ogni voce è una frase, l'intestazione non è un fatto.
+        testo = " ".join(r.lstrip("-•* ").rstrip(".;") + "." for r in righe[i_fatti + 1:])
     m = re.search(r"fatti del fascicolo\s*:?\s*", testo, re.I)
     if m:
         testo = testo[m.end():]

@@ -1,5 +1,5 @@
 {
- "generata_il": "19/11/2026",
+ "generata_il": "21/11/2026",
  "archivio": "normattiva.sqlite",
  "norme": {
   "cc:1137": {
@@ -320,6 +320,17 @@
    "document_id": 1127,
    "article_id": 561690,
    "sha256": "f882396eede90c1b0308dd706ed9b8ea9c5e55ab679badbff7008993bfb96d4c"
+  },
+  "cc:247": {
+   "citazione": "art. 247 c.c.",
+   "testo": "Art. 247. ((Legittimazione passiva.)) ((Il presunto padre, la madre ed il figlio sono litisconsorti necessari nel giudizio di disconoscimento. Se una delle parti e' minore o interdetta, l'azione e' proposta in contraddittorio con un curatore nominato dal giudice davanti al quale il giudizio deve essere promosso. Se una delle parti e' un minore emancipato o un maggiore inabilitato, l'azione e' proposta contro la stessa assistita da un curatore parimenti nominato dal giudice. Se il presunto padre o la madre o il figlio sono morti l'azione si propone nei confronti delle persone indicate nell'articolo precedente o, in loro mancanza, nei confronti di un curatore parimenti nominato dal giudice)).",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art247",
+   "titolo_atto": "Approvazione del testo del Codice civile. (042U0262)",
+   "aggiornamento": "29/04/2026",
+   "vigente": true,
+   "document_id": 1127,
+   "article_id": 561693,
+   "sha256": "5437008404b4cacb1f06991c89e7afb0f904b0034b9cc629ef8f2ba05d4e1c91"
   },
   "cc:2697": {
    "citazione": "art. 2697 c.c.",

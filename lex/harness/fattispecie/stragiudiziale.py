@@ -12,16 +12,31 @@ from ..termini import data_breve, termine_anni, termine_giorni
 from .strumenti import date_in, forma, frase
 
 
+_IMP = r"(?:euro\s*|€\s*)?([\d.]+(?:,\d+)?)(?:\s*euro|\s*€)?"
+
+
 def _fatture(t: str) -> list[tuple[str, object, float]]:
+    """Fatture «n. 88 del 30/04/2026 per 15.200 euro», «n. 12 del 10/03/2026 di euro 8.500», «n. 19 del … (€ 6.200)»."""
     out = []
-    for m in re.finditer(r"n\.\s*(\d+)\s+del\s+(\d{1,2}/\d{1,2}/\d{4})\s+per\s+([\d.]+(?:,\d+)?)\s*euro", t):
-        out.append((m.group(1), date_in(m.group(2))[0], float(m.group(3).replace(".", "").replace(",", "."))))
-    return out
+    for m in re.finditer(r"n\.\s*(\d+)\s+del\s+(\d{1,2}/\d{1,2}/\d{4})\s*(?:,\s*)?(?:per|di|da|\(|importo|pari a)\s*" + _IMP, t):
+        try:
+            out.append((m.group(1), date_in(m.group(2))[0], float(m.group(3).replace(".", "").replace(",", "."))))
+        except (ValueError, IndexError):
+            continue
+    return [x for x in out if x[2] > 0]
+
+
+_DIFFIDA_GIA_FATTA = (r"nonostante (?:la|una) (?:diffida|messa in mora)|(?:diffida|messa in mora)[^.]{0,40}(?:senza esito|rimast\w* "
+                      r"senza|inutilmente|senza risposta|ignorat)|gia (?:mandato|inviato|spedito|fatto)[^.]{0,30}(?:diffida|messa in mora)")
 
 
 def riconosci_diffida_commerciale(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    return 4 if re.search(r"diffida|messa in mora|costituzione in mora", t) and "fattur" in t and (
+    richiesta = piano(f.richiesta) or t
+    # La diffida è la risposta solo se è l'atto chiesto: se è già stata inviata senza esito, il passo è il giudizio.
+    if re.search(_DIFFIDA_GIA_FATTA, t) and not re.search(r"diffida|messa in mora|lettera", richiesta):
+        return 0
+    return 4 if re.search(r"diffida|messa in mora|costituzione in mora", richiesta) and "fattur" in t and (
         f.ha("professionista_impresa") or "interessi commerciali" in t) and not re.search(r"sfratt|locazion", t) else 0
 
 

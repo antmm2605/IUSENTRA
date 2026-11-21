@@ -69,6 +69,8 @@ class Fatti:
     luogo_lavoro: str = ""
     segnali: set[str] = field(default_factory=set)
     richiesta: str = ""
+    righe: list[str] = field(default_factory=list)   # il testo con gli a capo: elenchi puntati e righe datate
+    sede_assistita: str = ""
 
     def importo(self, qualifica: str) -> Importo | None:
         return next((i for i in self.importi if i.qualifica == qualifica), None)
@@ -137,18 +139,38 @@ def _qualifica(contesto: str) -> str:
 def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
     grezzo = " ".join(str(testo or "").split())
     t = piano(grezzo)
-    m_oggi = re.search(r"data di oggi\s*:?\s*(\d{1,2})/(\d{1,2})/(\d{4})", t)
+    # «Data di oggi: 16/11/2026», «Oggi è il 16/11/2026», «in data odierna (16/11/2026)»
+    m_oggi = re.search(r"(?:data di oggi|oggi e il|oggi e|oggi,|in data odierna|data odierna)\s*:?\s*\(?(\d{1,2})/(\d{1,2})/(\d{4})", t)
     giorno = _data(m_oggi) if m_oggi else None
     f = Fatti(testo=grezzo, oggi=giorno or oggi or date.today())
+    f.righe = [r.strip() for r in str(testo or "").splitlines() if r.strip()]
+    # La parte assistita in tutte le formulazioni dell'avvocato: «Parte assistita: X», «Assisto X», «il mio cliente è X»,
+    # «per conto di X», «difendo X», «rappresento X», «nell'interesse di X», «Cliente: X».
     f.assistita = _parte(r"(?i:parte assistita|assisto (?:il|la|lo) (?:locatore|locatrice|conduttore|conduttrice|moglie|marito|"
                          r"lavoratore|lavoratrice|creditore|creditrice|promissario acquirente|promittente venditore)|"
+                         r"(?:il|la) mi[oa] client[ea] (?:e|è)|assisto|difendo|rappresento|per conto (?:di|del|della)|"
+                         r"nell'interesse (?:di|del|della)|cliente\s*:|"
                          r"assistito|assistita|il mio cliente|la mia cliente|mio cliente|mia cliente|ricorrente)", grezzo)
+    if f.assistita.nome and re.fullmatch(r"(?i)(?:il|la|lo|l|un|una|e|è)", f.assistita.nome.split()[0]):
+        f.assistita = Parte()
     f.controparte = _parte(r"(?i:controparte|convenuto|resistente|debitore|conduttore moroso)", grezzo)
     if not f.controparte.nome:
-        f.controparte = _parte(r"(?i:verso|contro|nei confronti di|dipendente di|alle dipendenze di|commissionat\w* a|affidat\w* a|il promittente venditore|"
+        f.controparte = _parte(r"(?i:verso|contro|nei confronti di|dipendente di|alle dipendenze di|commissionat\w* a|affidat\w* a|"
+                               r"incassare da|deve avere da|credito verso|debitrice|debitore|da parte di|il promittente venditore|"
                                r"la promittente venditrice|il venditore|il conduttore|il locatore|il datore di lavoro)", grezzo)
         if f.controparte.nome and f.controparte.nome == f.assistita.nome:
             f.controparte = Parte()
+    if not f.controparte.nome:
+        # «Beta Impianti s.p.a. non paga due fatture», «Rossi non ha pagato»
+        m = re.search(_NOME + r"\s+(?:non (?:paga|ha pagato|ha saldato|ha restituito)|e debitric\w|è debitric\w|deve pagare)", grezzo)
+        if m and m.group(1) != f.assistita.nome:
+            nome = m.group(1).strip()
+            f.controparte = Parte(nome, "", re.search(r"s\.?r\.?l|s\.?p\.?a|s\.?a\.?s|s\.?n\.?c|societa", piano(nome)) is not None)
+    # Sede o residenza della parte assistita («Alfa s.r.l., con sede a Vicenza», «Assisto Alfa s.r.l. (Vicenza)»).
+    if f.assistita.nome:
+        m = re.search(re.escape(f.assistita.nome) + r"[^.;]{0,40}?(?:(?i:con sede|residente|domiciliat\w)\s+(?i:a|in)\s+|\()" + _CITTA, grezzo)
+        if m:
+            f.sede_assistita = m.group(1).strip()
     for m in _IMPORTO.finditer(grezzo):
         grezzo_num = (m.group(1) or m.group(2) or "").replace(".", "").replace(",", ".")
         try:
@@ -166,12 +188,16 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
         if qualifica == "altro":
             qualifica = _qualifica(grezzo[max(0, m.start() - 70): m.end() + 15])
         f.importi.append(Importo(valore, qualifica, contesto))
-    # Frasi: si separa solo davanti a una maiuscola, così «ex art. 1454» resta nella stessa frase.
-    for frase in re.split(r"(?<=[.;])\s+(?=[A-ZÀ-Ý])", grezzo):
+    # Frasi: con l'elenco dei «Fatti:» ogni voce è una frase; altrimenti si separa solo davanti a una maiuscola,
+    # così «ex art. 1454» resta nella stessa frase.
+    i_fatti = next((i for i, r in enumerate(f.righe) if re.match(r"(?i)(?:fatti del fascicolo|fatti|i fatti)\s*:?\s*$", r)), None)
+    sorgente = ([r.lstrip("-•* ").strip() for r in f.righe[i_fatti + 1:]] if i_fatti is not None
+                else re.split(r"(?<=[.;])\s+(?=[A-ZÀ-Ý])", grezzo))
+    for frase in sorgente:
         frase = re.sub(r"^(?:Fatti del fascicolo|Fatti)\s*:?\s*", "", frase.strip())
         for m in _DATA.finditer(frase):
             d = _data(m)
-            if d and not (m_oggi and d == giorno and "data di oggi" in piano(frase)):
+            if d and not (m_oggi and d == giorno and re.search(r"data di oggi|\boggi\b|data odierna", piano(frase))):
                 f.eventi.append(Evento(d, frase.strip()))
                 break
     # Le parole chiave non distinguono maiuscole; il nome della città sì («a Lecce non paga» → «Lecce»).
@@ -199,4 +225,16 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
             f.segnali.add(nome)
     m = re.search(r"richiesta dell avvocato\s*:?\s*(.+?)(?:fatti del fascicolo|$)", t)
     f.richiesta = m.group(1).strip() if m else ""
+    if not f.richiesta and f.righe:
+        # Testo libero: la richiesta è la domanda o il comando rivolto a Lex («Cosa facciamo…?», «Prepara l'atto…»);
+        # se il testo è su più righe, il primo capoverso prima di «Oggi è il», delle parti e dei «Fatti:».
+        primo = f.righe[0] if len(f.righe) > 1 else ""
+        if primo and not re.match(r"(?i)(?:oggi|data di oggi|parte assistita|controparte|fatti)\b", primo):
+            f.richiesta = piano(primo)
+        else:
+            frasi_testo = re.split(r"(?<=[.?!])\s+(?=[A-ZÀ-Ý])", grezzo)
+            chieste = [x for x in frasi_testo if "?" in x or re.match(
+                r"(?i)(?:prepar|redig|scriv|predispon|stend|fammi|mi serve|vorrei|valuta|dimmi|indica|cosa|come|quale|"
+                r"possiamo|devo|dobbiamo)", x.strip())]
+            f.richiesta = piano(" ".join(chieste))
     return f

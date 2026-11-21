@@ -36,7 +36,8 @@ _VERBI_REDAZIONE = (r"\b(?:redig\w*|rediger\w*|scriv\w*|prepar\w*|predispo\w*|st
 # Una questione si pone con una domanda o una richiesta, non con un'etichetta («Organismo di mediazione attivo»).
 _FORMA_DOMANDA = (r"\?|\b(?:qual\w*|quando|quanto|come|cosa|perche|chi|dove|entro|posso|possiamo|puo|devo|dobbiamo|deve|serve|"
                   r"occorre|valuta\w*|indica\w*|dimmi|spiega\w*|calcola\w*|verifica se|e obbligatori|e necessari|vogliamo|vuole)\b")
-_PARERE = (r"\bvaluta\w*|che azion|quale azion|come (?:procedo|posso|devo|agire)|cosa (?:posso|possiamo|devo|deve|rischia)|"
+_PARERE = (r"\bvaluta\w*|che azion|quale azion|come (?:procedo|posso|devo|agire|recuper\w*|possiamo|dobbiamo|facciamo|procediamo|agiamo|"
+           r"tuteliamo|ci muoviamo)|recuperare il credito|cosa (?:posso|possiamo|devo|deve|rischia)|"
            r"posso (?:chiedere|agire|ottenere|recedere|trattenere|sanare)|ha diritto|spett[ao]|e obbligatori|e necessari|"
            r"serve (?:la|il|una|un)\b|occorre|quale giudice|giudice competente|chi e competente|e competente|competen|\brito\b|"
            r"procedibil|mediazione|negoziazione|conviene|in che modo|quando posso|si puo|e possibile|indica la norma|"

@@ -39,3 +39,19 @@ def test_nessun_archivio_dichiarato():
     from lex.harness.giurisprudenza import cerca
 
     assert cerca("x", sorgenti=lambda: []).stato.startswith("nessun archivio")
+
+
+def test_indice_precalcolato_per_norma_senza_archivio(tmp_path, monkeypatch):
+    import json
+
+    import lex.harness.giurisprudenza as G
+
+    f = tmp_path / "g.json"
+    f.write_text(json.dumps({"generato_il": "21/11/2026", "archivi": ["Cassazione (SentenzeWeb)"], "norme": {"cpc:617": [
+        {"archivio": "Cassazione (SentenzeWeb)", "organo": "Corte di Cassazione — civile", "sezione": "3", "numero": "01234",
+         "anno": "2023", "data": "2023-05-02", "url": "https://x", "massima": ""}], "cc:1137": []}}), encoding="utf-8")
+    monkeypatch.setattr(G, "_PRECALCOLATE", f)
+    e = G.per_norme(["cpc:617"])
+    assert e is not None and e.pronunce[0].numero == "01234"
+    assert G.per_norme(["cc:1137"]).pronunce == []        # nessuna pronuncia trovata: non si interroga l'archivio
+    assert G.per_norme(["cc:9999"]) is None

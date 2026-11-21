@@ -15,13 +15,30 @@ def riconosci_ricorso_di(c: Comprensione, f: Fatti) -> int:
     if c.atto == "ricorso per decreto ingiuntivo" and not re.search(r"oppo|contributo unificato", t) and not (
             c.tipo == "termine" and re.search(r"notificat|emess|notifica", t)):
         return 3
+    # Credito documentato da fatture, diffida già inviata o richiesta di agire: il passo è il ricorso monitorio.
+    from .stragiudiziale import _DIFFIDA_GIA_FATTA
+
+    richiesta = piano(f.richiesta) or t
+    if ("fattur" in t and not re.search(r"oppo|sfratt|locazion|decreto ingiuntivo n\.", t) and c.tipo in {"parere", "redazione"}
+            and (re.search(_DIFFIDA_GIA_FATTA, t) or re.search(r"recuper\w* (?:il )?credit|ottenere il pagamento|incassar|"
+                                                               r"agire per il pagamento|decreto ingiuntivo|ingiunzion", richiesta))
+            and not re.search(r"diffida|messa in mora|lettera", richiesta)):
+        return 5
     return 0
 
 
 def analizza_ricorso_di(c: Comprensione, f: Fatti) -> Analisi:
     a = Analisi("decreto_ingiuntivo", "monitorio", modello="MON_001")
+    from .stragiudiziale import _fatture
+
+    t = piano(f.testo)
+    fatture = _fatture(t)
+    m_tot = re.search(r"(?:complessiv\w*|totale|in tutto)\s*(?:di\s*)?(?:euro\s*|€\s*)([\d.]+(?:,\d+)?)", t)
     credito = f.importo("credito") or (f.importi[0] if f.importi else None)
-    valore = credito.valore if credito else None
+    valore = (sum(x[2] for x in fatture) if len(fatture) > 1 else None) or (
+        float(m_tot.group(1).replace(".", "").replace(",", ".")) if m_tot else None) or (credito.valore if credito else None)
+    if not valore:
+        a.dati_mancanti.append("importo del credito (fatture e somme già pagate)")
     a.valore = valore
     a.capito = [f"Credito di {euro(valore) if valore else '[importo da completare]'} di {f.assistita.nome or '[creditore]'} "
                 f"verso {f.controparte.nome or '[debitore]'}" + (" documentato da fattura." if f.ha("fattura") else ".")]
@@ -57,6 +74,17 @@ def analizza_ricorso_di(c: Comprensione, f: Fatti) -> Analisi:
         Punto("Il debitore può proporre opposizione entro quaranta giorni dalla notificazione.",
               [Rif("cpc:641", "quaranta giorni")]),
     ]
+    alternativa = ""
+    if valore and a.giudice and f.sede_assistita and f.sede_assistita.lower() not in a.giudice.lower():
+        giudice_v = P.giudice_per_valore(valore)[0]
+        alternativa = P.ufficio(giudice_v, f.sede_assistita) if giudice_v else ""
+    if alternativa:
+        a.competenza.append(Punto(f"Per un credito di danaro il creditore può scegliere anche il foro del proprio domicilio, "
+                                  f"luogo in cui l'obbligazione deve eseguirsi: {alternativa}.",
+                                  [Rif("cc:1182", "domicilio che il creditore ha al tempo della scadenza"),
+                                   Rif("cpc:20", "deve eseguirsi l'obbligazione")]))
+        a.giudice = (f"{alternativa} (foro del creditore) o {a.giudice} (foro del debitore)" if " di " in a.giudice
+                     else f"{alternativa} (foro del creditore)")
     a.conclusione = [Punto(f"Ricorso per decreto ingiuntivo al {a.giudice or 'giudice competente per valore'}"
                            + (f" per {euro(valore)}" if valore else "") + ", oltre interessi e spese; richiesta di provvisoria "
                            "esecuzione solo se ne ricorrono i presupposti.", [Rif("cpc:633", "somma liquida di danaro"),
@@ -70,8 +98,9 @@ def analizza_ricorso_di(c: Comprensione, f: Fatti) -> Analisi:
         a.bozza = ricorso_generico(
             "Ricorso per decreto ingiuntivo (artt. 633 ss. c.p.c.)", a.giudice, f,
             "ingiunzione di pagamento" + (f" di {euro(valore)}" if valore else ""),
-            ["Il credito è liquido, certo ed esigibile e risulta da prova scritta (art. 633 c.p.c.): fattura n. [da completare] "
-             "ed estratto autentico delle scritture contabili (art. 634 c.p.c.).",
+            ["Il credito è liquido, certo ed esigibile e risulta da prova scritta (art. 633 c.p.c.): "
+             + (", ".join(f"fattura n. {n} del {d.strftime('%d/%m/%Y')} ({euro(v)})" for n, d, v in fatture) if fatture
+                else "fattura n. [da completare]") + " ed estratto autentico delle scritture contabili (art. 634 c.p.c.).",
              "Competenza: art. 637 c.p.c. in relazione al valore e ai fori degli artt. 19 e 20 c.p.c.",
              "[Eventuale] Esecuzione provvisoria: presupposti dell'art. 642 c.p.c. [da completare]."],
             f"ingiungere a {f.controparte.nome or '[debitore]'} di pagare entro quaranta giorni dalla notificazione la somma di "

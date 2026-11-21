@@ -125,3 +125,27 @@ def sezione(esito: EsitoGiurisprudenza) -> str:
         # verificare le norme richiamate dentro una massima.
         righe.append(f"- {p.estremi}" + (f" — {p.url}" if p.url else ""))
     return "\n".join(righe)
+
+
+_PRECALCOLATE = __import__("pathlib").Path(__file__).with_name("dati") / "giurisprudenza_per_norma.json"
+
+
+def _indice() -> dict[str, Any]:
+    import json
+
+    try:
+        return json.loads(_PRECALCOLATE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def per_norme(chiavi: list[str]) -> EsitoGiurisprudenza | None:
+    """Pronunce precalcolate per norma (``scripts/lex_harness_giurisprudenza.py``): lettura istantanea, senza archivio.
+    None se nessuna delle norme è nell'indice."""
+    indice = _indice()
+    voci = indice.get("norme", {})
+    trovate = [Pronuncia(**p) for k in chiavi for p in voci.get(k, [])]
+    if not any(k in voci for k in chiavi):
+        return None
+    return EsitoGiurisprudenza(f"indice precalcolato del {indice.get('generato_il', '')}", trovate[:4],
+                               archivi=list(indice.get("archivi", [])))

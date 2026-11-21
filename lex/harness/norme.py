@@ -126,6 +126,7 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("dlgs546:21", "art. 21 d.lgs. 546/1992", "art. 21 d.lgs. 546/1992", "Termine per la proposizione del ricorso"),
     # Norme dei casi del banco di prova dell'avvocato (19/11/2026)
     _n("cc:243bis", f"art. 243-bis {_CC}", "art. 243-bis c.c.", "Disconoscimento di paternità"),
+    _n("cc:247", f"art. 247 {_CC}", "art. 247 c.c.", "Legittimazione passiva"),
     _n("cc:244", f"art. 244 {_CC}", "art. 244 c.c.", "Termini dell'azione di disconoscimento"),
     _n("cc:480", f"art. 480 {_CC}", "art. 480 c.c.", "Prescrizione del diritto di accettare l'eredità"),
     _n("cc:485", f"art. 485 {_CC}", "art. 485 c.c.", "Chiamato all'eredità che è nel possesso di beni"),

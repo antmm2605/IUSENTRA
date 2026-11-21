@@ -88,11 +88,10 @@ def register_routes(
     @guard
     def assistente_chat():
         try:
-            return service.chat(
-                user=g.get("utente_corrente"),
-                studio=g.get("studio_corrente"),
-                data=request.get_json(silent=True) or {},
-            )
+            from .limite_tempo import con_limite
+
+            utente, studio, dati = g.get("utente_corrente"), g.get("studio_corrente"), request.get_json(silent=True) or {}
+            return con_limite(lambda: service.chat(user=utente, studio=studio, data=dati))
         except Exception as exc:
             return lex_api_error_response("assistente_chat", exc)
 

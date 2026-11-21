@@ -156,10 +156,17 @@ def analizza_disconoscimento(c: Comprensione, f: Fatti) -> Analisi:
     if nascita:
         a.termini.append(Punto(f"Limite massimo: cinque anni dalla nascita del {data_it(nascita)}, cioè "
                                f"{data_breve(termine_anni(nascita, 5))}.", [Rif("cc:244", "cinque anni")]))
-    a.avvertenze = ["Il figlio minore è parte necessaria: per lui va nominato un curatore speciale."]
+    m_figlio = re.search(r"(?:il|la) figli[oa] ([A-ZÀ-Ý][a-zà-ÿ]+)", f.testo)
+    figlio = m_figlio.group(1) if m_figlio else ""
+    a.inquadramento.append(Punto(
+        "Il presunto padre, la madre e il figlio sono litisconsorti necessari; se una parte è minore, l'azione si propone in "
+        "contraddittorio con un curatore nominato dal giudice.",
+        [Rif("cc:247", "litisconsorti necessari"), Rif("cc:247", "curatore nominato dal giudice")]))
+    a.avvertenze = [f"Il figlio minore{(' ' + figlio) if figlio else ''} è litisconsorte necessario: il ricorso va proposto anche "
+                    "nei suoi confronti, con la richiesta di nomina di un curatore speciale (art. 247 c.c.)."]
     a.dati_mancanti = ["codici fiscali e dati anagrafici completi delle parti e del minore", "copia del test genetico e del messaggio"]
     if c.tipo == "redazione":
-        from ..bozze import ricorso_generico
+        from ..bozze import DA, ricorso_generico
 
         a.bozza = ricorso_generico(
             "Ricorso per disconoscimento di paternità (artt. 243-bis e 244 c.c.; art. 473-bis.12 c.p.c.)", a.giudice, f,
@@ -169,7 +176,9 @@ def analizza_disconoscimento(c: Comprensione, f: Fatti) -> Analisi:
              "Competenza: tribunale della residenza abituale del minore (art. 473-bis.11 c.p.c.); nomina di un curatore speciale."],
             "accertare e dichiarare che il ricorrente non è padre del minore; ordinare le annotazioni allo stato civile; "
             "nominare un curatore speciale del minore.", "atto di nascita, test genetico, messaggio, certificato di residenza.",
-            "artt. 473-bis ss. c.p.c.")
+            "artt. 473-bis ss. c.p.c.; art. 247 c.c.",
+            altre_parti=[f"{figlio or 'il figlio minore'}, minore, nato il {data_it(nascita) if nascita else DA}, rappresentato da "
+                         "un curatore speciale da nominare (art. 247 c.c.) – litisconsorte necessario –"])
     return a
 
 

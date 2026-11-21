@@ -87,6 +87,9 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
     if regola is None:
         return None
     analisi = regola[2](c, f)
+    from .coerenza import verifica as _coerenza
+
+    analisi.dubbi += [d for d in _coerenza(analisi, f) if d not in analisi.dubbi]
     _requisiti_bozza(analisi)
     esito = verifica_analisi(analisi)
     _vigenza_alla_data_dei_fatti(analisi, f, esito)
@@ -116,9 +119,15 @@ def _giurisprudenza(c: Comprensione, a):
     chiavi = list(dict.fromkeys(r.chiave for p in a.conclusione for r in p.rif))[:2]
     if not chiavi:
         return None
+    # Prima le pronunce precalcolate per norma (nessuna lettura dell'archivio nella richiesta); la ricerca dal vivo,
+    # con il suo tempo massimo, solo se la norma non è nell'indice precalcolato.
+    from .giurisprudenza import per_norme
+
+    esito = per_norme(chiavi)
+    if esito is not None:
+        return esito
     domanda = " ".join(NORME[k].citazione for k in chiavi)
-    esito = cerca(domanda)
-    return esito
+    return cerca(domanda)
 
 
 def _vigenza_alla_data_dei_fatti(a, f, esito) -> None:

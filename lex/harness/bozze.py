@@ -20,14 +20,20 @@ def _fatto(testo: str, ruolo: str = "") -> str:
     testo = re.sub(r"^(?:\S+\s+){0,2}(?:redig\w*|prepar\w*|scriv\w*|predispo\w*|stend\w*|compil\w*)\b[^:]{0,120}:\s*", "",
                    testo.strip(), flags=re.I)
     testo = re.sub(r"^(?:Il|il|In data)\s+(\d{1,2}/\d{1,2}/\d{4})\s*,?\s*", r"In data \1 ", testo)
+    testo = re.sub(r"^(\d{1,2}/\d{1,2}/\d{4})\s*[-–:]\s*", r"In data \1 ", testo)   # righe datate «12/03/2024 - …»
     if ruolo:
         testo = re.sub(r"\b(?:il mio cliente|la mia cliente|il mio assistito|la mia assistita)\b", ruolo, testo, flags=re.I)
     testo = testo[:1].upper() + testo[1:]
     return testo.rstrip(".") + "."
 
 
+_NON_FATTI = re.compile(r"(?i)^(?:documenti|allegati|oggi\b|data di oggi|parte assistita|controparte|codic[ei] fiscal\w*[^.]{0,60}da acquisire)")
+
+
 def _fatti_numerati(f: Fatti, ruolo: str = "") -> list[str]:
-    return [f"{n}. {_fatto(e.testo, ruolo)}" for n, e in enumerate(f.eventi, 1)]
+    """I fatti della narrativa: le righe dei fatti, riscritte da atto; elenco dei documenti e intestazione esclusi."""
+    fatti = [e.testo for e in f.eventi if not _NON_FATTI.search(e.testo.strip())]
+    return [f"{n}. {_fatto(x, ruolo)}" for n, x in enumerate(fatti, 1)]
 
 
 def citazione_caparra(f: Fatti, a: Analisi, caparra: float, doppio: float) -> str:
@@ -143,10 +149,26 @@ def comparsa_generica(f: Fatti) -> str:
     ])
 
 
+_RUOLI = ("intimato", "intimata", "intimante", "opponente", "opposto", "opposta", "ricorrente", "resistente", "attore", "attrice",
+         "convenuto", "convenuta", "reclamante", "reclamato", "appellante", "appellato", "creditore procedente", "debitore esecutato",
+         "contribuente ricorrente", "comparente")
+
+
+def _ruolo_dichiarato(ruolo: str, predefinito: str) -> str:
+    """La qualifica processuale scritta dall'avvocato («conduttore intimato, opponente») prevale su quella del modello."""
+    r = (ruolo or "").lower()
+    trovati = [q for q in _RUOLI if re.search(rf"\b{q}\b", r)]
+    return " e ".join(dict.fromkeys(trovati[:2])) if trovati else predefinito
+
+
 def ricorso_generico(titolo: str, ufficio: str, f: Fatti, oggetto: str, diritto: list[str], conclusioni: str,
-                     documenti: str, norme_struttura: str) -> str:
+                     documenti: str, norme_struttura: str, altre_parti: list[str] | None = None) -> str:
     citazione = "citazione" in titolo.lower()
     attivo, passivo = ("attore", "convenuto") if citazione else ("ricorrente", "resistente")
+    if titolo.lower().startswith("comparsa"):
+        attivo, passivo = "comparente", "controparte"
+    attivo = _ruolo_dichiarato(f.assistita.ruolo, attivo)
+    passivo = _ruolo_dichiarato(f.controparte.ruolo, passivo)
     righe = [
         (ufficio or "UFFICIO GIUDIZIARIO " + DA).upper(),
         titolo.upper(),
@@ -155,6 +177,7 @@ def ricorso_generico(titolo: str, ufficio: str, f: Fatti, oggetto: str, diritto:
         f"Per: {f.assistita.nome or DA}, codice fiscale {DA}, residente/con sede in {DA}, rappresentato e difeso dall'avv. {DA} "
         f"(PEC {DA}) giusta procura allegata – {attivo} –",
         f"Contro: {f.controparte.nome or DA}, codice fiscale/partita IVA {DA}, residente/con sede in {f.residenza_convenuto or DA} – {passivo} –",
+        *[f"e nei confronti di: {p}" for p in (altre_parti or [])],
         "",
         "OGGETTO: " + oggetto,
         "",

@@ -20,8 +20,13 @@ def _precetto_notificato(f: Fatti):
 # ------------------------------------------------------------------------------------------ opposizione a precetto
 def riconosci_opposizione_precetto(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
+    # La posizione della parte assistita decide: il creditore procedente non si oppone al proprio precetto.
+    ruolo = piano(f.assistita.ruolo)
+    if re.search(r"creditor|procedent|intimant", ruolo):
+        return 0
     return 4 if "precett" in t and re.search(r"opposizion|pagat\w* tutto|gia pagat|quietanz|transazion|transattiv", t) and (
-        c.atto == "opposizione a precetto" or re.search(r"opponente|opposto", t)) else 0
+        c.atto == "opposizione a precetto" or re.search(r"\bopponente\b|\bopposto\b|debitor\w* (?:intimat|esecutat)", t)
+        or re.search(r"debitor|intimat|opponent|esecutat", ruolo)) else 0
 
 
 def analizza_opposizione_precetto(c: Comprensione, f: Fatti) -> Analisi:

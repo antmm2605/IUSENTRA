@@ -76,6 +76,24 @@ def pronunce(conn: sqlite3.Connection, archivio: str, domande: list[str], estrem
     return uscita
 
 
+def _metadati_salvati(conn: sqlite3.Connection, percorso: Path, cartella: Path) -> dict[int, tuple]:
+    """Gli estremi letti una volta (la scansione dell'archivio dello studio richiede minuti) e riusati
+    finché l'archivio non cambia (dimensione e data)."""
+    import hashlib
+
+    stato = percorso.stat()
+    file = cartella / f"estremi-{hashlib.sha256(str(percorso).encode()).hexdigest()[:12]}.json"
+    firma = [stato.st_size, stato.st_mtime_ns]
+    if file.is_file():
+        salvati = json.loads(file.read_text(encoding="utf-8"))
+        if salvati.get("firma") == firma:
+            return {int(k): tuple(v) for k, v in salvati["righe"].items()}
+    righe = metadati(conn)
+    cartella.mkdir(parents=True, exist_ok=True)
+    file.write_text(json.dumps({"firma": firma, "righe": righe}, ensure_ascii=False), encoding="utf-8")
+    return righe
+
+
 def elenco_norme(quali: str) -> list[tuple[str, str]]:
     from lex.harness.norme import NORME
 
@@ -84,6 +102,15 @@ def elenco_norme(quali: str) -> list[tuple[str, str]]:
         return norme
     extra = [(f"cost:{n}", "") for n in range(1, 140)]
     return norme + [v for v in extra if v[0] not in dict(norme)]
+
+
+def _scrivi(uscita: Path, indice: dict, archivi) -> None:
+    indice.update({"generato_il": date.today().strftime("%d/%m/%Y"), "archivi": [n for n, _ in archivi],
+                   "metodo": "citazione della norma cercata come frase negli archivi; pronunce più recenti che la citano"})
+    uscita.parent.mkdir(parents=True, exist_ok=True)
+    provvisorio = uscita.with_suffix(".provvisorio")
+    provvisorio.write_text(json.dumps(indice, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    provvisorio.replace(uscita)
 
 
 def main() -> int:
@@ -96,26 +123,25 @@ def main() -> int:
     args = ap.parse_args()
     archivi = [("Cassazione (SentenzeWeb)", _connetti(args.cassazione)),
                ("archivio dello studio (Consulta e fonti pubbliche)", _connetti(args.consulta))]
-    estremi = {}
-    for nome, conn in archivi:
-        inizio = time.monotonic()
-        estremi[nome] = metadati(conn)
-        print(f"{nome}: {len(estremi[nome])} pronunce in {time.monotonic() - inizio:.0f} s", flush=True)
     uscita = Path(args.uscita)
+    meta = {}
+    for (nome, conn), percorso in zip(archivi, (args.cassazione, args.consulta)):
+        inizio = time.monotonic()
+        meta[nome] = _metadati_salvati(conn, Path(percorso), uscita.parent)
+        print(f"{nome}: {len(meta[nome])} pronunce in {time.monotonic() - inizio:.0f} s", flush=True)
     indice = json.loads(uscita.read_text(encoding="utf-8")) if uscita.is_file() else {"norme": {}}
     for chiave, estremi in elenco_norme(args.norme):
         domande = interrogazioni(chiave, estremi)
         if not domande:
             continue
         inizio = time.monotonic()
-        trovate = [p for nome, conn in archivi for p in pronunce(conn, nome, domande, estremi[nome])]
+        trovate = [p for nome, conn in archivi for p in pronunce(conn, nome, domande, meta[nome])]
         indice["norme"][chiave] = trovate
         print(f"{chiave}: {len(trovate)} pronunce in {time.monotonic() - inizio:.1f} s", flush=True)
+        if len(indice["norme"]) % 20 == 0:
+            _scrivi(uscita, indice, archivi)
         time.sleep(args.pausa)
-    indice.update({"generato_il": date.today().strftime("%d/%m/%Y"), "archivi": [n for n, _ in archivi],
-                   "metodo": "citazione della norma cercata come frase negli archivi; pronunce più recenti che la citano"})
-    uscita.parent.mkdir(parents=True, exist_ok=True)
-    uscita.write_text(json.dumps(indice, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    _scrivi(uscita, indice, archivi)
     print(f"{len(indice['norme'])} norme -> {uscita}")
     return 0
 

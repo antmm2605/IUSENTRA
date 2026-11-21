@@ -274,7 +274,10 @@ def linked_articles(identifier, *, query="", article="", offset=0, vigente=False
                     and not numero_indicizzato(connection) and _archivio_grande(connection)):
                 # Senza indice dei numeri bisognerebbe leggere l'intero archivio (minuti): lo si dice, non si scorre.
                 return {"items": [], "total": 0, "act_id": identifier, "avviso": AVVISO_SENZA_INDICE}
-            where.append(filtro_numero_articolo(connection))
+            filtro = filtro_numero_articolo(connection)
+            where.append(filtro)
+            if "numeri.numeri_articolo" in filtro:
+                where.remove(TESTO_PRESENTE)  # già nell'indice esterno: niente lettura dei testi
             params.append(numero_articolo(article))
         if query.strip():
             from lex.ricerca_giuridica.testo import testo_indice

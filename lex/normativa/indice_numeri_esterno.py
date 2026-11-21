@@ -74,20 +74,24 @@ def prepara(archivio: Path, base: Path, *, blocco: int = 20000, pausa: float = 0
     espressione = espressione_numero_articolo_sql()
     with closing(sqlite3.connect(archivio.resolve().as_uri() + "?mode=ro", uri=True)) as sorgente, \
             closing(sqlite3.connect(provvisorio)) as uscita:
-        uscita.execute("CREATE TABLE numeri_articolo(article_id INTEGER PRIMARY KEY, document_id INTEGER, numero TEXT)")
+        # con_testo: la stessa condizione di TESTO_PRESENTE, calcolata qui una volta: la ricerca non legge i testi.
+        uscita.execute("CREATE TABLE numeri_articolo(article_id INTEGER PRIMARY KEY, document_id INTEGER, numero TEXT, "
+                       "con_testo INTEGER)")
         uscita.execute("CREATE TABLE meta(sorgente TEXT, dimensione INTEGER, mtime_ns INTEGER, creato TEXT, righe INTEGER)")
         ultimo, righe = 0, 0
         while True:
             parte = sorgente.execute(
-                f"SELECT id, document_id, {espressione} FROM normative_articles WHERE id>? ORDER BY id LIMIT ?",
+                f"SELECT id, document_id, {espressione}, "
+                "(octet_length(article_text)>0 AND (octet_length(article_text)>256 OR length(trim(article_text))>0)) "
+                "FROM normative_articles WHERE id>? ORDER BY id LIMIT ?",
                 (ultimo, blocco)).fetchall()
             if not parte:
                 break
-            uscita.executemany("INSERT INTO numeri_articolo VALUES (?,?,?)", parte)
+            uscita.executemany("INSERT INTO numeri_articolo VALUES (?,?,?,?)", parte)
             ultimo, righe = parte[-1][0], righe + len(parte)
             if pausa:
                 time.sleep(pausa)
-        uscita.execute("CREATE INDEX idx_numeri_numero ON numeri_articolo(numero, article_id)")
+        uscita.execute("CREATE INDEX idx_numeri_numero ON numeri_articolo(numero, con_testo, article_id)")
         uscita.execute("INSERT INTO meta VALUES (?,?,?,?,?)",
                        (str(archivio), dimensione, mtime, time.strftime("%Y-%m-%dT%H:%M:%S"), righe))
         uscita.commit()

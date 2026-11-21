@@ -144,7 +144,7 @@ def filtro_numero_articolo(conn: sqlite3.Connection, alias: str = 'a', schema: s
     if INDICE_NUMERI_ARTICOLO in indici:
         return espressione_numero_articolo_sql('a.article_number') + '=?'
     if _indice_esterno(conn):
-        return 'a.id IN (SELECT article_id FROM numeri.numeri_articolo WHERE numero=?)'
+        return 'a.id IN (SELECT article_id FROM numeri.numeri_articolo WHERE numero=? AND con_testo=1)'
     if INDICE_ATTO_NUMERO in indici:
         return (f'a.id IN (SELECT id FROM {schema}.normative_articles INDEXED BY {INDICE_ATTO_NUMERO} '
                 f'WHERE {espressione_numero_articolo_sql()}=?)')

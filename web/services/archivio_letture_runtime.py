@@ -844,6 +844,30 @@ def _riapri_per_regole(fascicolo: Any, registro: RegistroLetture, tenant: str) -
         return 0
 
 
+def _riammetti_ruoli(fascicolo: Any, registro: RegistroLetture, tenant: str) -> int:
+    """Numeri di ruolo respinti da una regola superata (ufficio letto tagliato) riammessi con la regola di oggi.
+
+    Solo SQL già registrato (pct/archivio_letture/riammissione_ruolo). Un ruolo riammesso rimette la sentenza
+    nella Lettura e nel modello della causa: la Lettura salvata si invalida e i pannelli si ricalcolano."""
+    fascicolo_id = _testo(getattr(fascicolo, "id", ""))
+    try:
+        contesto = contesto_da_fascicolo(fascicolo)
+        riammessi = registro.riammetti_ruoli(tenant, fascicolo_id, numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg)
+    except Exception as exc:
+        logger.debug("Riammissione dei ruoli non riuscita per %s: %s", fascicolo_id, exc)
+        return 0
+    if riammessi:
+        logger.info("Riammessi %s numeri di ruolo respinti da una regola superata nel fascicolo %s", len(riammessi), fascicolo_id)
+        invalida_lettura(fascicolo_id)
+        try:
+            from web.services.pannelli_pronti_runtime import segnala_scrittura_fascicolo
+
+            segnala_scrittura_fascicolo(fascicolo_id)
+        except Exception as exc:
+            logger.debug("Pannelli non segnalati dopo la riammissione dei ruoli di %s: %s", fascicolo_id, exc)
+    return len(riammessi)
+
+
 def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str, *, con_notifiche: bool = True) -> dict[str, Any]:
     """Le regole di oggi ripassano ciò che è già registrato: niente resta aperto per una regola superata.
 
@@ -871,6 +895,7 @@ def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str, *, con_
         esito["fatti"] = len(registro.riconvalida_fatti(tenant, fascicolo_id, esclusioni_oggetto=esclusioni))
     except Exception as exc:
         logger.debug("Riconvalida dei fatti non riuscita per %s: %s", fascicolo_id, exc)
+    esito["ruoli_riammessi"] = _riammetti_ruoli(fascicolo, registro, tenant)
     try:
         # Le discordanze già aperte si ripassano con le regole di oggi (2.469.0: codici fiscali letti male,
         # enti al posto del cliente, secondo nome): quelle che oggi non nascerebbero si chiudono da sole.
@@ -1132,6 +1157,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         if rileggi_superati and registro.superati(tenant, fascicolo_id, LETTORE_DOCUMENTI, versione=VERSIONE_MOTORE_DOCUMENTI, tipi=("documento",)):
             mancanti_motori = mancanti_motori or 1
         if impronta_prima != "impronta-non-calcolata" and not prima.da_leggere and not mancanti_motori:
+            # Anche a ciclo fermo la regola di oggi ripassa i ruoli respinti da una regola superata (solo SQL).
+            _riammetti_ruoli(fascicolo, registro, tenant)
             metadati = {}
             consegne = {}
             if recupera_metadati:

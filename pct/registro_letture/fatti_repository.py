@@ -38,6 +38,8 @@ _FILTRI_FATTI = {
     "tenant_id = ? AND tipo = ? AND oggetto_id = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ?',
     "tenant_id = ? AND id = ?": '"tenant_id" = ? AND "id" = ?',
     "tenant_id = ? AND id = ? AND fascicolo_id = ?": '"tenant_id" = ? AND "id" = ? AND "fascicolo_id" = ?',
+    "tenant_id = ? AND fascicolo_id = ? AND categoria = ? AND verifica = ?":
+        '"tenant_id" = ? AND "fascicolo_id" = ? AND "categoria" = ? AND "verifica" = ?',
 }
 
 
@@ -375,6 +377,37 @@ class FattiMixin:
             fatto.verifica, fatto.prove = "respinta", prove
             respinti.append(fatto)
         return respinti
+
+    def riammetti_ruoli(self, tenant_id: str, fascicolo_id: str, *, numero_rg: str, anno_rg: str) -> list[Fatto]:
+        """Riammette i numeri di ruolo respinti da una regola superata (pct/archivio_letture/riammissione_ruolo).
+
+        Solo SQL già registrato, nessun documento riletto. Compare-and-swap sull'intera riga: una decisione
+        dell'avvocato o una lettura concorrente non si sovrascrive. Le decisioni dell'avvocato non si toccano.
+        """
+        from pct.archivio_letture.riammissione_ruolo import ruoli_da_riammettere
+
+        tenant = _testo(tenant_id)
+        # Lettura mirata (solo i ruoli respinti del fascicolo): gira anche a ciclo fermo, deve costare poco.
+        righe = {r.get("id"): r for r in self._seleziona_fatti("tenant_id = ? AND fascicolo_id = ? AND categoria = ? AND verifica = ?",
+                                                                (tenant, fascicolo_id, "ruolo", "respinta"))
+                 if not (r.get("risolta_da") or r.get("risolta_il"))}
+        if not righe:
+            return []
+        riammessi: list[Fatto] = []
+        adesso = self._adesso()  # type: ignore[attr-defined]
+        for nuovo in ruoli_da_riammettere([self._fatto(r) for r in righe.values()], numero_rg=numero_rg, anno_rg=anno_rg):
+            raw = righe[nuovo.id]
+            conditions = ' AND '.join(f'("{column}" = ? OR ("{column}" IS NULL AND ? IS NULL))' for column in COLONNE_FATTI)
+            expected = tuple(value for column in COLONNE_FATTI for value in (raw.get(column), raw.get(column)))
+            with self.connection() as conn:  # type: ignore[attr-defined]
+                cursor = conn.execute(
+                    f'UPDATE "letture_fatti" SET "verifica" = ?, "prove_json" = ?, "aggiornato_il" = ? WHERE {conditions} RETURNING "id"',
+                    (nuovo.verifica, json.dumps(nuovo.prove, ensure_ascii=False, sort_keys=True), adesso, *expected),
+                )
+                if cursor.fetchone() is None:
+                    continue  # la riga è cambiata nel frattempo: resta com'è, si riprova al giro successivo
+            riammessi.append(nuovo)
+        return riammessi
 
     def riassunto_fatti(self, tenant_id: str, fascicolo_id: str) -> dict[str, Any]:
         """Quanti fatti, per verdetto e per categoria; per i presìdi e per il pannello."""

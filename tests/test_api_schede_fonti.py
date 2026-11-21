@@ -139,11 +139,14 @@ def test_primo_controllo_assente_non_crea_file_in_get(tmp_path):
     assert not path.exists()
 
 
-def test_paginazione_non_tronca_proposte_e_catalogo_completo(tmp_path):
+def test_paginazione_non_tronca_proposte_e_catalogo_completo(tmp_path, monkeypatch):
+    from web.services import schede_fonti_runtime as runtime
     db = _biblioteca(tmp_path)
     repo = RepositorySchedeFonti(db.with_name("schede_fonti.sqlite"))
     for i in range(75):
         repo.apri_proposta("CIV_ORD_023", "c.p.c.", str(10000+i), tipo="fonte_suggerita", motivo="Fonte da esaminare")
+    # Proposte di prova che la logica per atto considera ancora attuali (le superate escono dalla coda).
+    monkeypatch.setattr(runtime, "_suggerite_attuali", lambda: frozenset(("CIV_ORD_023", "c.p.c.", str(10000+i)) for i in range(75)))
     app = _app(tmp_path, NORMATTIVA_DB=str(db.with_name("normattiva.sqlite")))
     with app.test_client() as c:
         _login(c)

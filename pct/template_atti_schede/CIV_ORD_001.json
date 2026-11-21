@@ -25,6 +25,11 @@
   },
   {
    "atto": "codice_procedura_civile",
+   "articolo": "165",
+   "perche": "costituzione dell'attore entro dieci giorni dalla notificazione, con iscrizione a ruolo"
+  },
+  {
+   "atto": "codice_procedura_civile",
    "articolo": "166",
    "perche": "costituzione del convenuto"
   },
@@ -379,7 +384,7 @@
   "fatti essenziali privi di riscontro nei documenti",
   "materia con condizione di procedibilità non ancora esperita"
  ],
- "versione": "2026-10-19.1",
+ "versione": "2026-11-21.1",
  "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
  "modelli_compilatore": [
   "CIV_CIT_001"

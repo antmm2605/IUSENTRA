@@ -67,27 +67,64 @@ def _riferimento_sigla(articolo: str) -> tuple[str, str] | None:
     return SIGLE_CODICI[m.group(2).lower()], norm_articolo(m.group(1))
 
 
-def fonti_suggerite(repo: RepositorySchedeFonti, cartella: Path = CARTELLA_SCHEDE) -> int:
+def _suggerimenti(cartella: Path = CARTELLA_SCHEDE) -> dict[tuple[str, str, str], tuple[str, dict]]:
+    """Norme specifiche che il registro indica per l'atto di ogni scheda e che la scheda non cita.
+
+    La proposta nasce dall'atto (nome della scheda e codice del modello): le fonti d'articolo assegnate a un intero
+    prefisso non bastano, perché ``template_atti_sources_for_model`` richiede il riscontro nel nome dell'atto.
+    """
     from pct.template_atti_legal_sources import template_atti_sources_for_model
 
-    nuove = 0
+    out: dict[tuple[str, str, str], tuple[str, dict]] = {}
     for f in sorted(Path(cartella).glob("*.json")):
         d = json.loads(f.read_text(encoding="utf-8"))
         sid = str(d.get("id") or f.stem)
         citate = {(r["atto"], norm_articolo(r["articolo"])) for r in d.get("base_normativa") or []}
         citate |= {(r["atto"], norm_articolo(r["articolo"])) for c in d.get("campi") or [] for r in c.get("norma") or []}
-        visti: set[tuple[str, str]] = set()
         for codice in d.get("template") or [sid]:
             for s in template_atti_sources_for_model(model_code=str(codice), model_name=str(d.get("titolo") or "")):
                 rif = _riferimento_sigla(s.get("article", ""))
-                if not rif or s.get("coverage_role") != "specifica" or s.get("deprecated") or rif in citate or rif in visti:
+                if not rif or s.get("coverage_role") != "specifica" or s.get("deprecated") or rif in citate:
                     continue
-                visti.add(rif)
-                motivo = (f"Il registro delle fonti ufficiali indica per il modello {codice} l'art. {rif[1]} ({rif[0]}) "
-                          f"come fonte specifica («{s.get('title', '')}»), ma la scheda {sid} non lo cita: valutare se aggiungerlo.")
-                nuove += 1 if repo.apri_proposta(sid, rif[0], rif[1], tipo="fonte_suggerita", motivo=motivo,
-                                                 differenze=s.get("official_url", "")) else 0
+                out.setdefault((sid, *rif), (str(codice), s))
+    return out
+
+
+def fonti_suggerite(repo: RepositorySchedeFonti, cartella: Path = CARTELLA_SCHEDE) -> int:
+    nuove = 0
+    for (sid, atto, articolo), (codice, s) in _suggerimenti(cartella).items():
+        motivo = (f"Il registro delle fonti ufficiali indica per il modello {codice} l'art. {articolo} ({atto}) "
+                  f"come fonte specifica («{s.get('title', '')}»), ma la scheda {sid} non lo cita: valutare se aggiungerlo.")
+        nuove += 1 if repo.apri_proposta(sid, atto, articolo, tipo="fonte_suggerita", motivo=motivo,
+                                         differenze=s.get("official_url", "")) else 0
     return nuove
+
+
+AUTORE_RITIRO = "IUSENTRA (revisione automatica delle fonti per atto)"
+
+
+def ritira_suggerimenti_superati(repo: RepositorySchedeFonti, cartella: Path = CARTELLA_SCHEDE, *,
+                                 simula: bool = False) -> list[dict]:
+    """Ritira le proposte «fonte da valutare» ancora aperte che la logica per atto non produce più.
+
+    Tocca solo proposte ``fonte_suggerita`` aperte e mai decise (nessun nome dell'avvocato): le approvate e le
+    respinte restano come sono, e restano intatte le decisioni registrate dagli studi. Ogni ritiro scrive il motivo
+    nella nota. Idempotente: una seconda esecuzione non trova più nulla da ritirare.
+    """
+    attese = _suggerimenti(cartella)
+    ritirate = []
+    for p in repo.proposte(stato="aperta"):
+        if p["tipo"] != "fonte_suggerita" or str(p.get("decisa_da") or "").strip():
+            continue
+        if (p["scheda"], p["atto"], norm_articolo(p["articolo"])) in attese:
+            continue
+        motivo = (f"Proposta ritirata: l'art. {p['articolo']} ({p['atto']}) era suggerito alla scheda {p['scheda']} solo "
+                  "per il prefisso del codice del modello, non per il nome o il tipo dell'atto; la norma tipica dell'atto "
+                  "è già citata dalla scheda o non è pertinente.")
+        if not simula:
+            repo.ritira_proposta(int(p["id"]), autore=AUTORE_RITIRO, motivo=motivo)
+        ritirate.append({"id": p["id"], "scheda": p["scheda"], "atto": p["atto"], "articolo": p["articolo"], "motivo": motivo})
+    return ritirate
 
 
 def approva_scheda(repo: RepositorySchedeFonti, esiti: list[EsitoNorma], scheda: str, avvocato: str) -> int:

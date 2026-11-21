@@ -1,0 +1,1111 @@
+{
+ "descrizione": "Norme dei modelli d'atto che non hanno una scheda propria: per ogni atto le norme che lo disciplinano direttamente (forma, contenuto, termini). Il testo vigente si legge dalla biblioteca «Codici e leggi» (Normattiva) al momento della consultazione, con fonte e data; l'avvocato approva come per le schede. Revisione del 21/11/2026 sul testo vigente.",
+ "verificato_il": "2026-11-21",
+ "atti": {
+  "ATTO_APPELLO_CIVILE": {
+   "titolo": "Atto di appello civile",
+   "modelli": [
+    "TMP-IMP-001",
+    "CIV_APP_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "339",
+     "appellabilità delle sentenze"
+    ],
+    [
+     "codice_procedura_civile",
+     "342",
+     "forma e contenuto dell'appello (motivi specifici, a pena di inammissibilità)"
+    ],
+    [
+     "codice_procedura_civile",
+     "343",
+     "appello incidentale"
+    ],
+    [
+     "codice_procedura_civile",
+     "345",
+     "divieto di domande ed eccezioni nuove"
+    ],
+    [
+     "codice_procedura_civile",
+     "325",
+     "termine breve di trenta giorni"
+    ],
+    [
+     "codice_procedura_civile",
+     "327",
+     "termine lungo di sei mesi"
+    ]
+   ]
+  },
+  "ATTO_CASSAZIONE_CIVILE": {
+   "titolo": "Ricorso per cassazione civile",
+   "modelli": [
+    "TMP-IMP-003",
+    "CIV_IMP_002"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "360",
+     "motivi di ricorso"
+    ],
+    [
+     "codice_procedura_civile",
+     "365",
+     "sottoscrizione del difensore abilitato con procura speciale"
+    ],
+    [
+     "codice_procedura_civile",
+     "366",
+     "contenuto del ricorso a pena di inammissibilità"
+    ],
+    [
+     "codice_procedura_civile",
+     "369",
+     "deposito del ricorso"
+    ],
+    [
+     "codice_procedura_civile",
+     "325",
+     "termine breve di sessanta giorni"
+    ],
+    [
+     "codice_procedura_civile",
+     "327",
+     "termine lungo di sei mesi"
+    ]
+   ]
+  },
+  "ATTO_CONTRORICORSO": {
+   "titolo": "Controricorso in cassazione",
+   "modelli": [
+    "TMP-IMP-004",
+    "CIV_IMP_003"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "370",
+     "controricorso: termine e contenuto"
+    ],
+    [
+     "codice_procedura_civile",
+     "371",
+     "ricorso incidentale"
+    ]
+   ]
+  },
+  "ATTO_REVOCAZIONE": {
+   "titolo": "Ricorso per revocazione",
+   "modelli": [
+    "TMP-IMP-005",
+    "CIV_IMP_004"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "395",
+     "casi di revocazione"
+    ],
+    [
+     "codice_procedura_civile",
+     "396",
+     "revocazione delle sentenze per le quali è scaduto il termine per l'appello"
+    ],
+    [
+     "codice_procedura_civile",
+     "398",
+     "proposizione della domanda"
+    ]
+   ]
+  },
+  "ATTO_OPPOSIZIONE_TERZO": {
+   "titolo": "Opposizione di terzo alla sentenza",
+   "modelli": [
+    "TMP-IMP-006",
+    "CIV_IMP_005"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "404",
+     "casi di opposizione di terzo"
+    ],
+    [
+     "codice_procedura_civile",
+     "405",
+     "proposizione dell'opposizione"
+    ]
+   ]
+  },
+  "ATTO_REGOLAMENTO_COMPETENZA": {
+   "titolo": "Ricorso per regolamento di competenza",
+   "modelli": [
+    "TMP-IMP-007",
+    "CIV_IMP_006"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "42",
+     "regolamento necessario di competenza"
+    ],
+    [
+     "codice_procedura_civile",
+     "43",
+     "regolamento facoltativo di competenza"
+    ],
+    [
+     "codice_procedura_civile",
+     "47",
+     "procedimento del regolamento di competenza"
+    ]
+   ]
+  },
+  "ATTO_REGOLAMENTO_GIURISDIZIONE": {
+   "titolo": "Ricorso per regolamento di giurisdizione",
+   "modelli": [
+    "TMP-IMP-008",
+    "CIV_IMP_007"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "41",
+     "regolamento di giurisdizione"
+    ],
+    [
+     "codice_procedura_civile",
+     "367",
+     "sospensione del processo di merito"
+    ]
+   ]
+  },
+  "ATTO_SOSPENSIONE_SENTENZA": {
+   "titolo": "Istanza di sospensione dell'esecutività della sentenza",
+   "modelli": [
+    "TMP-IMP-009",
+    "CIV_IMP_008"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "283",
+     "provvedimenti sull'esecuzione provvisoria in appello"
+    ],
+    [
+     "codice_procedura_civile",
+     "351",
+     "provvedimenti sull'esecuzione provvisoria"
+    ],
+    [
+     "codice_procedura_civile",
+     "373",
+     "sospensione dell'esecuzione in pendenza di ricorso per cassazione"
+    ]
+   ]
+  },
+  "ATTO_INTEGRAZIONE_CONTRADDITTORIO": {
+   "titolo": "Istanza di integrazione del contraddittorio",
+   "modelli": [
+    "TMP-IMP-011",
+    "CIV_IMP_010"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "102",
+     "litisconsorzio necessario"
+    ],
+    [
+     "codice_procedura_civile",
+     "331",
+     "integrazione del contraddittorio in cause inscindibili"
+    ]
+   ]
+  },
+  "ATTO_RITO_SEMPLIFICATO": {
+   "titolo": "Ricorso nel procedimento semplificato di cognizione",
+   "modelli": [
+    "CIV_INT_001",
+    "TMP-CIV-002"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "281decies",
+     "procedimento semplificato: ambito"
+    ],
+    [
+     "codice_procedura_civile",
+     "281undecies",
+     "forma della domanda e costituzione delle parti"
+    ],
+    [
+     "codice_procedura_civile",
+     "281duodecies",
+     "procedimento"
+    ]
+   ]
+  },
+  "ATTO_RIASSUNZIONE": {
+   "titolo": "Riassunzione del giudizio",
+   "modelli": [
+    "TMP-CIV-018",
+    "CIV_INT_002"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "50",
+     "riassunzione della causa davanti al giudice competente"
+    ],
+    [
+     "codice_procedura_civile",
+     "303",
+     "prosecuzione e riassunzione dopo l'interruzione"
+    ]
+   ]
+  },
+  "ATTO_RIUNIONE": {
+   "titolo": "Istanza di riunione dei procedimenti",
+   "modelli": [
+    "TMP-CIV-016",
+    "CIV_SUC_010"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "273",
+     "riunione di procedimenti relativi alla stessa causa"
+    ],
+    [
+     "codice_procedura_civile",
+     "274",
+     "riunione di procedimenti relativi a cause connesse"
+    ]
+   ]
+  },
+  "ATTO_SEPARAZIONE_CAUSE": {
+   "titolo": "Istanza di separazione dei procedimenti",
+   "modelli": [
+    "TMP-CIV-017",
+    "CIV_SUC_011"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "103",
+     "litisconsorzio facoltativo e separazione delle cause"
+    ]
+   ]
+  },
+  "ATTO_NOTE_TRATTAZIONE_SCRITTA": {
+   "titolo": "Note scritte in sostituzione dell'udienza",
+   "modelli": [
+    "TMP-CIV-012",
+    "CIV_SUC_007"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "127ter",
+     "deposito di note scritte in sostituzione dell'udienza"
+    ]
+   ]
+  },
+  "ATTO_NOTE_CONCLUSIVE": {
+   "titolo": "Note di precisazione delle conclusioni",
+   "modelli": [
+    "TMP-CIV-019",
+    "CIV_SUC_008"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "189",
+     "rimessione al collegio e note di precisazione delle conclusioni (art. 190 abrogato dal d.lgs. 149/2022)"
+    ]
+   ]
+  },
+  "ATTO_PROCURA_ALLE_LITI": {
+   "titolo": "Procura alle liti",
+   "modelli": [
+    "CIV_PROC_002",
+    "TMP-PROC-002",
+    "CIV_PROC_003",
+    "TMP-PROC-003",
+    "CIV_PROC_004",
+    "TMP-PROC-004",
+    "CIV_PROC_006",
+    "TMP-PROC-006",
+    "CIV_PROCBASE_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "83",
+     "procura alle liti: forma e conferimento"
+    ],
+    [
+     "codice_procedura_civile",
+     "84",
+     "poteri del difensore"
+    ]
+   ]
+  },
+  "ATTO_PROCURA_CASSAZIONE": {
+   "titolo": "Procura speciale per ricorso per cassazione",
+   "modelli": [
+    "CIV_PROC_005",
+    "TMP-PROC-005"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "83",
+     "procura alle liti: forma e conferimento"
+    ],
+    [
+     "codice_procedura_civile",
+     "365",
+     "ricorso sottoscritto da avvocato iscritto nell'albo speciale, munito di procura speciale"
+    ]
+   ]
+  },
+  "ATTO_ELEZIONE_DOMICILIO": {
+   "titolo": "Elezione di domicilio",
+   "modelli": [
+    "CIV_PROC_010",
+    "TMP-PROC-010"
+   ],
+   "norme": [
+    [
+     "codice_civile",
+     "47",
+     "elezione di domicilio"
+    ],
+    [
+     "codice_procedura_civile",
+     "141",
+     "notificazione presso il domiciliatario"
+    ]
+   ]
+  },
+  "ATTO_NOTIFICA_UNEP": {
+   "titolo": "Atto per la notificazione tramite ufficiale giudiziario",
+   "modelli": [
+    "TMP-NOT-001",
+    "CIV_NOT_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "137",
+     "notificazioni: soggetti e forme"
+    ],
+    [
+     "codice_procedura_civile",
+     "139",
+     "notificazione nella residenza, nella dimora o nel domicilio"
+    ],
+    [
+     "codice_procedura_civile",
+     "140",
+     "irreperibilità o rifiuto di ricevere la copia"
+    ]
+   ]
+  },
+  "ATTO_NOTIFICA_IN_PROPRIO": {
+   "titolo": "Notificazione in proprio dell'avvocato",
+   "modelli": [
+    "TMP-NOT-002",
+    "CIV_NOT_002",
+    "TMP-NOT-003",
+    "CIV_NOT_003"
+   ],
+   "norme": [
+    [
+     "legge_53_1994",
+     "1",
+     "facoltà di notificazione dell'avvocato"
+    ],
+    [
+     "legge_53_1994",
+     "3bis",
+     "notificazione a mezzo posta elettronica certificata"
+    ]
+   ]
+  },
+  "ATTO_NOTA_ISCRIZIONE_RUOLO": {
+   "titolo": "Nota di iscrizione a ruolo",
+   "modelli": [
+    "TMP-NOT-009",
+    "CIV_NOT_009"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "168",
+     "iscrizione della causa a ruolo"
+    ],
+    [
+     "115/2002",
+     "13",
+     "contributo unificato"
+    ]
+   ]
+  },
+  "ATTO_PIGNORAMENTO": {
+   "titolo": "Pignoramento mobiliare o immobiliare",
+   "modelli": [
+    "CIV_PIGBASE_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "492",
+     "forma del pignoramento"
+    ],
+    [
+     "codice_procedura_civile",
+     "513",
+     "ricerca delle cose da pignorare"
+    ],
+    [
+     "codice_procedura_civile",
+     "555",
+     "forma del pignoramento immobiliare"
+    ]
+   ]
+  },
+  "ATTO_CAUTELARE_CIVILE": {
+   "titolo": "Ricorso o istanza cautelare civile",
+   "modelli": [
+    "CIV_RCAUT_001",
+    "CIV_ICAUT_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "669bis",
+     "forma della domanda cautelare"
+    ],
+    [
+     "codice_procedura_civile",
+     "669ter",
+     "competenza anteriore alla causa"
+    ],
+    [
+     "codice_procedura_civile",
+     "669quater",
+     "competenza in corso di causa"
+    ]
+   ]
+  },
+  "ATTO_PROVVISORIA_ESECUZIONE_DI": {
+   "titolo": "Istanza di provvisoria esecuzione del decreto ingiuntivo opposto",
+   "modelli": [
+    "TMP-CAUT-003"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "648",
+     "esecuzione provvisoria in pendenza di opposizione"
+    ]
+   ]
+  },
+  "ATTO_MONITORIO_LAVORO": {
+   "titolo": "Ricorso monitorio in materia di lavoro",
+   "modelli": [
+    "LAV_BLT_003",
+    "TMP-LAV-008"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "633",
+     "condizioni di ammissibilità"
+    ],
+    [
+     "codice_procedura_civile",
+     "641",
+     "accoglimento della domanda e termine per l'opposizione"
+    ]
+   ]
+  },
+  "ATTO_OPPOSIZIONE_DI_LAVORO": {
+   "titolo": "Opposizione a decreto ingiuntivo in materia di lavoro",
+   "modelli": [
+    "LAV_BLT_004",
+    "TMP-LAV-009"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "645",
+     "opposizione a decreto ingiuntivo"
+    ],
+    [
+     "codice_procedura_civile",
+     "414",
+     "forma della domanda nel rito del lavoro"
+    ]
+   ]
+  },
+  "ATTO_APPELLO_PREVIDENZIALE": {
+   "titolo": "Appello in materia di previdenza e lavoro",
+   "modelli": [
+    "LAV_APPPREV_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "433",
+     "giudice d'appello"
+    ],
+    [
+     "codice_procedura_civile",
+     "434",
+     "deposito del ricorso in appello"
+    ]
+   ]
+  },
+  "ATTO_CONDOTTA_ANTISINDACALE": {
+   "titolo": "Ricorso per repressione della condotta antisindacale",
+   "modelli": [
+    "LAV_BLT_005",
+    "TMP-LAV-010"
+   ],
+   "norme": [
+    [
+     "legge_300_1970",
+     "28",
+     "repressione della condotta antisindacale"
+    ]
+   ]
+  },
+  "ATTO_DISCIPLINARE_LAVORO": {
+   "titolo": "Procedimento disciplinare nel rapporto di lavoro",
+   "modelli": [
+    "LAV_DISC_001"
+   ],
+   "norme": [
+    [
+     "legge_300_1970",
+     "7",
+     "sanzioni disciplinari: contestazione e difesa"
+    ]
+   ]
+  },
+  "ATTO_RIESAME_PENALE": {
+   "titolo": "Richiesta di riesame di misura cautelare",
+   "modelli": [
+    "TMP-PEN-006",
+    "PEN_BLT_004"
+   ],
+   "norme": [
+    [
+     "codice_procedura_penale",
+     "309",
+     "riesame delle ordinanze che dispongono misure coercitive"
+    ]
+   ]
+  },
+  "ATTO_APPELLO_CAUTELARE_PENALE": {
+   "titolo": "Appello cautelare penale",
+   "modelli": [
+    "TMP-PEN-007",
+    "PEN_BLT_005"
+   ],
+   "norme": [
+    [
+     "codice_procedura_penale",
+     "310",
+     "appello contro le ordinanze in materia di misure cautelari personali"
+    ]
+   ]
+  },
+  "ATTO_DENUNCIA_PENALE": {
+   "titolo": "Denuncia",
+   "modelli": [
+    "TMP-PEN-002",
+    "PEN_BLT_002"
+   ],
+   "norme": [
+    [
+     "codice_procedura_penale",
+     "333",
+     "denuncia da parte di privati"
+    ]
+   ]
+  },
+  "ATTO_COPIE_PENALE": {
+   "titolo": "Richiesta di copie nel procedimento penale",
+   "modelli": [
+    "PEN_COPIE_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_penale",
+     "116",
+     "copie, estratti e certificati"
+    ]
+   ]
+  },
+  "ATTO_IMPUGNAZIONE_PENALE": {
+   "titolo": "Atto di impugnazione penale",
+   "modelli": [
+    "PEN_IMP_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_penale",
+     "581",
+     "forma dell'impugnazione"
+    ],
+    [
+     "codice_procedura_penale",
+     "582",
+     "presentazione dell'impugnazione"
+    ],
+    [
+     "codice_procedura_penale",
+     "585",
+     "termini per l'impugnazione"
+    ]
+   ]
+  },
+  "ATTO_ISTANZA_PENALE": {
+   "titolo": "Memorie e richieste delle parti nel processo penale",
+   "modelli": [
+    "PEN_IST_001",
+    "PEN_DEPDOC_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_penale",
+     "121",
+     "memorie e richieste delle parti"
+    ],
+    [
+     "codice_procedura_penale",
+     "111bis",
+     "deposito telematico"
+    ]
+   ]
+  },
+  "ATTO_TUTELA_CURATELA": {
+   "titolo": "Ricorso per tutela o curatela",
+   "modelli": [
+    "FAM_TUT_001"
+   ],
+   "norme": [
+    [
+     "codice_civile",
+     "343",
+     "apertura della tutela"
+    ],
+    [
+     "codice_civile",
+     "392",
+     "curatore dell'emancipato"
+    ]
+   ]
+  },
+  "ATTO_GIUDICE_TUTELARE": {
+   "titolo": "Istanze al giudice tutelare",
+   "modelli": [
+    "FAM_VG_003",
+    "FAM_VG_004",
+    "TMP-FAM-011",
+    "TMP-FAM-014"
+   ],
+   "norme": [
+    [
+     "codice_civile",
+     "344",
+     "funzioni del giudice tutelare"
+    ]
+   ]
+  },
+  "ATTO_VOLONTARIA_GIURISDIZIONE": {
+   "titolo": "Ricorso in camera di consiglio (volontaria giurisdizione)",
+   "modelli": [
+    "FAM_VG_005",
+    "TMP-FAM-012"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "737",
+     "forma della domanda e del provvedimento"
+    ],
+    [
+     "codice_procedura_civile",
+     "739",
+     "reclami delle parti"
+    ]
+   ]
+  },
+  "ATTO_APPELLO_CAUTELARE_AMM": {
+   "titolo": "Appello cautelare amministrativo",
+   "modelli": [
+    "AMM_APPCAUT_001"
+   ],
+   "norme": [
+    [
+     "codice_processo_amministrativo",
+     "62",
+     "appello avverso le ordinanze cautelari"
+    ]
+   ]
+  },
+  "ATTO_DEPOSITO_AMM": {
+   "titolo": "Deposito di documenti e memorie nel processo amministrativo",
+   "modelli": [
+    "AMM_DEPDOC_001"
+   ],
+   "norme": [
+    [
+     "codice_processo_amministrativo",
+     "73",
+     "termini per il deposito di documenti, memorie e repliche"
+    ]
+   ]
+  },
+  "ATTO_ADEGUAMENTO_CANONE": {
+   "titolo": "Richiesta di aggiornamento del canone di locazione",
+   "modelli": [
+    "STR_BLT_003",
+    "TMP-STR-003"
+   ],
+   "norme": [
+    [
+     "legge_392_1978",
+     "32",
+     "aggiornamento del canone"
+    ]
+   ]
+  },
+  "ATTO_INCARICO_COMPENSO": {
+   "titolo": "Incarico professionale e preventivo",
+   "modelli": [
+    "STR_INC_001",
+    "STR_PREV_001"
+   ],
+   "norme": [
+    [
+     "legge_247_2012",
+     "13",
+     "conferimento dell'incarico e compenso"
+    ]
+   ]
+  },
+  "ATTO_PROPOSTA_TRANSATTIVA": {
+   "titolo": "Proposta transattiva",
+   "modelli": [
+    "STR_PTR_001"
+   ],
+   "norme": [
+    [
+     "codice_civile",
+     "1965",
+     "nozione di transazione"
+    ],
+    [
+     "codice_civile",
+     "1967",
+     "prova per iscritto"
+    ]
+   ]
+  },
+  "ATTO_RESPONSABILITA_AMMINISTRATORI": {
+   "titolo": "Azione di responsabilità contro gli organi sociali",
+   "modelli": [
+    "SOC_RESP_001"
+   ],
+   "norme": [
+    [
+     "codice_civile",
+     "2392",
+     "responsabilità verso la società"
+    ],
+    [
+     "codice_civile",
+     "2393",
+     "azione sociale di responsabilità"
+    ],
+    [
+     "codice_civile",
+     "2476",
+     "responsabilità degli amministratori di s.r.l."
+    ]
+   ]
+  },
+  "ATTO_OPPOSIZIONE_ESPULSIONE": {
+   "titolo": "Ricorso contro l'espulsione",
+   "modelli": [
+    "IMM_EXPUL_001"
+   ],
+   "norme": [
+    [
+     "150/2011",
+     "18",
+     "controversie in materia di espulsione dei cittadini stranieri"
+    ]
+   ]
+  },
+  "ATTO_COMPARSA_APPELLO": {
+   "titolo": "Comparsa di costituzione in appello",
+   "modelli": [
+    "CIV_IMP_001",
+    "TMP-IMP-002"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "343",
+     "appello incidentale nella comparsa di risposta"
+    ],
+    [
+     "codice_procedura_civile",
+     "346",
+     "decadenza dalle domande e dalle eccezioni non riproposte"
+    ],
+    [
+     "codice_procedura_civile",
+     "347",
+     "forme e termini della costituzione in appello"
+    ]
+   ]
+  },
+  "ATTO_RECLAMO_APPELLO_FAMIGLIA": {
+   "titolo": "Reclamo e appello nel procedimento in materia di persone, minorenni e famiglie",
+   "modelli": [
+    "FAM_REC_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "473bis.24",
+     "reclamo contro i provvedimenti temporanei e urgenti"
+    ],
+    [
+     "codice_procedura_civile",
+     "473bis.30",
+     "appello"
+    ]
+   ]
+  },
+  "ATTO_CONTRODEDUZIONI_TRIBUTARIE": {
+   "titolo": "Controdeduzioni del resistente nel giudizio tributario di primo grado",
+   "modelli": [
+    "TMP-TRIB-002",
+    "TRIB_CONTRO_001"
+   ],
+   "norme": [
+    [
+     "175/2024",
+     "69",
+     "costituzione in giudizio della parte resistente (già art. 23 d.lgs. 546/1992)"
+    ]
+   ]
+  },
+  "ATTO_PINTO": {
+   "titolo": "Ricorso per equa riparazione (legge Pinto)",
+   "modelli": [
+    "CIV_IMP_012",
+    "TMP-IMP-013"
+   ],
+   "norme": [
+    [
+     "89/2001",
+     "2",
+     "diritto all'equa riparazione"
+    ],
+    [
+     "89/2001",
+     "3",
+     "procedimento"
+    ],
+    [
+     "89/2001",
+     "4",
+     "termine di proposizione"
+    ]
+   ]
+  },
+  "ATTO_PROTEZIONE_INTERNAZIONALE": {
+   "titolo": "Ricorso in materia di protezione internazionale",
+   "modelli": [
+    "IMM_PROT_001"
+   ],
+   "norme": [
+    [
+     "dlgs_25_2008",
+     "35",
+     "impugnazione delle decisioni della Commissione territoriale"
+    ],
+    [
+     "dlgs_25_2008",
+     "35bis",
+     "procedimento"
+    ]
+   ]
+  },
+  "ATTO_RICONGIUNGIMENTO": {
+   "titolo": "Ricongiungimento familiare",
+   "modelli": [
+    "IMM_RIUN_001"
+   ],
+   "norme": [
+    [
+     "286/1998",
+     "29",
+     "ricongiungimento familiare"
+    ],
+    [
+     "286/1998",
+     "30",
+     "permesso di soggiorno per motivi familiari"
+    ]
+   ]
+  },
+  "ATTO_PERMESSO_SOGGIORNO": {
+   "titolo": "Ricorso in materia di permesso di soggiorno",
+   "modelli": [
+    "IMM_PERMSOG_001"
+   ],
+   "norme": [
+    [
+     "286/1998",
+     "5",
+     "permesso di soggiorno"
+    ]
+   ]
+  },
+  "ATTO_CITTADINANZA": {
+   "titolo": "Ricorso in materia di cittadinanza",
+   "modelli": [
+    "IMM_CITTA_001"
+   ],
+   "norme": [
+    [
+     "legge_91_1992",
+     "5",
+     "cittadinanza per matrimonio"
+    ],
+    [
+     "legge_91_1992",
+     "9",
+     "cittadinanza per residenza"
+    ]
+   ]
+  },
+  "ATTO_INTIMAZIONE_SFRATTO": {
+   "titolo": "Intimazione di licenza o di sfratto",
+   "modelli": [
+    "CIV_SFRINT_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "657",
+     "intimazione di licenza e di sfratto per finita locazione"
+    ],
+    [
+     "codice_procedura_civile",
+     "658",
+     "intimazione di sfratto per morosità"
+    ],
+    [
+     "codice_procedura_civile",
+     "660",
+     "forma dell'intimazione"
+    ]
+   ]
+  },
+  "ATTO_DEPOSITO_TELEMATICO": {
+   "titolo": "Deposito telematico di atti e documenti",
+   "modelli": [
+    "CIV_NOT_004",
+    "TMP-NOT-004"
+   ],
+   "norme": [
+    [
+     "1368/1941",
+     "196quater",
+     "obbligatorietà del deposito telematico di atti e documenti (disp. att. c.p.c.)"
+    ]
+   ]
+  },
+  "ATTO_ATTESTAZIONE_CONFORMITA": {
+   "titolo": "Attestazione di conformità delle copie",
+   "modelli": [
+    "CIV_NOT_007",
+    "TMP-NOT-007"
+   ],
+   "norme": [
+    [
+     "1368/1941",
+     "196octies",
+     "certificazione di conformità delle copie degli atti del fascicolo informatico (disp. att. c.p.c.)"
+    ],
+    [
+     "1368/1941",
+     "196novies",
+     "certificazione di conformità delle copie depositate con modalità telematiche (disp. att. c.p.c.)"
+    ],
+    [
+     "1368/1941",
+     "196undecies",
+     "modalità dell'attestazione di conformità (disp. att. c.p.c.; già art. 16-undecies d.l. 179/2012)"
+    ]
+   ]
+  },
+  "ATTO_DICHIARAZIONE_553": {
+   "titolo": "Dichiarazione del creditore assegnatario al terzo (art. 553 c.p.c.)",
+   "modelli": [
+    "CIV_ESE_012",
+    "TMP-ESE-016"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "553",
+     "assegnazione dei crediti e dichiarazione del creditore che accompagna la notifica dell'ordinanza"
+    ],
+    [
+     "1368/1941",
+     "169septies",
+     "informazioni necessarie al pagamento dei crediti assegnati (disp. att. c.p.c.)"
+    ]
+   ]
+  },
+  "ATTO_DECRETO_TAVOLARE": {
+   "titolo": "Ricorso al giudice tavolare",
+   "modelli": [
+    "FAM_VG_006",
+    "TMP-FAM-013"
+   ],
+   "norme": [
+    [
+     "rd_499_1929",
+     "94",
+     "condizioni perché il giudice tavolare ordini l'iscrizione (allegato: legge generale sui libri fondiari)"
+    ],
+    [
+     "rd_499_1929",
+     "126",
+     "decreti tavolari e reclamo (allegato: legge generale sui libri fondiari, artt. 126 e ss.)"
+    ]
+   ]
+  }
+ }
+}

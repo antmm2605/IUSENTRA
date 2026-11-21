@@ -11,7 +11,7 @@ from typing import Any
 
 
 LAST_VERIFIED_AT = "2026-08-24"
-REGISTRY_VERSION = "2026.08.24.template-fonti-ufficiali.v4"
+REGISTRY_VERSION = "2026.11.21.template-fonti-ufficiali.v5-per-atto"
 
 
 def _source(
@@ -30,6 +30,8 @@ def _source(
     coverage_role: str = "",
     applies_to_prefixes: tuple[str, ...] = (),
     excludes_terms: tuple[str, ...] = (),
+    prefix_valid_for_all: bool | None = None,
+    prefix_terms: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     if not coverage_role:
         scope_key = scope.casefold()
@@ -42,6 +44,11 @@ def _source(
             coverage_role = "secondaria_collegata"
         else:
             coverage_role = "specifica"
+    if prefix_valid_for_all is None:
+        # Un singolo articolo («art. 700 c.p.c.») vale per l'atto che lo richiede, non per tutti i modelli con lo
+        # stesso prefisso: per le norme specifiche d'articolo serve il riscontro nel nome o nel tipo dell'atto.
+        # Le fonti generali (codici, riforme, regole telematiche, deontologia) restano assegnate per prefisso.
+        prefix_valid_for_all = not (coverage_role == "specifica" and article.strip().casefold().startswith("art"))
     return {
         "id": source_id,
         "title": title,
@@ -58,6 +65,8 @@ def _source(
         "match_terms": terms,
         "applies_to_prefixes": applies_to_prefixes,
         "excludes_terms": excludes_terms,
+        "prefix_valid_for_all": bool(prefix_valid_for_all),
+        "prefix_terms": prefix_terms,
     }
 
 
@@ -201,6 +210,8 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "Controllo specifico per atti introduttivi civili a citazione.",
         ("citazione", "atto di citazione", "vocatio", "convenire"),
         applies_to_prefixes=("CIV_CIT", "CIV_ORD", "RCD", "BAN", "SOC"),
+        # La citazione penale (testimoni, decreto di citazione a giudizio) non e' l'atto dell'art. 163 c.p.c.
+        excludes_terms=("testimoni", "testi", "decreto di citazione", "citazione a giudizio", "citazione diretta"),
     ),
     _source(
         "cpc_art_167_comparsa",
@@ -209,8 +220,11 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "art. 167 c.p.c.",
         "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
         "Controllo specifico per comparsa di costituzione, difese, eccezioni, riconvenzionale e chiamata del terzo.",
-        ("comparsa", "costituzione", "risposta", "convenuto", "riconvenzionale", "chiamata del terzo"),
+        ("comparsa di costituzione", "comparsa di risposta", "costituzione e risposta", "costituzione del convenuto",
+         "riconvenzionale", "chiamata del terzo"),
         applies_to_prefixes=("CIV_COM", "CIV_ORD", "CIV_IMP"),
+        # La parte civile nel processo penale e la costituzione in mora non sono la comparsa dell'art. 167 c.p.c.
+        excludes_terms=("parte civile", "in mora"),
     ),
     _source(
         "cpc_art_171_ter_memorie",
@@ -240,7 +254,9 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
         "Controllo specifico per ricorsi per decreto ingiuntivo, opposizioni, prova scritta, provvisoria esecuzione e termini monitori.",
         ("decreto ingiuntivo", "ricorso per decreto ingiuntivo", "monitorio", "ingiunzione", "opposizione a decreto ingiuntivo", "provvisoria esecutorietà"),
-        applies_to_prefixes=("MON", "TMP-CAUT"),
+        # Ogni modello MON appartiene al procedimento d'ingiunzione; TMP-CAUT raccoglie anche cautelari: lì decide il nome.
+        applies_to_prefixes=("MON",),
+        prefix_valid_for_all=True,
     ),
     _source(
         "cpc_rito_lavoro",
@@ -249,8 +265,11 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "artt. 409, 413, 414, 415, 416 e 420 c.p.c.",
         "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
         "Controllo specifico per ricorso e memoria nel rito del lavoro: competenza territoriale, contenuto del ricorso, mezzi di prova a pena di decadenza, costituzione del convenuto e udienza di discussione.",
-        ("rito lavoro", "ricorso rito lavoro", "lavoro", "lavoratore", "datore di lavoro", "memoria difensiva", "infortunio"),
+        ("rito lavoro", "rito del lavoro", "ricorso rito lavoro", "ricorso lavoro", "materia di lavoro", "ricorso previdenziale"),
         applies_to_prefixes=("LAV",),
+        # Nei modelli LAV gli atti del giudizio (ricorso, memoria, appello) seguono il rito del lavoro; lettere,
+        # contestazioni disciplinari e verbali stragiudiziali no.
+        prefix_terms=("ricorso", "memoria difensiva", "appello", "reclamo"),
     ),
     _source(
         "cpc_precetto_titolo_esecutivo",
@@ -259,8 +278,9 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "artt. 474, 475, 479, 480, 481 e 482 c.p.c.",
         "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
         "Controllo specifico per atti di precetto: titolo esecutivo, forma e notifica, contenuto a pena di nullità, termine ad adempiere e perdita di efficacia dopo novanta giorni.",
-        ("precetto", "atto di precetto", "titolo esecutivo", "intimazione", "esecuzione forzata"),
+        ("precetto", "atto di precetto", "titolo esecutivo", "esecuzione forzata"),
         applies_to_prefixes=("ESE", "MON_018"),
+        prefix_terms=("pignoramento",),
     ),
     _source(
         "cpc_procedimenti_cautelari_uniformi",
@@ -269,8 +289,13 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "artt. 669-bis e ss. c.p.c.",
         "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
         "Controllo specifico per ricorsi cautelari, reclamo, instaurazione del merito e provvedimenti urgenti.",
-        ("cautelare", "ricorso cautelare", "reclamo cautelare", "sequestro", "inaudita altera parte", "provvedimento urgente", "urgenza"),
-        applies_to_prefixes=("CAU", "TMP-CAUT"),
+        ("cautelare", "ricorso cautelare", "reclamo cautelare", "sequestro conservativo", "sequestro giudiziario",
+         "inaudita altera parte", "senza contraddittorio", "provvedimento urgente", "nuova opera", "danno temuto",
+         "possessorio", "sospensione della delibera"),
+        # Tutti i modelli CAU sono procedimenti cautelari (artt. 669-bis ss. diretti o richiamati: 669-quaterdecies,
+        # 703, 1137 c.c.); TMP-CAUT comprende anche il monitorio e decide il nome.
+        applies_to_prefixes=("CAU",),
+        prefix_valid_for_all=True,
     ),
     _source(
         "cpc_art_700_urgenza",
@@ -279,8 +304,12 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "art. 700 c.p.c.",
         "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
         "Controllo specifico per ricorsi d'urgenza quando il diritto non è tutelabile utilmente con altro cautelare tipico.",
-        ("700", "urgenza", "provvedimento d'urgenza", "ricorso cautelare d'urgenza"),
+        ("art. 700", "ex art 700", "provvedimento d'urgenza", "provvedimenti d'urgenza", "cautelare d'urgenza",
+         "ricorso d'urgenza"),
+        # Residuale: non si propone a sequestri, istruzione preventiva, possessori, nuova opera, reclamo o
+        # sospensione di delibere, che hanno la loro norma tipica.
         applies_to_prefixes=("CAU", "TMP-CAUT"),
+        excludes_terms=("sequestro", "accertamento tecnico", "possess", "nuova opera", "danno temuto", "reclamo", "delibera"),
     ),
     _source(
         "cpc_sequestri",
@@ -289,8 +318,9 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "artt. 670 e 671 c.p.c.",
         "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
         "Controllo specifico per sequestro giudiziario e conservativo, periculum, fumus e beni da vincolare.",
-        ("sequestro conservativo", "sequestro giudiziario", "sequestro"),
+        ("sequestro conservativo", "sequestro giudiziario"),
         applies_to_prefixes=("CAU", "TMP-CAUT"),
+        excludes_terms=("dissequestro", "penale"),
     ),
     _source(
         "cpc_procedimenti_possessori",
@@ -299,8 +329,142 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "art. 703 c.p.c.",
         "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
         "Controllo specifico per azioni di reintegrazione e manutenzione nel possesso.",
-        ("possesso", "possessoria", "manutenzione nel possesso", "reintegrazione nel possesso"),
-        applies_to_prefixes=("CIV", "TMP-CAUT"),
+        ("possessoria", "possessorio", "manutenzione nel possesso", "reintegrazione nel possesso",
+         "reintegrazione o manutenzione", "spoglio"),
+        applies_to_prefixes=("CIV", "CAU", "TMP-CAUT"),
+        excludes_terms=("immissione nel possesso",),
+    ),
+    _source(
+        "cc_art_1168_reintegrazione",
+        "Codice civile - azione di reintegrazione",
+        "Codice civile",
+        "art. 1168 c.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=vigente",
+        "Presupposti e termine annuale dell'azione di reintegrazione nel possesso (spoglio violento o clandestino).",
+        ('reintegrazione nel possesso', 'reintegrazione o manutenzione', 'spoglio', 'possessorio'),
+        applies_to_prefixes=("CIV", "CAU", "TMP-CAUT"),
+        excludes_terms=("immissione nel possesso",),
+    ),
+    _source(
+        "cc_art_1170_manutenzione",
+        "Codice civile - azione di manutenzione",
+        "Codice civile",
+        "art. 1170 c.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=vigente",
+        "Presupposti e termine annuale dell'azione di manutenzione nel possesso (molestia, possesso ultrannuale).",
+        ('manutenzione nel possesso', 'reintegrazione o manutenzione', 'possessorio', 'molestia'),
+        applies_to_prefixes=("CIV", "CAU", "TMP-CAUT"),
+        excludes_terms=("immissione nel possesso",),
+    ),
+    _source(
+        "cc_art_1171_nuova_opera",
+        "Codice civile - denunzia di nuova opera",
+        "Codice civile",
+        "art. 1171 c.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=vigente",
+        "Presupposti della denuncia di nuova opera: opera non terminata e iniziata da meno di un anno.",
+        ('nuova opera',),
+        applies_to_prefixes=("CIV", "CAU", "TMP-CAUT"),
+        excludes_terms=(),
+    ),
+    _source(
+        "cc_art_1172_danno_temuto",
+        "Codice civile - denunzia di danno temuto",
+        "Codice civile",
+        "art. 1172 c.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=vigente",
+        "Presupposti della denuncia di danno temuto: pericolo di danno grave e prossimo.",
+        ('danno temuto',),
+        applies_to_prefixes=("CIV", "CAU", "TMP-CAUT"),
+        excludes_terms=(),
+    ),
+    _source(
+        "cpc_art_688_denunce",
+        "Codice di procedura civile - forma della denuncia di nuova opera e di danno temuto",
+        "Codice di procedura civile",
+        "art. 688 c.p.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
+        "Forma (ricorso) e giudice competente (art. 21 c.p.c.) delle denunce di nuova opera e di danno temuto.",
+        ('nuova opera', 'danno temuto'),
+        applies_to_prefixes=("CIV", "CAU", "TMP-CAUT"),
+        excludes_terms=(),
+    ),
+    _source(
+        "cpc_art_696_atp",
+        "Codice di procedura civile - accertamento tecnico preventivo",
+        "Codice di procedura civile",
+        "art. 696 c.p.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
+        "Accertamento tecnico e ispezione giudiziale in via preventiva per urgenza.",
+        ('accertamento tecnico preventivo', 'accertamento tecnico', 'ispezione giudiziale'),
+        applies_to_prefixes=("CIV", "CAU", "TMP-CAUT", "RCD"),
+        excludes_terms=(),
+    ),
+    _source(
+        "cpc_art_696_bis_ctp",
+        "Codice di procedura civile - consulenza tecnica preventiva ai fini della composizione della lite",
+        "Codice di procedura civile",
+        "art. 696-bis c.p.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
+        "Consulenza tecnica preventiva conciliativa, anche fuori dai casi di urgenza.",
+        ('consulenza tecnica preventiva', '696-bis', 'accertamento tecnico preventivo'),
+        applies_to_prefixes=("CIV", "CAU", "TMP-CAUT", "RCD"),
+        excludes_terms=(),
+    ),
+    _source(
+        "cpc_art_669_terdecies_reclamo",
+        "Codice di procedura civile - reclamo cautelare",
+        "Codice di procedura civile",
+        "art. 669-terdecies c.p.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
+        "Reclamo contro i provvedimenti cautelari: termine perentorio di quindici giorni e giudice del reclamo.",
+        ('reclamo cautelare', '669-terdecies', 'reclamo contro il provvedimento cautelare'),
+        applies_to_prefixes=("CAU", "TMP-CAUT"),
+        excludes_terms=(),
+    ),
+    _source(
+        "cpc_art_671_sequestro_conservativo",
+        "Codice di procedura civile - sequestro conservativo",
+        "Codice di procedura civile",
+        "art. 671 c.p.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
+        "Presupposti del sequestro conservativo: fondato timore di perdere la garanzia del credito.",
+        ('sequestro conservativo',),
+        applies_to_prefixes=("CAU", "TMP-CAUT"),
+        excludes_terms=("penale",),
+    ),
+    _source(
+        "cpc_art_670_sequestro_giudiziario",
+        "Codice di procedura civile - sequestro giudiziario",
+        "Codice di procedura civile",
+        "art. 670 c.p.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=vigente",
+        "Presupposti del sequestro giudiziario: controversia sulla proprietà o sul possesso e opportunità di custodia.",
+        ('sequestro giudiziario',),
+        applies_to_prefixes=("CAU", "TMP-CAUT"),
+        excludes_terms=("penale",),
+    ),
+    _source(
+        "cc_art_1137_delibere_condominiali",
+        "Codice civile - impugnazione e sospensione delle deliberazioni condominiali",
+        "Codice civile",
+        "art. 1137 c.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=vigente",
+        "Impugnazione delle delibere dell'assemblea di condominio nel termine di trenta giorni e sospensione dell'esecuzione.",
+        ('delibera condominiale', 'delibere condominiali', 'assemblea condominiale', 'sospensione della delibera'),
+        applies_to_prefixes=("CAU", "LOC", "CIV"),
+        excludes_terms=("societ",),
+    ),
+    _source(
+        "cc_art_2378_delibere_societarie",
+        "Codice civile - procedimento d'impugnazione delle deliberazioni assembleari di s.p.a.",
+        "Codice civile",
+        "art. 2378 c.c.",
+        "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=vigente",
+        "Impugnazione delle delibere assembleari e ricorso per la sospensione dell'esecuzione della deliberazione.",
+        ('delibere assembleari', 'delibera assembleare', 'sospensione della delibera', 'impugnazione di delibere'),
+        applies_to_prefixes=("CAU", "SOC"),
+        excludes_terms=("condomin",),
     ),
     _source(
         "normattiva_d_lgs_149_2022_cartabia_civile",
@@ -419,6 +583,10 @@ TEMPLATE_ATTI_LEGAL_SOURCES: tuple[dict[str, Any], ...] = (
         "Fonte specifica per il potere del difensore di attestare la conformità delle copie informatiche estratte dal fascicolo informatico o dai registri telematici.",
         ("16-decies", "attestazione conformità", "attestazione di conformità", "fascicolo informatico", "sentenza", "copia informatica", "notifica"),
         applies_to_prefixes=("CIV_NOT", "TMP-NOT", "CIV", "LAV"),
+        # Verificato sul testo vigente il 21/11/2026: artt. 16-decies e 16-undecies abrogati dal d.lgs. 149/2022;
+        # la disciplina e' ora negli artt. 196-octies ss. disp. att. c.p.c. (fonte collegata qui sotto).
+        status="abrogato dal d.lgs. 10 ottobre 2022, n. 149: sostituito dagli artt. 196-octies e ss. disp. att. c.p.c.",
+        deprecated=True,
     ),
     _source(
         "normattiva_cpc_art_285_325_326_sentenza_termine_breve",
@@ -1382,7 +1550,7 @@ def _public_row(source: dict[str, Any], confidence: float, match_reason: str) ->
     row = {
         key: value
         for key, value in source.items()
-        if key not in {"match_terms", "applies_to_prefixes", "excludes_terms"}
+        if key not in {"match_terms", "applies_to_prefixes", "excludes_terms", "prefix_valid_for_all", "prefix_terms"}
     }
     row["confidence"] = round(confidence, 2)
     row["match_reason"] = match_reason
@@ -1411,6 +1579,12 @@ def template_atti_sources_for_model(*, model_code: str = "", model_name: str = "
         prefix_match = bool(prefixes and code and any(code.startswith(prefix) for prefix in prefixes))
         terms = tuple(_normalise(item) for item in source.get("match_terms", ()))
         term_match = any(term and term in haystack for term in terms)
+        if prefix_match and not term_match and not source.get("prefix_valid_for_all", True):
+            # Norma d'articolo: il prefisso da solo non basta (CAU non vuol dire art. 700, CIV non vuol dire art.
+            # 703). Vale se il nome/tipo dell'atto contiene uno dei termini ammessi solo dentro quel prefisso.
+            prefix_terms = tuple(_normalise(item) for item in source.get("prefix_terms", ()))
+            if not any(item and item in haystack for item in prefix_terms):
+                prefix_match = False
         if not prefix_match and not term_match:
             continue
         source_id = str(source.get("id") or "")

@@ -2,7 +2,8 @@
 
 - ``norme``: per (scheda, atto, articolo) l'ultima verifica (stato, impronta, URL, data) e l'impronta APPROVATA
   dall'avvocato con il testo approvato, cosi' una modifica successiva si mostra come differenza di testo;
-- ``proposte``: una per evento (norma cambiata, abrogata, assente, fonte suggerita), aperta finche' l'avvocato decide.
+- ``proposte``: una per evento (norma cambiata, abrogata, assente, fonte suggerita), aperta finche' l'avvocato decide;
+  ``ritirata`` quando il software stesso la riconosce superata (motivo nella nota), mai sopra una decisione.
   Una proposta gia' aperta per la stessa norma e la stessa impronta non si duplica.
 """
 from __future__ import annotations
@@ -95,6 +96,13 @@ class RepositorySchedeFonti:
             q, a = q + " AND scheda=?", [*a, scheda]
         with closing(self._conn()) as c:
             return [dict(r) for r in c.execute(q + " ORDER BY id", a)]
+
+    def ritira_proposta(self, proposta_id: int, *, autore: str, motivo: str) -> bool:
+        """Chiude una proposta aperta e mai decisa, con il motivo nella nota (non è una decisione dell'avvocato)."""
+        with closing(self._conn()) as c, c:
+            return bool(c.execute("UPDATE proposte SET stato='ritirata', decisa_da=?, decisa_il=?, nota=? "
+                                  "WHERE id=? AND stato='aperta' AND decisa_da=''",
+                                  (autore, _ora(), motivo, proposta_id)).rowcount)
 
     def decidi_proposta(self, proposta_id: int, decisione: str, *, avvocato: str, nota: str = "") -> None:
         if decisione not in DECISIONI or not str(avvocato).strip():

@@ -28,6 +28,14 @@ def _modelli():
     return catalogo_modelli(CARTELLA_SCHEDE)
 
 
+@lru_cache(maxsize=1)
+def _suggerite_attuali():
+    """Fonti suggerite che la logica per atto produce oggi: le proposte aperte non più prodotte escono subito dalla
+    coda, anche prima che il passaggio notturno le ritiri nel registro (``ritira_suggerimenti_superati``)."""
+    from pct.schede_fonti.proposte import _suggerimenti
+    return frozenset(_suggerimenti(CARTELLA_SCHEDE))
+
+
 def _pubblico(biblioteca, tabella):
     assert tabella in {"norme", "proposte"}
     p = Path(biblioteca).with_name("schede_fonti.sqlite")
@@ -38,10 +46,25 @@ def _pubblico(biblioteca, tabella):
         return [dict(r) for r in c.execute("SELECT * FROM " + tabella)]
 
 
+def _riferimenti_atto(sid):
+    """Norme di un atto senza scheda (tabella verificata), come riferimenti da verificare in biblioteca."""
+    from lex.normativa.biblioteca.fabbisogno import Riferimento
+    from web.services.schede_fonti_catalogo import norme_atti
+    atto = norme_atti().get(sid)
+    if atto is None:
+        return None
+    return [Riferimento(sid, n["atto"], n["articolo"], n["perche"], "base_normativa") for n in atto["norme"]]
+
+
+def riferimenti_atti_senza_scheda():
+    from web.services.schede_fonti_catalogo import norme_atti
+    return [r for aid in norme_atti() for r in _riferimenti_atto(aid)]
+
+
 def _norme_scheda(biblioteca, sid):
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", sid):
         return None
-    if not (Path(CARTELLA_SCHEDE) / (sid + ".json")).is_file():
+    if _riferimenti_atto(sid) is None and not (Path(CARTELLA_SCHEDE) / (sid + ".json")).is_file():
         from web.services.schede_fonti_catalogo import modello
         item = modello(CARTELLA_SCHEDE, sid)
         if item is None:
@@ -51,7 +74,10 @@ def _norme_scheda(biblioteca, sid):
             return []
         sid = linked[0]
     out, viste = [], set()
-    for e in verifica_schede(Path(biblioteca), solo_scheda=sid):
+    riferimenti = _riferimenti_atto(sid)
+    esiti = (verifica_schede(Path(biblioteca), riferimenti=riferimenti) if riferimenti is not None
+             else verifica_schede(Path(biblioteca), solo_scheda=sid))
+    for e in esiti:
         k = (e.atto, norm_articolo(e.articolo))
         if k in viste:
             continue
@@ -90,8 +116,12 @@ def scheda(biblioteca, scheda_id, *, studio_db):
         n.update(approvata=bool(e), approvata_da=e.get("attore", ""), approvata_il=e.get("creato_il", ""), differenze=differenze)
     from web.services.schede_fonti_catalogo import modello, schede_index
     item = modello(CARTELLA_SCHEDE, scheda_id)
-    title = item["titolo"] if item else str(schede_index(CARTELLA_SCHEDE).get(scheda_id, {}).get("titolo") or "")
-    return {"id": scheda_id, "titolo": title, "norme": norme, "impronta": digest,
+    from web.services.schede_fonti_catalogo import norme_atti
+    title = item["titolo"] if item else str(schede_index(CARTELLA_SCHEDE).get(scheda_id, {}).get("titolo")
+                                            or norme_atti().get(scheda_id, {}).get("titolo") or "")
+    # Il codice del modello si mostra; l'identificativo tecnico «tpl_…» resta solo nell'indirizzo della richiesta.
+    codice = item["codice"] if item else scheda_id
+    return {"id": scheda_id, "codice": codice, "titolo": title, "norme": norme, "impronta": digest,
             "stato_collegamento": item["stato_norme"] if item else "associate",
             "schede_collegate": item["schede_normative"] if item else [scheda_id]}
 
@@ -112,8 +142,11 @@ def approva(biblioteca, scheda_id, avvocato, digest, *, studio_db):
 
 def _elenco(biblioteca, studio_db):
     from web.services.schede_fonti_catalogo import schede_index
+    from web.services.schede_fonti_catalogo import norme_atti
     titoli = {sid: str(data.get("titolo") or sid) for sid, data in schede_index(CARTELLA_SCHEDE).items()}
+    titoli.update({aid: atto["titolo"] for aid, atto in norme_atti().items()})
     titoli.update({m["id"]: m["titolo"] for m in _modelli()})
+    codici = {m["id"]: m["codice"] for m in _modelli()}
     correnti = {(n["scheda"], n["atto"], norm_articolo(n["articolo"])): n for n in _pubblico(biblioteca, "norme")}
     out = []
     for p in _pubblico(biblioteca, "proposte"):
@@ -129,6 +162,10 @@ def _elenco(biblioteca, studio_db):
              "articolo": p["articolo"], "differenze": p["differenze"], "creata_il": p["creata_il"],
              "motivo": f"{TIPI.get(p['tipo'], p['tipo'])}: art. {p['articolo']} {_sigla(p['atto'])}. Verificare il riferimento del modello."}
         x["impronta"] = impronta([x, current.get("sha256", ""), current.get("url", ""), current.get("aggiornato_al", "")])
+        superata = p["tipo"] == "fonte_suggerita" and (p["scheda"], p["atto"], norm_articolo(p["articolo"])) not in _suggerite_attuali()
+        if p.get("stato") == "ritirata" or superata:
+            # Ritirata dal software perché superata: esce dalla coda; resta visibile solo dove lo studio l'ha già decisa.
+            x["_ritirata"] = True
         out.append(x)
     # Il controllo notturno alimenta le impronte pubbliche; qui si confrontano
     # soltanto le approvazioni del proprio studio con quella proiezione SQL.
@@ -162,9 +199,11 @@ def _elenco(biblioteca, studio_db):
                     "articolo": n["articolo"], "differenze": "", "creata_il": current["verificato_il"], "impronta": digest,
                     "motivo": "Il testo o la provenienza sono cambiati rispetto all'approvazione dello studio. Aprire il modello per esaminare il nuovo testo."})
     decisioni = DecisioniStudio(studio_db).leggi("proposta")
+    out = [p for p in out if not p.pop("_ritirata", False) or chiave("proposta", p["id"], p["impronta"]) in decisioni]
     for p in out:
         e = decisioni.get(chiave("proposta", p["id"], p["impronta"]), {})
         p.update(etichetta=TIPI.get(p["tipo"], p["tipo"]), titolo_scheda=titoli.get(p["scheda"], ""),
+                 codice_scheda=codici.get(p["scheda"], p["scheda"]),
                  stato=e.get("esito", "aperta"), decisa_da=e.get("attore", ""), decisa_il=e.get("creato_il", ""), nota=e.get("nota", ""))
     return out
 

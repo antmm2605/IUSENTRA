@@ -60,8 +60,13 @@ def _url(meta_json: str, urn: str) -> str:
     return f"https://www.normattiva.it/uri-res/N2Ls?{urn}" if urn else ""
 
 
-def verifica_schede(db: Path, cartella: Path = CARTELLA_SCHEDE, *, solo_scheda: str = "", alla_data: date | None = None) -> list[EsitoNorma]:
-    refs = [r for r in riferimenti_schede(cartella,solo_scheda=solo_scheda) if not solo_scheda or r.scheda == solo_scheda]
+def verifica_schede(db: Path, cartella: Path = CARTELLA_SCHEDE, *, solo_scheda: str = "", alla_data: date | None = None,
+                    riferimenti: list | None = None) -> list[EsitoNorma]:
+    """Verifica le norme delle schede (o i ``riferimenti`` dati, per gli atti senza scheda) sul testo vigente."""
+    if riferimenti is not None:
+        refs = list(riferimenti)
+    else:
+        refs = [r for r in riferimenti_schede(cartella,solo_scheda=solo_scheda) if not solo_scheda or r.scheda == solo_scheda]
     esiti: list[EsitoNorma] = []
     cache: dict[tuple[str, str], list] = {}
     with closing(sqlite3.connect(Path(db).resolve().as_uri() + "?mode=ro", uri=True, timeout=10)) as conn:

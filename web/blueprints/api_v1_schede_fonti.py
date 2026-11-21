@@ -16,6 +16,29 @@ from web.services import schede_fonti_runtime as runtime
 api_v1_schede_fonti = Blueprint("api_v1_schede_fonti", __name__)
 
 
+@api_v1_schede_fonti.record_once
+def _prepara_catalogo_in_sfondo(state):
+    """Costruisce il catalogo dei modelli all'avvio del worker, non al primo clic (5-18 s di calcolo a freddo).
+
+    Senza questo la prima apertura della pagina o del pannello delle norme attendeva l'intero inventario dei
+    modelli; dopo, ogni pannello risponde in centesimi di secondo dalla cache del processo.
+    """
+    import os
+    import threading
+
+    if state.app.config.get("TESTING") or os.getenv("PYTEST_CURRENT_TEST") or os.getenv("IUSENTRA_PREPARA_CATALOGO_MODELLI", "1") == "0":
+        return
+
+    def _lavoro():
+        try:
+            runtime._modelli()
+            runtime._suggerite_attuali()
+        except Exception:  # noqa: BLE001 - la pagina ricalcola alla prima richiesta e registra l'errore lì
+            state.app.logger.warning("Catalogo dei modelli d'atto non preparato in anticipo", exc_info=True)
+
+    threading.Thread(target=_lavoro, name="catalogo-modelli-norme", daemon=True).start()
+
+
 def _biblioteca():
     from web.blueprints.api_v1_ricerca_legale import _normativa_db
 

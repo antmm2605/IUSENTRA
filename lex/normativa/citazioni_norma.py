@@ -26,17 +26,31 @@ def _frase(testo: str) -> str:
     return '"' + " ".join(re.findall(r"[0-9a-zà-ù]+", testo.lower())) + '"'
 
 
+# Le sigle dei codici di settore, per le leggi che hanno anche un nome di codice.
+_CODICI_DI_SETTORE = {"dlgs206": ("cod cons", "codice del consumo", "c cons")}
+
+
 def interrogazioni(chiave: str, estremi: str = "") -> list[str]:
     prefisso, articolo = chiave.split(":", 1)
-    numero = re.sub(r"([0-9]+)([a-z]+)", r"\1 \2", articolo)  # 66bis -> «66 bis»
+    # 66bis -> «66 bis»; 473bis11 -> «473 bis 11» (come «473-bis.11» nell'indice, che separa numeri e lettere).
+    numero = re.sub(r"([a-z]+)([0-9]+)", r"\1 \2", re.sub(r"([0-9]+)([a-z]+)", r"\1 \2", articolo))
     if prefisso in _CODICI:
         esclusi = " ".join(f"NOT {_frase(e.format(n=numero))}" for e in _ESCLUSI.get(prefisso, ()))
-        return [f"{_frase(v.format(n=numero))} {esclusi}".strip() for v in _CODICI[prefisso]]
+        domande = [f"{_frase(v.format(n=numero))} {esclusi}".strip() for v in _CODICI[prefisso]]
+        if re.fullmatch(r"\d+ [a-z]+ \d+", numero):
+            # «artt. 473-bis.12 e ss. c.p.c.», «473-bis.12, 473-bis.13, c.p.c.»: il codice non segue subito il numero;
+            # «473 bis 11c p c»: nelle copie OCR la cifra si attacca alla sigla del codice.
+            sigla = _frase(_CODICI[prefisso][0].format(n="").strip())
+            domande += [f"NEAR({_frase(numero)} {sigla}, 12) {esclusi}".strip(), f"{_frase(numero + 'c')} {esclusi}".strip()]
+        return domande
     legge = re.match(r"(l|dl|dlgs|dpr|rd)(\d+)$", prefisso)
     anno = re.search(r"/(\d{4})", estremi or "")
     if not legge or not anno:
         return []
     # «art. 13 del d.P.R. n. 115 del 2002», «art. 13 d.P.R. 115/2002»: articolo, numero e anno vicini.
-    return [f'NEAR({_frase("art " + numero)} "{legge.group(2)}" "{anno.group(1)}", 8)']
+    domande = [f'NEAR({_frase("art " + numero)} "{legge.group(2)}" "{anno.group(1)}", 8)']
+    # «art. 135-bis cod. cons.», «art. 135-bis del codice del consumo».
+    domande += [_frase(f"{numero} {sigla}") for sigla in _CODICI_DI_SETTORE.get(prefisso, ())]
+    return domande
 
 

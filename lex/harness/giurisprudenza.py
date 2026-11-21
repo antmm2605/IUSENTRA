@@ -166,5 +166,8 @@ def per_norme(chiavi: list[str]) -> EsitoGiurisprudenza | None:
     trovate = [Pronuncia(**p) for k in chiavi for p in voci.get(k, [])]
     if not any(k in voci for k in chiavi):
         return None
+    # Norme per cui nessuna pronuncia è stata trovata dopo la ricerca anche sulle fonti ufficiali: lo si dice, con
+    # le fonti consultate e la data, invece di lasciare un elenco vuoto.
+    note = [indice.get("senza_pronunce", {}).get(k, {}).get("esito", "") for k in chiavi] if not trovate else []
     return EsitoGiurisprudenza(f"indice precalcolato del {indice.get('generato_il', '')}", trovate[:4],
-                               archivi=list(indice.get("archivi", [])))
+                               archivi=list(indice.get("archivi", [])), errori=[n for n in note if n])

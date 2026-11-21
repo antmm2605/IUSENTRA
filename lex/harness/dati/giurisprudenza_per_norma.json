@@ -2632,9 +2632,62 @@
     "massima": ""
    }
   ],
-  "cpc:473bis11": [],
-  "cpc:473bis12": [],
-  "cpc:473bis49": [],
+  "cpc:473bis11": [
+   {
+    "archivio": "Cassazione (SentenzeWeb)",
+    "organo": "Corte di Cassazione — civile",
+    "sezione": "1",
+    "numero": "14121",
+    "anno": "2024",
+    "data": "2024-05-21",
+    "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024114121O&rows=1&wt=json",
+    "massima": ""
+   }
+  ],
+  "cpc:473bis12": [
+   {
+    "archivio": "Cassazione (SentenzeWeb)",
+    "organo": "Corte di Cassazione — civile",
+    "sezione": "U",
+    "numero": "31403",
+    "anno": "2025",
+    "data": "2025-12-02",
+    "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025U31403D&rows=1&wt=json",
+    "massima": ""
+   },
+   {
+    "archivio": "Cassazione (SentenzeWeb)",
+    "organo": "Corte di Cassazione — civile",
+    "sezione": "U",
+    "numero": "23050",
+    "anno": "2023",
+    "data": "2023-07-28",
+    "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023U23050D&rows=1&wt=json",
+    "massima": ""
+   }
+  ],
+  "cpc:473bis49": [
+   {
+    "archivio": "archivio dello studio (Consulta e fonti pubbliche)",
+    "organo": "Corte costituzionale",
+    "sezione": "",
+    "numero": "194",
+    "anno": "2026",
+    "data": "2026-11-12",
+    "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2026/194",
+    "massima": ""
+   },
+   {
+    "archivio": "archivio dello studio (Consulta e fonti pubbliche)",
+    "organo": "Corte costituzionale",
+    "sezione": "",
+    "numero": "146",
+    "anno": "2025",
+    "data": "2025-10-13",
+    "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2025/146",
+    "massima": ""
+   }
+  ],
   "cpc:479": [
    {
     "archivio": "Cassazione (SentenzeWeb)",
@@ -16478,5 +16531,17 @@
   "Cassazione (SentenzeWeb)",
   "archivio dello studio (Consulta e fonti pubbliche)"
  ],
- "metodo": "citazione della norma cercata come frase negli archivi; pronunce più recenti che la citano"
+ "metodo": "citazione della norma cercata come frase negli archivi; pronunce più recenti che la citano",
+ "senza_pronunce": {
+  "dlgs206:135bis": {
+   "verificato_il": "21/11/2026",
+   "fonti": [
+    "Cassazione, SentenzeWeb (ricerca ufficiale italgiure.giustizia.it sul testo integrale: «135-bis», «135 bis» vicino a «consumo», «135-bis del codice del consumo», «135-bis d.lgs. n. 206»)",
+    "Cassazione, archivio SentenzeWeb del software (422.088 decisioni 2021-2026)",
+    "Corte costituzionale, archivio dello studio (22.414 pronunce)",
+    "archivio delle fonti pubbliche"
+   ],
+   "esito": "Nessuna pronuncia della Cassazione o della Corte costituzionale cita l'art. 135-bis cod. consumo (rimedi per il difetto di conformità, nel testo del d.lgs. 170/2021): verificato il 21/11/2026 sulla ricerca ufficiale di SentenzeWeb e sugli archivi del software."
+  }
+ }
 }

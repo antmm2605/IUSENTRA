@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 import gzip
+import html
 import json
 import logging
 import os
@@ -111,3 +112,23 @@ def catalogo_cerdef_salvato(data_dir, basi, *, prepara=False):
                 _IN_CORSO.discard(percorso)
                 raise
     return None
+
+
+# Campi che l'elenco di «Codici e leggi» usa davvero (scelta, ricerca, materie, data dell'edizione).
+# urn, xml_entry e data_pubblicazione servono solo all'apertura del testo, che li rilegge dall'archivio:
+# toglierli porta il catalogo vigente da 6,6 a 4,7 MB prima della compressione.
+CAMPI_ELENCO = ("id", "key", "label", "title", "category", "articles", "materia", "tipo", "numero",
+                "data_atto", "updated_at")
+
+
+def voce_elenco(atto):
+    """Voce leggera del catalogo, con i titoli decodificati («&agrave;» → «à»)."""
+    voce = {campo: atto.get(campo) for campo in CAMPI_ELENCO if campo in atto}
+    for campo in ("title", "label"):
+        if isinstance(voce.get(campo), str) and "&" in voce[campo]:
+            voce[campo] = html.unescape(voce[campo])
+    return voce
+
+
+def elenco_leggero(atti):
+    return [voce_elenco(atto) for atto in atti]

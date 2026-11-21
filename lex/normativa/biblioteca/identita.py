@@ -112,6 +112,38 @@ def espressione_numero_articolo_sql(colonna: str = 'article_number') -> str:
     return f"replace(replace(rtrim(trim({senza_prefisso}),'.'),'-',''),' ','')"
 
 
+INDICE_NUMERI_ARTICOLO = 'idx_normative_article_numero_riscontrato'
+INDICE_ATTO_NUMERO = 'idx_consultazione_doc_article'
+
+
+def numero_indicizzato(conn: sqlite3.Connection, schema: str = 'main') -> bool:
+    if schema not in {'main', 'cerdef'}:
+        raise ValueError('Schema normativo non ammesso')
+    indici = {riga[1] for riga in conn.execute(f'PRAGMA {schema}.index_list(normative_articles)')}
+    return bool(indici & {INDICE_NUMERI_ARTICOLO, INDICE_ATTO_NUMERO})
+
+
+def filtro_numero_articolo(conn: sqlite3.Connection, alias: str = 'a', schema: str = 'main') -> str:
+    """Condizione SQL (un parametro) che cerca il numero d'articolo passando da un indice.
+
+    Applicare l'espressione normalizzata alla colonna senza indice obbliga SQLite
+    a leggere tutti gli articoli, testo compreso: su «Tutti gli atti» dei testi
+    vigenti (126.664 articoli, 1,9 GB) la ricerca superava i 240 secondi.
+    - con l'indice sull'espressione (migrazione offline) la ricerca è diretta;
+    - con l'indice (atto, numero) si scorre solo l'indice, senza toccare i testi;
+    - senza nessuno dei due resta l'espressione, sotto il tempo massimo della ricerca.
+    """
+    if alias != 'a' or schema not in {'main', 'cerdef'}:
+        raise ValueError('Alias normativo non ammesso')
+    indici = {riga[1] for riga in conn.execute(f'PRAGMA {schema}.index_list(normative_articles)')}
+    if INDICE_NUMERI_ARTICOLO in indici:
+        return espressione_numero_articolo_sql('a.article_number') + '=?'
+    if INDICE_ATTO_NUMERO in indici:
+        return (f'a.id IN (SELECT id FROM {schema}.normative_articles INDEXED BY {INDICE_ATTO_NUMERO} '
+                f'WHERE {espressione_numero_articolo_sql()}=?)')
+    return espressione_numero_articolo_sql('a.article_number') + '=?'
+
+
 def indicizza_numeri_articolo(conn: sqlite3.Connection) -> str:
     """Migrazione esplicita offline: mai richiamata da una consultazione GET."""
     nome='idx_normative_article_numero_riscontrato'

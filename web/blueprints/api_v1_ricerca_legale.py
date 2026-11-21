@@ -17,8 +17,38 @@ from flask import Blueprint, current_app, g, jsonify, request
 from web.blueprints.api_v1_react import _audit_event, _request_json_object, _richiedi_auth
 from web.helpers import get_legal_intelligence, get_legal_update_pipeline
 from web.services import react_ricerca_legale_dettagli as dettagli
+from lex.tempo_ricerca import RicercaTroppoLunga
 
 api_v1_ricerca_legale = Blueprint("api_v1_ricerca_legale", __name__)
+
+
+@api_v1_ricerca_legale.before_request
+def _apri_tempo_massimo():
+    # Una ricerca non deve occupare un thread del server per minuti (collaudo 21/11/2026).
+    from lex.tempo_ricerca import apri_per_richiesta
+
+    apri_per_richiesta()
+
+
+@api_v1_ricerca_legale.teardown_request
+def _chiudi_tempo_massimo(_exc=None):
+    from lex.tempo_ricerca import chiudi_per_richiesta
+
+    chiudi_per_richiesta()
+
+
+@api_v1_ricerca_legale.errorhandler(RicercaTroppoLunga)
+def _ricerca_troppo_lunga(exc):
+    current_app.logger.warning("Ricerca interrotta per tempo massimo: %s %s", request.path, request.query_string[:300])
+    return jsonify(ok=False, message=str(exc), code="tempo_massimo"), 503
+
+
+def _archivio_non_disponibile(exc: BaseException, messaggio: str):
+    from lex.tempo_ricerca import interrotta, scaduta
+
+    if interrotta(exc) and scaduta():
+        return _ricerca_troppo_lunga(RicercaTroppoLunga())
+    return jsonify(ok=False, message=messaggio), 503
 
 # Un solo controllo giornaliero alla volta per archivio: scarica le fonti
 # ufficiali e confronta le impronte, fuori dalla richiesta dell'avvocato.
@@ -265,6 +295,36 @@ def _permesso_normativa():
     return None
 
 
+# Catalogo già serializzato e compresso per revisione: 6,6 MB di JSON a ogni apertura di
+# «Codici e leggi» diventano circa 0,6 MB, preparati una volta sola (collaudo 21/11/2026).
+_CATALOGHI_COMPRESSI: dict = {}
+_LOCK_CATALOGHI = threading.Lock()
+
+
+def _catalogo_compresso(chiave, sorgente, costruisci, impronta=None):
+    """`sorgente` è la lista del catalogo salvato (resta nella voce, così il suo id non si riusa);
+    `impronta` descrive le altre parti della risposta (archivio verificato)."""
+    import gzip
+    import json
+
+    with _LOCK_CATALOGHI:
+        voce = _CATALOGHI_COMPRESSI.get(chiave)
+    if voce is None or voce[2] is not sorgente or voce[3] != impronta:
+        testo = json.dumps(costruisci(), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        voce = (testo, gzip.compress(testo, compresslevel=5), sorgente, impronta)
+        with _LOCK_CATALOGHI:
+            _CATALOGHI_COMPRESSI[chiave] = voce
+    testo, compresso = voce[0], voce[1]
+    risposta = current_app.response_class(mimetype="application/json")
+    if "gzip" in (request.headers.get("Accept-Encoding") or "").lower():
+        risposta.set_data(compresso)
+        risposta.headers["Content-Encoding"] = "gzip"
+    else:
+        risposta.set_data(testo)
+    risposta.headers["Vary"] = "Accept-Encoding"
+    return risposta
+
+
 @api_v1_ricerca_legale.get("/normativa/atti")
 @_richiedi_auth
 def normativa_atti():
@@ -276,7 +336,7 @@ def normativa_atti():
         from lex.normativa.cerdef_biblioteca import (
             ID_BASE, STORICO_ORIGINALE_BASE, VIGENTE_BASE, alias_originali_storici, fonti_catalogo, riscontro_vigente,
         )
-        from lex.normativa.cerdef_catalogo_salvato import catalogo_cerdef_salvato
+        from lex.normativa.cerdef_catalogo_salvato import catalogo_cerdef_salvato, elenco_leggero
 
         vista = request.args.get("vista")
         data_dir = current_app.config["DATA_DIR"]
@@ -285,9 +345,11 @@ def normativa_atti():
                 return jsonify(ok=False, message="L’archivio con riscontri di vigenza non è configurato."), 503
             atti = catalogo_cerdef_salvato(data_dir, (VIGENTE_BASE,))
             if atti is not None:
-                return jsonify(ok=True, items=atti, riscontro=riscontro_vigente(len(atti)))
+                return _catalogo_compresso("vigenti", atti, lambda: {
+                    "ok": True, "items": elenco_leggero(atti), "riscontro": riscontro_vigente(len(atti))})
         else:
             basi = (ID_BASE, 2 * ID_BASE)
+            sostituzioni = {}
             if vista == "storico":
                 basi += (STORICO_ORIGINALE_BASE,)
             collegati = catalogo_cerdef_salvato(data_dir, basi)
@@ -296,10 +358,13 @@ def normativa_atti():
                 if vista == "storico":
                     sostituzioni = alias_originali_storici()
                     atti = [atto for atto in atti if atto["id"] not in sostituzioni]
-                return jsonify(ok=True, items=atti)
+                stato = _normativa_db().stat()
+                return _catalogo_compresso(vista or "tutti", collegati, lambda: {"ok": True, "items": elenco_leggero(atti)},
+                                           impronta=(str(_normativa_db()), stato.st_size, stato.st_mtime_ns,
+                                                     tuple(sorted(sostituzioni)) if vista == "storico" else ()))
         return jsonify(ok=False, message="Il catalogo delle fonti si sta aggiornando."), 503, {"Retry-After": "5"}
-    except (FileNotFoundError, OSError, sqlite3.Error):
-        return jsonify(ok=False, message="L'archivio dei codici e delle leggi non è ancora disponibile."), 503
+    except (FileNotFoundError, OSError, sqlite3.Error) as exc:
+        return _archivio_non_disponibile(exc, "L'archivio dei codici e delle leggi non è ancora disponibile.")
 
 
 @api_v1_ricerca_legale.get("/normativa/articoli")
@@ -339,8 +404,8 @@ def normativa_articoli():
         return jsonify(ok=True, **result)
     except ValueError as exc:
         return jsonify(ok=False, message=str(exc)), 400
-    except (FileNotFoundError, OSError, sqlite3.Error):
-        return jsonify(ok=False, message="Archivio non disponibile. Riprova fra poco."), 503
+    except (FileNotFoundError, OSError, sqlite3.Error) as exc:
+        return _archivio_non_disponibile(exc, "Archivio non disponibile. Riprova fra poco.")
 
 
 @api_v1_ricerca_legale.get("/normativa/articoli/<int:article_id>")
@@ -357,8 +422,8 @@ def normativa_articolo(article_id):
         if item is None:
             return jsonify(ok=False, message="Articolo non trovato nell'archivio."), 404
         return jsonify(ok=True, item=item)
-    except (FileNotFoundError, OSError, sqlite3.Error):
-        return jsonify(ok=False, message="Testo non disponibile. Riprova fra poco."), 503
+    except (FileNotFoundError, OSError, sqlite3.Error) as exc:
+        return _archivio_non_disponibile(exc, "Testo non disponibile. Riprova fra poco.")
 
 
 @api_v1_ricerca_legale.get("/normativa/visualizza")

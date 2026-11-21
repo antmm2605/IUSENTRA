@@ -2,10 +2,12 @@
 from contextlib import closing, contextmanager
 from functools import partial
 import hashlib
+import html
 import os
 import re
 from pathlib import Path
 
+from lex.tempo_ricerca import traduci_interruzione
 from lex.normativa.consultazione import COLLECTION, _catalogue_row, _connect, dettaglio
 from lex.retrieval.normativa_catalog import biblioteca_studio_path, runtime_general_path
 
@@ -13,6 +15,15 @@ from lex.retrieval.normativa_catalog import biblioteca_studio_path, runtime_gene
 ID_BASE = 10**12
 VIGENTE_BASE = 3 * ID_BASE
 STORICO_ORIGINALE_BASE = 4 * ID_BASE
+# Oltre questa soglia l'elenco dice «più di 1.000 articoli»: contarli tutti non serve all'avvocato.
+LIMITE_CONTEGGIO = 1000
+# «L'articolo ha testo» senza caricare i testi lunghi: octet_length non legge il contenuto
+# (SQLite >= 3.43), length(trim()) resta solo per i testi brevi, dove uno spazio vuoto è possibile.
+# Leggere il testo di ogni articolo trovato costava 31 s per «art. 1» su tutti gli atti vigenti.
+AVVISO_SENZA_INDICE = ("Una parte dell’archivio storico non è ancora preparata per la ricerca del solo numero "
+                       "su tutti gli atti: scegli il codice o la legge, oppure aggiungi una parola del testo.")
+TESTO_PRESENTE = ("octet_length(a.article_text)>0 AND "
+                  "(octet_length(a.article_text)>256 OR length(trim(a.article_text))>0)")
 
 
 def is_linked(identifier):
@@ -69,7 +80,7 @@ def _linked_connection(base=ID_BASE, *, source=None):
         return
     index, database = source
     path = index.resolve(strict=True)
-    with closing(_connect(database)) as connection:
+    with traduci_interruzione(), closing(_connect(database)) as connection:
         connection.execute("ATTACH DATABASE ? AS cerdef", (path.as_uri()+"?mode=ro",))
         connection.execute("PRAGMA query_only=ON")
         yield connection
@@ -148,7 +159,8 @@ def _catalogue(base, *, source=None):
             if identifier in notices:
                 edition = " [avviso di abrogazione; testo storico non incluso]"
             prefix = f"{kind} {reference}"
-            title = item["title"]
+            # Alcuni titoli Normattiva arrivano con le entità HTML («Attivit&agrave;»).
+            title = html.unescape(item["title"] or "")
             initial, separator, rest = title.partition(" — ")
             if separator and initial.casefold() == prefix.casefold():
                 prefix, title = initial, rest
@@ -201,14 +213,27 @@ def ricerca_storica(database, *, query="", article="", category="", offset=0):
     readers = [partial(articoli, database, escludi_atti=tuple(alias_originali_storici()))]
     readers.extend(partial(linked_articles, 0, archive_base=base)
                    for base in (ID_BASE, 2 * ID_BASE, STORICO_ORIGINALE_BASE))
-    items, total = [], 0
+    items, total, oltre, avvisi = [], 0, False, []
     for read in readers:
         remaining = 30 - len(items)
         result = read(**search, offset=offset, limit=max(1, remaining))
         total += result["total"]
+        oltre = oltre or bool(result.get("total_oltre"))
+        if result.get("avviso"):
+            avvisi.append(result["avviso"])
         items.extend(result["items"][:remaining])
         offset = max(0, offset - result["total"])
-    return {"items": items, "total": total, "act_id": 0}
+    result = {"items": items, "total": total, "act_id": 0}
+    if oltre:
+        result["total_oltre"] = True
+    if avvisi:
+        result["avviso"] = avvisi[0]
+    return result
+
+
+def _archivio_grande(connection):
+    # max(rowid) si legge dall'indice in un attimo; sotto la soglia scorrere l'archivio costa poco.
+    return (connection.execute("SELECT max(id) FROM normative_articles").fetchone()[0] or 0) > 20000
 
 
 def linked_articles(identifier, *, query="", article="", offset=0, vigente=False,
@@ -227,7 +252,7 @@ def linked_articles(identifier, *, query="", article="", offset=0, vigente=False
     with _linked_connection(base) as connection:
         if connection is None:
             return {"items": [], "total": 0, "act_id": identifier}
-        where = ["length(trim(coalesce(a.article_text,'')))>0"]
+        where = [TESTO_PRESENTE]
         params = []
         if document_id is None and connection.execute(
             "SELECT 1 FROM cerdef.sqlite_master WHERE name='catalogo_sostituito' AND type='table'"
@@ -240,8 +265,12 @@ def linked_articles(identifier, *, query="", article="", offset=0, vigente=False
             where.append("i.document_id IN (" + ",".join("?" for _ in category_documents) + ")")
             params.extend(category_documents)
         if article.strip():
-            from lex.normativa.biblioteca.identita import numero_articolo, espressione_numero_articolo_sql
-            where.append(espressione_numero_articolo_sql("a.article_number") + "=?")
+            from lex.normativa.biblioteca.identita import filtro_numero_articolo, numero_articolo, numero_indicizzato
+            if (document_id is None and category_documents is None and not query.strip()
+                    and not numero_indicizzato(connection) and _archivio_grande(connection)):
+                # Senza indice dei numeri bisognerebbe leggere l'intero archivio (minuti): lo si dice, non si scorre.
+                return {"items": [], "total": 0, "act_id": identifier, "avviso": AVVISO_SENZA_INDICE}
+            where.append(filtro_numero_articolo(connection))
             params.append(numero_articolo(article))
         if query.strip():
             from lex.ricerca_giuridica.testo import testo_indice
@@ -256,7 +285,10 @@ def linked_articles(identifier, *, query="", article="", offset=0, vigente=False
         sql = """FROM cerdef.atti i
             JOIN normative_documents d ON d.id=i.document_id AND d.xml_sha256=i.sha256
             JOIN normative_articles a ON a.document_id=d.id WHERE """ + " AND ".join(where)
-        total = connection.execute("SELECT count(*) " + sql, params).fetchone()[0]
+        # Conteggio limitato: oltre la soglia basta dire «più di …», senza contare tutto l'archivio.
+        total = connection.execute(
+            "SELECT count(*) FROM (SELECT 1 " + sql + " LIMIT ?)", [*params, LIMITE_CONTEGGIO + 1]
+        ).fetchone()[0]
         rows = connection.execute(
             "SELECT a.id,a.article_number AS number,a.article_title AS title,a.article_text AS body,d.titolo AS act_title,d.xml_sha256 AS document_sha256 "
             + sql + " ORDER BY a.id LIMIT ? OFFSET ?", [*params, limit, max(0, offset)]
@@ -272,7 +304,10 @@ def linked_articles(identifier, *, query="", article="", offset=0, vigente=False
                 if part and part[0] != "corpo_principale":
                     item["title"] = f"{part[0]} · {item['title']}" if item["title"] else part[0]
             items.append(item)
-    return {"items": items, "total": total, "act_id": identifier}
+    result = {"items": items, "total": min(total, LIMITE_CONTEGGIO), "act_id": identifier}
+    if total > LIMITE_CONTEGGIO:
+        result["total_oltre"] = True
+    return result
 
 
 # Puntuali Normattiva del 13/11/2026: la data vale esclusivamente per i corpi confrontati.

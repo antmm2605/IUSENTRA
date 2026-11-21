@@ -230,6 +230,8 @@ services:
       retries: 10
 
   app:
+    # tini come processo 1: raccoglie i sottoprocessi orfani al posto di gunicorn.
+    init: true
     container_name: iusentra-app
     image: ${IUSENTRA_APP_IMAGE:-iusentra-app}
     build:
@@ -257,7 +259,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=5)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=4)"]
       interval: 10s
       timeout: 5s
       retries: 6

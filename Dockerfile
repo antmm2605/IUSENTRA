@@ -292,8 +292,11 @@ RUN mkdir -p /data
 
 EXPOSE 8080
 
+# Forma exec e attesa interna (4 s) più breve del timeout di Docker (5 s): con la forma
+# shell Docker uccideva solo `sh`, il python restava orfano, gunicorn (processo 1) lo
+# adottava e ne registrava l'uscita come «Worker (pid) exited with code 1» ogni 15 s.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=6 \
-  CMD python -c "import os, urllib.request; port=os.getenv('PORT', '8080'); urllib.request.urlopen(f'http://127.0.0.1:{port}/api/pronto', timeout=5)"
+  CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '8080') + '/api/pronto', timeout=4)"]
 
 ENTRYPOINT ["python", "/usr/local/bin/iusentra-entrypoint.py"]
 

@@ -161,9 +161,16 @@ class OllamaEmbedder:
                 self.paralleli = 1
 
     def versione(self) -> str:
-        """Versione dei pesi: digest da ``/api/tags``, altrimenti ``modified_at`` da ``/api/show``."""
+        """Versione dei pesi: il digest da ``/api/tags`` (o da ``/api/show`` se lo espone).
 
-        if self._digest is not None:
+        ``modified_at`` non è una versione: è la data di scaricamento e non si confronta con
+        il digest registrato nell'indice. Il collaudo del 21/11/2026 ha mostrato che, con il
+        PC carico, ``/api/tags`` andava oltre i 4 s, il ripiego su ``/api/show`` dava solo la
+        data e l'indice veniva scartato per sempre («versione del modello diversa»). Ora una
+        versione non letta resta vuota e non si memorizza: si riprova alla domanda successiva.
+        """
+
+        if self._digest:
             return self._digest
         if self.modello == embeddinggemma2.MODEL:
             if not embeddinggemma2.LocalEmbeddingClient().health():
@@ -188,7 +195,7 @@ class OllamaEmbedder:
                 risposta = requests.post(f"{self.url}/api/show", json={"model": self.modello}, timeout=min(self.timeout, 10.0))
                 risposta.raise_for_status()
                 dati = risposta.json() or {}
-                versione = str(dati.get("digest") or dati.get("modified_at") or "")
+                versione = str(dati.get("digest") or "")
             except Exception:
                 versione = ""
         if versione and len(self.urls) > 1:
@@ -199,7 +206,7 @@ class OllamaEmbedder:
                         f"l'istanza Ollama {altro} ha una versione diversa del modello {self.modello} "
                         f"({diverso or 'assente'} invece di {versione}): non si mescolano vettori diversi"
                     )
-        self._digest = versione
+        self._digest = versione or None
         return versione
 
     def _prossimo_url(self) -> str:

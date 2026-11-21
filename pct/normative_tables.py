@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import functools
 import hashlib
 import json
 import re
@@ -1084,6 +1086,18 @@ def _tasso_usura_rows_2026() -> List[Dict[str, Any]]:
                 }
             )
     return rows
+
+
+@functools.lru_cache(maxsize=1)
+def _valori_predefiniti_canonici() -> Dict[str, Dict[str, Any]]:
+    """Solo i «defaults» delle tabelle canoniche, calcolati una volta per processo.
+
+    get_table() ricostruiva tutte le definizioni (13.398 riferimenti) a ogni tabella letta:
+    87 volte per aprire «Cerca norme e sentenze», circa 1 s di calcolo a vuoto.
+    Le definizioni sono costanti del codice; il chiamante riceve una copia.
+    """
+    return {table_id: dict(definition.get("defaults") or {})
+            for table_id, definition in canonical_table_definitions().items()}
 
 
 def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
@@ -2386,8 +2400,7 @@ class GestioneTabelleNormative:
         if not table:
             raise KeyError(f"Tabella normativa non trovata: {table_id}")
         active = self._active_version(table, on_date=on_date)
-        definition = canonical_table_definitions().get(table_id) or {}
-        merged_defaults = dict(definition.get("defaults") or {})
+        merged_defaults = copy.deepcopy(_valori_predefiniti_canonici().get(table_id) or {})
         merged_defaults.update(table.get("defaults") or {})
         return {
             "id": table["id"],

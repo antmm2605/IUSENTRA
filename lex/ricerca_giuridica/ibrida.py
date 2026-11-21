@@ -249,11 +249,16 @@ class MotoreRicercaNormattiva:
             self._motivo_semantica = f"embedding della domanda non disponibile ({exc})"
             return None
         if not self._versione_verificata:
-            self._versione_verificata = True
             try:
                 versione = str(self.embedder.versione() or "")
             except Exception:
                 versione = ""
+            if not versione:
+                # Versione non leggibile ora (servizio lento): questa domanda resta lessicale,
+                # l'indice non si scarta e la verifica si ripete alla domanda successiva.
+                self._motivo_semantica = "versione del modello non verificata in tempo: ricerca solo per parole"
+                return None
+            self._versione_verificata = True
             compatibile, motivo = self._indice.verifica_modello(self.embedder.modello, versione)
             if not compatibile:
                 self._motivo_semantica = f"indice vettoriale ignorato: {motivo}"

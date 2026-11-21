@@ -885,6 +885,15 @@ class LegalUpdateRepository:
         return conn
 
     def _ensure_schema(self) -> None:
+        from pct.schema_preparato import gia_preparato, segna_preparato
+
+        if self._postgres_backend is None and gia_preparato(self.db_path, "legal_update_pipeline"):
+            return
+        self._prepara_schema()
+        if self._postgres_backend is None:
+            segna_preparato(self.db_path, "legal_update_pipeline")
+
+    def _prepara_schema(self) -> None:
         schema = (
             self.postgres_schema_path.read_text(encoding="utf-8")
             if self._postgres_backend is not None

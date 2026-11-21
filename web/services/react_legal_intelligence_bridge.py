@@ -961,8 +961,9 @@ def _merge_richer_record(current: dict[str, Any], incoming: Mapping[str, Any]) -
     return merged
 
 
-_INITIAL_OVERVIEW_PER_GROUP = 18
-_INITIAL_OVERVIEW_MAX = 130
+# Anteprima della pagina iniziale: 6 schede per famiglia, 48 in tutto (era 18/130: 1,5 MB a ogni apertura).
+_INITIAL_OVERVIEW_PER_GROUP = 6
+_INITIAL_OVERVIEW_MAX = 48
 
 
 def _initial_records_overview(*groups: list[dict[str, Any]]) -> list[dict[str, Any]]:

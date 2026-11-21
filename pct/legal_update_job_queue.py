@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -317,7 +318,15 @@ class LegalUpdateJobQueue:
         }
 
     def _init_db(self) -> None:
-        with self.connect() as conn:
+        from pct.schema_preparato import gia_preparato, segna_preparato
+
+        if gia_preparato(self.db_path, "legal_update_jobs"):
+            return
+        self._crea_schema()
+        segna_preparato(self.db_path, "legal_update_jobs")
+
+    def _crea_schema(self) -> None:
+        with closing(self.connect()) as conn, conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS legal_update_jobs (

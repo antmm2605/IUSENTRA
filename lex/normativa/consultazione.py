@@ -11,6 +11,7 @@ import io
 import json
 import re
 import sqlite3
+import threading
 from contextlib import closing
 from dataclasses import asdict
 from datetime import UTC, date, datetime
@@ -29,7 +30,10 @@ from lex.normativa.normattiva_importer import (
 )
 from lex.ricerca_giuridica.indice_fts import sincronizza_fts
 from lex.ricerca_giuridica.testo import testo_indice
+from lex.tempo_ricerca import applica as applica_tempo_massimo, traduci_interruzione
 
+# Oltre questa soglia l'elenco dice «più di 1.000 articoli» invece di contare tutto l'archivio.
+LIMITE_CONTEGGIO = 1000
 COLLECTION = 'Lex fonti: '
 HOST_FONTI_UFFICIALI = frozenset({
     'www.normattiva.it', 'eur-lex.europa.eu', 'publications.europa.eu',
@@ -371,11 +375,36 @@ def _connect(db: Path):
         raise FileNotFoundError('Archivio normativo non disponibile')
     conn = sqlite3.connect(db.resolve().as_uri() + '?mode=ro', uri=True, timeout=10)
     conn.row_factory = sqlite3.Row
-    return conn
+    return applica_tempo_massimo(conn)
+
+
+_CATALOGHI: dict[tuple, list[dict]] = {}
+_CATALOGHI_LOCK = threading.Lock()
 
 
 def catalogo(db: Path) -> list[dict]:
-    with closing(_connect(db)) as conn:
+    """Catalogo dell'archivio, ricalcolato solo se il file cambia.
+
+    La query raggruppa tutti gli articoli: su /biblioteca-verificata richiede 30 s a
+    freddo e veniva rifatta a ogni ricerca nell'archivio storico (collaudo 21/11/2026).
+    """
+    if not db.is_file():
+        raise FileNotFoundError('Archivio normativo non disponibile')
+    stato = db.resolve().stat()
+    chiave = (str(db.resolve()), stato.st_size, stato.st_mtime_ns)
+    with _CATALOGHI_LOCK:
+        salvato = _CATALOGHI.get(chiave)
+    if salvato is None:
+        salvato = _catalogo_da_archivio(db)
+        with _CATALOGHI_LOCK:
+            for vecchia in [k for k in _CATALOGHI if k[0] == chiave[0]]:
+                _CATALOGHI.pop(vecchia, None)
+            _CATALOGHI[chiave] = salvato
+    return [dict(riga) for riga in salvato]
+
+
+def _catalogo_da_archivio(db: Path) -> list[dict]:
+    with traduci_interruzione(), closing(_connect(db)) as conn:
         return [_catalogue_row(r) for r in conn.execute("""
             WITH collezioni AS MATERIALIZED (
                 SELECT DISTINCT collection_name FROM normative_documents WHERE collection_name GLOB ?
@@ -434,24 +463,31 @@ def articoli(db: Path, *, act: int = 0, query: str = '', article: str = '', cate
     if escludi_atti:
         where.append('a.document_id NOT IN (' + ','.join('?' for _ in escludi_atti) + ')')
         args.extend(escludi_atti)
+    numero = None
     if article.strip():
-        from .biblioteca.identita import numero_articolo, espressione_numero_articolo_sql
-        value = numero_articolo(article)
-        where.append(espressione_numero_articolo_sql('a.article_number')+' = ?')
-        args.append(value)
+        from .biblioteca.identita import numero_articolo
+        numero = numero_articolo(article)
     if query.strip():
         terms = testo_indice(query[:300]).split()[:12]
         if not terms:
             return {'items': [], 'total': 0}
         where.append('a.id IN (SELECT c.article_id FROM normative_fts f JOIN normative_chunks c ON c.id=f.rowid WHERE normative_fts MATCH ?)')
         args.append(' AND '.join('"' + t.replace('"', '""') + '"' for t in terms))
-    clause = ' AND '.join(where)
-    with closing(_connect(db)) as conn:
-        total = conn.execute('SELECT COUNT(*) FROM normative_articles a WHERE ' + clause, args).fetchone()[0]
+    with traduci_interruzione(), closing(_connect(db)) as conn:
+        if numero is not None:
+            from .biblioteca.identita import filtro_numero_articolo
+            where.append(filtro_numero_articolo(conn))
+            args.append(numero)
+        clause = ' AND '.join(where)
+        total = conn.execute('SELECT COUNT(*) FROM (SELECT 1 FROM normative_articles a WHERE ' + clause + ' LIMIT ?)',
+                             [*args, LIMITE_CONTEGGIO + 1]).fetchone()[0]
         rows = conn.execute('SELECT a.id, a.article_number AS number, a.article_title AS title, d.titolo AS act_title '
                             'FROM normative_articles a JOIN normative_documents d ON d.id=a.document_id WHERE ' + clause +
                             ' ORDER BY d.titolo, a.id LIMIT ? OFFSET ?', [*args, limit, offset]).fetchall()
-    return {'items': [dict(r) for r in rows], 'total': total, 'act_id': act}
+    result = {'items': [dict(r) for r in rows], 'total': min(total, LIMITE_CONTEGGIO), 'act_id': act}
+    if total > LIMITE_CONTEGGIO:
+        result['total_oltre'] = True
+    return result
 
 
 def dettaglio(db: Path, article_id: int, *, includi_archivio_generale: bool = False) -> dict | None:

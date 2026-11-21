@@ -15947,7 +15947,10 @@ def _legal_intelligence_cache_key(page: str) -> tuple | None:
     # the authorized owner context and revisions; failure disables reuse.
     from web.services.operational_read_revision import read_authorized_revision_snapshot
     try:
-        snapshot = read_authorized_revision_snapshot(g.get("utente_corrente"))
+        # Senza le revisioni verticali (registro delle letture, archivio economico): cambiano a
+        # ogni lettura automatica e la ricerca legale non le mostra. Con quelle la cache non
+        # valeva mai e ogni apertura ricostruiva tutto (fino a 56 s nel collaudo del 21/11/2026).
+        snapshot = read_authorized_revision_snapshot(g.get("utente_corrente"), include_vertical=False)
         context = snapshot.get("context")
         revisions = snapshot.get("revisions")
         if not context or not revisions:
@@ -15968,7 +15971,10 @@ def _legal_intelligence_scope(page: str) -> tuple | None:
     # the authorized owner context and revisions; failure disables reuse.
     from web.services.operational_read_revision import read_authorized_revision_snapshot
     try:
-        snapshot = read_authorized_revision_snapshot(g.get("utente_corrente"))
+        # Senza le revisioni verticali (registro delle letture, archivio economico): cambiano a
+        # ogni lettura automatica e la ricerca legale non le mostra. Con quelle la cache non
+        # valeva mai e ogni apertura ricostruiva tutto (fino a 56 s nel collaudo del 21/11/2026).
+        snapshot = read_authorized_revision_snapshot(g.get("utente_corrente"), include_vertical=False)
         context = snapshot.get("context")
         revisions = snapshot.get("revisions")
         if not context or not revisions:
@@ -16006,7 +16012,7 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
                 query=dict(request.args),
                 config=dict(current_app.config),
                 # La parte che non dipende dalla domanda si riusa fra ricerche dello stesso studio (LEX-01).
-                base_cache_scope=_legal_intelligence_scope(page) if request.args.get("q") else None,
+                base_cache_scope=_legal_intelligence_scope(page),
             )
         )
         if cache_key is not None and response.status_code == 200:

@@ -31,6 +31,9 @@ services:
       dockerfile: Dockerfile
     container_name: iusentra-app
     restart: unless-stopped
+    # tini come processo 1: raccoglie i sottoprocessi orfani al posto di gunicorn,
+    # che altrimenti li registra come «Worker (pid) exited with code 1».
+    init: true
 
     # Porta diretta (utile per debug o ambienti senza nginx)
     ports:
@@ -112,7 +115,7 @@ services:
 
     healthcheck:
       test: ["CMD", "python", "-c",
-             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=5)"]
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=4)"]
       interval: 10s
       timeout: 5s
       retries: 6

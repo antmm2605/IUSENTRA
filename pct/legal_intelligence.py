@@ -1388,6 +1388,42 @@ def costruisci_tracker_fascicoli(fascicoli: Iterable[Any]) -> Dict[str, Dict[str
     return trackers
 
 
+# Ultima sincronizzazione dei cataloghi per archivio: (impronta delle righe, stato del file).
+# Ogni GestioneLegalIntelligence() riscriveva cataloghi ed esportazioni JSON anche a righe
+# identiche: una scrittura SQLite a ogni apertura di «Cerca norme e sentenze», in contesa con
+# scheduler e altri worker (collaudo 21/11/2026, pagina iniziale fino a 56 s).
+_SINCRONIZZAZIONI: Dict[str, tuple] = {}
+
+
+def _impronta_righe(righe: Any) -> str:
+    return hashlib.sha256(json.dumps(righe, sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
+
+
+def _stato_file(*percorsi: str) -> tuple:
+    stati = []
+    for percorso in percorsi:
+        try:
+            stato = Path(percorso).stat()
+        except OSError:
+            return ()  # un file mancante obbliga a risincronizzare
+        stati.append((stato.st_size, stato.st_mtime_ns))
+    return tuple(stati)
+
+
+def _sincronizzazione_invariata(gestione: Any, percorsi: tuple, righe: Any) -> bool:
+    if getattr(gestione, "postgres_dsn", ""):
+        return False
+    voce = _SINCRONIZZAZIONI.get(str(percorsi[0]))
+    stato = _stato_file(*map(str, percorsi))
+    return bool(voce and stato and voce == (_impronta_righe(righe), stato))
+
+
+def _ricorda_sincronizzazione(gestione: Any, percorsi: tuple, righe: Any) -> None:
+    if getattr(gestione, "postgres_dsn", ""):
+        return
+    _SINCRONIZZAZIONI[str(percorsi[0])] = (_impronta_righe(righe), _stato_file(*map(str, percorsi)))
+
+
 class GestioneLegalIntelligence:
     def __init__(
         self,
@@ -1495,7 +1531,7 @@ class GestioneLegalIntelligence:
         alert_rows = build_legal_alert_rows(self.recent_alerts(limit=MAX_ALERTS))
         audit_rows = build_legal_audit_rows(self.recent_audit_traces(limit=MAX_AUDIT_TRACES))
         operational_rows = build_legal_operational_rules()
-        self._repository.synchronize_runtime(
+        righe = dict(
             source_rows=source_rows,
             engine_rows=engine_rows,
             keyword_engine_rows=keyword_engine_rows,
@@ -1505,15 +1541,17 @@ class GestioneLegalIntelligence:
             alert_rows=alert_rows,
             audit_rows=audit_rows,
             operational_rows=operational_rows,
-            export_json=True,
         )
+        if not _sincronizzazione_invariata(self, (self.repository_db_path, self.repository_json_path), righe):
+            self._repository.synchronize_runtime(**righe, export_json=True)
+            _ricorda_sincronizzazione(self, (self.repository_db_path, self.repository_json_path), righe)
         self._sync_telematico_repository()
 
     def _sync_telematico_repository(self) -> None:
         snapshot = get_catalog_snapshot()
         catalog_sources = get_catalog_sources()
         source_rows = build_telematico_sources_rows(FONTI_UFFICIALI)
-        self._telematico_repository.synchronize_runtime(
+        payload = (
             {
                 "catalog_snapshot": build_telematico_catalog_snapshot_row(snapshot, catalog_sources),
                 "methods": build_telematico_methods_rows(get_official_methods()),
@@ -1528,6 +1566,10 @@ class GestioneLegalIntelligence:
                 "monitoring": build_telematico_monitoring_rows(source_rows, list(self._data.get("monitor_runs") or [])),
             }
         )
+        if _sincronizzazione_invariata(self, (self.telematico_repository_db_path, self.telematico_repository_json_path), payload):
+            return
+        self._telematico_repository.synchronize_runtime(payload)
+        _ricorda_sincronizzazione(self, (self.telematico_repository_db_path, self.telematico_repository_json_path), payload)
 
     def statistiche_repository(self) -> Dict[str, Any]:
         return self._repository.storage_stats()

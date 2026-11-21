@@ -1283,7 +1283,17 @@ class LegalUpdatePipeline:
             json_path=cfg.json_path,
             postgres_dsn=self.postgres_dsn,
         )
-        self.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
+        # Le fonti predefinite sono costanti del codice: si registrano una volta per archivio e
+        # per processo, non a ogni richiesta (era una scrittura con commit a ogni ricerca).
+        from pct.schema_preparato import gia_preparato, segna_preparato
+
+        impronta = "fonti:" + hashlib.sha256(
+            json.dumps(list(DEFAULT_SOURCE_ROWS), sort_keys=True, default=str).encode()
+        ).hexdigest()
+        if self.postgres_dsn or not gia_preparato(cfg.db_path, impronta):
+            self.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
+            if not self.postgres_dsn:
+                segna_preparato(cfg.db_path, impronta)
 
     def _export_repository_json_if_enabled(self) -> str:
         if not self.export_json_enabled:

@@ -22,3 +22,48 @@ max_requests_jitter = int(os.getenv("GUNICORN_MAX_REQUESTS_JITTER", "100"))
 accesslog = os.getenv("GUNICORN_ACCESS_LOG", "-")
 errorlog = os.getenv("GUNICORN_ERROR_LOG", "-")
 loglevel = os.getenv("GUNICORN_LOG_LEVEL", "info")
+
+
+# ── Diagnosi dei worker (collaudo 21/11/2026) ────────────────────────────────
+# Nel container gunicorn è il processo 1 e adotta i sottoprocessi orfani (per
+# esempio un controllo di salute scaduto): gunicorn 23 registra la loro uscita
+# come «Worker (pid) exited with code 1» anche se non sono worker. I worker veri
+# si riconoscono da «worker terminato» qui sotto; il resto è un processo adottato.
+# La cura per il processo 1 è `init: true` nel compose (tini come processo 1).
+
+def child_exit(server, worker):  # noqa: ARG001 - firma di gunicorn
+    from core.gunicorn_diagnosi import stato_uscita
+
+    server.log.info("IUSENTRA: worker terminato pid=%s %s", worker.pid, stato_uscita(worker.pid))
+
+
+def post_worker_init(worker):
+    from core.gunicorn_diagnosi import avvia_sorveglianza
+
+    avvia_sorveglianza(worker)
+
+
+def pre_request(worker, req):  # noqa: ARG001
+    from core.gunicorn_diagnosi import inizio_richiesta
+
+    inizio_richiesta(req)
+
+
+def post_request(worker, req, environ, resp):  # noqa: ARG001
+    from core.gunicorn_diagnosi import fine_richiesta
+
+    fine_richiesta()
+
+
+def worker_abort(worker):
+    from core.gunicorn_diagnosi import registra_pile
+
+    registra_pile(worker.log, "worker interrotto per tempo massimo (SIGABRT)")
+
+
+def worker_exit(server, worker):  # noqa: ARG001
+    from core.gunicorn_diagnosi import richieste_in_corso
+
+    in_corso = richieste_in_corso()
+    if in_corso:
+        worker.log.error("IUSENTRA: worker %s esce con richieste ancora in corso: %s", worker.pid, in_corso)

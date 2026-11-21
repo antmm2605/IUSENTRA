@@ -1,0 +1,1 @@
+var e=/^(?:bozza(?:-[a-z0-9_]+)*|editor-(?:nuovo|richiesta)|preparazione-[a-z0-9_-]+)(?::.*)?$/i;function t(t){return e.test(t.trim())}function n(e,n=!1){let r=e.map(e=>e.trim()).filter(Boolean),i=r.filter(e=>!t(e));return n?i.unshift(`Bozza preparata da IUSENTRA`):i.length<r.length&&i.unshift(`Bozza`),Array.from(new Set(i))}export{n as t};

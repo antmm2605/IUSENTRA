@@ -8,6 +8,10 @@
 - Modelli d'atto e procedure guidate ricontrollati sul testo vigente: norme dall'atto specifico, 13 modelli «Da associare» collegati alle norme verificate, monitorio, decreto esecutivo e pignoramento presso terzi corretti.
 - Letture del fascicolo: esito dell'indice della sentenza salvato sul solo fascicolo, sentenza esclusa per un ufficio letto tagliato; avviso «dati non aggiornati» solo dopo tre tentativi falliti.
 - Bundle React ricompilato da zero.
+- Bozze del software sempre in PDF, anche nell'elenco, senza doppioni né rigenerazione a ogni giro; Controllo della catena sempre visibile sotto il quadro del fascicolo.
+- Biblioteca: testo vigente verificato con Normattiva su 37 atti, vigenza nel tempo (articoli vigenti fino al 31/12/2026 e abrogati), commi numerati per 13 atti in più, sentenze per norma verificate per altri articoli.
+- Gazzetta Ufficiale completa dal 01/01/2022: sommari storici e testi degli atti.
+- Precetto e richiesta di pagamento contro l'amministrazione dello Stato: notifica diretta, competenze proposte dal tariffario, conto con lo Stato e bollo corretti; sentenza di Carbone di nuovo nella Lettura.
 
 ## 2.490.1 — Catena continua del fascicolo, notifiche PEC provate, Lex con harness deterministico
 

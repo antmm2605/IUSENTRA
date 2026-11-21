@@ -77,6 +77,19 @@ def tabelle_del_fascicolo(conn) -> list[tuple[str, str]]:
     return risultato
 
 
+def tabelle_del_caso_di_notifica(conn) -> list[str]:
+    """Tabelle delle notifiche legate al fascicolo solo attraverso il caso (``notification_case_id``).
+
+    Per esempio ``notification_dati_atto_receipt_refs``: il fascicolo è quello del caso in ``notification_cases``.
+    """
+    if not {"id", "fascicolo_id"} <= _colonne(conn, "notification_cases"):
+        return []
+    righe = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()
+    return [str(nome) for (nome,) in righe
+            if not esclusa(str(nome)) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(nome))
+            and not colonna_fascicolo(conn, str(nome)) and "notification_case_id" in _colonne(conn, str(nome))]
+
+
 def _incrementa_fascicolo(espressione: str) -> str:
     return (f"INSERT INTO {TABELLA_FASCICOLI}(fascicolo_id,revisione) VALUES (CAST({espressione} AS TEXT),1) "
             f"ON CONFLICT(fascicolo_id) DO UPDATE SET revisione=revisione+1;")
@@ -200,6 +213,14 @@ def piano_trigger(
             )
             variazione = " OR ".join(f"NEW.{campo} IS NOT OLD.{campo}" for campo in colonne)
         piano.update(_piano_per_fascicolo(t, nuovo, vecchio, variazione=variazione))
+    for tabella in (() if sole_tabelle_condivise else tabelle_del_caso_di_notifica(conn)):
+        t = _nome_sicuro(tabella)
+
+        def del_caso(riga: str) -> str:
+            return (f"(SELECT NULLIF(TRIM(CAST(fascicolo_id AS TEXT)), '') FROM notification_cases "
+                    f"WHERE id={riga}.notification_case_id)")
+
+        piano.update(_piano_per_fascicolo(t, del_caso("NEW"), del_caso("OLD")))
     esistenti = {str(r[0]) for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
     for tabella in sorted(set(tabelle_senza_fascicolo)):
         if tabella not in esistenti or (not sole_tabelle_condivise and colonna_fascicolo(conn, tabella)):

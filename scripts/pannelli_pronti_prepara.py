@@ -20,22 +20,16 @@ def main():
     from web.app import create_app
     from flask import g
     from pct.pannelli_pronti.preparazione import prepara_database
-    from web.services.pannelli_pronti_fonti import TABELLE_PEC, TABELLE_REGISTRO, TABELLE_STUDIO, percorso_pec
-    from web.services.registro_letture_runtime import percorso_registro
+    from web.services.pannelli_pronti_contatori import database_dello_studio
 
     app = create_app({'SCHEDULER_ONLY': True, 'DISABLE_SCHEDULER': True})
     manager, owners = _targets(app, '' if args.tenant == 'all' else args.tenant)
     for slug, owner in owners.items():
         with _tenant_context(app, manager, owner, slug):
             paths = dict(getattr(g, 'data_paths', {}) or {})
-            studio_db = paths.get('STUDIO_DB') or ''
-            registro = percorso_registro(paths)
+            database = database_dello_studio(paths)
         destinazione = (args.backup_dir / slug) if args.backup_dir else None
-        for percorso, tabelle, condivise in (
-            (studio_db, TABELLE_STUDIO, False),
-            (registro, TABELLE_REGISTRO, False),
-            (percorso_pec(paths), TABELLE_PEC, True),
-        ):
+        for percorso, tabelle, condivise in database:
             if not percorso:
                 continue
             esito = prepara_database(percorso, tabelle_senza_fascicolo=tabelle, backup_dir=destinazione,

@@ -251,6 +251,14 @@ def avvia_se_serve(app) -> dict[str, object]:
     from web.services.pannelli_pronti_runtime import archivio_per_percorsi, fonti_per_percorsi
     from web.services.pannelli_pronti_sfondo import copertura, da_ricalcolare, studi
 
+    # Contatori delle fonti (trigger) anche per le tabelle nate dopo il rilascio, per esempio quelle delle
+    # notifiche: senza, una notifica nuova non aggiorna il quadro (``pannelli_pronti_contatori``).
+    from web.services.pannelli_pronti_contatori import prepara_tutti
+
+    try:
+        prepara_tutti(studi(app))
+    except Exception as exc:
+        logger.warning("Preparazione dei contatori dei pannelli non riuscita: %s", exc)
     if in_esecuzione():
         return {"ok": True, "avviato": False, "motivo": "calcolatore già in esecuzione"}
     if precedenza_catena_notturna() and not pannello_prioritario_richiesto(app):

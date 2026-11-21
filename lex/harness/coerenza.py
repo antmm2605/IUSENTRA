@@ -38,16 +38,23 @@ def _data_contratto(f: Fatti) -> date | None:
     return None
 
 
+PAGAMENTI_PER_COMBINAZIONI = 10   # oltre, nessuna combinazione: si confrontano solo i singoli pagamenti
+VALORI_MASSIMI = 100               # date e importi controllati per punto
+
+
 def verifica(a, f: Fatti) -> list[str]:
     """Dubbi di coerenza sui punti dell'analisi (si aggiungono a ``a.dubbi`` dal chiamante)."""
     dubbi: list[str] = []
     contratto = _data_contratto(f)
     pagamenti = [i.valore for i in f.importi if re.search(r"pagat|versat|bonific|acconto|saldat", piano(i.contesto))]
+    combinabili = pagamenti if len(pagamenti) <= PAGAMENTI_PER_COMBINAZIONI else []
     importi_fatti = {round(i.valore, 2) for i in f.importi}
     for p in [*a.termini, *a.conclusione, *a.inquadramento]:
         t = p.testo
         tp = piano(t)
-        for m in _DATA.finditer(t):
+        for n_data, m in enumerate(_DATA.finditer(t)):
+            if n_data >= VALORI_MASSIMI:
+                break
             d = _data(m)
             prima = tp[max(0, m.start() - 40):m.start()]
             if d and _EVENTO_PUNTUALE.search(prima):
@@ -57,13 +64,15 @@ def verifica(a, f: Fatti) -> list[str]:
                 elif contratto and d == contratto and not re.search(r"contratt|preliminare|appalto", prima):
                     dubbi.append(f"La data {m.group(0)} usata come notifica o consegna coincide con la data del contratto: "
                                  "verificare la data effettiva dell'evento (dato mancante).")
-        for m in _EURO.finditer(t):
+        for n_imp, m in enumerate(_EURO.finditer(t)):
+            if n_imp >= VALORI_MASSIMI:
+                break
             v = _valore(m.group(1))
             if v == 0:
                 dubbi.append("Un importo risulta pari a zero: il dato non è stato letto nei fatti e va indicato.")
             dopo_pagato = re.search(r"pagat\w*|versat\w*", tp[max(0, m.start() - 25):m.start()])
             if dopo_pagato and pagamenti and round(v, 2) not in importi_fatti and not any(
-                    abs(sum(c) - v) < 0.01 for k in range(2, min(3, len(pagamenti)) + 1) for c in combinations(pagamenti, k)):
+                    abs(sum(c) - v) < 0.01 for k in range(2, min(3, len(combinabili)) + 1) for c in combinations(combinabili, k)):
                 dubbi.append(f"La somma pagata di {euro(v)} non risulta dai pagamenti dei fatti "
                              f"({', '.join(euro(x) for x in pagamenti)}): verificarla.")
     for p in a.termini:

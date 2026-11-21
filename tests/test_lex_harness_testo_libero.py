@@ -67,3 +67,19 @@ def test_fatture_fra_imprese_dopo_la_diffida_vanno_al_decreto_ingiuntivo():
                  "02/02/2026 di euro 3.100 e n. 9 del 03/03/2026 di euro 4.400, nonostante la messa in mora del 10/05/2026. "
                  "Come recuperiamo il credito?")
     assert r.regola == "decreto_ingiuntivo" and "€ 7.500" in r.testo and "Treviso" in r.testo and "€ 0" not in r.testo
+
+
+def test_cinquecento_importi_rispondono_in_meno_di_un_secondo():
+    import time
+
+    from lex.harness.coerenza import verifica
+    from lex.harness.modello import Analisi, Punto
+
+    testo = "Assisto Ugo Rana. Oggi è il 03/12/2026. " + " ".join(
+        f"Pagato con bonifico euro {100 + i} il {1 + i % 28:02d}/0{1 + i % 9}/2026." for i in range(500))
+    t = time.monotonic()
+    f = leggi_fatti(testo)
+    a = Analisi("prova", "civile")
+    a.conclusione = [Punto("Pagati € 99.999 in tutto; " + "; ".join(f"€ {100 + i}" for i in range(500)), [])]
+    verifica(a, f)
+    assert time.monotonic() - t < 1.0

@@ -136,8 +136,15 @@ def _qualifica(contesto: str) -> str:
     return "altro"
 
 
+# Limiti dell'estrazione: il lavoro non cresce senza misura con il testo dell'utente.
+TESTO_MASSIMO = 20000
+IMPORTI_MASSIMI = 200
+EVENTI_MASSIMI = 200
+
+
 def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
-    grezzo = " ".join(str(testo or "").split())
+    testo = str(testo or "")[:TESTO_MASSIMO]
+    grezzo = " ".join(testo.split())
     t = piano(grezzo)
     # «Data di oggi: 16/11/2026», «Oggi è il 16/11/2026», «in data odierna (16/11/2026)»
     m_oggi = re.search(r"(?:data di oggi|oggi e il|oggi e|oggi,|in data odierna|data odierna)\s*:?\s*\(?(\d{1,2})/(\d{1,2})/(\d{4})", t)
@@ -172,6 +179,8 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
         if m:
             f.sede_assistita = m.group(1).strip()
     for m in _IMPORTO.finditer(grezzo):
+        if len(f.importi) >= IMPORTI_MASSIMI:
+            break
         grezzo_num = (m.group(1) or m.group(2) or "").replace(".", "").replace(",", ".")
         try:
             valore = float(grezzo_num)
@@ -193,7 +202,9 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
     i_fatti = next((i for i, r in enumerate(f.righe) if re.match(r"(?i)(?:fatti del fascicolo|fatti|i fatti)\s*:?\s*$", r)), None)
     sorgente = ([r.lstrip("-•* ").strip() for r in f.righe[i_fatti + 1:]] if i_fatti is not None
                 else re.split(r"(?<=[.;])\s+(?=[A-ZÀ-Ý])", grezzo))
-    for frase in sorgente:
+    for frase in sorgente[:EVENTI_MASSIMI * 2]:
+        if len(f.eventi) >= EVENTI_MASSIMI:
+            break
         frase = re.sub(r"^(?:Fatti del fascicolo|Fatti)\s*:?\s*", "", frase.strip())
         for m in _DATA.finditer(frase):
             d = _data(m)

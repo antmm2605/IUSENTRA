@@ -201,3 +201,24 @@ def test_recupero_storico_riprende_da_dove_si_era_fermato(tmp_path, monkeypatch)
     terzo = storico.esegui_tratto(archivio, request_get=finta_rete, adesso=ADESSO, tempo_massimo=1000, pausa=0,
                                   serie=[SG], con_testi=False)
     assert terzo["sommari"]["fascicoli_nuovi"] == 0 and len(letti) == 5
+
+
+def test_i_testi_hanno_la_loro_parte_del_tratto(tmp_path, monkeypatch):
+    """Collaudo 21/11/2026: i sommari occupavano tutto il tratto e i testi non arrivavano mai («testi_nuovi» 0)."""
+    archivio = ArchivioGazzetta(tmp_path / "gu.sqlite")
+    scadenze = {}
+    orologio = iter(range(0, 100_000, 10))
+    monkeypatch.setattr(storico.time, "monotonic", lambda: next(orologio))
+
+    def sommari_infiniti(archivio_, **kw):
+        scadenze["sommari"] = kw["scadenza"]
+        return {"fascicoli_nuovi": 0, "atti_nuovi": 0, "errori": [], "completo": False}
+
+    def testi(archivio_, **kw):
+        scadenze["testi"] = kw["scadenza"]
+        return {"testi_nuovi": 1, "errori": 0, "completo": False}
+
+    monkeypatch.setattr(storico, "recupera_sommari", sommari_infiniti)
+    monkeypatch.setattr(storico, "recupera_testi", testi)
+    storico.esegui_tratto(archivio, adesso=ADESSO, tempo_massimo=1000, pausa=0)
+    assert scadenze["testi"] - scadenze["sommari"] == 1000 * (1 - storico.QUOTA_SOMMARI) > 0

@@ -2,10 +2,10 @@
   "percorso_id": "recupero_credito_monitorio",
   "nome": "Recupero credito in via monitoria",
   "area_id": "recupero_crediti",
-  "descrizione": "Dalla diffida al pignoramento presso terzi: la sequenza operativa del recupero giudiziale di un credito documentato.",
+  "descrizione": "Dalla diffida al pignoramento presso terzi: ricorso monitorio con eventuale provvisoria esecuzione, decreto esecutivo, precetto ed espropriazione presso terzi, sul testo vigente dopo i D.Lgs. 149/2022 e 164/2024.",
   "riferimenti": [
     "artt. 633-656 c.p.c.",
-    "artt. 480-481 c.p.c.",
+    "artt. 475, 480-481 c.p.c.",
     "art. 543 c.p.c."
   ],
   "passi": [
@@ -30,17 +30,20 @@
     {
       "passo_id": "ricorso_decreto",
       "nome": "Ricorso per decreto ingiuntivo",
-      "descrizione": "Deposito del ricorso monitorio con la prova scritta del credito.",
+      "descrizione": "Deposito del ricorso monitorio con la prova scritta del credito e, se ne ricorrono i presupposti, la domanda di esecuzione provvisoria del decreto.",
       "prompt_ref": "recupero_crediti.ricorso_decreto_ingiuntivo.redazione_atto",
       "termini": [
-        "Il giudice provvede di regola entro 30 giorni dal deposito (art. 641 c.p.c.)"
+        "Il giudice provvede con decreto motivato entro 30 giorni dal deposito; il termine per l'opposizione è di 40 giorni, riducibile a 10 o aumentabile a 60 per giusti motivi (art. 641 c.p.c.)",
+        "Esecuzione provvisoria da chiedere nel ricorso: va concessa se il credito è fondato su cambiale, assegno, certificato di liquidazione di borsa o atto ricevuto da notaio o altro pubblico ufficiale; può esserlo se c'è pericolo di grave pregiudizio nel ritardo o se il ricorrente produce documentazione sottoscritta dal debitore che prova il diritto; il giudice può imporre una cauzione e autorizzare l'esecuzione senza attendere il termine dell'art. 482 (art. 642 c.p.c.)"
       ],
       "riferimenti": [
-        "artt. 633-641 c.p.c."
+        "artt. 633-641 c.p.c.",
+        "art. 642 c.p.c."
       ],
       "template_refs": [
         "MON_001",
-        "MON_002"
+        "MON_002",
+        "MON_007"
       ]
     },
     {
@@ -49,8 +52,8 @@
       "descrizione": "Notifica del decreto ingiuntivo al debitore e presidio del termine di opposizione.",
       "prompt_ref": "recupero_crediti.ricorso_decreto_ingiuntivo.checklist",
       "termini": [
-        "Notifica entro 60 giorni dalla pronuncia, pena inefficacia (art. 644 c.p.c.)",
-        "Opposizione del debitore entro 40 giorni dalla notifica (art. 641 c.p.c.)"
+        "Notifica entro 60 giorni dalla pronuncia (90 se all'estero), altrimenti il decreto diventa inefficace (art. 644 c.p.c.)",
+        "Opposizione del debitore entro il termine indicato nel decreto, di regola 40 giorni dalla notifica (art. 641 c.p.c.)"
       ],
       "riferimenti": [
         "art. 644 c.p.c.",
@@ -61,20 +64,42 @@
       ]
     },
     {
-      "passo_id": "precetto",
-      "nome": "Atto di precetto",
-      "descrizione": "Intimazione ad adempiere sul titolo esecutivo (decreto non opposto o provvisoriamente esecutivo).",
-      "prompt_ref": "recupero_crediti.atto_di_precetto.redazione_atto",
+      "passo_id": "esecutorieta_decreto",
+      "nome": "Decreto esecutivo: dichiarazione di esecutorietà e copia per l'esecuzione",
+      "descrizione": "Se il decreto non è già provvisoriamente esecutivo (art. 642), scaduto il termine senza opposizione, o se l'opponente non si è costituito, si chiede al giudice che lo ha pronunciato di dichiararlo esecutivo; poi si ottiene la copia valida come titolo per l'esecuzione.",
+      "prompt_ref": "recupero_crediti.ricorso_decreto_ingiuntivo.checklist",
       "termini": [
-        "Termine per l'adempimento non inferiore a 10 giorni (art. 480 c.p.c.)",
-        "Il precetto perde efficacia decorsi 90 giorni senza inizio dell'esecuzione (art. 481 c.p.c.)"
+        "Istanza, anche verbale, al giudice che ha pronunciato il decreto, dopo la scadenza del termine di opposizione; il giudice ordina di rinnovare la notifica se risulta o appare probabile che il debitore non abbia avuto conoscenza del decreto (art. 647 c.p.c.)",
+        "Dichiarato esecutivo il decreto, l'opposizione non può più essere proposta né proseguita, salvo l'opposizione tardiva dell'art. 650 c.p.c. (art. 647 c.p.c.)",
+        "L'esecutorietà è conferita con decreto del giudice che ha pronunciato l'ingiunzione; non serve una nuova notifica del decreto esecutivo, ma il precetto deve menzionare il provvedimento che ha disposto l'esecutorietà (art. 654 c.p.c.)",
+        "Formula esecutiva: dal 28/02/2023 non si appone più; il decreto vale come titolo per l'esecuzione se rilasciato in copia attestata conforme all'originale o in duplicato informatico (art. 475 c.p.c., testo del D.Lgs. 149/2022 e del D.Lgs. 164/2024)"
       ],
       "riferimenti": [
-        "artt. 480-481 c.p.c."
+        "art. 647 c.p.c.",
+        "art. 654 c.p.c.",
+        "art. 475 c.p.c."
+      ],
+      "template_refs": [
+        "MON_008"
+      ]
+    },
+    {
+      "passo_id": "precetto",
+      "nome": "Atto di precetto",
+      "descrizione": "Intimazione ad adempiere sul titolo esecutivo: decreto provvisoriamente esecutivo (art. 642) o dichiarato esecutivo (artt. 647 e 654).",
+      "prompt_ref": "recupero_crediti.atto_di_precetto.redazione_atto",
+      "termini": [
+        "Termine per adempiere non inferiore a 10 giorni, salvo l'autorizzazione del giudice a procedere senza attenderlo (artt. 480 e 482 c.p.c.)",
+        "Nel precetto va menzionato il provvedimento che ha disposto l'esecutorietà del decreto (art. 654 c.p.c.)",
+        "Il precetto perde efficacia se l'esecuzione non inizia entro 90 giorni dalla notifica (art. 481 c.p.c.)"
+      ],
+      "riferimenti": [
+        "artt. 480-482 c.p.c.",
+        "art. 654 c.p.c."
       ],
       "template_refs": [
         "MON_018",
-        "ESE_001"
+        "ESE_004"
       ]
     },
     {
@@ -83,7 +108,8 @@
       "descrizione": "Individuazione di rapporti e beni aggredibili tramite istanza ex art. 492-bis c.p.c.",
       "prompt_ref": "recupero_crediti.ricerca_beni_telematica.checklist",
       "termini": [
-        "Istanza proponibile dopo il decorso del termine del precetto"
+        "L'istanza all'ufficiale giudiziario non può essere proposta prima che scada il termine del precetto; prima, solo con l'autorizzazione del presidente del tribunale se c'è pericolo nel ritardo (art. 492-bis c.p.c.)",
+        "Dalla proposizione dell'istanza il termine di 90 giorni dell'art. 481 resta sospeso fino all'esito delle ricerche (art. 492-bis c.p.c.)"
       ],
       "riferimenti": [
         "art. 492-bis c.p.c."
@@ -98,12 +124,15 @@
       "descrizione": "Aggressione di crediti e conti del debitore presso banche o datori di lavoro.",
       "prompt_ref": "recupero_crediti.pignoramento_presso_terzi.redazione_atto",
       "termini": [
-        "Iniziare l'esecuzione entro 90 giorni dal precetto (art. 481 c.p.c.)",
-        "Iscrizione a ruolo e udienza di dichiarazione del terzo nei termini dell'art. 543 c.p.c."
+        "Iniziare l'esecuzione entro 90 giorni dalla notifica del precetto (art. 481 c.p.c.)",
+        "Nell'atto l'udienza di comparizione va fissata rispettando il termine dell'art. 501 c.p.c. (art. 543 c.p.c.)",
+        "Iscrizione a ruolo entro 30 giorni dalla consegna dell'atto notificato da parte dell'ufficiale giudiziario, depositando copie conformi di atto di pignoramento, titolo esecutivo e precetto, a pena di inefficacia del pignoramento (art. 543 c.p.c.)",
+        "Entro la data dell'udienza notificare al terzo l'avviso di avvenuta iscrizione a ruolo con il numero di ruolo e depositarlo nel fascicolo dell'esecuzione, a pena di inefficacia del pignoramento (art. 543 c.p.c.)"
       ],
       "riferimenti": [
         "art. 543 c.p.c.",
-        "art. 546 c.p.c."
+        "art. 547 c.p.c.",
+        "art. 501 c.p.c."
       ],
       "template_refs": [
         "ESE_007",

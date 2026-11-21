@@ -14,8 +14,8 @@
       "descrizione": "Istanza di accesso per acquisire il provvedimento e gli atti del procedimento da impugnare.",
       "prompt_ref": "amministrativo.accesso_agli_atti.redazione_atto",
       "termini": [
-        "La PA provvede entro 30 giorni (art. 25 L. 241/1990)",
-        "L'istanza di accesso non sospende il termine di impugnazione: valutare il ricorso al buio"
+        "Decorsi 30 giorni dalla richiesta senza risposta, l'accesso si intende respinto (art. 25 L. 241/1990); ricorso entro 30 giorni dalla conoscenza del diniego o dalla formazione del silenzio (art. 116 D.Lgs. 104/2010)",
+        "L'istanza di accesso non sospende il termine per impugnare il provvedimento: valutare il ricorso con motivi aggiunti"
       ],
       "riferimenti": [
         "artt. 22-25 L. 241/1990",
@@ -31,12 +31,15 @@
       "descrizione": "Verifica di lesività, interesse a ricorrere, vizi deducibili e decorrenza del termine.",
       "prompt_ref": "amministrativo.ricorso_tar.parere",
       "termini": [
-        "Ricorso entro 60 giorni dalla notifica o piena conoscenza del provvedimento (art. 29 D.Lgs. 104/2010)",
-        "Riti abbreviati con termini dimezzati per le materie ex art. 119 D.Lgs. 104/2010"
+        "Azione di annullamento entro 60 giorni, a pena di decadenza, dalla notificazione, comunicazione o piena conoscenza del provvedimento (artt. 29 e 41 D.Lgs. 104/2010)",
+        "Notifica all'amministrazione e ad almeno un controinteressato individuato nell'atto; il termine aumenta di 30 giorni se una parte risiede in altro Stato d'Europa, di 90 fuori d'Europa (art. 41 D.Lgs. 104/2010)",
+        "Nei riti abbreviati dell'art. 119 i termini processuali sono dimezzati, ma non quello per notificare il ricorso introduttivo; negli appalti pubblici il ricorso va proposto in 30 giorni (artt. 119-120 D.Lgs. 104/2010)"
       ],
       "riferimenti": [
         "art. 29 D.Lgs. 104/2010",
-        "art. 41 D.Lgs. 104/2010"
+        "art. 41 D.Lgs. 104/2010",
+        "art. 119 D.Lgs. 104/2010",
+        "art. 120 D.Lgs. 104/2010"
       ],
       "template_refs": []
     },
@@ -46,7 +49,7 @@
       "descrizione": "Redazione, notifica e deposito del ricorso con i motivi di illegittimità.",
       "prompt_ref": "amministrativo.ricorso_tar.redazione_atto",
       "termini": [
-        "Deposito entro 30 giorni dall'ultima notifica (art. 45 D.Lgs. 104/2010)"
+        "Deposito entro 30 giorni dal perfezionamento dell'ultima notifica anche per il destinatario, termine perentorio (art. 45 D.Lgs. 104/2010)"
       ],
       "riferimenti": [
         "artt. 40-45 D.Lgs. 104/2010"

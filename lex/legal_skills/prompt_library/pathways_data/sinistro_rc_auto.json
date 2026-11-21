@@ -45,7 +45,7 @@
       "descrizione": "Invito alla stipula della convenzione: condizione di procedibilità dell'azione risarcitoria.",
       "prompt_ref": "circolazione_stradale.negoziazione_assistita_sinistri.redazione_atto",
       "termini": [
-        "Risposta all'invito entro 30 giorni; il mancato riscontro consente l'azione (art. 3 D.L. 132/2014)"
+        "Negoziazione assistita condizione di procedibilità; la condizione è avverata se l'invito non riceve adesione o è rifiutato entro 30 giorni dalla ricezione (art. 3, commi 1-2, D.L. 132/2014)"
       ],
       "riferimenti": [
         "art. 3 D.L. 132/2014"
@@ -61,8 +61,8 @@
       "descrizione": "Citazione davanti al Giudice di pace o al Tribunale per il risarcimento integrale.",
       "prompt_ref": "circolazione_stradale.richiesta_risarcimento_sinistro.redazione_atto",
       "termini": [
-        "Azione proponibile solo decorsi i termini di attesa ex art. 145 D.Lgs. 209/2005",
-        "Prescrizione biennale del danno da circolazione (art. 2947 c.c.)"
+        "Azione proponibile solo decorsi 60 giorni (90 per danno alla persona) dalla richiesta all'assicuratore con raccomandata a/r (art. 145 D.Lgs. 209/2005)",
+        "Prescrizione biennale del danno da circolazione (art. 2947, comma 2, c.c.)"
       ],
       "riferimenti": [
         "art. 145 D.Lgs. 209/2005",

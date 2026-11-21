@@ -1,7 +1,7 @@
 {
   "pack_id": "commercial_legal",
   "name": "Commerciale e contratti",
-  "description": "Skill read-only per revisione contratti, rinnovi e punti negoziali.",
+  "description": "Revisioni in sola lettura di contratti, rinnovi e punti da negoziare.",
   "area": "contratti",
   "jurisdiction": "IT",
   "source_mode": "balanced",

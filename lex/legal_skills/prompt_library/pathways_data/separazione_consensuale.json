@@ -29,8 +29,8 @@
       "descrizione": "Accordo raggiunto con l'assistenza degli avvocati, senza udienza, trasmesso al Procuratore della Repubblica.",
       "prompt_ref": "famiglia.negoziazione_assistita_famiglia.checklist",
       "termini": [
-        "Trasmissione dell'accordo al PM per nullaosta o autorizzazione (art. 6 D.L. 132/2014)",
-        "Trasmissione all'ufficiale di stato civile entro 10 giorni"
+        "Senza figli minori o non autosufficienti l'accordo va al procuratore della Repubblica per il nullaosta; con figli va trasmesso entro 10 giorni per l'autorizzazione (art. 6, comma 2, D.L. 132/2014)",
+        "L'avvocato trasmette entro 10 giorni all'ufficiale dello stato civile copia autenticata dell'accordo (art. 6, comma 3, D.L. 132/2014)"
       ],
       "riferimenti": [
         "art. 6 D.L. 132/2014"
@@ -46,11 +46,13 @@
       "descrizione": "Redazione e deposito del ricorso congiunto con le condizioni concordate e i piani genitoriali.",
       "prompt_ref": "famiglia.separazione_consensuale.redazione_atto",
       "termini": [
-        "Possibile cumulo con la domanda di divorzio (art. 473-bis.49 c.p.c.)",
-        "Le parti possono chiedere la decisione senza udienza (art. 473-bis.51 c.p.c.)"
+        "Ricorso sottoscritto anche dalle parti, con redditi e patrimoni dell'ultimo triennio e condizioni per i figli (art. 473-bis.51 c.p.c.)",
+        "Le parti possono chiedere nel ricorso di sostituire l'udienza con note scritte, dichiarando di non volersi riconciliare (art. 473-bis.51 c.p.c.)",
+        "Domanda di divorzio cumulabile: procedibile solo decorso il termine di legge e passata in giudicato la separazione (art. 473-bis.49 c.p.c.)"
       ],
       "riferimenti": [
-        "art. 473-bis.51 c.p.c."
+        "art. 473-bis.51 c.p.c.",
+        "art. 473-bis.49 c.p.c."
       ],
       "template_refs": [
         "FAM_001"
@@ -62,11 +64,12 @@
       "descrizione": "Preparazione dell'udienza nel rito unificato e verifica del decreto che rende efficaci le condizioni.",
       "prompt_ref": "famiglia.rito_unificato_famiglia.checklist",
       "termini": [
-        "Dalla separazione, la domanda di divorzio è proponibile decorsi 6 mesi (L. 55/2015)"
+        "Il collegio omologa o prende atto degli accordi con sentenza; se contrari all'interesse dei figli indica le modifiche e, in mancanza, rigetta allo stato (art. 473-bis.51 c.p.c.)",
+        "Divorzio proponibile dopo 6 mesi dalla comparizione nella separazione consensuale, o dalla data certificata nell'accordo di negoziazione assistita (art. 3, n. 2, lett. b, L. 898/1970)"
       ],
       "riferimenti": [
-        "artt. 473-bis ss. c.p.c.",
-        "L. 6 maggio 2015, n. 55"
+        "art. 473-bis.51 c.p.c.",
+        "art. 3 L. 1° dicembre 1970, n. 898"
       ],
       "template_refs": [
         "FAM_016"

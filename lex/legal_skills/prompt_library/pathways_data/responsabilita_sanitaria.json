@@ -29,11 +29,12 @@
       "descrizione": "Valutazione con consulente di parte del nesso causale e dei profili contrattuali verso la struttura.",
       "prompt_ref": "responsabilita_medica.azione_contro_struttura.parere",
       "termini": [
-        "Responsabilità contrattuale della struttura: prescrizione decennale; extracontrattuale del sanitario: quinquennale (art. 7 L. 24/2017)"
+        "La struttura risponde ai sensi degli artt. 1218 e 1228 c.c. (prescrizione decennale, art. 2946 c.c.); il sanitario non legato da contratto con il paziente risponde ai sensi dell'art. 2043 c.c. (prescrizione quinquennale, art. 2947 c.c.) (art. 7 L. 24/2017)"
       ],
       "riferimenti": [
         "art. 7 L. 24/2017",
-        "art. 1218 c.c."
+        "art. 1218 c.c.",
+        "art. 2043 c.c."
       ],
       "template_refs": [
         "RCD_004"
@@ -45,8 +46,8 @@
       "descrizione": "Consulenza tecnica preventiva ex art. 696-bis c.p.c. (o mediazione) come condizione di procedibilità.",
       "prompt_ref": "responsabilita_medica.atp_conciliativo_696bis.redazione_atto",
       "termini": [
-        "Condizione di procedibilità dell'azione risarcitoria (art. 8 L. 24/2017)",
-        "Partecipazione obbligatoria delle imprese di assicurazione"
+        "Il ricorso per consulenza tecnica preventiva (art. 696-bis c.p.c.) è condizione di procedibilità; in alternativa la mediazione (art. 8, commi 1-2, L. 24/2017)",
+        "Partecipazione obbligatoria di tutte le parti, comprese le imprese di assicurazione, che devono formulare l'offerta o motivare il rifiuto (art. 8, comma 4, L. 24/2017)"
       ],
       "riferimenti": [
         "art. 8 L. 24/2017",
@@ -63,10 +64,11 @@
       "descrizione": "Ricorso o citazione contro struttura e/o sanitario dopo l'esito dell'ATP.",
       "prompt_ref": "responsabilita_medica.azione_contro_struttura.redazione_atto",
       "termini": [
-        "Deposito del ricorso entro 90 giorni dal deposito della relazione o dalla scadenza del termine perentorio (art. 8, comma 3, L. 24/2017)"
+        "Se la conciliazione non riesce o il procedimento non si chiude entro 6 mesi dal deposito, gli effetti della domanda sono salvi se entro 90 giorni dal deposito della relazione o dalla scadenza dei 6 mesi si deposita il ricorso in rito semplificato (artt. 281-decies e 281-undecies c.p.c.) presso lo stesso giudice (art. 8, comma 3, L. 24/2017)"
       ],
       "riferimenti": [
-        "art. 8 L. 24/2017"
+        "art. 8 L. 24/2017",
+        "art. 281-undecies c.p.c."
       ],
       "template_refs": [
         "RCD_002"

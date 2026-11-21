@@ -28,11 +28,13 @@
       "descrizione": "Redazione e notifica della citazione davanti all'ufficio giudiziario che ha emesso il decreto.",
       "prompt_ref": "recupero_crediti.opposizione_decreto_ingiuntivo.redazione_atto",
       "termini": [
-        "Iscrizione a ruolo nei termini ordinari; verificare i termini a comparire ex art. 163-bis c.p.c."
+        "Il giudizio di opposizione segue le norme del processo di cognizione; nel rito ordinario la citazione rispetta i termini a comparire di 120 giorni (150 all'estero) e l'eventuale anticipazione dell'udienza va fissata entro 30 giorni dalla scadenza del termine minimo (artt. 645 e 163-bis c.p.c.)",
+        "L'opponente, come attore, si costituisce entro 10 giorni dalla notifica della citazione (art. 165 c.p.c.); se non si costituisce, il decreto può essere dichiarato esecutivo (art. 647 c.p.c.)"
       ],
       "riferimenti": [
         "art. 645 c.p.c.",
-        "art. 163-bis c.p.c."
+        "art. 163-bis c.p.c.",
+        "art. 165 c.p.c."
       ],
       "template_refs": [
         "MON_011",
@@ -45,10 +47,12 @@
       "descrizione": "Istanza ex art. 649 c.p.c. quando il decreto è provvisoriamente esecutivo e l'esecuzione è imminente.",
       "prompt_ref": "recupero_crediti.opposizione_decreto_ingiuntivo.checklist",
       "termini": [
-        "Istanza alla prima udienza o con la citazione; gravi motivi da documentare (art. 649 c.p.c.)"
+        "Se il decreto è provvisoriamente esecutivo (art. 642), l'opponente può chiederne la sospensione per gravi motivi, da documentare (art. 649 c.p.c.)",
+        "Il creditore opposto può chiedere la provvisoria esecuzione in prima udienza, o prima dell'udienza per ragioni di urgenza specificamente indicate; va concessa parzialmente per le somme non contestate (art. 648 c.p.c.)"
       ],
       "riferimenti": [
-        "art. 649 c.p.c."
+        "art. 649 c.p.c.",
+        "art. 648 c.p.c."
       ],
       "template_refs": [
         "MON_014"
@@ -60,10 +64,12 @@
       "descrizione": "Attivazione della mediazione dopo la pronuncia sulle istanze ex artt. 648-649 c.p.c., quando la materia lo richiede.",
       "prompt_ref": "mediazione_adr.mediazione_obbligatoria.checklist",
       "termini": [
-        "Onere di attivazione nei 15 giorni dalla pronuncia sulle istanze di esecutorietà (art. 5-bis D.Lgs. 28/2010)"
+        "Nelle materie dell'art. 5 D.Lgs. 28/2010 l'onere di presentare la domanda di mediazione grava sul creditore che ha chiesto il decreto (art. 5-bis D.Lgs. 28/2010)",
+        "Il giudice, decise in prima udienza le istanze sulla provvisoria esecuzione, rinvia a dopo la durata della mediazione; se la mediazione non è stata esperita dichiara improcedibile la domanda monitoria, revoca il decreto e provvede sulle spese (art. 5-bis D.Lgs. 28/2010)"
       ],
       "riferimenti": [
-        "art. 5-bis D.Lgs. 28/2010"
+        "art. 5-bis D.Lgs. 28/2010",
+        "art. 5 D.Lgs. 28/2010"
       ],
       "template_refs": [
         "ADR_002"

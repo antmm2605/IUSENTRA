@@ -1,7 +1,7 @@
 {
   "pack_id": "privacy_legal",
   "name": "Privacy e protezione dati",
-  "description": "Skill read-only per DPIA, DPA e verifiche privacy governate.",
+  "description": "Revisioni in sola lettura di valutazioni d'impatto (DPIA), accordi con i responsabili (art. 28 GDPR) e verifiche privacy.",
   "area": "privacy",
   "jurisdiction": "IT",
   "source_mode": "strict",

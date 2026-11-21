@@ -29,7 +29,7 @@
       "descrizione": "Contestazione scritta del licenziamento idonea a impedire la decadenza.",
       "prompt_ref": "lavoro.impugnazione_licenziamento.lettera",
       "termini": [
-        "60 giorni dalla comunicazione del licenziamento, a pena di decadenza (art. 6 L. 604/1966)"
+        "Entro 60 giorni dalla ricezione della comunicazione scritta del licenziamento, o dei motivi se non contestuali, a pena di decadenza, con qualsiasi atto scritto anche stragiudiziale (art. 6 L. 604/1966)"
       ],
       "riferimenti": [
         "art. 6 L. 604/1966"
@@ -44,11 +44,13 @@
       "descrizione": "Valutazione della conciliazione in sede protetta e dell'offerta conciliativa agevolata.",
       "prompt_ref": "lavoro.conciliazione_lavoro.checklist",
       "termini": [
-        "Offerta conciliativa agevolata entro i termini di impugnazione stragiudiziale (art. 6 D.Lgs. 23/2015)"
+        "Offerta di conciliazione del datore entro il termine dell'impugnazione stragiudiziale, in sede protetta, con assegno circolare (art. 6 D.Lgs. 23/2015)",
+        "In alternativa al ricorso, entro 180 giorni dall'impugnazione si può comunicare alla controparte la richiesta di tentativo di conciliazione o arbitrato; se rifiutati o senza accordo, il ricorso va depositato entro 60 giorni dal rifiuto o dal mancato accordo, a pena di decadenza (art. 6 L. 604/1966)"
       ],
       "riferimenti": [
         "art. 410 c.p.c.",
-        "art. 6 D.Lgs. 23/2015"
+        "art. 6 D.Lgs. 23/2015",
+        "art. 6 L. 604/1966"
       ],
       "template_refs": [
         "LAV_018"
@@ -60,7 +62,7 @@
       "descrizione": "Deposito del ricorso ex art. 414 c.p.c. per l'impugnativa del licenziamento.",
       "prompt_ref": "lavoro.ricorso_lavoro_414_cpc.redazione_atto",
       "termini": [
-        "Deposito entro 180 giorni dall'impugnazione stragiudiziale, a pena di inefficacia (art. 6 L. 604/1966)"
+        "Deposito del ricorso entro 180 giorni dall'impugnazione stragiudiziale, altrimenti l'impugnazione è inefficace, salvo la richiesta di conciliazione o arbitrato nello stesso termine (art. 6 L. 604/1966)"
       ],
       "riferimenti": [
         "art. 6 L. 604/1966",

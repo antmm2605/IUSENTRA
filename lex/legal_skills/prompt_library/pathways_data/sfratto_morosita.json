@@ -30,10 +30,13 @@
       "descrizione": "Atto introduttivo del procedimento speciale con contestuale citazione per l'udienza di convalida.",
       "prompt_ref": "locazioni.sfratto_per_morosita.redazione_atto",
       "termini": [
-        "Tra notifica e udienza devono decorrere i termini liberi ex art. 660 c.p.c."
+        "Tra la notifica dell'intimazione e l'udienza almeno 20 giorni liberi, riducibili fino alla metà dal giudice nelle cause urgenti (art. 660 c.p.c.)",
+        "La citazione deve avvertire che, se l'intimato non compare o non si oppone, lo sfratto è convalidato, e che può chiedere il patrocinio a spese dello Stato (art. 660 c.p.c.)",
+        "La mediazione obbligatoria non si applica fino al mutamento del rito (art. 5, comma 6, D.Lgs. 28/2010)"
       ],
       "riferimenti": [
-        "artt. 657-660 c.p.c."
+        "artt. 657-660 c.p.c.",
+        "art. 5 D.Lgs. 28/2010"
       ],
       "template_refs": [
         "LOC_001",
@@ -46,8 +49,8 @@
       "descrizione": "Preparazione dell'udienza: convalida, ordinanza di rilascio, opposizione del conduttore o termine di grazia.",
       "prompt_ref": "locazioni.sfratto_per_morosita.checklist",
       "termini": [
-        "Nelle locazioni abitative il conduttore può chiedere il termine di grazia fino a 90 giorni (art. 55 L. 392/1978)",
-        "Ingiunzione di pagamento dei canoni ex art. 664 c.p.c."
+        "Nelle locazioni abitative il conduttore può sanare la morosità in udienza; il giudice può concedere un termine di grazia non superiore a 90 giorni (120 nei casi di grave difficoltà), per non più di tre volte (quattro nei casi gravi) in un quadriennio (art. 55 L. 392/1978)",
+        "Con la convalida si può chiedere il decreto ingiuntivo per i canoni scaduti e a scadere (art. 664 c.p.c.)"
       ],
       "riferimenti": [
         "art. 55 L. 392/1978",
@@ -63,8 +66,8 @@
       "descrizione": "Intimazione a rilasciare l'immobile sulla base del titolo di convalida.",
       "prompt_ref": "recupero_crediti.atto_di_precetto.redazione_atto",
       "termini": [
-        "Il precetto perde efficacia decorsi 90 giorni senza inizio dell'esecuzione (art. 481 c.p.c.)",
-        "Esecuzione per rilascio con preavviso ex art. 608 c.p.c."
+        "Il precetto perde efficacia se l'esecuzione non inizia entro 90 giorni (art. 481 c.p.c.)",
+        "L'esecuzione per rilascio inizia con l'avviso dell'ufficiale giudiziario notificato almeno 10 giorni prima dell'accesso (art. 608 c.p.c.)"
       ],
       "riferimenti": [
         "artt. 480-481 c.p.c.",

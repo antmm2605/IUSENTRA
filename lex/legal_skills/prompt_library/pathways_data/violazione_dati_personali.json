@@ -14,7 +14,7 @@
       "descrizione": "Qualificazione dell'incidente, perimetro dei dati coinvolti e valutazione del rischio per gli interessati.",
       "prompt_ref": "privacy.data_breach.checklist",
       "termini": [
-        "Il termine di 72 ore decorre dal momento in cui il titolare viene a conoscenza della violazione (art. 33 GDPR)"
+        "Le 72 ore decorrono dal momento in cui il titolare viene a conoscenza della violazione; il responsabile del trattamento deve informarlo senza ingiustificato ritardo (art. 33, par. 1-2, Reg. UE 2016/679)"
       ],
       "riferimenti": [
         "art. 33 Reg. UE 2016/679"
@@ -27,7 +27,8 @@
       "descrizione": "Predisposizione della notifica con natura della violazione, categorie e numero di interessati, misure adottate.",
       "prompt_ref": "privacy.data_breach.redazione_atto",
       "termini": [
-        "Notifica entro 72 ore, salvo improbabile rischio per i diritti degli interessati; oltre le 72 ore va motivato il ritardo (art. 33 GDPR)"
+        "Notifica senza ingiustificato ritardo e, ove possibile, entro 72 ore, salvo che sia improbabile un rischio per i diritti e le libertà delle persone; oltre le 72 ore la notifica indica i motivi del ritardo (art. 33, par. 1, Reg. UE 2016/679)",
+        "Contenuto minimo: natura della violazione, categorie e numero approssimativo di interessati e registrazioni, contatti del DPO, probabili conseguenze, misure adottate; le informazioni possono essere date in fasi successive (art. 33, par. 3-4, Reg. UE 2016/679)"
       ],
       "riferimenti": [
         "art. 33 Reg. UE 2016/679"
@@ -40,7 +41,8 @@
       "descrizione": "Comunicazione senza ingiustificato ritardo quando la violazione comporta un rischio elevato per diritti e libertà.",
       "prompt_ref": "privacy.data_breach.lettera",
       "termini": [
-        "Obbligatoria in caso di rischio elevato, con linguaggio semplice e chiaro (art. 34 GDPR)"
+        "Obbligatoria senza ingiustificato ritardo se la violazione presenta un rischio elevato, con linguaggio semplice e chiaro (art. 34, par. 1-2, Reg. UE 2016/679)",
+        "Non richiesta se i dati erano resi incomprensibili (per esempio cifrati), se misure successive hanno scongiurato il rischio elevato o se servirebbero sforzi sproporzionati, nel qual caso si fa una comunicazione pubblica (art. 34, par. 3, Reg. UE 2016/679)"
       ],
       "riferimenti": [
         "art. 34 Reg. UE 2016/679"

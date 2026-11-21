@@ -1,7 +1,7 @@
 {
   "pack_id": "regulatory_legal",
   "name": "Regolatorio e policy",
-  "description": "Skill read-only per monitoraggio fonti e gap policy.",
+  "description": "Revisioni in sola lettura delle fonti ufficiali da seguire e delle lacune nelle procedure interne dello studio.",
   "area": "normativa",
   "jurisdiction": "IT",
   "source_mode": "strict",

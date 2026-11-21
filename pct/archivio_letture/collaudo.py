@@ -108,15 +108,33 @@ def ufficio_esplicito_del_ruolo(fatto: Fatto) -> str:
     return " ".join(match.group(0).split()) if match else ""
 
 
+def _ufficio_troncato(fatto: Fatto) -> bool:
+    """Vero se l'ufficio letto arriva alla fine del contesto salvato: l'ultima parola può essere tagliata
+    («TRIBUNALE DI REGGIO CALAB» per «Reggio Calabria»), non è un altro ufficio."""
+    contesto = str(fatto.contesto or "").rstrip()
+    match = _UFFICIO_PRIMA_DEL_RUOLO.search(contesto)
+    return bool(match) and match.end() >= len(contesto)
+
+
 def ruolo_compatibile_con_ufficio(fatto: Fatto, ufficio_giudiziario: str) -> bool:
     atteso = _chiave_ufficio(ufficio_giudiziario)
     dichiarato = _chiave_ufficio(ufficio_esplicito_del_ruolo(fatto))
     if not atteso or not dichiarato:
         return True
-    return (
+    if (
         atteso == dichiarato
         or dichiarato.startswith(atteso + " ")
         or atteso.startswith(dichiarato + " ")
+    ):
+        return True
+    # Contesto tagliato a metà parola: l'ultima parola letta è l'inizio della parola dell'ufficio del fascicolo.
+    letto, voluto = dichiarato.split(), atteso.split()
+    return (
+        _ufficio_troncato(fatto)
+        and len(letto) <= len(voluto)
+        and len(letto[-1]) >= 3
+        and letto[:-1] == voluto[:len(letto) - 1]
+        and voluto[len(letto) - 1].startswith(letto[-1])
     )
 
 

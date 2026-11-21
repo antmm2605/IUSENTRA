@@ -195,9 +195,23 @@ def documenti_ufficio_incompatibile(fatti: Iterable[Fatto]) -> set[str]:
             confermati.add(fatto.oggetto_id)
         elif (fatto.verifica == "respinta" and fatto.posizione < CARATTERI_INTESTAZIONE
               and any(prova.get("codice") == "ufficio_giudiziario" and prova.get("esito") == "respinta"
-                      for prova in fatto.prove)):
+                      and _ancora_incompatibile(fatto, prova) for prova in fatto.prove)):
             incompatibili.add(fatto.oggetto_id)
     return incompatibili - confermati
+
+
+_UFFICIO_DEL_FASCICOLO = re.compile(r"dall'ufficio del fascicolo\s+(?P<ufficio>.+)$", re.IGNORECASE | re.DOTALL)
+
+
+def _ancora_incompatibile(fatto: Fatto, prova: dict) -> bool:
+    """Riconvalida con la regola di oggi: un'esclusione registrata da un collaudo precedente vale solo se il
+    collaudo corrente la rifarebbe (CLAUDE.md, «riconvalida»). L'ufficio del fascicolo è quello della prova."""
+    from .collaudo import ruolo_compatibile_con_ufficio
+
+    trovato = _UFFICIO_DEL_FASCICOLO.search(str(prova.get("dettaglio") or ""))
+    if not trovato:
+        return True  # prova senza l'ufficio confrontato: resta l'esito registrato
+    return not ruolo_compatibile_con_ufficio(fatto, " ".join(trovato.group("ufficio").split()))
 
 
 def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", ufficio: str = "") -> tuple[str, str]:

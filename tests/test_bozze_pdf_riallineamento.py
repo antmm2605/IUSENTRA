@@ -313,8 +313,11 @@ def test_precetto_pa_con_le_norme_vigenti_e_i_dati_del_fascicolo():
     # Titolo in copia attestata conforme, senza formula esecutiva (art. 475 c.p.c. dal 28/02/2023) e notifica del 20/04/2026.
     assert "titolo esecutivo (art. 474 c.p.c.) rilasciato in copia attestata conforme all'originale (art. 475 c.p.c.), notificato il 20/04/2026" in testo
     assert "scaduto il 18/08/2026" in testo and "art. 14, comma 1, D.L. 669/1996" in testo
-    assert ("al **Ministero dell'Istruzione e del Merito, in persona del Ministro pro tempore**, domiciliato per legge presso "
-            "l'Avvocatura Distrettuale dello Stato di Reggio Calabria (art. 11, secondo comma, R.D. 1611/1933),") in testo
+    # Il precetto (atto stragiudiziale) si notifica direttamente all'amministrazione, non presso l'Avvocatura dello Stato
+    # (artt. 480, ultimo comma, e 144, secondo comma, c.p.c.; Cass. civ., sez. V, 19/12/2003, n. 19512).
+    assert ("al **Ministero dell'Istruzione e del Merito, in persona del Ministro pro tempore**, da notificarsi direttamente "
+            "all'amministrazione (artt. 480, ultimo comma, e 144, secondo comma, c.p.c.; Cass. civ., sez. V, 19 dicembre 2003, n. 19512)") in testo
+    assert "presso l'Avvocatura" not in testo and "art. 11" not in testo
     assert "di pagare entro dieci giorni" in testo and "(art. 480, primo comma, c.p.c.)" in testo
     assert "piano del consumatore (art. 480, secondo comma, c.p.c.)" in testo
     assert "studio@pec.example.it (art. 480, terzo comma, c.p.c.)" in testo  # PEC da pubblici elenchi (D.Lgs. 164/2024)
@@ -323,8 +326,8 @@ def test_precetto_pa_con_le_norme_vigenti_e_i_dati_del_fascicolo():
         assert importo in testo
     assert "I.V.A.: non dovuta (regime forfetario dello studio)" in testo
     assert "Avv. Giuseppe Montagnese** (C.F. MNTGPP94L01G791A), in proprio quale difensore antistatario" in testo
-    # Restano da completare solo i dati che il fascicolo non ha: competenze del precetto, giudice dell'esecuzione, data.
-    assert len(precetto.segnaposti) == 3 and "data della notificazione del titolo esecutivo" not in precetto.segnaposti
+    # Restano da completare: competenze del precetto, ufficio e PEC del Ministero, giudice dell'esecuzione, data.
+    assert len(precetto.segnaposti) == 4 and "data della notificazione del titolo esecutivo" not in precetto.segnaposti
     assert "il titolo esecutivo è stato notificato il 20/04/2026" in richiesta.testo and len(richiesta.segnaposti) == 3
 
 

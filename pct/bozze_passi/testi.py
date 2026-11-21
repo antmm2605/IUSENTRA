@@ -263,12 +263,15 @@ def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
         istante = f"**{ctx.cliente or manca('parte istante')}**" + (f" (C.F. {ctx.cliente_cf})" if ctx.cliente_cf else f" ({manca('codice fiscale della parte istante')})")
     amministrazione = _destinatario_pa(ctx).split(", presso")[0] if pa else ""
     debitore = amministrazione if pa else (ctx.controparte_o_manca + (f" (C.F. {titolo['cf_debitore']})" if titolo.get("cf_debitore") else f" ({manca('codice fiscale del debitore')})"))
-    if pa and ctx.avvocatura:
-        # Gli atti giudiziari diversi da quelli introduttivi e le sentenze si notificano all'amministrazione dello Stato
-        # presso l'Avvocatura del distretto dell'autorità che ha pronunciato la sentenza (art. 11, secondo comma, R.D. 1611/1933).
-        recapito = f"domiciliato per legge presso l'{ctx.avvocatura} (art. 11, secondo comma, R.D. 1611/1933)"
-    elif pa:
-        recapito = manca("sede dell'amministrazione presso cui notificare il precetto")
+    if pa:
+        # Il precetto è atto stragiudiziale: non rientra negli atti che l'art. 11 R.D. 1611/1933 fa notificare presso
+        # l'Avvocatura dello Stato (la cui rappresentanza e domiciliazione riguardano l'attività giudiziale). Si notifica
+        # alla parte personalmente (art. 480, ultimo comma, c.p.c.), cioè direttamente all'amministrazione destinataria
+        # (art. 144, secondo comma, c.p.c.); notificato presso l'Avvocatura è inefficace e non interrompe la prescrizione
+        # (Cass. civ., sez. V, 19 dicembre 2003, n. 19512). L'ufficio e la PEC del Registro PP.AA. restano da indicare.
+        recapito = ("da notificarsi direttamente all'amministrazione (artt. 480, ultimo comma, e 144, secondo comma, c.p.c.; "
+                    "Cass. civ., sez. V, 19 dicembre 2003, n. 19512), presso "
+                    + manca("ufficio dell'amministrazione debitrice e suo indirizzo PEC dal Registro PP.AA. (non l'Avvocatura dello Stato)"))
     else:
         recapito = manca("residenza, sede o domicilio del debitore")
     # Dal 28/02/2023 il provvedimento vale come titolo in copia attestata conforme, senza formula esecutiva (art. 475 c.p.c.).

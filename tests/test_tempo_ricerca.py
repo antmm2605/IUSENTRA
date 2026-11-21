@@ -62,3 +62,44 @@ def test_richiesta_http_risponde_503_con_messaggio(monkeypatch):
     tempo_ricerca.chiudi_per_richiesta()
     assert risposta.status_code == 503
     assert risposta.get_json()["code"] == "tempo_massimo"
+
+
+def test_esecutore_limitato_libera_posto_e_connessione_alla_scadenza(tmp_path):
+    from pct.giurisprudenza_corpus import connessione_sola_lettura
+
+    db = tmp_path / "archivio.sqlite"
+    sqlite3.connect(db).execute("CREATE TABLE t(x)").connection.commit()
+    esecutore = tempo_ricerca.EsecutoreLimitato("prova", posti=1, per_utente=1)
+    connessioni = []
+
+    def lavoro_lungo():
+        conn = connessione_sola_lettura(str(db))  # collegata al tempo massimo del worker
+        connessioni.append(conn)
+        try:
+            return conn.execute(_LUNGA).fetchone()
+        finally:
+            conn.close()
+
+    inizio = time.monotonic()
+    with pytest.raises(tempo_ricerca.RicercaTroppoLunga):
+        esecutore.esegui(lavoro_lungo, secondi=0.3, utente="a")
+    assert time.monotonic() - inizio < 3
+    fine = time.monotonic() + 3
+    while esecutore.occupati() and time.monotonic() < fine:
+        time.sleep(0.05)
+    assert esecutore.occupati() == 0  # SQLite interrotto nel worker: posto libero
+    with pytest.raises(sqlite3.ProgrammingError):
+        connessioni[0].execute("SELECT 1")  # connessione chiusa
+    assert esecutore.esegui(lambda: 42, secondi=1, utente="a") == 42
+
+
+def test_esecutore_limitato_senza_posto_non_accoda():
+    import threading
+
+    esecutore = tempo_ricerca.EsecutoreLimitato("prova2", posti=1, per_utente=1)
+    fermo = threading.Event()
+    futuro = esecutore.avvia(fermo.wait, 2, secondi=2, utente="a")
+    with pytest.raises(tempo_ricerca.PostoNonDisponibile):
+        esecutore.avvia(lambda: 1, secondi=1, utente="b")
+    fermo.set()
+    futuro.result(timeout=3)

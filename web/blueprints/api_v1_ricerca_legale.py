@@ -453,7 +453,9 @@ def normativa_articolo_sentenze(article_id):
             _normativa_db(), article_id, includi_archivio_generale=True)
         if item is None:
             return jsonify(ok=False, message="Articolo non trovato nell'archivio."), 404
-        return jsonify(ok=True, **sentenze_per_articolo(item))
+        utente = g.get("utente_corrente")
+        chiave = f"{getattr(getattr(g, 'tenant', None), 'slug', '')}:{getattr(utente, 'id', '') or getattr(utente, 'username', '')}"
+        return jsonify(ok=True, **sentenze_per_articolo(item, utente=chiave))
     except (FileNotFoundError, OSError, sqlite3.Error) as exc:
         return _archivio_non_disponibile(exc, "Archivio delle sentenze non disponibile. Riprova fra poco.")
 

@@ -122,7 +122,10 @@ def connessione_sola_lettura(db_path: str) -> sqlite3.Connection:
         conn = sqlite3.connect(Path(db_path).as_uri() + "?mode=ro&immutable=1", uri=True, timeout=5)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA query_only=ON")
-    return conn
+    # Con un tempo massimo aperto nel thread (ricerche dell'avvocato) SQLite si interrompe alla scadenza.
+    from lex.tempo_ricerca import applica
+
+    return applica(conn)
 
 
 def derive_corpus_db_path(storage_path: str) -> str:

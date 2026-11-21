@@ -59,3 +59,17 @@ def test_numeri_normattiva_uguali_a_codici_e_leggi(monkeypatch):
     conteggi = bridge._conteggi_come_codici_e_leggi({"available": True, "documents": 641, "articles": 43414}, {"DATA_DIR": "/dati"})
     assert conteggi["documents"] == 4 and conteggi["articles"] == 6828
     assert bridge._conteggi_come_codici_e_leggi({"documents": 641}, {}) == {"documents": 641}
+
+
+def test_cassazione_senza_posto_libero_avvisa_subito(monkeypatch):
+    from lex import tempo_ricerca
+
+    class _Pieno:
+        def esegui(self, *args, **kwargs):
+            raise tempo_ricerca.PostoNonDisponibile("nessun posto libero")
+
+    monkeypatch.setattr(bridge, "_esecutore_cassazione", lambda: _Pieno())
+    inizio = time.monotonic()
+    with pytest.raises(bridge._CassazioneScaduta):
+        bridge._cassazione_entro_il_tempo("art. 2043 c.c.", 0)
+    assert time.monotonic() - inizio < 0.2

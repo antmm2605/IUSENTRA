@@ -40,9 +40,9 @@ def test_sentenze_dell_articolo_dall_indice_o_dagli_archivi(monkeypatch):
 
     chiamate = []
     monkeypatch.setattr(giur, "per_norme", lambda chiavi: chiamate.append(chiavi) or None)
-    monkeypatch.setattr(giur, "cerca", lambda domanda, **kw: EsitoGiurisprudenza(
+    monkeypatch.setattr(giur, "cerca", lambda domanda, **kw: chiamate.append(kw.get("utente")) or EsitoGiurisprudenza(
         "consultata", [Pronuncia("Cassazione (SentenzeWeb)", "Cassazione civile", "3", "12714", "2024")], ["Cassazione"]))
-    esito = normativa_sentenze.sentenze_per_articolo({"number": "2043", "urn": "urn:nir:stato:regio.decreto:1942-03-16;262"})
-    assert chiamate == [["cc:2043"]]
+    esito = normativa_sentenze.sentenze_per_articolo({"number": "2043", "urn": "urn:nir:stato:regio.decreto:1942-03-16;262"}, utente="studio:7")
+    assert chiamate == [["cc:2043"], "studio:7"]
     assert esito["citazione"] == "art. 2043 c.c." and esito["fonte"] == "ricerca negli archivi"
     assert esito["pronunce"][0]["estremi"].startswith("Cassazione civile, sez. 3, n. 12714/2024")

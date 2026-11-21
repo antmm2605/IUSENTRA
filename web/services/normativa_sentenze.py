@@ -30,14 +30,14 @@ def _citazione(item: Mapping[str, Any]) -> tuple[str, str]:
     return (f"art. {numero} {estremi}".strip(), "")
 
 
-def sentenze_per_articolo(item: Mapping[str, Any], *, secondi: float = SECONDI) -> dict[str, Any]:
+def sentenze_per_articolo(item: Mapping[str, Any], *, secondi: float = SECONDI, utente: str = "") -> dict[str, Any]:
     from lex.harness.giurisprudenza import cerca, per_norme
 
     citazione, chiave = _citazione(item)
     esito = per_norme([chiave]) if chiave else None
     fonte = "pronunce precalcolate per questa norma"
     if esito is None:
-        esito = cerca(citazione, limite=5, secondi=secondi)
+        esito = cerca(citazione, limite=5, secondi=secondi, utente=utente)
         fonte = "ricerca negli archivi"
     dati = esito.to_dict()
     return {"citazione": citazione, "fonte": fonte, "stato": dati["stato"], "archivi": dati["archivi"],

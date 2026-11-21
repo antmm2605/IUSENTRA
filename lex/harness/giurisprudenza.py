@@ -21,6 +21,16 @@ _log = logging.getLogger(__name__)
 _ESECUTORE = ThreadPoolExecutor(max_workers=2, thread_name_prefix="lex-giurisprudenza")
 
 
+def _esecutore_limitato():
+    from lex.tempo_ricerca import EsecutoreLimitato
+
+    return EsecutoreLimitato("lex-giurisprudenza", posti=4, per_utente=1)
+
+
+# Quattro posti: due archivi per due ricerche contemporanee; uno per utente e archivio.
+_ESECUTORE_LIMITATO = _esecutore_limitato()
+
+
 @dataclass
 class Pronuncia:
     archivio: str
@@ -78,7 +88,7 @@ def archivi() -> list[tuple[str, Any]]:
 
 
 def cerca(domanda: str, *, limite: int = 3, secondi: float | None = None,
-          sorgenti: Callable[[], list[tuple[str, Any]]] | None = None) -> EsitoGiurisprudenza:
+          sorgenti: Callable[[], list[tuple[str, Any]]] | None = None, utente: str = "") -> EsitoGiurisprudenza:
     """Pronunce per la domanda (testo o estremi «9449/2016») in tutti gli archivi, entro un tempo massimo."""
     secondi = float(os.environ.get("LEX_HARNESS_GIURISPRUDENZA_SECONDI", "6")) if secondi is None else secondi
     elenco = (sorgenti or archivi)()
@@ -91,12 +101,21 @@ def cerca(domanda: str, *, limite: int = 3, secondi: float | None = None,
 
     coppie = estremi_dalla_domanda(domanda)["coppie"]
     domanda = f"{coppie[0][0]}/{coppie[0][1]}" if len(coppie) == 1 else domanda
-    futuri = {nome: _ESECUTORE.submit(corpus.cerca_sentenze, q=domanda, limit=limite, semantica=False)
-              for nome, corpus in elenco}
+    # Posti contati e tempo massimo dentro il lavoro: alla scadenza SQLite si interrompe e il posto si libera
+    # (prima la ricerca proseguiva in sfondo e occupava disco e thread). Senza posto libero non si accoda.
+    from lex.tempo_ricerca import EsecutoreLimitato, PostoNonDisponibile, RicercaTroppoLunga
+
+    futuri = {}
+    for nome, corpus in elenco:
+        try:
+            futuri[nome] = _ESECUTORE_LIMITATO.avvia(corpus.cerca_sentenze, q=domanda, limit=limite, semantica=False,
+                                                    secondi=secondi, utente=f"{utente}:{nome}")
+        except PostoNonDisponibile:
+            esito.errori.append(f"{nome}: archivio già occupato da altre ricerche, riprova fra poco")
     for nome, futuro in futuri.items():
         try:
-            esito.pronunce += [_riga(nome, r) for r in futuro.result(timeout=secondi)]
-        except _Scaduto:
+            esito.pronunce += [_riga(nome, r) for r in EsecutoreLimitato.attendi(futuro, secondi)]
+        except (_Scaduto, RicercaTroppoLunga):
             esito.errori.append(f"{nome}: nessuna risposta entro {secondi:.0f} s (archivio lento o disco saturo)")
         except Exception as exc:
             _log.exception("harness: ricerca nella giurisprudenza non riuscita (%s)", nome)

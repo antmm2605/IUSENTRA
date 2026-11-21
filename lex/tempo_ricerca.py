@@ -139,3 +139,76 @@ def chiudi_per_richiesta() -> None:
     _ferma_timer()
     _STATO.fine = None
     _STATO.secondi = None
+
+
+class PostoNonDisponibile(RuntimeError):
+    """Tutti i posti dell'esecutore (o quelli dell'utente) sono occupati: la ricerca non parte."""
+
+
+class EsecutoreLimitato:
+    """Ricerche lente in un esecutore con posti contati e tempo massimo dentro il lavoro.
+
+    La scadenza è aperta nel thread che lavora: le connessioni SQLite collegate con ``applica`` si interrompono
+    quando scade, quindi il posto e la connessione si liberano davvero (non resta una ricerca in sfondo).
+    Se non c'è un posto libero, complessivo o per utente, la ricerca non si accoda: ``PostoNonDisponibile``.
+    """
+
+    def __init__(self, nome: str, posti: int = 2, per_utente: int = 1):
+        from concurrent.futures import ThreadPoolExecutor
+
+        self._esecutore = ThreadPoolExecutor(max_workers=posti, thread_name_prefix=nome)
+        self._posti = threading.BoundedSemaphore(posti)
+        self._per_utente = max(1, per_utente)
+        self._utenti: dict[str, int] = {}
+        self._lock = threading.Lock()
+
+    def occupati(self) -> int:
+        with self._lock:
+            return sum(self._utenti.values())
+
+    def esegui(self, lavoro, *args, secondi: float, utente: str = "", **kwargs):
+        """Avvia e attende: alla scadenza annulla e solleva ``RicercaTroppoLunga``."""
+        return self.attendi(self.avvia(lavoro, *args, secondi=secondi, utente=utente, **kwargs), secondi)
+
+    @staticmethod
+    def attendi(futuro, secondi: float):
+        from concurrent.futures import TimeoutError as Scaduto
+
+        try:
+            return futuro.result(timeout=secondi + 0.5)
+        except Scaduto as exc:
+            futuro.cancel()
+            raise RicercaTroppoLunga(secondi) from exc
+
+    def avvia(self, lavoro, *args, secondi: float, utente: str = "", **kwargs):
+        """Avvia senza attendere (più archivi in parallelo); il tempo massimo vale dentro il lavoro."""
+        if not self._posti.acquire(blocking=False):
+            raise PostoNonDisponibile("nessun posto libero")
+        with self._lock:
+            if self._utenti.get(utente, 0) >= self._per_utente:
+                self._posti.release()
+                raise PostoNonDisponibile("ricerca già in corso per questo utente")
+            self._utenti[utente] = self._utenti.get(utente, 0) + 1
+
+        def libera():
+            with self._lock:
+                self._utenti[utente] -= 1
+                if not self._utenti[utente]:
+                    del self._utenti[utente]
+            self._posti.release()
+
+        def nel_worker():
+            try:
+                with scadenza(secondi), traduci_interruzione():
+                    return lavoro(*args, **kwargs)
+            finally:
+                libera()
+
+        try:
+            futuro = self._esecutore.submit(nel_worker)
+        except BaseException:
+            libera()
+            raise
+        # Un lavoro annullato prima di partire non entra in nel_worker: il posto si libera qui.
+        futuro.add_done_callback(lambda f: libera() if f.cancelled() else None)
+        return futuro

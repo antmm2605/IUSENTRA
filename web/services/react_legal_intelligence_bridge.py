@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as _FuturoScaduto
 import os
 import re
 import threading
@@ -3144,7 +3143,19 @@ def _official_archive_records(warnings: list[dict[str, str]], search_query: str)
 # 21/11/2026): dentro la richiesta dell'avvocato ha un tempo massimo e lavora in un esecutore separato,
 # così il thread del server non resta fermo. Oltre il tempo si mostrano gli altri risultati con l'avviso.
 _CASSAZIONE_SECONDI = float(os.getenv("IUSENTRA_RICERCA_CASSAZIONE_SECONDI") or 8)
-_ESECUTORE_CASSAZIONE = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ricerca-cassazione")
+_ESECUTORE_CASSAZIONE = None
+_ESECUTORE_LOCK = threading.Lock()
+
+
+def _esecutore_cassazione():
+    global _ESECUTORE_CASSAZIONE
+    with _ESECUTORE_LOCK:
+        if _ESECUTORE_CASSAZIONE is None:
+            from lex.tempo_ricerca import EsecutoreLimitato
+
+            # Due posti in tutto, uno per utente: una ricerca scaduta si interrompe nel worker e libera il posto.
+            _ESECUTORE_CASSAZIONE = EsecutoreLimitato("ricerca-cassazione", posti=2, per_utente=1)
+        return _ESECUTORE_CASSAZIONE
 
 
 class _CassazioneScaduta(Exception):
@@ -3175,17 +3186,30 @@ def _cassazione_righe(search_query: str, primo_indice: int) -> list[dict[str, An
     return righe
 
 
+def _utente_corrente() -> str:
+    try:
+        from flask import g, has_request_context
+
+        if has_request_context():
+            utente = g.get("utente_corrente")
+            tenant = getattr(getattr(g, "tenant", None), "slug", "")
+            return f"{tenant}:{getattr(utente, 'id', '') or getattr(utente, 'username', '')}"
+    except Exception:
+        pass
+    return ""
+
+
 def _cassazione_entro_il_tempo(search_query: str, primo_indice: int) -> list[dict[str, Any]]:
-    from lex.tempo_ricerca import scadenza_attiva
+    from lex.tempo_ricerca import PostoNonDisponibile, RicercaTroppoLunga, scadenza_attiva
 
     attesa = _CASSAZIONE_SECONDI
     fine = scadenza_attiva()
     if fine is not None:
         attesa = max(0.5, min(attesa, fine - time.monotonic() - 2))
-    futuro = _ESECUTORE_CASSAZIONE.submit(_cassazione_righe, search_query, primo_indice)
     try:
-        return futuro.result(timeout=attesa)
-    except _FuturoScaduto as exc:
+        return _esecutore_cassazione().esegui(_cassazione_righe, search_query, primo_indice,
+                                               secondi=attesa, utente=_utente_corrente())
+    except (PostoNonDisponibile, RicercaTroppoLunga) as exc:
         raise _CassazioneScaduta() from exc
 
 

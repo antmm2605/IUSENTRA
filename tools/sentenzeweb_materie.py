@@ -53,6 +53,9 @@ def completa(root: Path, *, prova: bool = False, blocco: int = 2000, pagine: int
     conteggi = {"pagine": 0, "pagine_non_verificate": 0, "documenti": 0, "con_materia": 0, "da_scrivere": 0, "scritti": 0}
     try:
         alias = dict(connection.execute("SELECT source_id, native_uuid FROM sentenzeweb_aliases"))
+        # Solo le pronunce senza oggetto: un oggetto già presente non si tocca e non si conta.
+        vuoti = {r[0] for r in connection.execute("SELECT uuid_interno FROM sentenze WHERE COALESCE(oggetto,'')=''")}
+        conteggi["senza_oggetto"] = len(vuoti)
         attesa: list[tuple[str, str]] = []
 
         def scrivi():
@@ -80,7 +83,7 @@ def completa(root: Path, *, prova: bool = False, blocco: int = 2000, pagine: int
                 if not testo or not uuid:
                     continue
                 conteggi["con_materia"] += 1
-                if uuid in visti:
+                if uuid in visti or uuid not in vuoti:
                     continue
                 visti.add(uuid)
                 attesa.append((testo, uuid))

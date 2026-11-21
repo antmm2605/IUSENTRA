@@ -1106,6 +1106,207 @@
      "decreti tavolari e reclamo (allegato: legge generale sui libri fondiari, artt. 126 e ss.)"
     ]
    ]
+  },
+  "NOTE_UDIENZA_AMMINISTRATIVE": {
+   "titolo": "Note d'udienza nel processo amministrativo",
+   "modelli": [
+    "AMM_NOTEUD_001"
+   ],
+   "norme": [
+    [
+     "codice_processo_amministrativo",
+     "73",
+     "documenti fino a 40 giorni liberi, memorie fino a 30 e repliche fino a 20 giorni liberi prima dell'udienza di discussione"
+    ]
+   ]
+  },
+  "NOTE_UDIENZA_PENALI": {
+   "titolo": "Note d'udienza nel processo penale",
+   "modelli": [
+    "PEN_NOTEUD_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_penale",
+     "121",
+     "memorie e richieste scritte delle parti in ogni stato e grado, con deposito in cancelleria"
+    ]
+   ]
+  },
+  "ISTANZA_RINVIO_PENALE": {
+   "titolo": "Istanza di rinvio nel processo penale",
+   "modelli": [
+    "PEN_RINV_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_penale",
+     "420-ter",
+     "rinvio per impedimento a comparire dell'imputato o del difensore"
+    ]
+   ]
+  },
+  "ISTANZA_PROVVISORIA_ESECUZIONE": {
+   "titolo": "Istanza di provvisoria esecuzione",
+   "modelli": [
+    "CIV_SUC_012"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "648",
+     "esecuzione provvisoria del decreto ingiuntivo in pendenza di opposizione"
+    ],
+    [
+     "codice_procedura_civile",
+     "642",
+     "esecuzione provvisoria chiesta con il ricorso per decreto ingiuntivo"
+    ]
+   ]
+  },
+  "VISIBILITA_FASCICOLO": {
+   "titolo": "Richiesta di visibilità del fascicolo telematico",
+   "modelli": [
+    "CIV_NOT_005",
+    "TMP-NOT-005"
+   ],
+   "norme": [
+    [
+     "1368/1941",
+     "76",
+     "le parti e i difensori muniti di procura possono esaminare gli atti del fascicolo d'ufficio e di quelli delle altre parti"
+    ]
+   ]
+  },
+  "FASCICOLO_DI_PARTE": {
+   "titolo": "Fascicolo di parte",
+   "modelli": [
+    "CIV_NOT_006",
+    "TMP-NOT-006"
+   ],
+   "norme": [
+    [
+     "1368/1941",
+     "74",
+     "fascicolo d'ufficio informatico con una sezione per ogni parte costituita"
+    ]
+   ]
+  },
+  "NOTIFICA_ACCESSORIA": {
+   "titolo": "Notifica e adempimento accessorio",
+   "modelli": [
+    "CIV_NOTIFBASE_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "137",
+     "chi esegue la notificazione e come"
+    ],
+    [
+     "codice_procedura_civile",
+     "170",
+     "dopo la costituzione notificazioni e comunicazioni al procuratore costituito"
+    ]
+   ]
+  },
+  "RICORSO_AMMINISTRATIVO_PREVIDENZIALE": {
+   "titolo": "Ricorso amministrativo previdenziale",
+   "modelli": [
+    "LAV_ISTAMM_001"
+   ],
+   "norme": [
+    [
+     "codice_procedura_civile",
+     "443",
+     "la domanda giudiziale previdenziale non è procedibile finché non sono esauriti i procedimenti amministrativi"
+    ]
+   ]
+  },
+  "CONTRATTO_COMMERCIALE": {
+   "titolo": "Contratto commerciale",
+   "modelli": [
+    "SOC_CONT_001"
+   ],
+   "norme": [
+    [
+     "codice_civile",
+     "1321",
+     "nozione di contratto"
+    ],
+    [
+     "codice_civile",
+     "1322",
+     "autonomia contrattuale e contratti atipici"
+    ],
+    [
+     "codice_civile",
+     "1325",
+     "requisiti del contratto"
+    ]
+   ]
+  },
+  "PARERE_OPERAZIONE_STRAORDINARIA": {
+   "titolo": "Parere su operazione straordinaria",
+   "modelli": [
+    "SOC_OPSTR_001"
+   ],
+   "norme": [
+    [
+     "codice_civile",
+     "2498",
+     "trasformazione: continuità dei rapporti giuridici"
+    ],
+    [
+     "codice_civile",
+     "2501",
+     "forme di fusione"
+    ],
+    [
+     "codice_civile",
+     "2506",
+     "forme di scissione"
+    ]
+   ]
+  },
+  "RICORSO_CONTENZIOSO_SOCIETARIO": {
+   "titolo": "Ricorso nel contenzioso societario",
+   "modelli": [
+    "SOC_RIC_001"
+   ],
+   "norme": [
+    [
+     "dlgs_168_2003",
+     "3",
+     "competenza per materia delle sezioni specializzate in materia di impresa"
+    ]
+   ]
+  }
+ },
+ "senza_norma_propria": {
+  "motivo_generale": "Atti generici o di sola forma: la norma dipende dal contenuto del singolo atto e non si associa a priori (verifica del 21/11/2026 sul testo vigente).",
+  "modelli": {
+   "CIV_PROC_007": "Nomina del domiciliatario: l'art. 82 r.d. 37/1934 risulta abrogato dal d.lgs. 164/2024 (testo vigente in biblioteca); nessuna norma vigente specifica.",
+   "TMP-PROC-007": "Come CIV_PROC_007: art. 82 r.d. 37/1934 abrogato dal d.lgs. 164/2024.",
+   "CIV_NOT_008": "Indice allegati: l'art. 74 disp. att. c.p.c. vigente non menziona più l'indice; la forma è nelle specifiche tecniche DGSIA, non in una norma di legge.",
+   "TMP-NOT-008": "Come CIV_NOT_008.",
+   "CIV_SUC_005": "Istanza di rinvio (rito tributario): il rinvio dipende dal motivo addotto; nessuna norma specifica certa.",
+   "CIV_IMP_011": "Reclamo generico: la norma dipende dal provvedimento reclamato (artt. 669-terdecies, 739, 630 c.p.c. e altri).",
+   "TMP-IMP-012": "Come CIV_IMP_011.",
+   "CIV_IST_001": "Istanza generica.",
+   "CIV_MEM_001": "Memoria generica.",
+   "TMP-CIV-007": "Memoria generica.",
+   "AMM_SEG_001": "Istanza di segreteria generica.",
+   "SOC_MEM_001": "Memoria difensiva generica.",
+   "SOC_PAR_001": "Parere generico: le norme dipendono dalla questione.",
+   "STR_PAR_001": "Parere generico.",
+   "SOC_DUEDIL_001": "Report di due diligence: documento professionale senza disciplina di legge propria.",
+   "STR_BLT_005": "Richiesta di documentazione generica.",
+   "TMP-STR-005": "Come STR_BLT_005.",
+   "STR_BLT_006": "Comunicazione di riserva dei diritti generica.",
+   "TMP-STR-006": "Come STR_BLT_006.",
+   "STR_COM_001": "Comunicazione professionale generica.",
+   "STR_CONTEST_001": "Lettera di contestazione generica: la norma dipende dal rapporto contestato."
   }
  }
 }

@@ -14,6 +14,16 @@
    "atto": "codice_procedura_civile",
    "articolo": "641",
    "perche": "termine di opposizione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "654",
+   "perche": "esecutorietà conferita con decreto; nel precetto va menzionato il provvedimento che l’ha disposta, senza nuova notifica del decreto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "475",
+   "perche": "il decreto vale come titolo in copia attestata conforme o in duplicato informatico: la formula esecutiva non si appone più (d.lgs. 149/2022, dal 28/02/2023)"
   }
  ],
  "campi": [

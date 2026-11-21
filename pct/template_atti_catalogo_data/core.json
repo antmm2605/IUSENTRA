@@ -898,7 +898,7 @@
       ],
       "note_operative": [
         "Verificare il canale telematico PST e l'ufficio competente prima del deposito.",
-        "Controllare titolo, formula esecutiva, notifiche e aggiornamento del credito."
+        "Controllare titolo in copia attestata conforme (art. 475 c.p.c.), notifiche e aggiornamento del credito."
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
@@ -10036,7 +10036,7 @@
     {
       "id": "MON_008",
       "slug": "istanza-di-concessione-formula-esecutiva",
-      "titolo": "Istanza di concessione formula esecutiva",
+      "titolo": "Istanza di dichiarazione di esecutorietà del decreto ingiuntivo (art. 647 c.p.c.)",
       "famiglia": "Procedimento monitorio",
       "area": "Giudiziale",
       "macro_area": "Diritto civile",
@@ -21148,7 +21148,7 @@
       ],
       "note_operative": [
         "Verificare il canale telematico PST e l'ufficio competente prima del deposito.",
-        "Controllare titolo, formula esecutiva, notifiche e aggiornamento del credito."
+        "Controllare titolo in copia attestata conforme (art. 475 c.p.c.), notifiche e aggiornamento del credito."
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
@@ -22234,7 +22234,7 @@
       ],
       "note_operative": [
         "Verificare il canale telematico PST e l'ufficio competente prima del deposito.",
-        "Controllare titolo, formula esecutiva, notifiche e aggiornamento del credito."
+        "Controllare titolo in copia attestata conforme (art. 475 c.p.c.), notifiche e aggiornamento del credito."
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",

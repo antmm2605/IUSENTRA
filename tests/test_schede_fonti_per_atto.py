@@ -189,3 +189,22 @@ def test_atti_residui_con_fonti_integrate(tmp_path):
     esiti = {e.chiave: e for e in acquisisci(tmp_path / "vuota.sqlite", tmp_path / "pacchetti", simula=True,
                                               riferimenti=riferimenti_atti_senza_scheda()).esiti}
     assert esiti["rd_499_1929"].stato == "simulato"
+
+
+def test_atti_generici_associati_solo_con_base_certa_e_motivo_per_gli_altri():
+    """Revisione del 21/11 sul testo vigente: note d'udienza, rinvio penale, provvisoria esecuzione, fascicolo."""
+    import json
+    from pathlib import Path
+
+    from web.services.schede_fonti_catalogo import norme_atti
+
+    atti = norme_atti()
+    per_modello = {m: aid for aid, atto in atti.items() for m in atto["modelli"]}
+    assert per_modello["PEN_NOTEUD_001"] == "NOTE_UDIENZA_PENALI"
+    assert ("codice_procedura_penale", "121") in {(n["atto"], n["articolo"]) for n in atti["NOTE_UDIENZA_PENALI"]["norme"]}
+    assert {n["articolo"] for n in atti["ISTANZA_PROVVISORIA_ESECUZIONE"]["norme"]} == {"648", "642"}
+    assert per_modello["CIV_NOT_005"] == "VISIBILITA_FASCICOLO"
+    # La nomina del domiciliatario non si associa all'art. 82 r.d. 37/1934, abrogato dal d.lgs. 164/2024.
+    dati = json.loads((Path(__file__).resolve().parents[1] / "pct/schede_fonti/norme_atti.json").read_text(encoding="utf-8"))
+    assert "CIV_PROC_007" not in per_modello
+    assert "abrogato" in dati["senza_norma_propria"]["modelli"]["CIV_PROC_007"]

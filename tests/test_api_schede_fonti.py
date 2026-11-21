@@ -196,10 +196,12 @@ def test_pagina_solo_react_non_cade_in_404_con_parametro_legacy(monkeypatch):
             r = c.get("/ricerca-legale/schede-atti" + query)
             assert r.status_code == 200 and r.get_json() == {"shell": "react", "percorso": "ricerca-legale/schede-atti"}
         assert c.get("/ricerca-legale/schede-atti/?_legacy=1").status_code == 200
-        # API, scritture e compatibilità delle altre pagine non cambiano.
+        # API e scritture non passano dal gate.
         assert c.get("/api/v1/ui/schede-fonti?_legacy=1").status_code == 404
         assert c.post("/ricerca-legale/schede-atti?_legacy=1").status_code == 404
-        assert c.get("/clienti?_legacy=1").status_code == 404
+        # Dal 2.489.0 (decisione del 10/11/2026: solo React) «_legacy» non apre più viste classiche in nessuna pagina:
+        # anche /clienti?_legacy=1 riceve la shell React (prima cadeva sul vecchio template, qui assente → 404).
+        assert c.get("/clienti?_legacy=1").get_json() == {"shell": "react", "percorso": "clienti"}
 
 
 def test_pagina_reale_autenticata_resta_react_anche_nella_finestra_storica(tmp_path):

@@ -39,8 +39,13 @@ def _chiudi_tempo_massimo(_exc=None):
 
 @api_v1_ricerca_legale.errorhandler(RicercaTroppoLunga)
 def _ricerca_troppo_lunga(exc):
-    current_app.logger.warning("Ricerca interrotta per tempo massimo: %s %s", request.path, request.query_string[:300])
+    current_app.logger.warning("Ricerca interrotta per tempo massimo: %s %s", request.path, _parametri_per_log())
     return jsonify(ok=False, message=str(exc), code="tempo_massimo"), 503
+
+
+def _parametri_per_log() -> str:
+    """Solo i nomi dei parametri: i termini cercati possono contenere dati dei clienti."""
+    return "parametri=" + ",".join(sorted(request.args.keys())[:12])
 
 
 def _archivio_non_disponibile(exc: BaseException, messaggio: str):
@@ -298,6 +303,8 @@ def _permesso_normativa():
 # Catalogo già serializzato e compresso per revisione: 6,6 MB di JSON a ogni apertura di
 # «Codici e leggi» diventano circa 0,6 MB, preparati una volta sola (collaudo 21/11/2026).
 _CATALOGHI_COMPRESSI: dict = {}
+# Chiavi fisse: la vista chiesta dall'utente non entra mai nella cache così com'è.
+_CHIAVI_CATALOGO = frozenset({"vigenti", "storico", "tutti"})
 _LOCK_CATALOGHI = threading.Lock()
 
 
@@ -307,6 +314,8 @@ def _catalogo_compresso(chiave, sorgente, costruisci, impronta=None):
     import gzip
     import json
 
+    if chiave not in _CHIAVI_CATALOGO:
+        raise ValueError("Vista del catalogo non ammessa")
     with _LOCK_CATALOGHI:
         voce = _CATALOGHI_COMPRESSI.get(chiave)
     if voce is None or voce[2] is not sorgente or voce[3] != impronta:
@@ -359,7 +368,7 @@ def normativa_atti():
                     sostituzioni = alias_originali_storici()
                     atti = [atto for atto in atti if atto["id"] not in sostituzioni]
                 stato = _normativa_db().stat()
-                return _catalogo_compresso(vista or "tutti", collegati, lambda: {"ok": True, "items": elenco_leggero(atti)},
+                return _catalogo_compresso("storico" if vista == "storico" else "tutti", collegati, lambda: {"ok": True, "items": elenco_leggero(atti)},
                                            impronta=(str(_normativa_db()), stato.st_size, stato.st_mtime_ns,
                                                      tuple(sorted(sostituzioni)) if vista == "storico" else ()))
         return jsonify(ok=False, message="Il catalogo delle fonti si sta aggiornando."), 503, {"Retry-After": "5"}

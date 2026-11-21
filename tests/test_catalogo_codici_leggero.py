@@ -33,17 +33,40 @@ def test_catalogo_compresso_una_volta_e_riusato():
         return {"ok": True, "items": elenco_leggero(atti)}
 
     with app.test_request_context(headers={"Accept-Encoding": "gzip, br"}):
-        prima = modulo._catalogo_compresso("prova", atti, costruisci)
-        seconda = modulo._catalogo_compresso("prova", atti, costruisci)
+        prima = modulo._catalogo_compresso("vigenti", atti, costruisci)
+        seconda = modulo._catalogo_compresso("vigenti", atti, costruisci)
     assert len(chiamate) == 1
     assert prima.headers["Content-Encoding"] == "gzip"
     corpo = json.loads(gzip.decompress(seconda.get_data()))
     assert len(corpo["items"]) == 500 and "urn" not in corpo["items"][0]
     assert len(seconda.get_data()) < len(json.dumps(corpo)) / 5
     with app.test_request_context():
-        semplice = modulo._catalogo_compresso("prova", atti, costruisci)
+        semplice = modulo._catalogo_compresso("vigenti", atti, costruisci)
     assert "Content-Encoding" not in semplice.headers and json.loads(semplice.get_data())["ok"] is True
     nuovi = list(atti)
     with app.test_request_context():
-        modulo._catalogo_compresso("prova", nuovi, costruisci)
+        modulo._catalogo_compresso("vigenti", nuovi, costruisci)
     assert len(chiamate) == 2  # catalogo nuovo, risposta nuova
+
+
+def test_vista_sconosciuta_non_entra_nella_cache():
+    import pytest
+
+    app = Flask(__name__)
+    with app.test_request_context():
+        with pytest.raises(ValueError):
+            modulo._catalogo_compresso("vista-inventata-" + "x" * 50, [], lambda: {"ok": True})
+    assert set(modulo._CATALOGHI_COMPRESSI) <= modulo._CHIAVI_CATALOGO
+
+
+def test_il_log_del_tempo_massimo_non_contiene_i_termini_cercati(caplog):
+    from lex.tempo_ricerca import RicercaTroppoLunga
+
+    app = Flask(__name__)
+    with app.test_request_context("/normativa/articoli?q=Mario+Rossi+risarcimento&article=2043"):
+        with caplog.at_level("WARNING"):
+            risposta, stato = modulo._ricerca_troppo_lunga(RicercaTroppoLunga(20))
+    assert stato == 503
+    testo = caplog.text
+    assert "Mario" not in testo and "Rossi" not in testo and "2043" not in testo
+    assert "article,q" in testo

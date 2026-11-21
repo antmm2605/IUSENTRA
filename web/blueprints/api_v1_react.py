@@ -15999,9 +15999,11 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
         cached = _LEGAL_PAYLOAD_CACHE.get(cache_key)
         if cached is not None:
             return current_app.response_class(cached, mimetype="application/json")
+    from lex.tempo_ricerca import RicercaTroppoLunga, scadenza
+
     try:
-        response = redacted_json_response(
-            build_react_legal_intelligence_payload(
+        with scadenza():
+            payload = build_react_legal_intelligence_payload(
                 get_legal_intelligence=get_legal_intelligence,
                 get_legal_update_pipeline=get_legal_update_pipeline,
                 get_fascicoli=get_fascicoli,
@@ -16014,15 +16016,20 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
                 # La parte che non dipende dalla domanda si riusa fra ricerche dello stesso studio (LEX-01).
                 base_cache_scope=_legal_intelligence_scope(page),
             )
-        )
+        response = redacted_json_response(payload)
         if cache_key is not None and response.status_code == 200:
             _LEGAL_PAYLOAD_CACHE.set(cache_key, response.get_data())
         return response
+    except RicercaTroppoLunga as exc:
+        # Solo i nomi dei parametri: i termini cercati possono contenere dati dei clienti.
+        current_app.logger.warning("Ricerca legale interrotta per tempo massimo: parametri=%s",
+                                   ",".join(sorted(request.args.keys())[:12]))
+        return jsonify(ok=False, message=str(exc), code="tempo_massimo"), 503
     except Exception as exc:
         current_app.logger.exception("Errore Legal Intelligence React bridge: %s", exc)
         return jsonify(
             build_react_legal_intelligence_error_payload(
-                "Legal Intelligence non disponibile dal runtime corrente.",
+                "Le fonti della ricerca legale non sono disponibili in questo momento. Riprova tra poco.",
                 legacy_contract=legacy_contract,
             )
         ), 200

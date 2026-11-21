@@ -594,10 +594,11 @@
     },
     {
       "id": "archivio-giurisprudenza",
-      "label": "Archivio Giurisprudenza",
+      "label": "Archivio sentenze per corte",
       "href": "/giurisprudenza/",
       "group": "Ricerca",
       "phrases": [
+        "apri archivio sentenze per corte",
         "apri archivio giurisprudenza",
         "apri Giurisprudenza",
         "mostra sentenze",

@@ -82,6 +82,8 @@ def payload(d, url):
     url = URL + "?" + urlencode({"q": "id:" + ident, "rows": 1, "wt": "json"})
     bodyhash = hashlib.sha256(text.encode()).hexdigest()
     sourcehash = hashlib.sha256(json.dumps(d, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    materia = d.get("materia") or []
+    materia = "; ".join(" ".join(str(x).split()) for x in (materia if isinstance(materia, list) else [materia]) if str(x).strip())
     typ = str(scalar(d.get("tipoprov")) or "").lower()
     typ = typ if typ in ("sentenza", "ordinanza", "decreto") else "provvedimento"
     return {
@@ -97,6 +99,8 @@ def payload(d, url):
         "data_deposito": date(d.get("pd")),
         "data_decisione": date(d.get("datdec")),
         "titolo": f"Cassazione {kind} {num}/{year}",
+        # Materia indicata dalla fonte ufficiale (campo «materia» di ItalgiureWeb): l'oggetto della scheda.
+        "oggetto": materia,
         "testo_integrale": text,
         "testo_integrale_presente": bool(text.strip()),
         "fonte_ufficiale_confermata": True,

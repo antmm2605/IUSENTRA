@@ -13,7 +13,7 @@ const dateIt = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.slic
 
 export function CorpusGiurisprudenzaSearch({ sources }: { sources: GiurisprudenzaSource[] }) {
   const choices = useMemo(() => sources.flatMap(item => {
-    if (['cassazione','cassazione_sentenzeweb','openga','manuale_interno'].includes(item.id) || item.accessMode === 'Materiale autorizzato') return []
+    if (['cassazione','cassazione_sentenzeweb','corte_costituzionale','openga','manuale_interno'].includes(item.id) || item.accessMode === 'Materiale autorizzato') return []
     const entries = []
     if ((item.sharedCorpusCount ?? 0) > 0) entries.push({key:`pubblico:${item.id}`, item, public:true, count:item.sharedCorpusCount})
     if ((item.corpusCount ?? 0) > 0) entries.push({key:item.id, item, public:false, count:item.corpusCount})

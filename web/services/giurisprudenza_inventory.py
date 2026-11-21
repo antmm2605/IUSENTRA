@@ -7,11 +7,21 @@ from types import SimpleNamespace
 
 
 def corpus_inventory(manager):
+    """Conteggi per fonte, calcolati fuori dalla richiesta (``None`` = archivio assente o conteggio in corso)."""
+    from web.services.conteggi_archivio_cache import conteggio_memorizzato
+
     path = getattr(manager, "corpus_db_path", None)
     if not path:
         return None
     try:
         database = Path(path).resolve(strict=True)
+    except (OSError, ValueError):
+        return None
+    return conteggio_memorizzato(f"corpus:{database}", database, lambda: _corpus_inventory(database))
+
+
+def _corpus_inventory(database):
+    try:
         with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True, timeout=2) as connection:
             rows = connection.execute(
                 "SELECT f.codice, COUNT(*), "

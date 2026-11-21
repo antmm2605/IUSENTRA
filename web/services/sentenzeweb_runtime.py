@@ -5,14 +5,23 @@ from pct.sentenzeweb_corpus import configured_corpus, source_text_status
 
 def inventory(config=None):
     """Read the shared owner's counts, without searching or loading decision bodies."""
+    from web.services.conteggi_archivio_cache import conteggio_memorizzato
+
     corpus = configured_corpus(config)
     if corpus is None:
         return {"available": False}
+    # Il conteggio di 426.000 pronunce con il disco occupato costava fino a 90 s: si calcola fuori dalla richiesta.
+    counts = conteggio_memorizzato(f"sentenzeweb:{corpus.db_path}", corpus.db_path, lambda: _inventory_counts(corpus))
+    if counts is None:
+        return {"available": True, "caseCount": None, "received": None, "expected": None, "status": "counting"}
+    return {"available": True, **counts}
+
+
+def _inventory_counts(corpus):
     with corpus._connect() as connection:
         progress = connection.execute("SELECT seen,expected,status FROM sentenzeweb_progress WHERE id=1").fetchone()
         count = connection.execute("SELECT count(*) FROM sentenze").fetchone()[0]
     return {
-        "available": True,
         "caseCount": count,
         "received": progress["seen"] if progress else 0,
         "expected": progress["expected"] if progress else 0,
@@ -20,7 +29,58 @@ def inventory(config=None):
     }
 
 
-def search(config, query=""):
+def _per_estremi(corpus, estremi):
+    """Pronunce con quel numero e anno, dall'indice (anno, numero): risposta immediata anche su 426.000 decisioni."""
+    from contextlib import closing
+
+    from pct.giurisprudenza_corpus import _COLONNE_RICERCA
+
+    numero = estremi["numero"]
+    sql = (f"SELECT {_COLONNE_RICERCA} FROM sentenze s WHERE s.anno_sentenza = ? "
+           "AND s.numero_sentenza IN (?, ?, ?, ?)")
+    # SentenzeWeb scrive il numero con gli zeri iniziali («05425»): l'avvocato cita «5425/2021».
+    params = [estremi["anno"], numero, numero.zfill(5), numero.zfill(6), f"{numero}/{estremi['anno']}"]
+    if estremi["sezione"]:
+        sql += " AND UPPER(COALESCE(s.sezione,'')) = ?"
+        params.append(estremi["sezione"])
+    if estremi["ramo"]:
+        sql += " AND LOWER(s.organo_giudicante) LIKE ?"
+        params.append(f"%{estremi['ramo']}%")
+    with closing(corpus._connect()) as connection:
+        rows = [dict(row) for row in connection.execute(sql + " ORDER BY s.data_deposito DESC LIMIT 20", params)]
+    return corpus._guard_text_availability(rows)
+
+
+def _scheda(row):
+    from web.services.sentenzeweb_estremi import intestazione, materia_leggibile, ramo, sezione_leggibile
+
+    organo = row.get("organo_giudicante") or ""
+    branca = ramo(organo)
+    return {
+        "id": row["id"],
+        "title": intestazione(row),
+        "court": "Corte di cassazione",
+        "branch": branca,
+        "number": str(row.get("numero_sentenza") or "").lstrip("0") or row.get("numero_sentenza"),
+        "year": row.get("anno_sentenza"),
+        "authority": organo,
+        "section": row.get("sezione"),
+        "sectionLabel": sezione_leggibile(row.get("sezione"), organo),
+        "kind": str(row.get("tipo_provvedimento") or ""),
+        "subject": materia_leggibile(row.get("oggetto") or row.get("materia_principale")),
+        "date": row.get("data_deposito"),
+        "decisionDate": row.get("data_decisione") or "",
+        "textAvailable": bool(row["testo_integrale_presente"]),
+        "textStatus": row.get("source_text_status", "empty"),
+        "textSourceUrl": row.get("text_source_url", ""),
+        "textSourceOfficial": row.get("text_source_official"),
+        "textHref": f"/giurisprudenza/sentenzeweb/{row['id']}/testo",
+    }
+
+
+def search(config, query="", numero="", anno="", sezione="", ramo=""):
+    from web.services.sentenzeweb_estremi import estremi_cassazione
+
     corpus = configured_corpus(config)
     if corpus is None:
         return {
@@ -32,27 +92,32 @@ def search(config, query=""):
     query = str(query).strip()
     if len(query) > 500:
         raise ValueError("Query too long")
-    records = corpus.cerca_sentenze(q=query, limit=10, semantica=False) if query else corpus.recent_acquisitions(10)
+    estremi = estremi_cassazione(query, numero, anno)
+    sezione = str(sezione or "").strip().upper()
+    ramo = str(ramo or "").strip().lower()
+    if estremi and sezione in {"U", "L", "F", "1", "2", "3", "4", "5", "6", "7"}:
+        estremi["sezione"] = sezione
+    if estremi and ramo in {"civile", "penale"}:
+        estremi["ramo"] = ramo
+    if not estremi and (str(numero or "").strip() or str(anno or "").strip()):
+        return {"ok": True, **inventory(config), "searchedBy": "estremi", "records": [],
+                "message": "Per cercare per estremi indica sia il numero sia l'anno (per esempio 5425 e 2021)."}
+    message = ""
+    if estremi:
+        records = _per_estremi(corpus, estremi)
+        if not records:
+            message = (f"Nessuna pronuncia n. {estremi['numero']}/{estremi['anno']} nell'archivio scaricato"
+                       + (" con la sezione indicata" if estremi["sezione"] or estremi["ramo"] else "") + ".")
+    elif query:
+        records = corpus.cerca_sentenze(q=query, limit=10, semantica=False)
+    else:
+        records = corpus.recent_acquisitions(10)
     return {
         "ok": True,
         **inventory(config),
-        "records": [
-            {
-                "id": row["id"],
-                "title": row["titolo"],
-                "number": row["numero_sentenza"],
-                "year": row["anno_sentenza"],
-                "authority": row["organo_giudicante"],
-                "section": row["sezione"],
-                "date": row["data_deposito"],
-                "textAvailable": bool(row["testo_integrale_presente"]),
-                "textStatus": row.get("source_text_status", "empty"),
-                "textSourceUrl": row.get("text_source_url", ""),
-                "textSourceOfficial": row.get("text_source_official"),
-                "textHref": f"/giurisprudenza/sentenzeweb/{row['id']}/testo",
-            }
-            for row in records
-        ],
+        "searchedBy": "estremi" if estremi else "testo" if query else "recenti",
+        **({"message": message} if message else {}),
+        "records": [_scheda(row) for row in records],
     }
 
 

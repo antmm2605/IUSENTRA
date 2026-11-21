@@ -373,7 +373,9 @@ def native_translation_reader(record_id, identity):
 def sentenzeweb_search():
     from web.services.sentenzeweb_runtime import search
     try:
-        result = jsonify(search(current_app.config, request.args.get("q", "")))
+        result = jsonify(search(current_app.config, request.args.get("q", ""),
+                                     request.args.get("numero", ""), request.args.get("anno", ""),
+                                     request.args.get("sezione", ""), request.args.get("ramo", "")))
     except (ValueError, OSError, sqlite3.Error):
         result = jsonify({"ok": False, "message": "Archivio SentenzeWeb non disponibile. Nessun recupero esterno avviato."})
         result.status_code = 503

@@ -1,5 +1,6 @@
 import { CorpusGiurisprudenzaSearch } from './CorpusGiurisprudenzaSearch'
 import { SentenzeWebSearch } from './SentenzeWebSearch'
+import { ConsultaSearch } from './ConsultaSearch'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { GiurisprudenzaSources } from './GiurisprudenzaSources'
 import { OpenGASearch } from './OpenGASearch'
@@ -881,8 +882,8 @@ function GiurisprudenzaArchivePage() {
 
   return (
     <Page
-      title="Archivio Giurisprudenza"
-      subtitle="Banca dati interna di sentenze e provvedimenti in una pagina unica di ricerca e lettura."
+      title="Archivio sentenze per corte"
+      subtitle="Corte di cassazione, Corte costituzionale e giustizia amministrativa, poi le altre fonti e le schede dello studio."
       actions={(
         <>
           <Button type="button" tone="neutral" aria-pressed={fullscreenOpen} onClick={() => setFullscreenOpen(toggleGiurisprudenzaFullscreen())}>
@@ -895,6 +896,7 @@ function GiurisprudenzaArchivePage() {
     >
       <div className="iu-legal-page">
         <SentenzeWebSearch />
+        <ConsultaSearch />
         <OpenGASearch />
         {loading ? (
           <p role="status">Caricamento delle schede e dei conteggi dello studio…</p>

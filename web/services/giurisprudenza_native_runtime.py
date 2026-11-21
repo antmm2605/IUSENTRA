@@ -9,6 +9,14 @@ from urllib.parse import urlsplit
 from web.services.sentenzeweb_reader import text_blocks
 
 
+def _breve(value, limit=400):
+    testo = " ".join(str(value or "").split())
+    if len(testo) <= limit:
+        return testo
+    taglio = testo[:limit].rsplit(" ", 1)[0]
+    return taglio + " …"
+
+
 def _decision_date(record):
     return record.get("data_decisione") or record.get("data_sentenza") or ""
 
@@ -23,6 +31,28 @@ def _source_url(value):
     return ""
 
 
+def _recenti(owner, source, limit):
+    """Ultime pronunce della fonte per data di deposito, dall'indice delle date.
+
+    L'elenco iniziale con ``cerca_sentenze(q="")`` ordina tutto il corpus con l'ordine «storico» (stato di verifica,
+    rilevanza...): sull'archivio dello studio, con il disco occupato, la sezione della Corte costituzionale restava
+    vuota per oltre 500 secondi. Qui si scorre l'indice ``idx_sentenze_data_deposito`` e ci si ferma al limite.
+    """
+    from contextlib import closing
+
+    from pct.giurisprudenza_corpus import _COLONNE_RICERCA
+
+    with closing(owner._connect()) as connection:
+        indici = {row[1] for row in connection.execute("PRAGMA index_list(sentenze)")}
+        indice = " INDEXED BY idx_sentenze_data_deposito" if "idx_sentenze_data_deposito" in indici else ""
+        fonte = connection.execute("SELECT id FROM fonti_giurisprudenza WHERE codice=?", (source,)).fetchone()
+        if fonte is None:
+            return []
+        sql = (f"SELECT {_COLONNE_RICERCA} FROM sentenze s{indice} WHERE s.fonte_id = ? "
+               "ORDER BY s.data_deposito DESC LIMIT ?")
+        return [dict(row) for row in connection.execute(sql, (fonte[0], limit))]
+
+
 def search(owner, *, source, query="", limit=20, prefix="/giurisprudenza/corpus"):
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}",source):
         raise ValueError("Seleziona una fonte del catalogo.")
@@ -31,13 +61,23 @@ def search(owner, *, source, query="", limit=20, prefix="/giurisprudenza/corpus"
             raise ValueError("Fonte senza documenti archiviati.")
     if len(query) > 500:
         raise ValueError("Ricerca troppo lunga.")
-    rows = owner.cerca_sentenze(q=query,fonte_codice=source,limit=min(50,max(1,int(limit))),semantica=False)
+    # «194 2018» come «194/2018»: gli estremi si cercano sull'indice, non nei testi.
+    coppia = re.fullmatch(r"\s*(?:n\.?\s*)?(\d{1,6})\s+((?:19|20)\d{2})\s*", query)
+    if coppia:
+        query = f"{coppia.group(1)}/{coppia.group(2)}"
+    limite = min(50, max(1, int(limit)))
+    rows = (owner.cerca_sentenze(q=query,fonte_codice=source,limit=limite,semantica=False) if query.strip()
+            else _recenti(owner, source, limite))
     ids = [int(row["id"]) for row in rows]
     available = {}
+    summaries = {}
     if ids:
         with owner._connect() as connection:
-            sql="SELECT id,length(trim(coalesce(testo_integrale,''))) FROM sentenze WHERE id IN ("+",".join("?" for _ in ids)+")"
-            available = {int(row[0]): bool(row[1]) for row in connection.execute(sql,ids)}
+            sql="SELECT id,length(trim(coalesce(testo_integrale,''))),substr(coalesce(abstract,''),1,600),substr(coalesce(principio_sintetico,''),1,600) FROM sentenze WHERE id IN ("+",".join("?" for _ in ids)+")"
+            for row in connection.execute(sql,ids):
+                available[int(row[0])] = bool(row[1])
+                # Corte costituzionale: «oggetto» è il tipo di giudizio; l'oggetto vero sono i titoletti delle massime.
+                summaries[int(row[0])] = (_breve(row[2]), _breve(row[3]))
     pdfs = {}
     languages = {}
     if ids:
@@ -50,7 +90,7 @@ def search(owner, *, source, query="", limit=20, prefix="/giurisprudenza/corpus"
                 digest=str(document["sha256"] or "")
                 if re.fullmatch(r"[0-9a-f]{64}",digest) and str(document["path_locale"])=="fonti_ufficiali/"+digest+".pdf":
                     pdfs.setdefault(int(document["sentenza_id"]),f"{prefix}/{int(document['sentenza_id'])}/documenti/{int(document['id'])}/pdf")
-    return {"ok":True,"source":source,"records":[{"id":int(row["id"]),"title":row.get("titolo") or "Provvedimento archiviato","authority":row.get("organo_giudicante") or "","date":row.get("data_deposito") or "","decisionDate":_decision_date(row),"languages":sorted(languages.get(int(row["id"]),set())),"textAvailable":available.get(int(row["id"]),False),"pdfHref":pdfs.get(int(row["id"]),""),"textHref":f"{prefix}/{int(row['id'])}/testo"} for row in rows]}
+    return {"ok":True,"source":source,"records":[{"id":int(row["id"]),"title":row.get("titolo") or "Provvedimento archiviato","authority":row.get("organo_giudicante") or "","kind":row.get("tipo_provvedimento") or "","number":str(row.get("numero_sentenza") or ""),"year":row.get("anno_sentenza"),"section":row.get("sezione") or "","judgment":_breve(row.get("oggetto")),"subject":summaries.get(int(row["id"]),("",""))[0] or _breve(row.get("oggetto")),"ruling":summaries.get(int(row["id"]),("",""))[1],"date":row.get("data_deposito") or "","decisionDate":_decision_date(row),"languages":sorted(languages.get(int(row["id"]),set())),"textAvailable":available.get(int(row["id"]),False),"pdfHref":pdfs.get(int(row["id"]),""),"textHref":f"{prefix}/{int(row['id'])}/testo"} for row in rows]}
 
 
 def reader_document(owner, record_id, *, prefix="/giurisprudenza/corpus"):

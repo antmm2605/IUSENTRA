@@ -545,7 +545,8 @@ function RecordCard({
     ['Area', record.area],
     ['Materia', record.branch],
     ['Territorio', record.territory],
-    ['Registro', record.registryNumber],
+    // Il numero di registro vale solo per la mediazione: per le norme è un codice interno dell'archivio.
+    ['Numero di iscrizione', record.kind === 'mediazione' ? record.registryNumber : ''],
   ].filter((item) => item[1])
   const stateLabel = record.approvalLabel || record.stateLabel
   const stateTone = record.approvalLabel ? record.approvalTone : record.stateTone

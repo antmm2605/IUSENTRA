@@ -31,7 +31,7 @@ export function AgentRunDetail() {
 
   return (
     <IusPageShell
-      title="Dettaglio Regia Agentica"
+      title="Dettaglio del lavoro automatico di Lex"
       description="Piano, letture, proposte approvabili, audit e risparmio misurato."
       icon={Bot}
       area="lex"

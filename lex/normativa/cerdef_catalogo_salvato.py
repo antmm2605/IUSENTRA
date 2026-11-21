@@ -127,6 +127,11 @@ def voce_elenco(atto):
     for campo in ("title", "label"):
         if isinstance(voce.get(campo), str) and "&" in voce[campo]:
             voce[campo] = html.unescape(voce[campo])
+    if "materia" in atto:
+        # La materia si ricalcola con le regole correnti: la proiezione salvata può essere di una versione precedente.
+        from lex.normativa.materie import materia
+
+        voce["materia"] = materia(str(atto.get("key") or ""), str(atto.get("urn") or ""), voce.get("title") or "")
     return voce
 
 

@@ -231,22 +231,67 @@ PER_CHIAVE = {
     'legge_9_2007': CIVILE,
 }
 
-# Ripiego per atti futuri non censiti: parole del titolo ufficiale, in ordine.
+# Ripiego per gli atti non censiti: parole dell'OGGETTO dell'atto (la parte del titolo dopo «—»; per le leggi di
+# conversione, l'oggetto del decreto-legge dopo «recante»), in ordine di priorità. Revisione del 21/11/2026
+# sul catalogo vigente (9.058 atti): «adozion» prendeva «adozione di disposizioni», «asilo» gli asili infantili,
+# «strad» i provvedimenti «straordinari», «lavor» i lavori pubblici.
 _PAROLE = (
-    (r'tribut|impost|fiscal|riscossione|contribuente|accertamento', TRIBUTARIO),
-    (r'lavor|previdenz|licenziament|pubblico impiego|infortun', LAVORO),
-    (r'penal|reat|penitenziari|stupefacent', PENALE),
-    (r'procedura civile|processo civile|notificazion|mediazione', PROC_CIVILE),
-    (r'appalt|contratti pubblici|procedimento amministrativo|enti locali', AMMINISTRATIVO),
-    (r'bancari|creditizi|finanziari|assicura|riciclaggio', BANCA),
-    (r'famiglia|matrimoni|adozion|minori|unioni civili', FAMIGLIA),
-    (r'ambient|ediliz|urbanistic|paesaggi|beni culturali', AMBIENTE),
-    (r'dati personali|digitale|comunicazioni elettroniche|posta elettronica', DIGITALE),
-    (r'societ|impres|fallim|insolvenz|propriet. industriale|autore', IMPRESA),
-    (r'strad|circolazione|navigazione|trasport', TRASPORTI),
-    (r'stranier|immigrazion|asilo', IMMIGRAZIONE),
-    (r'forense|avvocat', FORENSE),
+    (r'costituzional|costituzione della repubblica|della costituzione\b|\belezion|\belettoral|referendum|'
+     r'statuto speciale|\bparlament(?!o europeo)|attivit. di governo|corte costituzionale', COSTITUZIONE),
+    (r'tribut|\bimpost|fiscal|riscossione|contribuent|accertamento|\btass[ae]\b|\baccis|dogan|doppie imposizioni|'
+     r'\bi\.?v\.?a\.?\b|evasione|imposizion|rendiconto generale|bilancio (?:di previsione )?dello stato|finanza pubblica|'
+     r'legge di (?:bilancio|stabilit)|ritenut|\bredditi\b|\birpef|\bires\b|\birap\b|\bcatast', TRIBUTARIO),
+    (r'lavori pubblici|opere pubbliche|appalt|contratti pubblici|procedimento amministrativo|espropria', AMMINISTRATIVO),
+    (r'\blavor|previdenz|pension|licenziament|pubblico impiego|infortun|sindacal|ammortizzatori|occupazion|'
+     r'sicurezza sociale|contratti collettivi', LAVORO),
+    (r'\bpenal|\breat[oi]\b|penitenziar|stupefacent|\bmafi|criminalit|\bterroris|estradizion|persone condannate|'
+     r'casellario giudiziale|antiriciclaggio', PENALE),
+    # Enti, istruzione e sanità: amministrazione pubblica, prima delle parole d'impresa («scuola di commercio»).
+    (r'ente morale|corpo morale|opera pia|opere pie|\blascit|orfanotrof|ospizi|ricovero di mendicit|istituto (?:femminile )?di educazione|\bpi[oa] (?:istituto|monte|luogo|casa)|'
+     r'congregazione di carit|istituzioni pubbliche di assistenza|scuol|istruzione|universit|scolastic|'
+     r'asilo infantile|ginnasi|\bliceo|insegnant|sanitar|\bsalute\b|ospedal|farmac|\bmedic|vaccin|trapiant|'
+     r'veterinar|igiene|alimenti|\bcovid|epidemiolog', AMMINISTRATIVO),
+    (r'procedura civile|processo civile|notificazion|\bmediazione\b|esecuzione forzata|'
+     r'arbitrat|negoziazione assistita', PROC_CIVILE),
+    (r'\btribunal|uffici giudiziari|magistrat|giudic[ei] di pace|ordinamento giudiziario|circondari|'
+     r'spese di giustizia|corte dei conti|giustizia tributaria|\bnotai|notariat', GIUSTIZIA),
+    (r'servizi di pagamento|bancari|creditizi|\bbanca\b|\bbanche\b|(?:intermediari|mercati|servizi|strumenti|prodotti) finanziari|'
+     r'assicura|intermediari|moneta|'
+     r'risparmio|valori mobiliari', BANCA),
+    (r'famiglia|matrimoni|unioni civili|\badozion[ei] (?:dei |di )?minori|adozione internazionale|'
+     r'affidamento (?:dei |di )?minori|\bminorenni\b|tutela dei minori|filiazion|divorzi|stato civile|'
+     r'cittadinanza|disabilit|handicap|persone con disturbi|\banziani\b', FAMIGLIA),
+    (r'locazion|immobili adibiti ad uso di abitazion|\bcondomin|\bsuccession|responsabilit. civile|'
+     r'\bobbligazioni\b|trascrizion|ipotec|usucapion', CIVILE),
+    (r'\bambient|case popolari|ediliz|urbanistic|paesaggi|beni culturali|\brifiuti\b|inquinament|\bacque\b|idric|'
+     r'emissioni|energ|\bclima|aree protette|parchi|caccia|\bpesca\b|agricol|forest|zootecn|'
+     r'protezione civile|sisma|terremot|calamit', AMBIENTE),
+    (r'dati personali|digitale|comunicazioni elettroniche|posta elettronica|telecomunicazion|radiotelevis|'
+     r'\bpostal|informatic|cibernetic|editoria|\bstampa\b', DIGITALE),
+    (r'\bconsumator|pratiche commerciali|pubblicit. ingannevol|sicurezza (?:generale )?dei prodotti', CONSUMO),
+    (r'\bsociet|\bimpres|fallim|insolvenz|propriet. industriale|diritto d.autore|\bbrevett|marchi|'
+     r'concorrenza|camere di commercio|commercio|artigian|cooperativ|turism|\bindustri', IMPRESA),
+    (r'\bstrad[ae]\b|stradal|circolazione|navigazion|trasport|ferrovi|aviazion|aeroport|\bporti\b|'
+     r'autoveicol|veicoli|motorizzazion|codice della strada', TRASPORTI),
+    (r'stranier|immigrazion|protezione internazionale|diritto d.asilo|\basilo (?:politico|e )|rifugiat|'
+     r'apolid|espulsion|ingresso e soggiorno', IMMIGRAZIONE),
+    (r'\bforense|\bavvocat', FORENSE),
+    (r'forze armate|\bmilitar|esercito|marina militare|aeronautica militare|\bcarabinieri|difesa nazionale|'
+     r'ministero della difesa|'
+     r'missioni internazionali', MILITARE),
+    (r'pubblica sicurezza|\bpolizia|vigili del fuoco|\bministe|amministrazion|personale (?:civile|del|della|delle|dei)|'
+     r'concors[oi] pubblic|dipendenti pubblici|enti locali|\bcomun[ei] di\b|\bprovinc|\bregion[ei]\b|'
+     r'segnalazione certificata|emergenza', AMMINISTRATIVO),
 )
+# Atti dell'Unione recepiti senza un oggetto riconoscibile: restano con il diritto dell'Unione.
+_UE_RECEPIMENTO = r'direttiva|regolamento \((?:ue|ce|cee)\)|comunit. europe|unione europea'
+
+
+def _oggetto(title: str) -> str:
+    testo = (title or '').lower()
+    oggetto = testo.split(' — ', 1)[1] if ' — ' in testo else testo
+    recante = re.search(r'conversione in legge.*?\brecante\b(.*)', oggetto)
+    return recante.group(1) if recante else oggetto
 
 
 def materia(key: str, urn: str, title: str) -> str:
@@ -259,8 +304,14 @@ def materia(key: str, urn: str, title: str) -> str:
         return PER_CHIAVE[key]
     if urn in PER_URN:
         return PER_URN[urn]
-    testo = (title or '').lower()
-    return next((m for pattern, m in _PAROLE if re.search(pattern, testo)), ALTRO)
+    # La Costituzione ha l'URN con la data (urn:nir:stato:costituzione:1947-12-27); le leggi costituzionali il numero.
+    if (urn or '').startswith((_S + 'costituzione', _S + 'legge.costituzionale:')):
+        return COSTITUZIONE
+    oggetto = _oggetto(title)
+    trovata = next((m for pattern, m in _PAROLE if re.search(pattern, oggetto)), None)
+    if trovata:
+        return trovata
+    return UE if re.search(_UE_RECEPIMENTO, oggetto) else ALTRO
 
 
 _TIPI_URN = (

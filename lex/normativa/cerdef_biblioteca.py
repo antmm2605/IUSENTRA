@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 from lex.tempo_ricerca import traduci_interruzione
+from lex.normativa.etichette_atti import senza_codice_redazionale
 from lex.normativa.consultazione import COLLECTION, _catalogue_row, _connect, dettaglio
 from lex.retrieval.normativa_catalog import biblioteca_studio_path, runtime_general_path
 
@@ -299,6 +300,7 @@ def linked_articles(identifier, *, query="", article="", offset=0, vigente=False
             body = item.pop("body")
             title = _rubrica_acn(item["title"], body, item.pop("document_sha256"))
             item["number"], item["title"] = _article_presentation(item["number"], title, body)
+            item["act_title"] = senza_codice_redazionale(html.unescape(item["act_title"] or ""))
             if base == STORICO_ORIGINALE_BASE:
                 part = connection.execute("SELECT parte FROM cerdef.parti WHERE article_id=?", (row["id"],)).fetchone()
                 if part and part[0] != "corpo_principale":
@@ -332,6 +334,7 @@ def linked_article(identifier):
     if item is not None:
         title = _rubrica_acn(item["title"], item["text"], item.get("document_sha256"))
         item["number"], item["title"] = _article_presentation(item["number"], title, item["text"])
+        item["act_title"] = senza_codice_redazionale(html.unescape(item.get("act_title") or ""))
         if base == VIGENTE_BASE:
             with _linked_connection(base) as connection:
                 reviewed = None

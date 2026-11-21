@@ -270,11 +270,10 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     "dpr_115_2002": FonteOperativa(
         code="dpr_115_2002",
         title="D.P.R. 115/2002 - art. 13 contributo unificato",
-        url=(
-            "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?"
-            "articolo=Articolo+13&codiceOrdinamento=0000000000000130000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-            "&id=%7B79FB509F-FF10-413B-9949-D26DACEF6AAE%7D"
-        ),
+        # Normattiva per URN (verificato il 21/11/2026: risposta 200). Il precedente indirizzo di
+        # def.giustiziatributaria.gov.it ha la catena del certificato incompleta: ogni controllo
+        # automatico falliva e la scheda «Contributo unificato» risultava «fonte non raggiungibile».
+        url="https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art13",
         note=(
             "Fonte ufficiale art. 13 DPR 115/2002: scaglioni CU, impugnazione +50%, Cassazione x2, "
             "sezioni specializzate x2, riduzioni e maggiorazioni per dati obbligatori mancanti."

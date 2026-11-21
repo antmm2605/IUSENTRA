@@ -430,9 +430,32 @@ def normativa_articolo(article_id):
             _normativa_db(), article_id, includi_archivio_generale=True)
         if item is None:
             return jsonify(ok=False, message="Articolo non trovato nell'archivio."), 404
-        return jsonify(ok=True, item=item)
+        from lex.normativa.presentazione_articolo import arricchisci
+
+        return jsonify(ok=True, item=arricchisci(item))
     except (FileNotFoundError, OSError, sqlite3.Error) as exc:
         return _archivio_non_disponibile(exc, "Testo non disponibile. Riprova fra poco.")
+
+
+@api_v1_ricerca_legale.get("/normativa/articoli/<int:article_id>/sentenze")
+@_richiedi_auth
+def normativa_articolo_sentenze(article_id):
+    """Pronunce pertinenti all'articolo negli archivi del software (Consulta e Cassazione SentenzeWeb dal 2021)."""
+    denied = _permesso_normativa()
+    if denied is not None:
+        return denied
+    from lex.normativa.consultazione import dettaglio
+    from web.services.normativa_sentenze import sentenze_per_articolo
+
+    try:
+        from lex.normativa.cerdef_biblioteca import is_linked, linked_article
+        item = linked_article(article_id) if is_linked(article_id) else dettaglio(
+            _normativa_db(), article_id, includi_archivio_generale=True)
+        if item is None:
+            return jsonify(ok=False, message="Articolo non trovato nell'archivio."), 404
+        return jsonify(ok=True, **sentenze_per_articolo(item))
+    except (FileNotFoundError, OSError, sqlite3.Error) as exc:
+        return _archivio_non_disponibile(exc, "Archivio delle sentenze non disponibile. Riprova fra poco.")
 
 
 @api_v1_ricerca_legale.get("/normativa/visualizza")

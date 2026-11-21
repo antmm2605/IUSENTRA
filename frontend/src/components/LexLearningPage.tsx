@@ -40,6 +40,8 @@ type LexLearningJob = {
   stato: string
   pianificazione: string
   console: string
+  console_visibile?: boolean
+  ultimo_giro?: { data?: string; esito?: string; riuscito?: boolean; messaggio?: string }
 }
 
 type LexLearningPayload = {
@@ -63,28 +65,26 @@ const emptyPayload: LexLearningPayload = {
 }
 
 const STAT_LABELS: Array<[string, string]> = [
-  ['citations', 'Citazioni normalizzate'],
+  ['citations', 'Citazioni di norme'],
   ['legal_terms', 'Termini giuridici'],
   ['source_readings', 'Letture di fonti'],
   ['improvement_proposals', 'Proposte in revisione'],
   ['research_questions', 'Domande di ricerca'],
-  ['trust_assessments', 'Valutazioni di fiducia'],
+  ['trust_assessments', 'Fonti valutate'],
 ]
 
 function tipoProposta(tipo: string): string {
-  if (tipo === 'ontologia') return 'Ontologia'
-  if (tipo === 'connettore_dedicato') return 'Connettore dedicato'
-  if (tipo === 'estrattore_citazioni') return 'Estrattore citazioni'
-  return tipo || 'Proposta'
+  // Il server manda già il tipo in italiano; le sigle interne non si mostrano mai.
+  return /^[a-z_]+$/.test(tipo) || !tipo ? 'Proposta' : tipo
 }
 
 function statoLettura(stato: string): { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' } {
   if (stato === 'ok') return { label: 'Letta', tone: 'success' }
-  if (stato === 'robots_blocked') return { label: 'Robots (fail-closed)', tone: 'warning' }
+  if (stato === 'robots_blocked') return { label: 'Il sito non consente la lettura automatica', tone: 'warning' }
   if (stato === 'empty_text') return { label: 'Testo vuoto', tone: 'warning' }
-  if (stato === 'too_large') return { label: 'Oltre soglia byte', tone: 'warning' }
-  if (!stato) return { label: 'n.d.', tone: 'neutral' }
-  return { label: stato, tone: 'danger' }
+  if (stato === 'too_large') return { label: 'Documento troppo grande', tone: 'warning' }
+  if (!stato) return { label: 'Stato non indicato', tone: 'neutral' }
+  return { label: 'Lettura non riuscita', tone: 'danger' }
 }
 
 function dataItaliana(value: string): string {
@@ -123,10 +123,10 @@ export function LexLearningPage() {
     <main className="lex-learning-page">
       <header className="lex-learning-page__header">
         <div>
-          <h1><BrainCircuit size={22} aria-hidden /> Apprendimento Lex</h1>
+          <h1><BrainCircuit size={22} aria-hidden /> Cosa sta imparando Lex</h1>
           <p>
-            Ciclo di apprendimento autonomo governato: Lex legge SOLO fonti ufficiali ammesse dalla policy,
-            costruisce memoria ispezionabile e propone miglioramenti che restano sempre in revisione umana.
+            Ogni notte Lex legge solo le fonti ufficiali ammesse, conserva ciò che ha letto in una memoria
+            consultabile e propone miglioramenti che entrano in uso solo dopo la tua approvazione.
           </p>
         </div>
         <button
@@ -141,12 +141,14 @@ export function LexLearningPage() {
 
       <Panel
         title="Lettura notturna pianificata"
-        subtitle="Apprendimento autonomo Lex (web) — attivazione solo dalla console Pianificazioni"
+        subtitle="Ogni notte Lex legge le Gazzette Ufficiali nuove e le fonti che gli mancano"
         icon={<CalendarClock size={18} aria-hidden />}
         action={
-          <Button variant="ghost" href={job.console || '/admin/pianificazioni'} title="Apri la console Pianificazioni">
-            Console Pianificazioni <ExternalLink size={14} aria-hidden />
-          </Button>
+          job.console_visibile ? (
+            <Button variant="ghost" href={job.console || '/admin/pianificazioni'} title="Apri la console Pianificazioni della piattaforma">
+              Console Pianificazioni <ExternalLink size={14} aria-hidden />
+            </Button>
+          ) : undefined
         }
       >
         <div className="lex-learning-page__job">
@@ -155,9 +157,15 @@ export function LexLearningPage() {
             {loading ? 'Caricamento…' : statoJobLeggibile(job.stato, job.pianificazione)}
           </span>
         </div>
+        {job.ultimo_giro?.data ? (
+          <p className="lex-learning-page__job-note">
+            Ultimo giro: {dataItaliana(job.ultimo_giro.data)} · {job.ultimo_giro.esito || 'esito non indicato'}
+            {job.ultimo_giro.messaggio ? ` · ${job.ultimo_giro.messaggio.replace(/^Sequenza notturna, fase \d+: /, '')}` : ''}
+          </p>
+        ) : null}
       </Panel>
 
-      <Panel title="Memoria di apprendimento" subtitle={data.memoria_presente ? 'Memoria durevole conservata nell’archivio dello studio, consultabile in sola lettura.' : 'La memoria durevole si popola con la lettura notturna o con i cicli governati.'} icon={<Landmark size={18} aria-hidden />}>
+      <Panel title="Memoria di apprendimento" subtitle={data.memoria_presente ? 'Ciò che Lex ha letto, conservato nell’archivio dello studio e consultabile in sola lettura.' : 'La memoria si riempie con la lettura notturna.'} icon={<Landmark size={18} aria-hidden />}>
         {data.memoria_presente ? (
           <div className="lex-learning-page__stats">
             {STAT_LABELS.map(([key, label]) => (
@@ -171,14 +179,14 @@ export function LexLearningPage() {
           <p className="lex-learning-page__empty">
             {loading
               ? 'Caricamento…'
-              : 'Nessuna memoria durevole ancora presente su questo server: attiva il job notturno dalla console Pianificazioni per iniziare ad accumulare letture, citazioni e proposte notte dopo notte.'}
+              : 'La memoria è ancora vuota: si riempie notte dopo notte con le letture, le citazioni e le proposte di Lex.'}
           </p>
         )}
       </Panel>
 
       <Panel
         title="Proposte di miglioramento"
-        subtitle="Generate dal ciclo con evidenze: nessuna viene mai applicata in automatico"
+        subtitle="Nascono da ciò che Lex ha letto: nessuna entra in uso senza la tua approvazione"
         icon={<ClipboardCheck size={18} aria-hidden />}
         count={data.proposte.length}
       >
@@ -189,11 +197,11 @@ export function LexLearningPage() {
                 <div className="lex-learning-page__list-head">
                   <Badge tone="info">{tipoProposta(proposta.tipo)}</Badge>
                   <strong>{proposta.titolo || 'Proposta senza titolo'}</strong>
-                  <Badge tone="warning">Revisione umana</Badge>
+                  <Badge tone="warning">Da approvare</Badge>
                 </div>
                 <p>{proposta.descrizione}</p>
                 <small>
-                  Confidenza {Math.round(proposta.confidenza * 100)}% · {dataItaliana(proposta.creato_il)}
+                  Attendibilità {Math.round(proposta.confidenza * 100)}% · {dataItaliana(proposta.creato_il)}
                 </small>
               </li>
             ))}
@@ -205,7 +213,7 @@ export function LexLearningPage() {
 
       <Panel
         title="Ultime letture di fonti ufficiali"
-        subtitle="Robots.txt e rate-limit sempre rispettati; fonti fuori policy respinte"
+        subtitle="Solo fonti ufficiali; Lex rispetta le regole di accesso di ogni sito"
         icon={<BookOpenText size={18} aria-hidden />}
         count={data.letture.length}
       >
@@ -226,7 +234,7 @@ export function LexLearningPage() {
                   </small>
                   {lettura.url ? (
                     <a href={lettura.url} target="_blank" rel="noreferrer noopener" className="lex-learning-page__link">
-                      {lettura.url}
+                      Apri la fonte ufficiale <ExternalLink size={12} aria-hidden />
                     </a>
                   ) : null}
                 </li>

@@ -9,15 +9,18 @@ import { Button, ButtonLink } from '../ui/Button'
 import { Badge } from '../ui/Badge'
 import './LegalIntelligencePage.css'
 import { matchesCatalogueAct } from './codiciLeggiSearch'
-import { applyCatalogueResponse } from './codiciLeggiResults'
+import { applyCatalogueResponse, articoliTrovati } from './codiciLeggiResults'
 import { CodiciLeggiMaterie } from './CodiciLeggiMaterie'
 
 type Act = { key?: string; id: number; title: string; label: string; category: string; articles: number; updated_at: string; materia?: string; tipo?: string; numero?: string | number | null; data_atto?: string | null }
 type Article = { id: number; number: string; title: string; act_title: string }
-type FullArticle = Article & { text: string; act_label: string; updated_at: string; source_url: string; source_label?: string; only_heading?: boolean; consolidated_at?: string; text_quality?: string; source_requested_at?: string; version_date_scope?: string; verified_as_of?: string; temporal_evidence?: { data: string; nota: string } }
+type SaggioLegale = { misura: string; dal: string; al: string; decreto: string; gazzetta: string }
+type Pronuncia = { estremi: string; archivio: string; url?: string; massima?: string }
+type Sentenze = { citazione: string; fonte: string; stato: string; errori: string[]; pronunce: Pronuncia[]; avvertenza: string }
+type FullArticle = Article & { text_lettura?: string; note_aggiornamento?: string; saggio_legale_vigente?: SaggioLegale | null; text: string; act_label: string; updated_at: string; source_url: string; source_label?: string; only_heading?: boolean; consolidated_at?: string; text_quality?: string; source_requested_at?: string; version_date_scope?: string; verified_as_of?: string; temporal_evidence?: { data: string; nota: string } }
 type Riscontro = { data: string; atti_richiesti: number; atti_esaminati?: number; atti_con_testo_verificato: number }
 type Vista = 'vigenti' | 'storico'
-type Results = { items: Article[]; total: number; act_id?: number }
+type Results = { items: Article[]; total: number; act_id?: number; total_oltre?: boolean; avviso?: string }
 const base = '/api/v1/ui/ricerca-legale/normativa'
 const pageSize = 30
 function dateIt(value: string) { return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split('-').reverse().join('/') : 'Data non indicata' }
@@ -45,6 +48,8 @@ export function CodiciLeggiPage() {
   useBusyActivity(readerBusy, 'Apertura del testo normativo…')
   const [error, setError] = useState('')
   const [readerError, setReaderError] = useState('')
+  const [sentenze, setSentenze] = useState<Sentenze | null>(null)
+  const [sentenzeBusy, setSentenzeBusy] = useState(false)
   const [retry, setRetry] = useState(0)
   const visibleActs = useMemo(() => acts.filter(a => ((!category || a.category === category) && matchesCatalogueAct(a, catalogQuery)) || String(a.id) === act), [acts, catalogQuery, act, category])
   const actOptions = visibleActs.slice(0, 100)
@@ -65,7 +70,7 @@ export function CodiciLeggiPage() {
     window.history.replaceState({}, '', `${window.location.pathname}?${params}`)
     ensureJson<Results>(`${base}/articoli?${params}`, { signal: controller.signal }).then(data => applyCatalogueResponse(controller.signal, filters.act, data, setResults, resolvedAct => {
       setAct(resolvedAct); setFilters(previous => ({ ...previous, act: resolvedAct }))
-    })).catch(e => { if (!controller.signal.aborted) { setResults({ items: [], total: 0 }); setError(e.status === 403 ? 'Non hai il permesso per consultare le fonti.' : 'Ricerca non disponibile. Controlla il numero di articolo e riprova.') } }).finally(() => { if (!controller.signal.aborted) setBusy(false) })
+    })).catch(e => { if (!controller.signal.aborted) { setResults({ items: [], total: 0 }); setError(e.status === 403 ? 'Non hai il permesso per consultare le fonti.' : (e.status === 503 || e.status === 400) && e.message ? e.message : 'Ricerca non disponibile. Controlla il numero di articolo e riprova.') } }).finally(() => { if (!controller.signal.aborted) setBusy(false) })
     return () => controller.abort()
   }, [filters, retry, vista])
   useEffect(() => {
@@ -73,6 +78,17 @@ export function CodiciLeggiPage() {
     const controller = new AbortController()
     setReaderBusy(true); setSelected(null); setReaderError('')
     ensureJson<{ item: FullArticle }>(`${base}/articoli/${selectedId}`, { signal: controller.signal }).then(data => setSelected(data.item)).catch(() => { if (!controller.signal.aborted) setReaderError('Il testo non è disponibile. Riprova ad aprire l’articolo.') }).finally(() => { if (!controller.signal.aborted) setReaderBusy(false) })
+    return () => controller.abort()
+  }, [selectedId])
+  // Le sentenze arrivano a parte: il testo dell'articolo non aspetta gli archivi della giurisprudenza.
+  useEffect(() => {
+    setSentenze(null)
+    if (!selectedId) return
+    const controller = new AbortController()
+    setSentenzeBusy(true)
+    ensureJson<Sentenze>(`${base}/articoli/${selectedId}/sentenze`, { signal: controller.signal }).then(setSentenze).catch(e => {
+      if (!controller.signal.aborted) setSentenze({ citazione: '', fonte: '', stato: 'non disponibile', errori: [e.message || 'Archivio delle sentenze non disponibile.'], pronunce: [], avvertenza: '' })
+    }).finally(() => { if (!controller.signal.aborted) setSentenzeBusy(false) })
     return () => controller.abort()
   }, [selectedId])
   const liveSelection = useRef('')
@@ -123,8 +139,9 @@ export function CodiciLeggiPage() {
       <div className="iu-li-normativa-workbench">
         <section className="iu-od-source-card iu-li-normativa-results" aria-label="Articoli trovati" aria-busy={busy}>
           <h2>{currentAct ? currentAct.label : filters.category || 'Tutti gli atti'}</h2>
-          <p role="status">{busy ? 'Ricerca in corso…' : `${results.total.toLocaleString('it-IT')} ${results.total === 1 ? 'articolo trovato' : 'articoli trovati'}`}</p>
-          {!busy && !results.items.length && !error ? <p>Nessun articolo corrisponde ai filtri. Modifica il codice, il numero o le parole cercate.</p> : null}
+          <p role="status">{articoliTrovati(busy, catalogueBusy, results)}</p>
+          {!busy && results.avviso ? <p className="iu-li-warning">{results.avviso}</p> : null}
+          {!busy && !catalogueBusy && !results.items.length && !error && !results.avviso ? <p>Nessun articolo corrisponde ai filtri. Modifica il codice, il numero o le parole cercate.</p> : null}
           {!busy ? <ul>{results.items.map(a => <li key={a.id}><button type="button" aria-pressed={selectedId === a.id} onClick={() => setSelectedId(a.id)}><span>Art. {a.number}</span><strong>{a.title || 'Senza rubrica'}</strong><small>{a.act_title.split(' — ')[0]}</small></button></li>)}</ul> : null}
           <nav aria-label="Pagine degli articoli" className="iu-li-normativa-actions"><Button tone="neutral" disabled={busy || !filters.offset} onClick={() => setFilters({ ...filters, offset: Math.max(0, filters.offset - pageSize) })}>Precedente</Button><span>{results.total ? `${filters.offset + 1}–${Math.min(filters.offset + pageSize, results.total)}` : '0'}</span><Button tone="neutral" disabled={busy || filters.offset + pageSize >= results.total} onClick={() => setFilters({ ...filters, offset: filters.offset + pageSize })}>Successiva</Button></nav>
         </section>
@@ -136,7 +153,20 @@ export function CodiciLeggiPage() {
               <strong>Effetti nel tempo · {dateIt(selected.temporal_evidence.data)}</strong>
               <p>{selected.temporal_evidence.nota}</p>
             </aside> : null}
-            <div className="iu-li-normativa-text">{selected.text}</div>{selected.text_quality === 'avviso_abrogazione' ? <p>Questa edizione contiene un avviso sostitutivo, non il testo storico dell’articolo.</p> : selected.only_heading ? <p>La fonte ufficiale acquisita contiene soltanto l’intestazione per questo numero. Verifica il collegamento ufficiale; qui non viene ricostruito un testo mancante.</p> : null}
+            {selected.saggio_legale_vigente ? <aside aria-label="Saggio degli interessi legali in vigore">
+              <strong>Saggio legale in vigore: {selected.saggio_legale_vigente.misura} dal {selected.saggio_legale_vigente.dal} al {selected.saggio_legale_vigente.al}</strong>
+              <p>{selected.saggio_legale_vigente.decreto}{selected.saggio_legale_vigente.gazzetta ? ` · ${selected.saggio_legale_vigente.gazzetta}` : ''}. Il 5 per cento del primo comma è la misura di legge, modificata ogni anno dal decreto del Ministro.</p>
+            </aside> : null}
+            <div className="iu-li-normativa-text">{selected.text_lettura || selected.text}</div>
+            {selected.note_aggiornamento ? <details className="iu-li-normativa-note"><summary>Note di aggiornamento di Normattiva</summary><p>{selected.note_aggiornamento}</p></details> : null}
+            <section className="iu-li-normativa-sentenze" aria-label="Sentenze sull’articolo" aria-busy={sentenzeBusy}>
+              <h3>Sentenze sull’articolo</h3>
+              {sentenzeBusy ? <p role="status">Ricerca nelle sentenze della Corte costituzionale e della Cassazione…</p> : sentenze ? <>
+                {sentenze.pronunce.length ? <ul>{sentenze.pronunce.map(p => <li key={`${p.archivio}-${p.estremi}`}>{p.url ? <a href={p.url} target="_blank" rel="noreferrer">{p.estremi}</a> : p.estremi}<small> · {p.archivio}</small>{p.massima ? <p>{p.massima}</p> : null}</li>)}</ul> : <p>{sentenze.errori.length ? sentenze.errori.join(' ') : 'Nessuna pronuncia trovata negli archivi del software per questo articolo.'}</p>}
+                {sentenze.pronunce.length && sentenze.errori.length ? <p className="iu-li-warning">{sentenze.errori.join(' ')}</p> : null}
+                {sentenze.avvertenza && sentenze.pronunce.length ? <p>{sentenze.avvertenza}</p> : null}
+              </> : null}
+            </section>{selected.text_quality === 'avviso_abrogazione' ? <p>Questa edizione contiene un avviso sostitutivo, non il testo storico dell’articolo.</p> : selected.only_heading ? <p>La fonte ufficiale acquisita contiene soltanto l’intestazione per questo numero. Verifica il collegamento ufficiale; qui non viene ricostruito un testo mancante.</p> : null}
           </> : <div className="iu-li-normativa-empty"><BookOpen size={32} aria-hidden="true"/><h2>Leggi l’articolo qui</h2><p>Scegli un codice o una legge e apri un risultato per consultarne il testo completo.</p></div>}
         </section>
       </div>

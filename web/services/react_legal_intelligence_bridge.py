@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as _FuturoScaduto
 import os
 import re
 import threading
@@ -831,6 +832,9 @@ def _direct_code_article_reference(search_query: str) -> tuple[str, str]:
     return (code, article) if code and article and direct_reference else ("", "")
 
 
+_ATTUAZIONE_RE = re.compile(r"\bdisp(?:osizioni)?\.?\s*(?:di\s+|per\s+l['’]\s*)?att(?:uazione|\.)|\battuazione\b|\btransitori[ae]\b|disp\.\s*trans", re.IGNORECASE)
+
+
 def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
     from lex.retrieval.official_sources_retriever import _detect_code_target
 
@@ -840,9 +844,13 @@ def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_qu
         # "codice" or by the same number in another code. Use source identity.
         def normalized(value):
             return " ".join(str(value or "").lower().replace("-", " ").split())
+        # «art. 155 c.p.c.» è l'articolo del codice: le disposizioni di attuazione o transitorie hanno
+        # una numerazione propria e si chiedono espressamente («art. 155 disp. att. c.p.c.»), collaudo 21/11/2026.
+        attuazione_chiesta = bool(_ATTUAZIONE_RE.search(search_query))
         return [record for record in records
                 if normalized(record.get("registryNumber")) == normalized(article)
-                and _detect_code_target(" ".join(_text(record.get(key)) for key in ("title", "sourceLabel"))) == code]
+                and _detect_code_target(" ".join(_text(record.get(key)) for key in ("title", "sourceLabel"))) == code
+                and (attuazione_chiesta or not _ATTUAZIONE_RE.search(" ".join(_text(record.get(key)) for key in ("title", "sourceLabel"))))]
     records = [
         record
         for record in records
@@ -1657,10 +1665,11 @@ def _record_context_items(record: Mapping[str, Any], excerpt: str) -> list[str]:
     registro = _text(record.get("registryNumber"))
     # Gli identificativi interni dell'indice (impronta e porzione: «normattiva:<sha256>:annesso1:chunk2») non sono
     # un numero di registro e, senza spazi, allargavano il riquadro di dettaglio oltre il bordo (03/11/2026).
-    if registro and not re.search(r"[0-9a-f]{24,}|chunk\d", registro, re.IGNORECASE):
-        items.append(f"Registro: {registro}")
+    # Il numero di registro esiste solo per gli organismi di mediazione; per le norme è un codice interno.
+    if registro and _text(record.get("kind")) == "mediazione" and not re.search(r"[0-9a-f]{24,}|chunk\d", registro, re.IGNORECASE):
+        items.append(f"Numero di iscrizione: {registro}")
     if bool(record.get("contextCompleted")):
-        items.append("Lettura in pagina: contesto ricostruito dentro IUSENTRA.")
+        items.append("Il testo della fonte è riportato in questa scheda.")
     source_label = _text(record.get("sourceLabel"))
     source_href = _text(record.get("sourceHref"))
     if source_label and ("ufficiale" in _text(record.get("sourceKind")).lower() or _is_official_href(source_href)):
@@ -1950,12 +1959,15 @@ def _safe_official_archive_record(row: Mapping[str, Any], index: int, *, archive
         "sourceLabel": source_label,
         "sourceKind": "fonte ufficiale",
         "sourceHref": source_href,
-        "date": _text(row.get("data") or row.get("published_at") or row.get("data_acquisizione")),
+        # Per una norma la data utile è quella del testo vigente acquisito (verifica), non quella dell'atto:
+        # «16/03/1942» sull'art. 2043 c.c. faceva credere a un testo del 1942 (collaudo 21/11/2026).
+        "date": (_text(row.get("data_acquisizione")) or _text(row.get("data")))[:10] if archive == "normattiva"
+        else _text(row.get("data") or row.get("published_at") or row.get("data_acquisizione")),
         # I «topics» dell'archivio Normattiva sono parole chiave assegnate all'importazione (la L. 107/2015 risultava
         # «crisi_impresa_societario»): non sono una materia affidabile da mostrare all'avvocato.
         "area": "Normativa" if archive == "normattiva" else (_text(row.get("materia")) or "Gazzetta Ufficiale"),
         "branch": "Archivio Normattiva" if archive == "normattiva" else "Archivio Gazzetta Ufficiale",
-        "approvalLabel": "indicizzata",
+        "approvalLabel": "testo ufficiale in archivio",
         "approvalTone": "success",
         "registryNumber": chunk_label,
         "legacyHref": "/ricerca-legale",
@@ -2248,8 +2260,14 @@ def _normative_table_record(
         "verifica_richiesta": "controllo automatico da completare",
         "da_verificare": "controllo automatico da completare",
         "da verificare": "controllo automatico da completare",
+        # Il controllo online della fonte non è riuscito, ma i valori restano quelli delle tabelle del software,
+        # ciascuna con norma e Gazzetta: la scheda li mostra invece di dire solo «fonte non raggiungibile».
+        "fonte_non_raggiungibile": "valori dalle tabelle del software",
     }.get(status.lower(), status.replace("_", " "))
     warning = _short(row.get("last_warning"), 360)
+    if status.lower() == "fonte_non_raggiungibile":
+        warning = ("L'ultimo controllo online della fonte ufficiale non è riuscito: i valori sono quelli delle "
+                   "tabelle del software, con la norma e la Gazzetta indicate per ciascuna voce.")
     source_titles, source_urls, _source_codes = _normative_sources(row)
     samples = _normative_table_rows(manager, table_id, limit=3)
     sample_count = len(samples)
@@ -2261,13 +2279,15 @@ def _normative_table_record(
         total_rows = sample_count
     source_href = source_urls[0] if source_urls else ""
     source_label = ", ".join(source_titles[:2]) or "DB normativa IUSENTRA"
+    vigente = _valore_vigente(manager, table_id)
     source_excerpt_parts = [
         description,
+        vigente,
         f"Uso studio: {_normative_table_use_label(row)}.",
-        f"Stato sistema: {status_label}.",
+        f"Stato: {status_label}.",
     ]
     if total_rows:
-        source_excerpt_parts.append(f"Righe strutturate: {total_rows}.")
+        source_excerpt_parts.append(f"Voci della tabella: {total_rows}.")
     campioni = [_short(_campione_leggibile(sample), 120) for sample in samples[:3]]
     campioni = [campione for campione in campioni if campione]
     if campioni:
@@ -2281,10 +2301,12 @@ def _normative_table_record(
         f"Tabella: {title}",
         f"Categoria: {category}",
         f"Uso operativo: {_normative_table_use_label(row)}",
-        f"Stato sincronizzazione: {status_label}",
+        f"Stato: {status_label}",
     ]
+    if vigente:
+        key_points.insert(0, vigente)
     if total_rows:
-        key_points.append(f"Righe disponibili nel tenant: {total_rows}")
+        key_points.append(f"Voci della tabella: {total_rows}")
     if source_titles:
         key_points.append(f"Fonti presidiate: {', '.join(source_titles[:4])}")
     return {
@@ -2299,8 +2321,8 @@ def _normative_table_record(
         "keyPoints": key_points,
         "operationalChecks": _normative_table_checks(row, samples),
         "contextCompleted": True,
-        "contextStatus": "Tabella normativa letta dal DB normativa del tenant corrente",
-        "contextSource": "DB normativa tenant-aware",
+        "contextStatus": "Tabella delle norme del software",
+        "contextSource": "Tabelle normative di IUSENTRA",
         "sourceLabel": source_label,
         "sourceKind": "tabella normativa operativa",
         "sourceHref": source_href,
@@ -2308,15 +2330,33 @@ def _normative_table_record(
         "area": _codice_leggibile(category),
         "branch": ", ".join(_codice_leggibile(item) for item in _list(row.get("watch_source_ids")) if _text(item)) or "fonti operative",
         "approvalLabel": status_label,
-        "approvalTone": _tone(status),
+        "approvalTone": "info" if status.lower() == "fonte_non_raggiungibile" else _tone(status),
         "stateLabel": status_label,
-        "stateTone": _tone(status),
+        "stateTone": "info" if status.lower() == "fonte_non_raggiungibile" else _tone(status),
         "registryNumber": f"{total_rows} righe" if total_rows else _text(row.get("versions_count")),
         "legacyHref": "/ricerca-legale",
         "evidenceType": "tabella normativa strutturata",
         "registryKind": "db_normativa",
         "registrySection": category,
     }
+
+
+def _valore_vigente(manager: Any, table_id: str) -> str:
+    """La voce in vigore oggi per le tabelle a periodi (interesse legale, tassi): data italiana, norma e Gazzetta."""
+    try:
+        righe = list(getattr(getattr(manager, "normative_tables", None), "rows")(table_id))
+    except Exception:
+        return ""
+    oggi = datetime.now(timezone.utc).date().isoformat()
+    for riga in righe:
+        inizio, fine, tasso = _text(riga.get("start")), _text(riga.get("end")), riga.get("rate")
+        if tasso is None or not inizio or not (inizio <= oggi <= (fine or "9999-12-31")):
+            continue
+        dal = "/".join(reversed(inizio.split("-")))
+        valore = f"{float(tasso):.2f}".replace(".", ",")
+        estremi = "; ".join(_text(riga.get(k)) for k in ("decreto", "gazzetta") if _text(riga.get(k)))
+        return f"In vigore dal {dal}: {valore}%" + (f" ({estremi})" if estremi else "") + "."
+    return ""
 
 
 def _normative_reference_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
@@ -2541,7 +2581,7 @@ def _guida_pratica_source_record(source_id: str, source: Mapping[str, Any]) -> d
         "branch": role_label,
         "approvalLabel": "fonte web verificata",
         "approvalTone": "success",
-        "stateLabel": "indicizzata per Ricerca Legale",
+        "stateLabel": "consultabile nella ricerca",
         "stateTone": "success",
         "registryNumber": source_id,
         "legacyHref": "/ricerca-legale",
@@ -3087,21 +3127,66 @@ def _official_archive_records(warnings: list[dict[str, str]], search_query: str)
         except Exception:
             warnings.append(_warning("gazzetta_non_disponibile", "Archivio Gazzetta Ufficiale non disponibile per questa ricerca."))
     try:
-        from pct.sentenzeweb_corpus import configured_corpus
-        shared = configured_corpus()
-        if shared is not None:
-            with shared._connect() as connection:
-                for row in shared.cerca_sentenze(q=search_query, limit=8, semantica=False):
-                    body = connection.execute("SELECT substr(testo_integrale,1,6000) FROM sentenze WHERE id=?", (int(row["id"]),)).fetchone()
-                    if not body or not body[0]:
-                        continue
-                    record = _safe_search_record({"id": f"sentenzeweb:{row['id']}", "title": row["titolo"], "content": body[0], "official_url": row["url_pagina_ufficiale"], "authority": "Corte di Cassazione — SentenzeWeb", "type": "giurisprudenza", "published_at": row["data_deposito"], "is_official": True}, len(records) + 1, search_query=search_query)
-                    record.update(approvalLabel="testo archiviato", approvalTone="info", registryNumber=f"{row['numero_sentenza']}/{row['anno_sentenza']}", legacyHref="/giurisprudenza")
-                    records.append(record)
+        records.extend(_cassazione_entro_il_tempo(search_query, len(records)))
+    except _CassazioneScaduta:
+        warnings.append(_warning(
+            "cassazione_lenta",
+            f"L'archivio della Cassazione non ha risposto entro {_CASSAZIONE_SECONDI:.0f} secondi: "
+            "mostrati gli altri risultati. Per le sentenze apri l'Archivio sentenze per corte.",
+        ))
     except (OSError, ValueError, sqlite3.Error):
         warnings.append(_warning("cassazione_condivisa_non_disponibile", "Corpus condiviso Cassazione non disponibile; conservati gli altri risultati."))
     _altre_corti(records, warnings, search_query)
     return records
+
+
+# La ricerca nel testo integrale di SentenzeWeb (8,6 GB) richiede 17-25 s con il disco carico (misura del
+# 21/11/2026): dentro la richiesta dell'avvocato ha un tempo massimo e lavora in un esecutore separato,
+# così il thread del server non resta fermo. Oltre il tempo si mostrano gli altri risultati con l'avviso.
+_CASSAZIONE_SECONDI = float(os.getenv("IUSENTRA_RICERCA_CASSAZIONE_SECONDI") or 8)
+_ESECUTORE_CASSAZIONE = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ricerca-cassazione")
+
+
+class _CassazioneScaduta(Exception):
+    pass
+
+
+def _cassazione_righe(search_query: str, primo_indice: int) -> list[dict[str, Any]]:
+    from pct.sentenzeweb_corpus import configured_corpus
+
+    shared = configured_corpus()
+    if shared is None:
+        return []
+    righe: list[dict[str, Any]] = []
+    from web.services.ricerca_legale_sentenza_citata import estremi_sentenza
+
+    citata = estremi_sentenza(search_query)
+    # Una citazione si cerca per soli estremi: niente scansione del testo integrale (8,6 GB).
+    domanda = f"{citata['numero']}/{citata['anno']}" if citata else search_query
+    with shared._connect() as connection:
+        for row in shared.cerca_sentenze(q=domanda, limit=8, semantica=False):
+            body = connection.execute("SELECT substr(testo_integrale,1,6000) FROM sentenze WHERE id=?", (int(row["id"]),)).fetchone()
+            if not body or not body[0]:
+                continue
+            record = _safe_search_record({"id": f"sentenzeweb:{row['id']}", "title": row["titolo"], "content": body[0], "official_url": row["url_pagina_ufficiale"], "authority": "Corte di Cassazione — SentenzeWeb", "type": "giurisprudenza", "published_at": row["data_deposito"], "is_official": True}, primo_indice + len(righe) + 1, search_query=search_query)
+            record.update(approvalLabel="testo archiviato", approvalTone="info", registryNumber=f"{row['numero_sentenza']}/{row['anno_sentenza']}", legacyHref="/giurisprudenza",
+                          courtSection=_text(row.get("sezione")))
+            righe.append(record)
+    return righe
+
+
+def _cassazione_entro_il_tempo(search_query: str, primo_indice: int) -> list[dict[str, Any]]:
+    from lex.tempo_ricerca import scadenza_attiva
+
+    attesa = _CASSAZIONE_SECONDI
+    fine = scadenza_attiva()
+    if fine is not None:
+        attesa = max(0.5, min(attesa, fine - time.monotonic() - 2))
+    futuro = _ESECUTORE_CASSAZIONE.submit(_cassazione_righe, search_query, primo_indice)
+    try:
+        return futuro.result(timeout=attesa)
+    except _FuturoScaduto as exc:
+        raise _CassazioneScaduta() from exc
 
 
 def _altre_corti(records: list[dict[str, Any]], warnings: list[dict[str, str]], search_query: str) -> None:
@@ -3622,13 +3707,13 @@ def _enrich_autofetch_monitor_for_lawyer(
                 "research_steps": research_steps,
                 "system_action": activation_action
                 or (
-                    "Fonte acquisita o indicizzata: il sistema la espone in Ricerca Legale e la collega a Lex/RAG quando la pratica la richiama."
+                    "Fonte acquisita: è consultabile nella ricerca legale e Lex la usa quando la pratica la richiama."
                     if has_documents or status == "operativa_controllabile"
-                    else "Fonte non coperta: completare acquisizione ufficiale, testo e collegamento Lex/RAG prima della pubblicazione."
+                    else "Fonte non ancora completa: servono l'acquisizione ufficiale, il testo e il collegamento con Lex prima della pubblicazione."
                 ),
                 "publication_status_label": (
                     "pubblicata" if _positive_int(source.get("review_published"), 0)
-                    else "indicizzata" if _positive_int(source.get("normalized_documents"), 0)
+                    else "consultabile" if _positive_int(source.get("normalized_documents"), 0)
                     else "acquisita" if _positive_int(source.get("raw_documents"), 0)
                     else "non pubblicata"
                 ),
@@ -3636,7 +3721,7 @@ def _enrich_autofetch_monitor_for_lawyer(
                 or (
                     "Fonte pronta nel sistema: usare la scheda per pratica, fascicolo, modello o domanda Lex."
                     if has_documents or status == "operativa_controllabile"
-                    else "Non dichiarare coperta finché acquisizione, testo e collegamento Lex/RAG non sono completati."
+                    else "Da non considerare completa finché acquisizione, testo e collegamento con Lex non sono terminati."
                 ),
             }
         )
@@ -3711,6 +3796,25 @@ def _autofetch_quality_items(monitor: Mapping[str, Any]) -> list[dict[str, Any]]
     ]
 
 
+def _conteggi_come_codici_e_leggi(conteggi: dict[str, Any], config: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Gli stessi numeri di «Codici e leggi» (testi vigenti): prima la pagina diceva 641 atti e
+    43.414 articoli (indice di ricerca) e «Codici e leggi» 9.058 atti (collaudo 21/11/2026)."""
+    data_dir = (config or {}).get("DATA_DIR")
+    if not data_dir:
+        return conteggi
+    try:
+        from lex.normativa.cerdef_biblioteca import VIGENTE_BASE
+        from lex.normativa.cerdef_catalogo_salvato import catalogo_cerdef_salvato
+
+        atti = catalogo_cerdef_salvato(data_dir, (VIGENTE_BASE,))
+    except Exception:
+        return conteggi
+    if not atti:
+        return conteggi
+    return {**conteggi, "available": True, "documents": len(atti),
+            "articles": sum(int(atto.get("articles") or 0) for atto in atti)}
+
+
 def _official_archive_items(normattiva_counts: Mapping[str, Any], gazzetta_counts: Mapping[str, Any]) -> list[dict[str, Any]]:
     normattiva_available = bool(normattiva_counts.get("available"))
     gazzetta_available = bool(gazzetta_counts.get("available"))
@@ -3719,7 +3823,7 @@ def _official_archive_items(normattiva_counts: Mapping[str, Any], gazzetta_count
             "normattiva_locale",
             "Normattiva",
             int(normattiva_counts.get("documents") or 0),
-            f"{int(normattiva_counts.get('articles') or 0)} articoli indicizzati" if normattiva_available else "Archivio ufficiale non importato nel volume locale",
+            f"{int(normattiva_counts.get('articles') or 0):,} articoli vigenti consultabili".replace(",", ".") if normattiva_available else "Archivio ufficiale non importato nel volume locale",
             "success" if normattiva_available else "warning",
         ),
         _item(
@@ -3898,7 +4002,7 @@ def build_react_legal_intelligence_payload(
     autofetch_monitor = base["autofetch_monitor"]
     autofetch_source_items = _autofetch_source_items(autofetch_monitor)
     official_counts = base["official_counts"]
-    normattiva_counts = _dict(official_counts.get("normattiva"))
+    normattiva_counts = _conteggi_come_codici_e_leggi(_dict(official_counts.get("normattiva")), config)
     gazzetta_counts = _dict(official_counts.get("gazzetta"))
     normattiva_available = bool(normattiva_counts.get("available"))
     gazzetta_available = bool(gazzetta_counts.get("available"))
@@ -4003,6 +4107,12 @@ def build_react_legal_intelligence_payload(
                 from lex.retrieval.normativa_catalog import DIAGNOSTICS as _DIAGNOSTICA_NORMATIVA
 
                 warnings[:] = [w for w in warnings if w.get("message") != _DIAGNOSTICA_NORMATIVA["normativa_library_supplement"]]
+        if search_query:
+            from web.services.ricerca_legale_sentenza_citata import avviso_assente, filtra as _filtra_sentenza_citata
+
+            combined_search, sentenza_citata = _filtra_sentenza_citata(combined_search, search_query)
+            if sentenza_citata and not combined_search:
+                warnings.append(_warning("sentenza_citata_assente", avviso_assente(sentenza_citata)))
         records = (
             combined_search
             if search_query
@@ -4018,7 +4128,7 @@ def build_react_legal_intelligence_payload(
                 mediazione_records,
             )
         )
-        if search_query and not records:
+        if search_query and not records and not any(w.get("code") == "sentenza_citata_assente" for w in warnings):
             warnings.append(
                 _warning(
                     "nessun_risultato_ricerca",
@@ -4031,6 +4141,12 @@ def build_react_legal_intelligence_payload(
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence.json"
 
     records = [_enrich_record_context(record) for record in records]
+    from lex.normativa.etichette_atti import senza_codice_redazionale
+
+    for record in records:
+        for campo in ("title", "subtitle"):
+            if isinstance(record.get(campo), str):
+                record[campo] = senza_codice_redazionale(record[campo])
     warnings = _filter_resolved_search_warnings(warnings, records)
 
     search_section = _section(
@@ -4179,12 +4295,12 @@ def build_react_legal_intelligence_payload(
                 "info",
             ),
             _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Disponibili nello studio", "info"),
-            _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Percorso governato", "warning"),
+            _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Da approvare prima dell'uso", "warning"),
             _metric(
                 "normattiva",
                 "Normattiva",
                 int(normattiva_counts.get("documents") or 0),
-                f"{int(normattiva_counts.get('articles') or 0)} articoli, {int(normattiva_counts.get('chunks') or 0)} estratti" if normattiva_available else "Archivio ufficiale non importato nel volume locale",
+                f"{int(normattiva_counts.get('articles') or 0):,} articoli vigenti, gli stessi di «Codici e leggi»".replace(",", ".") if normattiva_available else "Archivio ufficiale non importato nel volume locale",
                 "success" if normattiva_available else "warning",
             ),
             _metric(

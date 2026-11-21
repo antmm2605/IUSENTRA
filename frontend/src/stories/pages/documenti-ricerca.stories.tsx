@@ -46,5 +46,5 @@ export const SchedaRicercaLegale: Story = createPageStory({ sourcePath: 'src/com
 export const Giurisprudenza: Story = createPageStory({ sourcePath: 'src/components/GiurisprudenzaPage.tsx', title: 'Archivio giurisprudenza', render: () => <GiurisprudenzaPage /> })
 export const RedazioneAtti: Story = createPageStory({ sourcePath: 'src/components/RedazioneAttiPage.tsx', title: 'Redazione atti', render: () => <RedazioneAttiPage /> })
 export const LexOperativo: Story = createPageStory({ sourcePath: 'src/components/LexOperativoPage.tsx', title: 'Lex operativo', render: () => <LexOperativoPage /> })
-export const ApprendimentoLex: Story = createPageStory({ sourcePath: 'src/components/LexLearningPage.tsx', title: 'Apprendimento Lex', render: () => <LexLearningPage /> })
+export const ApprendimentoLex: Story = createPageStory({ sourcePath: 'src/components/LexLearningPage.tsx', title: 'Cosa sta imparando Lex', render: () => <LexLearningPage /> })
 export const RicercaStudio: Story = createPageStory({ sourcePath: 'src/components/RicercaStudioPage.tsx', title: 'Ricerca studio', render: () => <RicercaStudioPage initialQuery="fascicolo" /> })

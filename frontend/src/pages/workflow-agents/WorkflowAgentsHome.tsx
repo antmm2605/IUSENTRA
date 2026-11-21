@@ -19,7 +19,7 @@ export function WorkflowAgentsHome() {
     const controller = new AbortController()
     fetchWorkflowAgentsHome(controller.signal)
       .then((data) => {
-        if (!data.ok) setError(data.message || 'Regia Agentica non disponibile.')
+        if (!data.ok) setError(data.message || 'Lavori automatici di Lex non disponibili.')
         setPayload(data)
       })
       .finally(() => setLoading(false))
@@ -37,14 +37,14 @@ export function WorkflowAgentsHome() {
     setError(result.message || 'Preview non avviata.')
   }
 
-  if (loading) return <IusLoadingState title="Caricamento Regia Agentica" message="Recupero percorsi, metriche e ultime attività." />
-  if (!payload) return <IusErrorState title="Regia non disponibile" message={error || 'Dati non disponibili.'} />
+  if (loading) return <IusLoadingState title="Caricamento dei lavori automatici di Lex" message="Recupero percorsi, metriche e ultime attività." />
+  if (!payload) return <IusErrorState title="Lavori automatici non disponibili" message={error || 'Dati non disponibili.'} />
 
   const canPreview = payload.feature_flags.enabled
 
   return (
     <IusPageShell
-      title="Regia Agentica Studio"
+      title="Lavori automatici di Lex"
       description="Lex pianifica letture operative, prepara proposte e misura il tempo risparmiato senza scritture automatiche."
       icon={Bot}
       area="lex"
@@ -59,7 +59,7 @@ export function WorkflowAgentsHome() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-2">
                 {workflow.title}
-                <Badge variant={workflow.risk_level === 'high' ? 'destructive' : 'secondary'}>{workflow.risk_level === 'high' ? 'Alta cautela' : 'Governato'}</Badge>
+                <Badge variant={workflow.risk_level === 'high' ? 'destructive' : 'secondary'}>{workflow.risk_level === 'high' ? 'Alta cautela' : 'Con controllo'}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-muted-foreground">
@@ -70,7 +70,7 @@ export function WorkflowAgentsHome() {
               <Button type="button" onClick={() => runPreview(workflow.code)} disabled={!canPreview || busyCode === workflow.code}>
                 <PlayCircle aria-hidden="true" /> Esegui anteprima
               </Button>
-              {!payload.feature_flags.writeActions ? <Badge variant="outline">Scritture spente</Badge> : null}
+              {!payload.feature_flags.writeActions ? <Badge variant="outline">Solo anteprima: nessuna modifica ai dati</Badge> : null}
             </CardFooter>
           </Card>
         ))}

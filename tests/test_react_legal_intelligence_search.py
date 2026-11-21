@@ -244,6 +244,9 @@ def test_ricerca_legale_espone_centro_fonti_ufficiali_lex():
     assert any(metric["id"] == "centro_fonti_ufficiali" and metric["value"] >= 400 for metric in payload["metrics"])
     assert any(metric["id"] == "matrice_pratiche_legali" and metric["value"] >= 25 for metric in payload["metrics"])
     assert any(metric["id"] == "riferimenti_nominali_pratiche" and metric["value"] >= 90 for metric in payload["metrics"])
+    # La pagina iniziale mostra un'anteprima di 48 schede (collaudo 21/11/2026: 1,5 MB a ogni apertura):
+    # la scheda della fonte si raggiunge con la ricerca, sull'intero inventario.
+    payload = _payload(_Repository(), page="ricerca-legale", query={"q": "Agenzia Entrate provvedimenti"})
     assert any(record["id"] == "source-delivery:lex_official_config:agenzia_entrate" for record in payload["records"])
     agenzia = next(record for record in payload["records"] if record["id"] == "source-delivery:lex_official_config:agenzia_entrate")
     assert agenzia["sourceKind"] == "fonte ufficiale governata"
@@ -1145,7 +1148,7 @@ def test_ricerca_legale_completa_record_povero_con_contesto_interno(monkeypatch)
     assert any("decorrenza" in item.lower() for item in record["operationalChecks"])
     assert record["sourceKind"] == "fonte ufficiale"
     assert record["sourceLabel"] == "Gazzetta Ufficiale"
-    assert any("Lettura in pagina" in item for item in record["sourceContext"])
+    assert any("Il testo della fonte è riportato in questa scheda" in item for item in record["sourceContext"])
 
 
 def test_ricerca_legale_non_marca_completo_elenco_gazzetta_cumulativo(monkeypatch):

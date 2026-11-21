@@ -13,3 +13,13 @@ export function applyCatalogueResponse<T extends { act_id?: number }>(
     setCanonicalAct(String(result.act_id))
   }
 }
+
+type Conteggio = { total: number; total_oltre?: boolean }
+
+// Durante il caricamento del catalogo il conteggio non è ancora noto: mai «0 articoli trovati».
+export function articoliTrovati(busy: boolean, catalogueBusy: boolean, results: Conteggio) {
+  if (busy) return 'Ricerca in corso…'
+  if (catalogueBusy && !results.total) return 'Caricamento del catalogo normativo…'
+  if (results.total_oltre) return `Più di ${results.total.toLocaleString('it-IT')} articoli trovati: restringi la ricerca`
+  return `${results.total.toLocaleString('it-IT')} ${results.total === 1 ? 'articolo trovato' : 'articoli trovati'}`
+}

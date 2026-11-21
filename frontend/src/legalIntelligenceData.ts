@@ -1,4 +1,4 @@
-import { apiJson } from './lib/apiClient'
+import { ApiClientError, apiJson, ensureJson } from './lib/apiClient'
 import { sanitizeDisplayText } from './displayText'
 import type { LegalAction, LegalMetric, LegalSection, LegalTone, LegalUiContract, LegalWarning } from './giurisprudenzaData'
 
@@ -481,9 +481,33 @@ export async function getRicercaLegalePage(params: { q?: string } = {}): Promise
   if (params.q?.trim()) search.set('q', params.q.trim())
   const suffix = search.toString() ? `?${search.toString()}` : ''
   // Una risposta non riuscita (es. 502 del proxy su una ricerca lunga) non è «nessun risultato»: lo si dice.
-  const fallback: LegalIntelligencePageData = search.toString()
-    ? { ...emptyLegalIntelligencePage, warnings: [{ code: 'ricerca_non_completata', message: 'La ricerca non è stata completata dal server: i risultati non sono disponibili. Riprova tra poco o restringi la ricerca.' }] }
-    : emptyLegalIntelligencePage
-  const payload = await apiJson<unknown>(`/api/v1/ui/ricerca-legale${suffix}`, fallback)
-  return normalisePage(payload)
+  // La pagina non resta su «Caricamento»: oltre il tempo massimo o con un errore del server dice cosa non va.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), RICERCA_LEGALE_ATTESA_MASSIMA_MS)
+  try {
+    return normalisePage(await ensureJson<unknown>(`/api/v1/ui/ricerca-legale${suffix}`, { signal: controller.signal }))
+  } catch (error) {
+    return paginaConAvviso(messaggioRicercaNonCompletata(error, controller.signal.aborted, Boolean(search.toString())))
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export const RICERCA_LEGALE_ATTESA_MASSIMA_MS = 45_000
+
+export function messaggioRicercaNonCompletata(error: unknown, scaduta: boolean, conRicerca: boolean) {
+  if (scaduta) {
+    return conRicerca
+      ? 'La ricerca non ha risposto entro 45 secondi: il server è occupato. Riprova tra poco o restringi la ricerca (per esempio indica il codice e il numero dell’articolo).'
+      : 'La pagina non ha risposto entro 45 secondi: il server è occupato. Riprova tra poco.'
+  }
+  if (error instanceof ApiClientError && error.status === 403) return 'Non hai il permesso per consultare le fonti.'
+  if (error instanceof ApiClientError && error.message) return error.message
+  return conRicerca
+    ? 'La ricerca non è stata completata dal server: i risultati non sono disponibili. Riprova tra poco o restringi la ricerca.'
+    : 'Le fonti non sono disponibili in questo momento: il server non ha risposto. Riprova tra poco.'
+}
+
+function paginaConAvviso(message: string): LegalIntelligencePageData {
+  return { ...emptyLegalIntelligencePage, warnings: [{ code: 'ricerca_non_completata', message }] }
 }

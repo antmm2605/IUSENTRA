@@ -189,3 +189,17 @@ ETICHETTE = {
     'rd_267_1942': 'R.D. 267/1942 — legge fallimentare (testo storico)',
     '495/1992': 'D.P.R. 495/1992 — regolamento del Codice della strada',
 }
+
+
+_CODICE_REDAZIONALE = __import__("re").compile(r"\s*\(\d{2,3}[A-Z]\d{4,5}\)")
+
+
+def senza_codice_redazionale(titolo):
+    """Toglie il codice redazionale della Gazzetta («(042U0262)», anche ripetuto) dal titolo mostrato.
+
+    È un identificativo tecnico: all'avvocato servono gli estremi dell'atto, già nel titolo.
+    """
+    if not isinstance(titolo, str):
+        return titolo
+    pulito = _CODICE_REDAZIONALE.sub("", titolo).strip()
+    return pulito[:-1].rstrip() if pulito.endswith(" .") else pulito

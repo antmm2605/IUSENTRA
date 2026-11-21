@@ -227,6 +227,10 @@ def richiesta_pagamento_pa(ctx: Contesto, credito: dict[str, Any]) -> str:
          f"il pagamento della somma di {euro(compenso)} per compenso, oltre accessori, così determinata:"),
         *[f"- {r}" for r in righe_importo],
         f"mediante bonifico sul conto {pulisci(studio.get('iban')) or manca('IBAN')} intestato a {ctx.avvocato_o_manca if distratte else manca('beneficiario')}.",
+        # Regime forfetario: la fattura sconta il bollo di € 2,00 (art. 13 Tariffa all. A D.P.R. 642/1972), che nei
+        # rapporti con lo Stato resta a carico dell'altra parte (art. 8 D.P.R. 642/1972): non si chiede all'amministrazione.
+        ("L'imposta di bollo sulla fattura resta a carico dello scrivente (art. 8 D.P.R. 642/1972) e non è compresa "
+         "nella somma richiesta." if distratte and credito.get("iva") == "forfetario" and ctx.avvocatura else ""),
         ("Si ricorda che le amministrazioni completano le procedure per il pagamento entro centoventi giorni dalla "
         "notificazione del titolo esecutivo, decorsi i quali il creditore può procedere alla notifica del precetto e "
         "all'esecuzione forzata (art. 14, comma 1, D.L. 669/1996, convertito dalla L. 30/1997)."),

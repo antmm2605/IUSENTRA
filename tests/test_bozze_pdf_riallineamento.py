@@ -360,3 +360,22 @@ def test_competenze_del_precetto_dal_tariffario_e_iva_secondo_il_regime():
     ordinario = competenze_precetto(Decimal("615.94"), iva="")
     assert ordinario["totale"] is not None and any("I.V.A." in r and "[da completare" in r for r in ordinario["righe"])
 
+
+def test_il_bollo_della_fattura_non_si_chiede_allo_stato():
+    from pct.fascicolo_conto_economico import bollo_contro_lo_stato
+
+    righe = [{"voce": "sentenza", "stato": "Distratte in favore dell'avvocato"},
+             {"voce": "parcella", "importo": 617.94, "dettaglio": "€ 515,00 di compensi."}]
+    parcelle = [{"numero": "2026/062", "stato": "BOZZA", "netto_a_pagare": 617.94, "bollo": 2.0}]
+    bollo_contro_lo_stato(righe, parcelle, contro_lo_stato=True)
+    assert "art. 8 D.P.R. 642/1972" in righe[1]["dettaglio"] and righe[1]["bolloNonRipetibile"] == 2.0
+    # Debitore privato o spese non distratte: nessuna nota.
+    privati = [{"voce": "sentenza", "stato": "Distratte in favore dell'avvocato"}, {"voce": "parcella", "dettaglio": ""}]
+    bollo_contro_lo_stato(privati, parcelle, contro_lo_stato=False)
+    assert privati[1]["dettaglio"] == ""
+
+
+def test_la_richiesta_di_pagamento_dice_che_il_bollo_resta_allo_studio():
+    richiesta, _precetto = _bozze_carbone(percorso=[_CONSEGNA_SENTENZA])
+    assert "L'imposta di bollo sulla fattura resta a carico dello scrivente (art. 8 D.P.R. 642/1972)" in richiesta.testo
+    assert "il pagamento della somma di € 615,94" in richiesta.testo

@@ -190,6 +190,7 @@ import { ContoEconomicoPanel } from './fascicoli/ContoEconomicoPanel'
 import { ContoEconomicoPulsante } from './fascicoli/ContoEconomicoPulsante'
 import { FascicoloNormativaButton } from '../features/fascicoli/normativa/FascicoloNormativaButton'
 import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
+import { ControlloCatena } from './fascicoli/ControlloCatena'
 import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
 import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
@@ -10388,6 +10389,7 @@ function DetailPage({ id }:{id:string}) {
       <TestataFascicolo rg={f.rg || f.ref} ufficio={f.court} rito={f.procedureType} giudice={f.judge} cliente={data.client?.name || f.client} controparte={testataAtti?.controparte || f.counterparty} difensoreControparte={testataAtti?.difensoreControparte} fonteControparte={testataAtti?.fonteControparte} valoreDagliAtti={testataAtti?.valore} fonteValore={testataAtti?.fonteValore} valore={Number(f.caseValue) || 0} stato={statoTestata.etichetta} statoTono={statoTestata.tono} statoDettaglio={statoTestata.dettaglio}/>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
       {quadroFascicolo}
+      <ControlloCatena fascicoloId={f.id || id} aggiornamento={quadro.lettura.fase === 'pronto' ? quadro.lettura.dati.generatoIl : quadro.lettura.fase}/>
       <nav className="iu-fas-section-nav" aria-label="Sezioni del fascicolo">{SEZIONI_FASCICOLO.map((sezione) => <a key={sezione.id} href={`#${sezione.id}`} onClick={openSection(sezione.id)} title={`${sezione.titolo}: ${sezione.descrizione}`}>{sezione.numero}. {sezione.breve}{sezioneCounts[sezione.id] ? <b>{sezioneCounts[sezione.id]}</b> : null}</a>)}</nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">

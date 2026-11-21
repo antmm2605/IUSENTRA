@@ -304,7 +304,11 @@ def payload_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     """Gli avvisi del guardiano per il fascicolo e il suo registro (pagina del fascicolo)."""
     registro = registro_corrente()
     if registro is None:
-        return {"ok": True, "fascicoloId": fascicolo_id, "stato": "non_disponibile", "avvisi": [], "giri": []}
+        from pct.catena.esito import esito_anelli
+
+        return {"ok": True, "fascicoloId": fascicolo_id, "stato": "non_disponibile", "statoEtichetta": "Controllo non disponibile",
+                "anelli": esito_anelli(stato="non_disponibile", avvisi=[], riparate=[]), "avvisi": [], "riparazioni": [],
+                "giri": []}
     ultimo = registro.ultimo_giro(fascicolo_id)
     from web.services.pannelli_pronti_runtime import impronta_fascicolo_corrente
 
@@ -313,15 +317,21 @@ def payload_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     except Exception:
         attuale = ""
     aggiornato = bool(ultimo and ultimo.get("esito") != IN_AGGIORNAMENTO and (not attuale or ultimo.get("impronta") == attuale))
+    from pct.catena.esito import anello_di, esito_anelli
+
+    stato = "verificato" if aggiornato else IN_AGGIORNAMENTO if ultimo else "mai_controllato"
+    avvisi = registro.avvisi(fascicolo_id)
+    riparate = registro.incoerenze(fascicolo_id, stato="riparata", limite=20)
     return {
         "ok": True, "fascicoloId": fascicolo_id,
-        "stato": "verificato" if aggiornato else IN_AGGIORNAMENTO if ultimo else "mai_controllato",
+        "stato": stato,
         "statoEtichetta": "Catena verificata" if aggiornato else "Controllo in aggiornamento" if ultimo else "Controllo non ancora eseguito",
         "ultimoControllo": ultimo,
-        "avvisi": [{"codice": a["codice"], "descrizione": a["descrizione"], "perche": a["perche"], "norma": a["norma"],
-                    "dal": a["prima_vista"]} for a in registro.avvisi(fascicolo_id)],
-        "riparazioni": [{"codice": a["codice"], "descrizione": a["descrizione"], "esito": a["esito_riparazione"],
-                         "quando": a["ultima_vista"]} for a in registro.incoerenze(fascicolo_id, stato="riparata", limite=20)],
+        "anelli": esito_anelli(stato=stato, avvisi=avvisi, riparate=riparate),
+        "avvisi": [{"codice": a["codice"], "anello": anello_di(a), "descrizione": a["descrizione"], "perche": a["perche"],
+                    "norma": a["norma"], "dal": a["prima_vista"]} for a in avvisi],
+        "riparazioni": [{"codice": a["codice"], "anello": anello_di(a), "descrizione": a["descrizione"],
+                         "esito": a["esito_riparazione"], "quando": a["ultima_vista"]} for a in riparate],
         "giri": registro.giri(fascicolo_id=fascicolo_id, limite=20),
     }
 

@@ -34,15 +34,53 @@ def test_saggio_legale_vigente_nell_art_1284():
     assert "saggio_legale_vigente" not in arricchisci({"number": "2043", "urn": "urn:nir:stato:regio.decreto:1942-03-16;262", "text": "x"})
 
 
-def test_sentenze_dell_articolo_dall_indice_o_dagli_archivi(monkeypatch):
+def _corpus(tmp_path):
+    import sqlite3
+
+    db = tmp_path / "corpus.sqlite"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE sentenze(id INTEGER PRIMARY KEY, organo_giudicante, sezione, numero_sentenza, anno_sentenza, "
+                 "data_deposito, testo_integrale)")
+    conn.execute("CREATE VIRTUAL TABLE sentenze_fts USING fts5(testo_integrale, content='', tokenize='unicode61')")
+    righe = [(1, "Corte di Cassazione — civile", "3", "012714", 2024, "2024-05-08", "ai sensi dell'art. 2043 c.c. il danno"),
+             (2, "Corte di Cassazione — civile", "1", "000100", 2023, "2023-01-02", "art. 2043 cod. civ. e art. 1218"),
+             (3, "Corte di Cassazione — civile", "2", "000200", 2025, "2025-03-01", "art. 2044 c.c. legittima difesa")]
+    for r in righe:
+        conn.execute("INSERT INTO sentenze VALUES (?,?,?,?,?,?,?)", r)
+        conn.execute("INSERT INTO sentenze_fts(rowid, testo_integrale) VALUES (?,?)", (r[0], r[6]))
+    conn.commit()
+    conn.close()
+
+    class Corpus:
+        def _connect(self):
+            from pct.giurisprudenza_corpus import connessione_sola_lettura
+            return connessione_sola_lettura(str(db))
+
+    return Corpus()
+
+
+def test_sentenze_dell_articolo_dall_indice_o_dalla_citazione(monkeypatch, tmp_path):
     import lex.harness.giurisprudenza as giur
     from web.services import normativa_sentenze
 
     chiamate = []
     monkeypatch.setattr(giur, "per_norme", lambda chiavi: chiamate.append(chiavi) or None)
-    monkeypatch.setattr(giur, "cerca", lambda domanda, **kw: chiamate.append(kw.get("utente")) or EsitoGiurisprudenza(
-        "consultata", [Pronuncia("Cassazione (SentenzeWeb)", "Cassazione civile", "3", "12714", "2024")], ["Cassazione"]))
-    esito = normativa_sentenze.sentenze_per_articolo({"number": "2043", "urn": "urn:nir:stato:regio.decreto:1942-03-16;262"}, utente="studio:7")
-    assert chiamate == [["cc:2043"], "studio:7"]
-    assert esito["citazione"] == "art. 2043 c.c." and esito["fonte"] == "ricerca negli archivi"
-    assert esito["pronunce"][0]["estremi"].startswith("Cassazione civile, sez. 3, n. 12714/2024")
+    corpus = _corpus(tmp_path)
+    monkeypatch.setattr(normativa_sentenze, "_archivi", lambda: [("Cassazione (SentenzeWeb)", corpus)])
+    esito = normativa_sentenze.sentenze_per_articolo(
+        {"number": "2043", "urn": "urn:nir:stato:regio.decreto:1942-03-16;262"}, utente="studio:7")
+    assert chiamate == [["cc:2043"]]
+    assert esito["citazione"] == "art. 2043 c.c." and esito["fonte"] == "ricerca della citazione negli archivi"
+    assert [p["numero"] for p in esito["pronunce"]] == ["12714", "100"]  # la 2044 non cita l'art. 2043
+    assert esito["pronunce"][0]["estremi"].startswith("Corte di Cassazione — civile, sez. 3, n. 12714/2024")
+
+
+def test_sentenze_dall_indice_precalcolato(monkeypatch):
+    import lex.harness.giurisprudenza as giur
+    from web.services import normativa_sentenze
+
+    monkeypatch.setattr(giur, "per_norme", lambda chiavi: EsitoGiurisprudenza(
+        "indice precalcolato", [Pronuncia("Cassazione (SentenzeWeb)", "Cassazione civile", "3", "12714", "2024")], ["Cassazione"]))
+    esito = normativa_sentenze.sentenze_per_articolo({"number": "13", "urn": "urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115",
+                                                      "data_atto": "2002-05-30", "numero": "115"})
+    assert esito["citazione"] == "art. 13 d.P.R. 115/2002" and esito["pronunce"][0]["numero"] == "12714"

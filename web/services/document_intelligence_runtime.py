@@ -1122,7 +1122,12 @@ def _record_vector_index_result(
     vector_indexes[document_key] = dict(vector_result or {})
     automation["vector_indexes"] = vector_indexes
     payments[AUTOMATION_KEY] = automation
-    fascicoli_repository.aggiorna(fascicolo_id, pagamenti=payments)
+    # Salvataggio mirato: dal ciclo delle letture l'archivio è caricato solo in parte e il salvataggio integrale è bloccato.
+    aggiorna_pagamenti = getattr(fascicoli_repository, "aggiorna_pagamenti", None)
+    if callable(aggiorna_pagamenti):
+        aggiorna_pagamenti(fascicolo_id, payments)
+    else:
+        fascicoli_repository.aggiorna(fascicolo_id, pagamenti=payments)
 
 
 def _existing_sentenza_vector_index(

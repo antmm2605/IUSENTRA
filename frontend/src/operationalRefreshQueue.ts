@@ -55,14 +55,16 @@ export function createOperationalRefreshQueue(refresh: (intent: { live: boolean;
           pendingLive = true
         }
         failures += 1
-        status(true)
-        // Bounded recovery; a later invalidation or explicit retry can resume.
-        if (failures < 3) pending = true
+        // Un ritardo momentaneo (carico del server, ricalcolo in sfondo) si ritenta da solo: l'avviso
+        // «Alcuni dati potrebbero non essere aggiornati» compare solo dopo tre tentativi falliti.
+        if (failures >= 3) status(true)
+        // Tre tentativi ravvicinati, poi un nuovo tentativo ogni 30 secondi finché la vista non si aggiorna.
+        pending = true
       }
     } finally {
       running = false
       if (!disposed && pending) {
-        const delay = failures ? 1000 * failures : pendingLive ? liveDelay() : 120
+        const delay = failures >= 3 ? 30000 : failures ? 1000 * failures : pendingLive ? liveDelay() : 120
         timer = setTimeout(() => { void run() }, delay)
       }
     }

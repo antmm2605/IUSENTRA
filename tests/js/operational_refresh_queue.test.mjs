@@ -102,7 +102,7 @@ test('an update arriving during a request is delivered afterwards without overla
   queue.dispose()
 })
 
-test('failure is visible, recovery is bounded, a new event resumes and confirms recovery', async t => {
+test('failure is visible only after three attempts, then a slow retry confirms recovery', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] })
   let calls = 0
   let fail = true
@@ -110,13 +110,13 @@ test('failure is visible, recovery is bounded, a new event resumes and confirms 
   const queue = createOperationalRefreshQueue(() => { calls += 1; if (fail) throw new Error('offline') }, value => statuses.push(value))
   queue.schedule(); t.mock.timers.tick(120); await flush()
   t.mock.timers.tick(1000); await flush()
+  assert.deepEqual(statuses, [])
   t.mock.timers.tick(2000); await flush()
-  t.mock.timers.tick(30000); await flush()
   assert.equal(calls, 3)
-  assert.deepEqual(statuses, [true, true, true])
-  fail = false; queue.schedule(); t.mock.timers.tick(120); await flush()
+  assert.deepEqual(statuses, [true])
+  fail = false; t.mock.timers.tick(30000); await flush()
   assert.equal(calls, 4)
-  assert.equal(statuses.at(-1), false)
+  assert.deepEqual(statuses, [true, false])
   queue.dispose()
 })
 
@@ -137,9 +137,12 @@ test('a loader that handles its own error still reports failure and later recove
   const statuses = []
   const queue = createOperationalRefreshQueue(async () => confirmed, value => statuses.push(value))
   queue.schedule(); t.mock.timers.tick(120); await flush()
+  t.mock.timers.tick(1000); await flush()
+  assert.deepEqual(statuses, [])
+  t.mock.timers.tick(2000); await flush()
   assert.deepEqual(statuses, [true])
   confirmed = true
-  t.mock.timers.tick(1000); await flush()
+  t.mock.timers.tick(30000); await flush()
   assert.deepEqual(statuses, [true, false])
   queue.dispose()
 })

@@ -529,7 +529,9 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             "gazzetta_ufficiale_sommari", "Gazzetta Ufficiale: sommari delle sei serie", "Aggiornamenti legali",
             "Ogni ora legge l'elenco ufficiale degli ultimi 30 giorni di Serie generale, Corte costituzionale, Unione "
             "europea, Regioni, Concorsi ed esami e Contratti pubblici e archivia i sommari dei fascicoli nuovi, con "
-            "l'indirizzo ufficiale di ogni atto. Una serie non raggiungibile non ferma le altre.",
+            "l'indirizzo ufficiale di ogni atto. Poi, per al più 20 minuti e con pause gentili, recupera lo storico dal "
+            "01/01/2022 (sommari e testo completo degli atti) ripartendo da dove si era fermato. Una serie non "
+            "raggiungibile non ferma le altre.",
             "cron", "", "25", built_in=True,
         ),
         SchedulerTemplate(

@@ -4,6 +4,7 @@
   ente emanante, intervallo di date, numero della Gazzetta), ordinamento e paginazione lato server;
 - ``GET  /gazzetta-ufficiale/ultime``: le ultime 5 pubblicazioni di Serie generale e Corte costituzionale
   per la Panoramica;
+- ``GET  /gazzetta-ufficiale/atti/<id>/testo``: il testo completo dell'atto salvato nell'archivio, con la fonte;
 - ``POST /gazzetta-ufficiale/aggiorna``: legge subito i sommari nuovi (un giro alla volta, non più di uno
   ogni 5 minuti, tempo massimo 45 secondi).
 
@@ -63,6 +64,19 @@ def gazzetta_ufficiale_ultime():
     except Exception as exc:
         current_app.logger.exception("Ultime pubblicazioni della Gazzetta Ufficiale non disponibili: %s", exc)
         return jsonify({"ok": False, "items": [], "message": _NON_DISPONIBILE}), 200
+
+
+@api_v1_gazzetta.get("/gazzetta-ufficiale/atti/<atto_id>/testo")
+@_richiedi_auth
+def gazzetta_ufficiale_testo(atto_id: str):
+    from web.services import gazzetta_runtime as vista
+
+    try:
+        payload = vista.testo_dell_atto(vista.archivio_in_lettura(current_app.config), atto_id)
+        return _senza_cache(payload), (404 if payload.get("notFound") else 200)
+    except Exception as exc:
+        current_app.logger.exception("Testo dell'atto della Gazzetta Ufficiale non disponibile: %s", exc)
+        return jsonify({"ok": False, "message": _NON_DISPONIBILE}), 200
 
 
 @api_v1_gazzetta.post("/gazzetta-ufficiale/aggiorna")

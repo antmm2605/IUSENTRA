@@ -102,3 +102,28 @@ def test_tempo_massimo_interrompe_con_messaggio_chiaro(vigente, monkeypatch):
             cerdef_biblioteca.linked_articles(0, query="testo", vigente=True)
     assert "tempo massimo" in str(errore.value)
     assert not isinstance(errore.value, OSError)
+
+
+def test_indice_esterno_per_archivio_in_sola_lettura(tmp_path, monkeypatch):
+    from lex.normativa import indice_numeri_esterno as esterno
+
+    database, index = _archivio(tmp_path, indice=False)
+    cartella = tmp_path / "numeri"
+    esterno.prepara(database, cartella)
+    monkeypatch.setenv("IUSENTRA_BIBLIOTECA_NUMERI_DIR", str(cartella))
+    monkeypatch.setenv("IUSENTRA_BIBLIOTECA_VIGENTE_DB", str(database))
+    monkeypatch.setenv("IUSENTRA_BIBLIOTECA_VIGENTE_INDICE", str(index))
+    monkeypatch.setattr(cerdef_biblioteca, "_archivio_grande", lambda connection: True)
+    risultato = cerdef_biblioteca.linked_articles(0, article="art. 7", vigente=True)
+    assert risultato["total"] == 3 and "avviso" not in risultato
+    with closing(sqlite3.connect(database)) as connection:
+        assert esterno.collega(connection, database)
+        assert "numeri.numeri_articolo" in filtro_numero_articolo(connection)
+    # L'archivio cambia: l'indice esterno non vale più e la ricerca lo dichiara.
+    with closing(sqlite3.connect(database)) as connection:
+        connection.execute("UPDATE normative_articles SET relevance_score=relevance_score")
+        connection.commit()
+    import os
+    os.utime(database, ns=(1, 1))
+    assert esterno.indice_per(database) is None
+    assert "avviso" in cerdef_biblioteca.linked_articles(0, article="7", vigente=True)

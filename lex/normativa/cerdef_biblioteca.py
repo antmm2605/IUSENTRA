@@ -83,6 +83,9 @@ def _linked_connection(base=ID_BASE, *, source=None):
     path = index.resolve(strict=True)
     with traduci_interruzione(), closing(_connect(database)) as connection:
         connection.execute("ATTACH DATABASE ? AS cerdef", (path.as_uri()+"?mode=ro",))
+        from lex.normativa.indice_numeri_esterno import collega
+
+        collega(connection, Path(database))
         connection.execute("PRAGMA query_only=ON")
         yield connection
 

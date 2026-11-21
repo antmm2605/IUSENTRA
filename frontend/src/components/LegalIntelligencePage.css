@@ -1329,6 +1329,8 @@ main.iu-content.iu-li-fullscreen-mode .iu-li-page {
 .iu-li-normativa-reader header { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
 .iu-li-normativa-reader h2 { font-size: 1.3rem; line-height: 1.4; }
 .iu-li-normativa-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.85; font-family: Georgia, serif; font-size: 1.05rem; padding-top: 1.5rem; }
+.iu-li-normativa-commi { list-style: none; padding: 0; margin: 0.75rem 0 0; display: grid; gap: 0.6rem; }
+.iu-li-normativa-comma-num { font-weight: 700; }
 .iu-li-normativa-note { margin-top: var(--iu-od-space-3); color: var(--iu-od-muted); font-size: 0.92rem; }
 .iu-li-normativa-note summary { cursor: pointer; font-weight: 600; }
 .iu-li-normativa-note p { white-space: pre-wrap; overflow-wrap: anywhere; }

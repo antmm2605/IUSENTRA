@@ -120,7 +120,12 @@ def numero_indicizzato(conn: sqlite3.Connection, schema: str = 'main') -> bool:
     if schema not in {'main', 'cerdef'}:
         raise ValueError('Schema normativo non ammesso')
     indici = {riga[1] for riga in conn.execute(f'PRAGMA {schema}.index_list(normative_articles)')}
-    return bool(indici & {INDICE_NUMERI_ARTICOLO, INDICE_ATTO_NUMERO})
+    return bool(indici & {INDICE_NUMERI_ARTICOLO, INDICE_ATTO_NUMERO}) or _indice_esterno(conn)
+
+
+def _indice_esterno(conn: sqlite3.Connection) -> bool:
+    # Indice dei numeri preparato fuori dall'archivio in sola lettura (lex/normativa/indice_numeri_esterno.py).
+    return any(riga[1] == 'numeri' for riga in conn.execute('PRAGMA database_list'))
 
 
 def filtro_numero_articolo(conn: sqlite3.Connection, alias: str = 'a', schema: str = 'main') -> str:
@@ -138,6 +143,8 @@ def filtro_numero_articolo(conn: sqlite3.Connection, alias: str = 'a', schema: s
     indici = {riga[1] for riga in conn.execute(f'PRAGMA {schema}.index_list(normative_articles)')}
     if INDICE_NUMERI_ARTICOLO in indici:
         return espressione_numero_articolo_sql('a.article_number') + '=?'
+    if _indice_esterno(conn):
+        return 'a.id IN (SELECT article_id FROM numeri.numeri_articolo WHERE numero=?)'
     if INDICE_ATTO_NUMERO in indici:
         return (f'a.id IN (SELECT id FROM {schema}.normative_articles INDEXED BY {INDICE_ATTO_NUMERO} '
                 f'WHERE {espressione_numero_articolo_sql()}=?)')

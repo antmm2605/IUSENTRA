@@ -11,8 +11,9 @@ Regole, tutte certe per convenzione di Normattiva:
   («e'» parola isolata → «è», «puo'» → «può», «liberta'» → «libertà», «perche'» → «perché»), mai dentro le
   virgolette (citazioni letterali) e mai nelle note, che riportano testi di altri atti. «po'» e «mo'» restano.
 
-Commi: l'archivio non conserva la divisione in commi (testo su una riga), quindi non si numerano: dividere per
-frasi sarebbe un'invenzione (l'art. 1284 c.c. ha tre frasi nel primo comma).
+Commi: l'archivio conserva il testo su una riga; la divisione in commi viene dall'XML ufficiale di Normattiva
+(``lex/normativa/commi.py``) e si applica solo se il testo coincide. Mai dividere per frasi (l'art. 1284 c.c. ha
+tre frasi nel primo comma).
 """
 from __future__ import annotations
 
@@ -86,10 +87,36 @@ def saggio_legale_vigente(oggi: date | None = None) -> dict[str, str] | None:
 _CODICE_CIVILE = "urn:nir:stato:regio.decreto:1942-03-16;262"
 
 
+_NUMERO_PROPRIO = re.compile(r"^(?:\(\()?\s*(\d{1,3}(?:[\s-]*(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)\.\s+")
+
+
+def numera_commi(commi: list[str]) -> list[dict[str, str]]:
+    """Il numero del comma: quello scritto nella legge («3-bis.») se c'è, altrimenti la posizione (codici)."""
+    uscita = []
+    for posizione, testo in enumerate(commi, 1):
+        proprio = _NUMERO_PROPRIO.match(testo)
+        if proprio:
+            uscita.append({"numero": proprio.group(1).replace(" ", ""), "testo": testo[proprio.end():].strip()
+                           if not testo.startswith("((") else "((" + testo[proprio.end():].strip()})
+        else:
+            uscita.append({"numero": str(posizione), "testo": testo})
+    return uscita
+
+
 def arricchisci(item: dict) -> dict:
     """Aggiunge la lettura preparata all'articolo restituito dall'archivio (il testo originale resta in «text»)."""
     lettura = presenta(item.get("text") or "")
     item["text_lettura"], item["note_aggiornamento"] = lettura["testo"], lettura["note"]
+    # Commi numerati solo dalla struttura dell'XML ufficiale e solo se il testo archiviato è lo stesso.
+    from lex.normativa.commi import commi_articolo, intestazione_articolo
+
+    commi = commi_articolo(item.get("text") or "", str(item.get("data_atto") or ""), str(item.get("numero") or ""),
+                           str(item.get("number") or ""))
+    if commi:
+        item["commi"] = numera_commi([presenta(comma)["testo"] for comma in commi])
+        item["intestazione_lettura"] = presenta(intestazione_articolo(
+            item.get("text") or "", str(item.get("data_atto") or ""), str(item.get("numero") or ""),
+            str(item.get("number") or "")))["testo"]
     numero = re.sub(r"[\s.-]", "", str(item.get("number") or "")).lower()
     if numero == "1284" and str(item.get("urn") or "").startswith(_CODICE_CIVILE):
         item["saggio_legale_vigente"] = saggio_legale_vigente()

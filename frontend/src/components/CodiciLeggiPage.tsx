@@ -17,7 +17,7 @@ type Article = { id: number; number: string; title: string; act_title: string }
 type SaggioLegale = { misura: string; dal: string; al: string; decreto: string; gazzetta: string }
 type Pronuncia = { estremi: string; archivio: string; url?: string; massima?: string }
 type Sentenze = { citazione: string; fonte: string; stato: string; errori: string[]; pronunce: Pronuncia[]; avvertenza: string }
-type FullArticle = Article & { text_lettura?: string; note_aggiornamento?: string; saggio_legale_vigente?: SaggioLegale | null; text: string; act_label: string; updated_at: string; source_url: string; source_label?: string; only_heading?: boolean; consolidated_at?: string; text_quality?: string; source_requested_at?: string; version_date_scope?: string; verified_as_of?: string; temporal_evidence?: { data: string; nota: string } }
+type FullArticle = Article & { commi?: { numero: string; testo: string }[]; intestazione_lettura?: string; text_lettura?: string; note_aggiornamento?: string; saggio_legale_vigente?: SaggioLegale | null; text: string; act_label: string; updated_at: string; source_url: string; source_label?: string; only_heading?: boolean; consolidated_at?: string; text_quality?: string; source_requested_at?: string; version_date_scope?: string; verified_as_of?: string; temporal_evidence?: { data: string; nota: string } }
 type Riscontro = { data: string; atti_richiesti: number; atti_esaminati?: number; atti_con_testo_verificato: number }
 type Vista = 'vigenti' | 'storico'
 type Results = { items: Article[]; total: number; act_id?: number; total_oltre?: boolean; avviso?: string }
@@ -157,7 +157,10 @@ export function CodiciLeggiPage() {
               <strong>Saggio legale in vigore: {selected.saggio_legale_vigente.misura} dal {selected.saggio_legale_vigente.dal} al {selected.saggio_legale_vigente.al}</strong>
               <p>{selected.saggio_legale_vigente.decreto}{selected.saggio_legale_vigente.gazzetta ? ` · ${selected.saggio_legale_vigente.gazzetta}` : ''}. Il 5 per cento del primo comma è la misura di legge, modificata ogni anno dal decreto del Ministro.</p>
             </aside> : null}
-            <div className="iu-li-normativa-text">{selected.text_lettura || selected.text}</div>
+            {selected.commi && selected.commi.length > 1 ? <div className="iu-li-normativa-text">
+              {selected.intestazione_lettura ? <p>{selected.intestazione_lettura}</p> : null}
+              <ol className="iu-li-normativa-commi" aria-label="Commi dell’articolo">{selected.commi.map((comma, indice) => <li key={`${indice}-${comma.numero}`}><span className="iu-li-normativa-comma-num">{comma.numero}.</span> {comma.testo}</li>)}</ol>
+            </div> : <div className="iu-li-normativa-text">{selected.text_lettura || selected.text}</div>}
             {selected.note_aggiornamento ? <details className="iu-li-normativa-note"><summary>Note di aggiornamento di Normattiva</summary><p>{selected.note_aggiornamento}</p></details> : null}
             <section className="iu-li-normativa-sentenze" aria-label="Sentenze sull’articolo" aria-busy={sentenzeBusy}>
               <h3>Sentenze sull’articolo</h3>

@@ -2540,7 +2540,7 @@ class GestioneFascicoli:
                         f, reason="aggiornamento_documento_portale", document_id=existing_doc.id,
                     )
                     f.modificato_il = datetime.now().isoformat()
-                    self._salva()
+                    self._salva_fascicoli_parziale([f]) if salvataggio_mirato else self._salva()
                 except Exception:
                     existing_doc.__dict__.clear()
                     existing_doc.__dict__.update(original_doc)
@@ -2607,7 +2607,7 @@ class GestioneFascicoli:
                     conserva_file_come_versione=conserva_file,
                 ):
                     f.modificato_il = datetime.now().isoformat()
-                    self._salva()
+                    self._salva_fascicoli_parziale([f]) if salvataggio_mirato else self._salva()
                 return existing_doc
             except Exception:
                 existing_doc.__dict__.clear()
@@ -2716,10 +2716,15 @@ class GestioneFascicoli:
         preserve_version_snapshot: bool = True,
         reuse_existing_path: bool = False,
         hash_contenuto_sha256: str = "",
+        nome_originale: str | None = None,
+        salvataggio_mirato: bool = False,
     ) -> "Documento":
         """
         Sostituisce il file di un documento esistente mantenendo lo storico
         della versione precedente in doc.versioni.
+
+        ``nome_originale``: il nome mostrato all'avvocato quando cambia anche il formato (bozza HTML diventata PDF);
+        ``salvataggio_mirato``: salva il solo fascicolo (archivio caricato in parte, lavori in sfondo).
         """
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)
@@ -2763,6 +2768,8 @@ class GestioneFascicoli:
             if not (reuse_existing_path and doc.percorso):
                 doc.percorso = str(dest.relative_to(self.documents_dir))
             doc.nome = nome_file
+            if nome_originale is not None:
+                doc.nome_originale = str(nome_originale or "").strip()
             doc.dimensione_bytes = len(contenuto)
             doc.hash_sha256 = hashlib.sha256(contenuto).hexdigest()
             content_hash = str(hash_contenuto_sha256 or "").strip().lower()
@@ -2778,7 +2785,10 @@ class GestioneFascicoli:
                 document_id=doc.id,
             )
             f.modificato_il = datetime.now().isoformat()
-            self._salva()
+            if salvataggio_mirato:
+                self._salva_fascicoli_parziale([f])
+            else:
+                self._salva()
         except Exception:
             doc.__dict__.clear()
             doc.__dict__.update(original_doc)
@@ -3103,8 +3113,13 @@ class GestioneFascicoli:
         id_doc: str,
         *,
         eliminato_da: str = "",
+        motivo: str = "",
+        salvataggio_mirato: bool = False,
     ) -> None:
-        """Sposta il documento nel cestino senza cancellare il file originale."""
+        """Sposta il documento nel cestino senza cancellare il file originale.
+
+        ``motivo``: perché il documento va nel cestino, scritto nella sua nota (resta leggibile nel cestino);
+        ``salvataggio_mirato``: salva il solo fascicolo (archivio caricato in parte, lavori in sfondo)."""
 
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)
@@ -3116,9 +3131,13 @@ class GestioneFascicoli:
         original_pagamenti = dict(f.pagamenti or {})
         original_eliminato_il = doc.eliminato_il
         original_eliminato_da = doc.eliminato_da
+        original_note = doc.note
         f.documenti = [d for d in f.documenti if d.id != id_doc]
         doc.eliminato_il = datetime.now().isoformat()
         doc.eliminato_da = str(eliminato_da or "").strip()
+        motivo = " ".join(str(motivo or "").split())
+        if motivo:
+            doc.note = f"{doc.note} — Nel cestino: {motivo}".strip(" —") if doc.note else f"Nel cestino: {motivo}"
         f.documenti_cestino = [d for d in f.documenti_cestino if d.id != id_doc]
         f.documenti_cestino.append(doc)
         self._segna_analisi_fascicolo_da_rieseguire(
@@ -3128,7 +3147,10 @@ class GestioneFascicoli:
         )
         f.modificato_il = datetime.now().isoformat()
         try:
-            self._salva()
+            if salvataggio_mirato:
+                self._salva_fascicoli_parziale([f])
+            else:
+                self._salva()
         except Exception:
             f.documenti = original_docs
             f.documenti_cestino = original_trash
@@ -3136,6 +3158,7 @@ class GestioneFascicoli:
             f.pagamenti = original_pagamenti
             doc.eliminato_il = original_eliminato_il
             doc.eliminato_da = original_eliminato_da
+            doc.note = original_note
             raise
 
     @documenti_cambiati("ripristinato")
@@ -3221,11 +3244,15 @@ class GestioneFascicoli:
         note: str | None = None,
         data_documento: str | None = None,
         tags: Optional[List[str]] = None,
+        nome_originale: str | None = None,
+        salvataggio_mirato: bool = False,
     ) -> Documento:
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
+        if nome_originale is not None:
+            doc.nome_originale = str(nome_originale or "").strip()
         if note is not None:
             doc.note = str(note or "").strip()
         if data_documento is not None:
@@ -3244,7 +3271,10 @@ class GestioneFascicoli:
                 normalized.append(value)
             doc.tags = normalized
         f.modificato_il = datetime.now().isoformat()
-        self._salva()
+        if salvataggio_mirato:
+            self._salva_fascicoli_parziale([f])
+        else:
+            self._salva()
         return doc
 
     def aggiorna_documento_deposito(

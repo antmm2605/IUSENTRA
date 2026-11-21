@@ -192,8 +192,10 @@ class _Repository:
     def get(self, fascicolo_id):
         return SimpleNamespace(id=fascicolo_id, id_cliente="", documenti=list(self.documenti.values()))
 
-    def rimuovi_documento(self, fascicolo_id, documento_id, eliminato_da=""):
+    def rimuovi_documento(self, fascicolo_id, documento_id, eliminato_da="", motivo="", salvataggio_mirato=False):
         self.cestino.append(documento_id)
+        self.motivi = [*getattr(self, "motivi", []), motivo]
+        self.mirati = [*getattr(self, "mirati", []), salvataggio_mirato]
         self.documenti.pop(documento_id)
 
 
@@ -429,7 +431,9 @@ def test_precetto_elegge_domicilio_nel_comune_del_giudice_dell_esecuzione_art_48
 
     _richiesta, precetto = bozze_del_fascicolo(_lettura_credito_pa(), oggi=OGGI, conto=_CONTO_DISTRATTE, studio=_STUDIO)
     assert "Elegge domicilio in [da completare: indirizzo nel comune sede del giudice dell’esecuzione" in precetto.testo
-    assert "(art. 480, terzo comma, c.p.c.)" in precetto.testo and "Giudice competente per l'esecuzione" not in precetto.testo
+    assert "(art. 480, terzo comma, c.p.c.)" in precetto.testo
+    # Art. 480, terzo comma, vigente (D.Lgs. 164/2024): il precetto indica il giudice competente per l'esecuzione.
+    assert "Indica quale giudice competente per l'esecuzione il [da completare: Tribunale del luogo in cui ha sede il terzo debitore" in precetto.testo
     # Comune certo e uguale alla sede dello studio: il domicilio è lo studio, senza segnaposto.
     ctx = Contesto(studio=_STUDIO)
     assert testi.elezione_domicilio(ctx, {"comune_esecuzione": "Taurianova"}) == (

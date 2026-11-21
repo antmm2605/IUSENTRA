@@ -45,11 +45,15 @@ CREATE TABLE IF NOT EXISTS bozze_passi (
     dati_cambiati_il TEXT NOT NULL DEFAULT '',
     testo_html TEXT NOT NULL DEFAULT '',
     formato TEXT NOT NULL DEFAULT '',
+    riallineata INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (fascicolo_id, chiave)
 );
 """
 # Colonne aggiunte il 19/11/2026 (bozze in PDF): i registri già creati le ricevono all'apertura.
-_COLONNE_AGGIUNTE = {"testo_html": "TEXT NOT NULL DEFAULT ''", "formato": "TEXT NOT NULL DEFAULT ''"}
+# Colonna aggiunta il 21/11/2026: le voci già nel registro nascono «da riallineare» (0) — nome del PDF nell'elenco e
+# doppioni nel cestino, una volta sola —; quelle create da qui in poi sono già allineate.
+_COLONNE_AGGIUNTE = {"testo_html": "TEXT NOT NULL DEFAULT ''", "formato": "TEXT NOT NULL DEFAULT ''",
+                     "riallineata": "INTEGER NOT NULL DEFAULT 0"}
 FORMATO_PDF = "pdf"
 
 
@@ -79,6 +83,7 @@ class VoceBozza:
     # Il testo modificabile della bozza (HTML dell'editor): il documento del fascicolo è il PDF che ne deriva.
     testo_html: str = ""
     formato: str = ""  # «pdf» per le bozze nel fascicolo come PDF; vuoto per le bozze HTML da convertire
+    riallineata: bool = True  # False per le voci create prima del riallineamento del 21/11/2026
 
 
 class ArchivioBozze:
@@ -101,6 +106,7 @@ class ArchivioBozze:
         dati = dict(riga)
         dati["da_completare"] = json.loads(dati["da_completare"] or "[]")
         dati["passi"] = json.loads(dati["passi"] or "[]")
+        dati["riallineata"] = bool(dati.get("riallineata", 1))
         return VoceBozza(**dati)
 
     def del_fascicolo(self, fascicolo_id: str) -> list[VoceBozza]:
@@ -115,6 +121,7 @@ class ArchivioBozze:
         dati = asdict(voce)
         dati["da_completare"] = json.dumps(voce.da_completare, ensure_ascii=False)
         dati["passi"] = json.dumps(voce.passi, ensure_ascii=False)
+        dati["riallineata"] = 1 if voce.riallineata else 0
         colonne = list(dati)
         with closing(self._conn()) as conn, conn:
             conn.execute(
@@ -130,6 +137,15 @@ class ArchivioBozze:
             return []
         with closing(self._conn()) as conn:
             righe = conn.execute("SELECT * FROM bozze_passi WHERE formato <> ? ORDER BY creata_il, chiave LIMIT ?",
+                                 (FORMATO_PDF, max(1, int(limite)))).fetchall()
+        return [self._voce(r) for r in righe]
+
+    def da_riallineare(self, limite: int = 200) -> list[VoceBozza]:
+        """Le voci create prima del riallineamento del 21/11/2026 (nome del PDF e doppioni), da sistemare in sfondo."""
+        if not self.percorso.exists():
+            return []
+        with closing(self._conn()) as conn:
+            righe = conn.execute("SELECT * FROM bozze_passi WHERE riallineata = 0 AND formato = ? ORDER BY creata_il, chiave LIMIT ?",
                                  (FORMATO_PDF, max(1, int(limite)))).fetchall()
         return [self._voce(r) for r in righe]
 

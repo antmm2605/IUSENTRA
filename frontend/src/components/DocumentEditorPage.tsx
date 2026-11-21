@@ -50,6 +50,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { Badge } from './dashboard'
+import { etichetteVisibili } from './fascicoloDocumenti/etichetteDocumento'
 import { FloatingLex } from './FloatingLex'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { Modal } from '../ui/legalPrimitives'
@@ -427,7 +428,7 @@ function DocumentFacts({ data }:{data: DocumentEditorPayload}) {
           <div><dt>Dimensione</dt><dd>{doc.size || 'n.d.'}</dd></div>
           <div><dt>Data documento</dt><dd>{doc.documentDate || doc.uploadedAt || 'n.d.'}</dd></div>
         </dl>
-        {doc.tags.length ? <div className="iu-de-tags">{doc.tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
+        {etichetteVisibili(doc.tags).length ? <div className="iu-de-tags">{etichetteVisibili(doc.tags).map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
       </section>
       <section>
         <header><ShieldCheck size={16}/><strong>Contesto</strong></header>

@@ -1360,9 +1360,12 @@ def _pdfa_convertibile(doc: Any, signed: bool) -> bool:
 
 
 def _visible_document_tags(doc: Any, *, display_name: str, technical_name: str) -> list[str]:
+    from pct.bozze_passi.modello import etichette_visibili
+
     out: list[str] = []
     seen: set[str] = set()
-    for raw_tag in getattr(doc, "tags", []) or []:
+    # I marcatori interni delle bozze («bozza-passo:…») diventano «Bozza preparata da IUSENTRA».
+    for raw_tag in etichette_visibili(doc):
         tag = _italian_dates_in_text(raw_tag)
         key = tag.casefold().strip()
         if not key:

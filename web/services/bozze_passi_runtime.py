@@ -31,6 +31,8 @@ from pct.bozze_passi.archivio import (
     percorso_archivio,
 )
 from pct.bozze_passi.modello import AVVISO_BOZZA, FONTE_BOZZA_PASSO, Bozza
+
+TIPO_LEX = "lex"  # bozze salvate da Lex (web/services/lex_bozza_fascicolo.py)
 from pct.fascicolo_lettura._testo import data_it
 
 logger = logging.getLogger(__name__)
@@ -130,45 +132,80 @@ def _pdf(titolo: str, testo_html: str) -> bytes:
     return bozza_pdf(titolo, testo_html)
 
 
+TAG_CHIAVE = "bozza-passo:"
+
+
+def _documenti_della_chiave(fascicolo: Any, chiave: str) -> list[Any]:
+    """I documenti del fascicolo scritti dal software per la stessa bozza (marcatore «bozza-passo:<chiave>»)."""
+    from pct.bozze_passi.modello import e_bozza_del_software
+
+    marcatore = f"{TAG_CHIAVE}{chiave}"
+    return [d for d in getattr(fascicolo, "documenti", []) or []
+            if marcatore in (getattr(d, "tags", None) or []) and e_bozza_del_software(d)]
+
+
+def mai_toccato(documento: Any) -> bool:
+    """Il documento è stato scritto e riscritto solo dal software: nessun salvataggio dell'avvocato."""
+    if _testo(getattr(documento, "caricato_da", "")) != AUTORE:
+        return False
+
+    def autore(versione: Any) -> str:
+        return _testo(versione.get("sostituito_da") if isinstance(versione, dict) else getattr(versione, "sostituito_da", ""))
+
+    return all(autore(v) in {AUTORE, ""} for v in getattr(documento, "versioni", []) or [])
+
+
+def _adotta_esistente(repository: Any, fascicolo_id: str, bozza: Bozza) -> tuple[str, str, str] | None:
+    """Un documento della stessa bozza già nel fascicolo ma non nel registro (registro non salvato a un giro precedente):
+    si riusa, riscritto in PDF, invece di crearne un secondo."""
+    fascicolo = repository.get(fascicolo_id)
+    candidati = [d for d in _documenti_della_chiave(fascicolo, bozza.chiave) if mai_toccato(d)]
+    if not candidati:
+        return None
+    documento = max(candidati, key=lambda d: _testo(getattr(d, "data_caricamento", "")))
+    testo_html = _testo_editor(bozza)
+    impronta = scrivi_pdf(repository, fascicolo_id, documento, titolo=bozza.titolo, testo_html=testo_html, note=_nota(bozza))
+    return documento.id, impronta, testo_html
+
+
 def _crea_documento(repository: Any, fascicolo_id: str, bozza: Bozza) -> tuple[str, str, str]:
     """Il PDF della bozza entra nel fascicolo; il testo dell'editor resta nel registro delle bozze."""
     from pct.bozze_passi.pdf import nome_file_pdf
     from pct.fascicoli import TipoDocumento
     from web.services.document_crypto import encrypt_doc
 
+    adottato = _adotta_esistente(repository, fascicolo_id, bozza)
+    if adottato is not None:
+        return adottato
     testo_html = _testo_editor(bozza)
     grezzo = _pdf(bozza.titolo, testo_html)
     nome = nome_file_pdf(bozza.titolo)
     documento = repository.aggiungi_documento(
         fascicolo_id, nome, TipoDocumento.ATTO_GIUDIZIARIO, encrypt_doc(grezzo), note=_nota(bozza),
-        tags=["bozza", "bozza-passo", f"bozza-passo:{bozza.chiave}"], caricato_da=AUTORE,
+        tags=["bozza", "bozza-passo", f"{TAG_CHIAVE}{bozza.chiave}"], caricato_da=AUTORE,
         fonte_documento=FONTE_BOZZA_PASSO, nome_originale=nome, hash_contenuto_sha256=hashlib.sha256(grezzo).hexdigest(),
         salvataggio_mirato=True,
     )
     return documento.id, hashlib.sha256(grezzo).hexdigest(), testo_html
 
 
-def _archivio_intero(repository: Any) -> None:
-    """Sostituzione e cestino salvano l'archivio intero: in lettura puntuale si completa prima il caricamento
-    (stessa salvaguardia del repository, «meglio lento che monco»), come nelle scritture dell'editor."""
-    completa = getattr(repository, "_assicura_archivio_completo", None)
-    if callable(completa):
-        completa()
-
-
 def scrivi_pdf(repository: Any, fascicolo_id: str, documento: Any, *, titolo: str, testo_html: str, note: str,
                autore: str = AUTORE) -> str:
     """Rigenera il PDF della bozza dal testo dell'editor e lo sostituisce nel fascicolo; restituisce l'impronta.
 
-    La versione precedente resta nello storico del documento (``preserve_version_snapshot``)."""
+    La versione precedente resta nello storico del documento (``preserve_version_snapshot``). Il nome mostrato
+    all'avvocato (``nome_originale``) diventa quello del PDF: una bozza nata in HTML non resta «.html» nell'elenco.
+    Salvataggio mirato del solo fascicolo: dal lavoro in sfondo l'archivio è caricato in parte e il salvataggio
+    integrale è bloccato (stessa correzione del 21/11/2026 sul ciclo delle letture)."""
     from pct.bozze_passi.pdf import nome_file_pdf
     from web.services.document_crypto import encrypt_doc
 
-    _archivio_intero(repository)
     grezzo = _pdf(titolo, testo_html)
     impronta = hashlib.sha256(grezzo).hexdigest()
-    repository.sostituisci_documento(fascicolo_id, documento.id, nome_file=nome_file_pdf(titolo), contenuto=encrypt_doc(grezzo),
-                                     caricato_da=autore, note=note, hash_contenuto_sha256=impronta)
+    nome = nome_file_pdf(titolo)
+    repository.sostituisci_documento(fascicolo_id, documento.id, nome_file=nome, contenuto=encrypt_doc(grezzo),
+                                     caricato_da=autore, note=note, hash_contenuto_sha256=impronta,
+                                     nome_originale=nome, salvataggio_mirato=True)
     return impronta
 
 
@@ -202,7 +239,7 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
     from pct.procedura_fasi.fonti import norme
     from web.helpers import get_fascicoli
 
-    esiti = {"create": 0, "aggiornate": 0, "invariate": 0, "dati_cambiati": 0, "superate": 0, "convertite": 0}
+    esiti = {"create": 0, "aggiornate": 0, "invariate": 0, "dati_cambiati": 0, "superate": 0, "convertite": 0, "doppioni": 0}
     g.fascicoli_sql_puntuali = True
     repository = get_fascicoli()
     fascicolo = repository.get(fascicolo_id)
@@ -214,7 +251,8 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
     bozze = bozze_del_fascicolo(lettura, oggi=oggi or oggi_roma(), conto=conto, studio=dati_studio(),
                                 cliente_cf=_cliente_cf(fascicolo))
     passi = list(lettura.get("prossimi_passi") or [])
-    esistenti = {v.chiave: v for v in archivio.del_fascicolo(fascicolo_id)}
+    # Le bozze scritte da Lex non nascono da un passo: il ciclo dei passi non le aggiorna né le mette nel cestino.
+    esistenti = {v.chiave: v for v in archivio.del_fascicolo(fascicolo_id) if v.tipo != TIPO_LEX}
     for bozza in bozze:
         voce = esistenti.pop(bozza.chiave, None)
         documento = _documento(fascicolo, voce.documento_id) if voce else None
@@ -254,8 +292,9 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
         # Il passo non c'è più: la bozza mai toccata va nel cestino del fascicolo, quella dell'avvocato resta.
         documento = _documento(fascicolo, voce.documento_id)
         if documento is not None and not _toccata(documento, voce):
-            _archivio_intero(repository)
-            repository.rimuovi_documento(fascicolo_id, voce.documento_id, eliminato_da=AUTORE)
+            repository.rimuovi_documento(fascicolo_id, voce.documento_id, eliminato_da=AUTORE,
+                                         motivo=f"bozza «{voce.titolo}» non più legata a un passo aperto",
+                                         salvataggio_mirato=True)
             archivio.elimina(fascicolo_id, voce.chiave)
         elif documento is None:
             archivio.elimina(fascicolo_id, voce.chiave)
@@ -263,8 +302,59 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
             voce.stato, voce.passi = STATO_SUPERATA, []
             archivio.salva(voce)
         esiti["superate"] += 1
-    if esiti["create"] or esiti["aggiornate"] or esiti["superate"] or esiti["convertite"]:
+    if esiti["create"] or esiti["aggiornate"] or esiti["superate"]:
+        esiti["doppioni"] = riallinea_doppioni(repository, repository.get(fascicolo_id), archivio)
+    if esiti["create"] or esiti["aggiornate"] or esiti["superate"] or esiti["convertite"] or esiti["doppioni"]:
         _segnala_documenti(fascicolo_id)
+    return esiti
+
+
+def riallinea_doppioni(repository: Any, fascicolo: Any, archivio: ArchivioBozze) -> int:
+    """Le copie in più di una bozza del registro vanno nel cestino del fascicolo, con il motivo nella nota.
+
+    Solo i documenti scritti dal software e mai toccati dall'avvocato; il documento del registro resta. Il cestino
+    conserva il file: nulla si cancella in modo definitivo."""
+    if fascicolo is None:
+        return 0
+    tolti = 0
+    for voce in archivio.del_fascicolo(fascicolo.id):
+        for documento in _documenti_della_chiave(fascicolo, voce.chiave):
+            if documento.id == voce.documento_id or not mai_toccato(documento):
+                continue
+            repository.rimuovi_documento(
+                fascicolo.id, documento.id, eliminato_da=AUTORE, salvataggio_mirato=True,
+                motivo=f"doppione della bozza «{voce.titolo}» creato dal software; resta il documento {voce.documento_id}")
+            tolti += 1
+    return tolti
+
+
+def riallinea_registro(archivio: ArchivioBozze, *, limite: int = 200) -> dict[str, int]:
+    """Riallineamento una tantum (21/11/2026) delle bozze già nel registro: il nome mostrato diventa quello del PDF
+    (le bozze nate in HTML restavano «.html» nell'elenco) e le copie doppie mai toccate vanno nel cestino."""
+    from web.helpers import get_fascicoli
+
+    g.fascicoli_sql_puntuali = True
+    repository = get_fascicoli()
+    esiti = {"nomi": 0, "doppioni": 0}
+    for fascicolo_id in dict.fromkeys(v.fascicolo_id for v in archivio.da_riallineare(limite)):
+        fascicolo = repository.get(fascicolo_id)
+        voci = [v for v in archivio.del_fascicolo(fascicolo_id) if not v.riallineata]
+        if fascicolo is not None:
+            for voce in voci:
+                documento = _documento(fascicolo, voce.documento_id)
+                nome = _testo(getattr(documento, "nome", "")) if documento is not None else ""
+                if nome.lower().endswith(".pdf") and _testo(getattr(documento, "nome_originale", "")) != nome:
+                    repository.aggiorna_documento_metadati(fascicolo_id, documento.id, nome_originale=nome,
+                                                           salvataggio_mirato=True)
+                    esiti["nomi"] += 1
+            esiti["doppioni"] += riallinea_doppioni(repository, repository.get(fascicolo_id), archivio)
+        for voce in voci:
+            # Solo le bozze già in PDF: quelle da convertire si riallineano dopo la conversione.
+            if voce.formato == FORMATO_PDF:
+                voce.riallineata = True
+                archivio.salva(voce)
+        if fascicolo is not None and (esiti["nomi"] or esiti["doppioni"]):
+            _segnala_documenti(fascicolo_id)
     return esiti
 
 
@@ -432,7 +522,7 @@ def giro(app, *, fascicoli: dict[str, set[str]] | None = None, ore: float = 72.0
     from web.services.pannelli_pronti_sfondo import studi
 
     totale = {"fascicoli": 0, "create": 0, "aggiornate": 0, "invariate": 0, "dati_cambiati": 0, "superate": 0,
-              "convertite": 0, "errori": 0}
+              "convertite": 0, "doppioni": 0, "nomi_riallineati": 0, "errori": 0}
     for owner, data_paths in studi(app):
         slug = str(getattr(owner, "slug", "") or "single-studio")
         if fascicoli is not None and slug not in fascicoli:
@@ -447,6 +537,15 @@ def giro(app, *, fascicoli: dict[str, set[str]] | None = None, ore: float = 72.0
                     totale["convertite"] += converti_bozze_html(archivio)
             except Exception as exc:
                 logger.warning("Conversione in PDF delle bozze non completata per %s: %s", slug, exc)
+                totale["errori"] += 1
+        if archivio.da_riallineare(1):
+            try:
+                with _contesto_studio(app, owner):
+                    riallineo = riallinea_registro(archivio)
+                totale["nomi_riallineati"] += riallineo["nomi"]
+                totale["doppioni"] += riallineo["doppioni"]
+            except Exception as exc:
+                logger.warning("Riallineamento delle bozze non completato per %s: %s", slug, exc)
                 totale["errori"] += 1
         elenco = sorted(fascicoli[slug]) if fascicoli is not None else archivio_pannelli.fascicoli_aperti_dal(ore)[:limite]
         for fascicolo_id in elenco:
@@ -514,6 +613,6 @@ def payload_bozze(fascicolo_id: str) -> dict[str, Any]:
                       "Nessuna è stata inviata, depositata o notificata."}
 
 
-__all__ = ["STATI_ETICHETTE", "archivio_corrente", "bozza_del_documento", "converti_bozza", "converti_bozze_html",
+__all__ = ["STATI_ETICHETTE", "TAG_CHIAVE", "archivio_corrente", "mai_toccato", "riallinea_doppioni", "riallinea_registro", "bozza_del_documento", "converti_bozza", "converti_bozze_html",
            "dati_studio", "giro", "impagina", "nota_bozza", "payload_bozze", "prepara_bozze_fascicolo", "salva_dall_editor",
            "scrivi_pdf"]

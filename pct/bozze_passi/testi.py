@@ -161,16 +161,21 @@ def notifica_del_titolo(titolo: dict[str, Any]) -> str:
 
 
 def elezione_domicilio(ctx: Contesto, titolo: dict[str, Any]) -> str:
-    """Dichiarazione di residenza o elezione di domicilio nel comune del giudice dell'esecuzione (art. 480, terzo comma).
+    """Il recapito della parte istante richiesto dall'art. 480, terzo comma, c.p.c. (testo vigente dopo il D.Lgs. 164/2024).
 
-    Il comune si scrive da sé solo quando è certo (``titolo["comune_esecuzione"]``) e coincide con la sede dello studio:
-    allora il domicilio è lo studio. Il giudice dell'esecuzione dipende dall'espropriazione scelta: per i crediti verso
-    una pubblica amministrazione è quello del luogo del terzo debitore (art. 26-bis, primo comma, c.p.c.), quindi la
-    Lettura da sola non lo dà e resta un segnaposto. In mancanza dell'elezione le opposizioni si propongono davanti al
-    giudice del luogo della notificazione del precetto (art. 480, terzo comma, c.p.c.).
+    La norma vigente consente, in alternativa alla dichiarazione di residenza o all'elezione di domicilio nel comune
+    sede del giudice dell'esecuzione, l'indicazione dell'indirizzo di posta elettronica certificata risultante da
+    pubblici elenchi: per l'avvocato è la PEC dello studio (iscritta nel ReGIndE e in INI-PEC), quindi si scrive da sé.
+    Senza PEC il domicilio è lo studio solo se il comune dell'esecuzione è certo (``titolo["comune_esecuzione"]``) e
+    coincide con la sede dello studio; altrimenti resta un segnaposto. In mancanza le opposizioni si propongono davanti
+    al giudice del luogo della notificazione del precetto (art. 480, terzo comma, c.p.c.).
     """
-    comune = pulisci(titolo.get("comune_esecuzione"))
     studio = ctx.studio
+    pec = pulisci(studio.get("pec"))
+    if pec:
+        return (f"Indica, quale proprio recapito, l'indirizzo di posta elettronica certificata risultante dai pubblici elenchi "
+                f"{pec} (art. 480, terzo comma, c.p.c.).")
+    comune = pulisci(titolo.get("comune_esecuzione"))
     if comune and comune.lower() == pulisci(studio.get("citta")).lower() and pulisci(studio.get("indirizzo_completo")):
         indirizzo = f"presso lo studio del difensore in {pulisci(studio.get('indirizzo_completo'))}"
     else:
@@ -178,6 +183,20 @@ def elezione_domicilio(ctx: Contesto, titolo: dict[str, Any]) -> str:
                           + (f" ({comune})" if comune else (" (crediti verso la P.A.: luogo del terzo debitore, art. 26-bis, "
                                                             "primo comma, c.p.c.)" if titolo.get("pa") else "")))
     return f"Elegge domicilio {indirizzo} (art. 480, terzo comma, c.p.c.)."
+
+
+def giudice_dell_esecuzione(titolo: dict[str, Any]) -> str:
+    """L'indicazione del giudice competente per l'esecuzione (art. 480, terzo comma, c.p.c. vigente).
+
+    Dipende dal pignoramento che l'avvocato sceglie: per i crediti verso una pubblica amministrazione è il giudice del
+    luogo in cui ha sede il terzo debitore (art. 26-bis, primo comma, c.p.c.), altrimenti quello del luogo del debitore o
+    dei beni (artt. 26 e 26-bis, secondo comma, c.p.c.). La Lettura non lo sa: è un dato che resta da completare."""
+    comune = pulisci(titolo.get("giudice_esecuzione"))
+    if comune:
+        return f"Indica quale giudice competente per l'esecuzione il {comune} (art. 480, terzo comma, c.p.c.)."
+    criterio = ("Tribunale del luogo in cui ha sede il terzo debitore, art. 26-bis, primo comma, c.p.c." if titolo.get("pa")
+                else "Tribunale competente secondo il pignoramento scelto, artt. 26 e 26-bis c.p.c.")
+    return f"Indica quale giudice competente per l'esecuzione il {manca(criterio)} (art. 480, terzo comma, c.p.c.)."
 
 
 def richiesta_pagamento_pa(ctx: Contesto, credito: dict[str, Any]) -> str:
@@ -224,36 +243,63 @@ def _al_destinatario(nome: str, *, pa: bool) -> str:
 
 
 def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
-    """Atto di precetto (artt. 474 e 480 c.p.c.; art. 654 c.p.c. sul decreto ingiuntivo esecutivo).
+    """Atto di precetto (artt. 474, 475 e 480 c.p.c.; art. 654 c.p.c. sul decreto ingiuntivo esecutivo; contro la
+    P.A. art. 14 D.L. 669/1996 e art. 11 R.D. 1611/1933).
 
-    ``titolo``: descrizione (str), voci (list[str]) e totale (Decimal|None), menzione_654 (str), pa (bool).
+    ``titolo``: descrizione (str), voci (list[str]) e totale (Decimal|None), menzione_654 (str), pa (bool), distratte
+    (bool), notificato_il e centoventi_giorni (gg/mm/aaaa, se la notifica del titolo è provata).
+    Testi vigenti dall'archivio Normattiva del software: art. 475 c.p.c. (dal 28/02/2023 il titolo vale in copia
+    attestata conforme, senza formula esecutiva: D.Lgs. 149/2022) e art. 480 c.p.c. (terzo comma come modificato dal
+    D.Lgs. 164/2024: giudice dell'esecuzione e PEC da pubblici elenchi).
     """
     pa = bool(titolo.get("pa"))
-    istante = f"**{ctx.cliente or manca('parte istante')}**" + (f" (C.F. {ctx.cliente_cf})" if ctx.cliente_cf else f" ({manca('codice fiscale della parte istante')})")
-    if titolo.get("distratte"):
-        istante = f"**{ctx.avvocato_o_manca}**, difensore antistatario di {ctx.cliente or manca('parte assistita')} (art. 93 c.p.c.)"
-    debitore = _destinatario_pa(ctx).split(", presso")[0] if pa else (ctx.controparte_o_manca + (f" (C.F. {titolo['cf_debitore']})" if titolo.get("cf_debitore") else f" ({manca('codice fiscale del debitore')})"))
+    distratte = bool(titolo.get("distratte"))
+    studio = ctx.studio
+    if distratte:
+        cf = pulisci(studio.get("cf_avvocato"))
+        istante = (f"**{ctx.avvocato_o_manca}**" + (f" (C.F. {cf})" if cf else f" ({manca('codice fiscale del difensore')})")
+                   + f", in proprio quale difensore antistatario di {ctx.cliente or manca('parte assistita')} (art. 93 c.p.c.)")
+    else:
+        istante = f"**{ctx.cliente or manca('parte istante')}**" + (f" (C.F. {ctx.cliente_cf})" if ctx.cliente_cf else f" ({manca('codice fiscale della parte istante')})")
+    amministrazione = _destinatario_pa(ctx).split(", presso")[0] if pa else ""
+    debitore = amministrazione if pa else (ctx.controparte_o_manca + (f" (C.F. {titolo['cf_debitore']})" if titolo.get("cf_debitore") else f" ({manca('codice fiscale del debitore')})"))
+    if pa and ctx.avvocatura:
+        # Gli atti giudiziari diversi da quelli introduttivi e le sentenze si notificano all'amministrazione dello Stato
+        # presso l'Avvocatura del distretto dell'autorità che ha pronunciato la sentenza (art. 11, secondo comma, R.D. 1611/1933).
+        recapito = f"domiciliato per legge presso l'{ctx.avvocatura} (art. 11, secondo comma, R.D. 1611/1933)"
+    elif pa:
+        recapito = manca("sede dell'amministrazione presso cui notificare il precetto")
+    else:
+        recapito = manca("residenza, sede o domicilio del debitore")
+    # Dal 28/02/2023 il provvedimento vale come titolo in copia attestata conforme, senza formula esecutiva (art. 475 c.p.c.).
+    copia = " rilasciato in copia attestata conforme all'originale (art. 475 c.p.c.)"
+    totale = titolo.get("totale")
     righe = [
         "# Atto di precetto",
-        "*(artt. 474 e 480 c.p.c.)*",
-        f"Su istanza {'del sottoscritto ' if titolo.get('distratte') else 'di '}{istante}" + ("" if titolo.get("distratte") else f", rappresentata e difesa da {ctx.avvocato_o_manca}"),
-        f"in forza {titolo['descrizione']}, titolo esecutivo (art. 474 c.p.c.)" + (f"; {titolo['menzione_654']}" if titolo.get("menzione_654") else "")
+        "*(artt. 474, 475 e 480 c.p.c." + ("; art. 14 D.L. 669/1996)*" if pa else ")*"),
+        f"Su istanza {'del sottoscritto ' if distratte else 'di '}{istante}" + ("" if distratte else f", rappresentata e difesa da {ctx.avvocato_o_manca}"),
+        f"in forza {titolo['descrizione']}, titolo esecutivo (art. 474 c.p.c.){copia}" + (f"; {titolo['menzione_654']}" if titolo.get("menzione_654") else "")
         + f", notificato il {notifica_del_titolo(titolo)},",
         # Art. 14, comma 1, D.L. 669/1996: prima dei centoventi giorni dalla notifica del titolo il precetto è vietato.
-        (f"decorso il termine di centoventi giorni dalla notificazione del titolo, scaduto il {titolo['centoventi_giorni']} "
-         "(art. 14, comma 1, D.L. 669/1996)," if pa and titolo.get("centoventi_giorni") else ""),
+        (f"decorso il termine di centoventi giorni dalla notificazione del titolo, scaduto il {titolo['centoventi_giorni']}, "
+         "senza che l'amministrazione abbia provveduto al pagamento (art. 14, comma 1, D.L. 669/1996),"
+         if pa and titolo.get("centoventi_giorni") else ""),
         "## Intima e fa precetto",
         # «al Ministero …», «all'Agenzia …», «alla Regione …» per le amministrazioni; «a Mario Rossi» per le persone.
-        _al_destinatario(debitore, pa=pa) + (manca("sede dell'amministrazione presso cui notificare il precetto") if pa
-                                  else manca("residenza, sede o domicilio del debitore")) + ",",
+        _al_destinatario(debitore, pa=pa) + recapito + ",",
         "di pagare entro dieci giorni dalla notificazione del presente atto le seguenti somme:",
         *[f"- {voce}" for voce in titolo.get("voci") or []],
         f"- competenze e spese del presente atto: {manca('importo secondo il D.M. 55/2014')}",
-        f"per un totale di {euro(titolo['totale']) + ' oltre ' if titolo.get('totale') else ''}{manca('totale complessivo con interessi e competenze')},",
+        # Spese di lite liquidate contro la P.A.: il totale degli importi certi, poi competenze, interessi legali dalla
+        # sentenza al saldo e successive occorrende. Negli altri titoli il totale con gli interessi resta da completare.
+        (f"per un totale di {euro(totale)}, oltre le competenze e spese del presente atto, gli interessi legali dalla "
+         "sentenza al saldo e le successive occorrende," if pa and totale else
+         f"per un totale di {euro(totale) + ' oltre ' if totale else ''}{manca('totale complessivo con interessi e competenze')},"),
         "con l'avvertimento che, in mancanza, si procederà a esecuzione forzata (art. 480, primo comma, c.p.c.).",
         ("Avverte il debitore che può, con l'ausilio di un organismo di composizione della crisi o di un professionista "
         "nominato dal giudice, porre rimedio alla situazione di sovraindebitamento concludendo con i creditori un accordo "
         "di composizione della crisi o proponendo agli stessi un piano del consumatore (art. 480, secondo comma, c.p.c.)."),
+        giudice_dell_esecuzione(titolo),
         elezione_domicilio(ctx, titolo),
     ]
     if pa and not titolo.get("centoventi_giorni"):
@@ -263,5 +309,5 @@ def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
     return _unisci(righe)
 
 
-__all__ = ["OGGETTO_PEC_L53", "nota_di_deposito", "note_127_ter", "precetto",
+__all__ = ["OGGETTO_PEC_L53", "elezione_domicilio", "giudice_dell_esecuzione", "nota_di_deposito", "note_127_ter", "precetto",
            "relata_notifica", "richiesta_pagamento_pa"]

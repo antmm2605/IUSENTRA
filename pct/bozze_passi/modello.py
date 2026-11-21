@@ -39,6 +39,30 @@ def e_bozza_del_software(documento: Any) -> bool:
     return str(fonte or "").strip().upper() in FONTI_BOZZE_DEL_SOFTWARE
 
 
+# Marcatori interni delle bozze (registro dei passi «bozza-passo:<chiave>», Lex, editor, note 127-ter): servono al
+# software per ritrovare il documento, all'avvocato non dicono nulla. Nella scheda compare un'etichetta chiara.
+_RE_TAG_TECNICO_BOZZA = re.compile(r"^(?:bozza(?:-[a-z0-9_]+)*|editor-(?:nuovo|richiesta)|preparazione-[a-z0-9_-]+)(?::.*)?$",
+                                   re.IGNORECASE)
+ETICHETTA_BOZZA_SOFTWARE = "Bozza preparata da IUSENTRA"
+ETICHETTA_BOZZA = "Bozza"
+
+
+def tag_tecnico_bozza(tag: Any) -> bool:
+    return bool(_RE_TAG_TECNICO_BOZZA.match(str(tag or "").strip()))
+
+
+def etichette_visibili(documento: Any, tags: Any = None) -> list[str]:
+    """I tag del documento senza i marcatori interni delle bozze; al loro posto «Bozza preparata da IUSENTRA»
+    (bozze del software) o «Bozza» (bozze dell'editor). Gli altri tag restano come sono, nell'ordine."""
+    grezzi = list(tags if tags is not None else (getattr(documento, "tags", None) or []))
+    visibili = [str(t).strip() for t in grezzi if str(t or "").strip() and not tag_tecnico_bozza(t)]
+    if e_bozza_del_software(documento):
+        visibili.insert(0, ETICHETTA_BOZZA_SOFTWARE)
+    elif len(visibili) < len([t for t in grezzi if str(t or "").strip()]):
+        visibili.insert(0, ETICHETTA_BOZZA)
+    return list(dict.fromkeys(visibili))
+
+
 @dataclass(frozen=True)
 class AggancioPasso:
     """Come si riconosce il passo della Lettura a cui la bozza appartiene."""
@@ -89,6 +113,10 @@ class Bozza:
 
 __all__ = [
     "AVVISO_BOZZA",
+    "ETICHETTA_BOZZA",
+    "ETICHETTA_BOZZA_SOFTWARE",
+    "etichette_visibili",
+    "tag_tecnico_bozza",
     "FONTE_BOZZA_PASSO",
     "FONTI_BOZZE_DEL_SOFTWARE",
     "AggancioPasso",

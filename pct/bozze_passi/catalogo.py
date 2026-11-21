@@ -144,21 +144,78 @@ def _forfettario_liquidato(*testi_letti: Any) -> bool:
     return any(_RE_FORFETTARIO.search(pulisci(t)) for t in testi_letti)
 
 
-def _notifica_titolo_provata(conclusioni: list[dict[str, Any]]) -> dict[str, str]:
+def _notifica_titolo_provata(conclusioni: list[dict[str, Any]], percorso: list[dict[str, Any]] | None = None,
+                             dal: date | None = None) -> dict[str, str]:
     """Data della notificazione del titolo e fine dei 120 giorni, se il modello della causa li ha provati.
 
     Il modello (pct/ragionamento/regole/sentenza.py) produce «esecuzione_pa» con il termine dei centoventi giorni
     decorrente dalla notifica del titolo solo quando la notifica è provata; con il dubbio («dubbio») non c'è data.
+
+    Se il modello non ha la conclusione (la sentenza non è stata riconosciuta come quella della causa, per esempio
+    perché il ruolo dell'intestazione non è stato letto) ma il suo percorso registra una sola consegna verificata della
+    notifica della sentenza, non anteriore alla sentenza ``dal``, quella è la notificazione del titolo: è la stessa prova
+    (ricevuta di consegna PEC verificata) da cui il modello calcola i 120 giorni (art. 14, comma 1, D.L. 669/1996).
     """
+    from pct.sentenza_notificata import GIORNI_ESECUZIONE_PA
+
+    def esito(notificato: date, scadenza: date) -> dict[str, str]:
+        return {"notificato_il": data_it(notificato), "centoventi_giorni": data_it(scadenza),
+                "precetto_dal": data_it(scadenza + timedelta(days=1))}
+
+    from pct.destinatari_notifica_pa import descrizione_destinatario
+
+    def destinatari(voce: dict[str, Any]) -> list[dict[str, str]]:
+        return [descrizione_destinatario(d) for d in ((voce.get("prova_notifica") or {}).get("destinatari") or [])]
+
     for voce in conclusioni:
         if voce.get("codice") != "esecuzione_pa" or voce.get("stato") == "dubbio":
             continue
         termine = voce.get("termine") or {}
         notificato, scadenza = data_da(termine.get("decorrenza")), data_da(termine.get("scadenza_iso") or termine.get("scadenza"))
         if notificato and scadenza:
-            return {"notificato_il": data_it(notificato), "centoventi_giorni": data_it(scadenza),
-                    "precetto_dal": data_it(scadenza + timedelta(days=1))}
+            return {**esito(notificato, scadenza), "destinatari_titolo": destinatari(voce)}
+    for voce in conclusioni:
+        if voce.get("codice") != "esecuzione_pa":
+            continue
+        # Il modello ha un dubbio: la bozza non lo scavalca. Se la consegna è provata ma solo all'Avvocatura, lo dice
+        # come rischio (i 120 giorni decorrono dalla notifica all'amministrazione, art. 14 D.L. 669/1996).
+        prova = voce.get("prova_notifica") or {}
+        notificato, elenco = data_da(prova.get("data")), destinatari(voce)
+        if notificato and elenco and not any(d["ruolo"] == "amministrazione" for d in elenco):
+            return {"notificato_il": data_it(notificato), "destinatari_titolo": elenco,
+                    "rischio_120": pulisci(voce.get("prova_o_motivo"))}
+        return {}
+    consegne = {data_da(evento.get("data")) for evento in percorso or []
+                if evento.get("tipo") == "consegna_notifica" and evento.get("stato") == "verificato"
+                and re.search(r"sentenz", pulisci(evento.get("descrizione")), re.IGNORECASE)}
+    consegne.discard(None)
+    if len(consegne) == 1 and dal is not None:
+        notificato = consegne.pop()
+        if dal <= notificato:
+            return esito(notificato, notificato + timedelta(days=GIORNI_ESECUZIONE_PA))
     return {}
+
+
+def competenze_precetto(valore: Decimal, *, iva: str) -> dict[str, Any] | None:
+    """Proposta delle competenze dell'atto di precetto dal tariffario del software (D.M. 55/2014, Tabella 6, nei
+    valori aggiornati dal D.M. 147/2022): valore medio dello scaglione del credito intimato, rimborso forfettario del 15%
+    (art. 2, comma 2, D.M. 55/2014), C.P.A. 4% (art. 11 L. 576/1980), I.V.A. secondo il regime dello studio.
+
+    È una proposta: l'avvocato può modificarla nel testo entro i limiti del D.M. 55/2014 (art. 4). Senza la tabella
+    ufficiale esatta nello snapshot del tariffario non si propone nulla (resta il segnaposto)."""
+    from pct.tariffario import Fase, Grado, Materia, calcola_compenso
+
+    try:
+        esito = calcola_compenso(Materia.ESEC_MOB, Grado.TRIBUNALE, float(valore), [list(Fase)[0]],
+                                 profile_code="esecuzione_precetto")
+    except Exception:
+        return None
+    compenso = (esito.dettaglio or {}).get("Compenso unico")
+    if not esito.exact_snapshot or esito.table_code != "A6" or not compenso or not compenso[1]:
+        return None
+    base = Decimal(str(compenso[1])).quantize(Decimal("0.01"))
+    righe, totale = testi._accessori(base, iva=iva, forfettario=True)
+    return {"compenso": base, "righe": righe, "totale": totale, "scaglione": esito.scaglione}
 
 
 def _credito_pa(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[dict[str, Any]], oggi: date, conto: dict[str, Any] | None) -> list[Bozza]:
@@ -176,7 +233,9 @@ def _credito_pa(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[dict[s
     fonte = pulisci(liquidazione.get("fonte")) or "Sentenza"
     spese = next((v for v in conclusioni if v.get("codice") == "spese_liquidate"), {})
     forfettario = _forfettario_liquidato(liquidazione.get("nota"), (spese.get("letto") or {}).get("brano"), spese.get("cosa"))
-    notifica = _notifica_titolo_provata(conclusioni)
+    data_sentenza = re.search(r"\b(\d{2}/\d{2}/\d{4})\b", fonte)
+    notifica = _notifica_titolo_provata(conclusioni, (lettura.get("ragionamento") or {}).get("percorso"),
+                                        data_da(data_sentenza.group(1)) if data_sentenza else None)
     credito = {"importo": compenso, "fonte": fonte, "distratte": distratte, "iva": _regime_iva(ctx),
                "forfettario": forfettario, **notifica}
     voci, totale = testi._accessori(compenso, iva=credito["iva"], forfettario=forfettario)
@@ -189,7 +248,8 @@ def _credito_pa(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[dict[s
               testi.richiesta_pagamento_pa(ctx, credito), agganci, importo=euro(compenso), distratte=distratte),
         _crea("precetto_pa", riferimento, "Atto di precetto contro la P.A. (dopo 120 giorni dalla notifica del titolo)",
               testi.precetto(ctx, {"descrizione": descrizione, "pa": True, "distratte": distratte, "totale": totale,
-                                   "voci": voci, **notifica}), agganci, importo=euro(compenso), **notifica),
+                                   "voci": voci, "competenze": competenze_precetto(totale, iva=credito["iva"]) if totale else None,
+                                   **notifica}), agganci, importo=euro(compenso), **notifica),
     ]
 
 

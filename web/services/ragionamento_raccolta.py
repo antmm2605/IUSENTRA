@@ -225,13 +225,16 @@ def _consegne_verificate(fascicolo_id: str) -> dict[str, dict[str, str]]:
 def _ruoli_destinatari(conn: Any, caso_id: Any) -> list[dict[str, str]] | None:
     """Indirizzo e ruolo (dalla relata) dei destinatari consegnati; None se il registro non li ha classificati."""
     righe = conn.execute(
-        "SELECT recipient_address, recipient_type FROM notification_recipients WHERE notification_case_id=? AND status<>'CANCELLED'",
+        "SELECT recipient_address, recipient_type, recipient_name FROM notification_recipients WHERE notification_case_id=? AND status<>'CANCELLED'",
         (caso_id,),
     ).fetchall()
     ruoli = [str(r[1] or "") for r in righe]
     if not righe or not all(r.startswith("RELATA_") for r in ruoli):
         return None
-    return [{"indirizzo": str(r[0] or ""), "ruolo": ruolo[len("RELATA_"):].lower()} for r, ruolo in zip(righe, ruoli)]
+    # La voce della relata (denominazione, sede, PEC e pubblico elenco: art. 3-bis, comma 5, L. 53/1994) serve alle
+    # bozze per dire a chi è stato notificato il titolo e dove notificare il precetto.
+    return [{"indirizzo": str(r[0] or ""), "ruolo": ruolo[len("RELATA_"):].lower(), "voce": " ".join(str(r[2] or "").split())}
+            for r, ruolo in zip(righe, ruoli)]
 
 
 def _copia_attestata_notificata(conn: Any, caso_id: Any, atto: str) -> bool:

@@ -195,6 +195,7 @@ import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
 import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
 import { useFileDropTarget } from './fascicoloDocumenti/useFileDropTarget'
+import { etichetteVisibili } from './fascicoloDocumenti/etichetteDocumento'
 import { ID_SEZIONI_DOCUMENTO, SEZIONI_DOCUMENTO } from './fascicoloDocumenti/sezioniDocumento'
 import type { OfficeDocumentsOpenRequest } from './OfficeDocumentsPanel'
 import { beginLocalSignerForegroundGrant } from '../features/telematico/localSignerForeground'
@@ -7467,8 +7468,8 @@ function uniqueFascicoloDocuments(documents: FascicoloDocument[]): FascicoloDocu
 
 function visibleDocumentTags(doc: FascicoloDocument): string[] {
   const seen = new Set<string>()
-  return doc.tags
-    .map((tag) => tag.trim())
+  // I marcatori interni delle bozze («bozza-passo:…») non si mostrano: resta «Bozza preparata da IUSENTRA».
+  return etichetteVisibili(doc.tags, doc.studioDraft)
     .filter((tag) => {
       const key = normaliseText(tag)
       if (!key || /(quickorganizer|import_esterno|backend|frontend|payload|runtime|legacy)/.test(key)) return false

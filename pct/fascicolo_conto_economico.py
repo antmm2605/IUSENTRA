@@ -176,6 +176,29 @@ def _documento(parcella: Mapping[str, Any]) -> str:
     return "fattura" if str(parcella.get("operativo") or "").upper() == "FATTURA" else "proforma"
 
 
+def bollo_contro_lo_stato(righe: list[dict[str, Any]], parcelle: list[Mapping[str, Any]], *, contro_lo_stato: bool) -> None:
+    """Spese distratte contro un'amministrazione dello Stato: il bollo della fattura non si chiede al debitore.
+
+    In regime forfetario la fattura sopra € 77,47 sconta il bollo di € 2,00 (art. 13, comma 1, Tariffa parte I, all. A,
+    D.P.R. 642/1972); nei rapporti con lo Stato l'imposta di bollo è a carico dell'altra parte, nonostante qualunque patto
+    contrario (art. 8 D.P.R. 642/1972, testo vigente). Il titolo liquida compenso e accessori di legge: nel precetto e
+    nella richiesta di pagamento si chiede l'importo senza il bollo; la differenza resta a carico dello studio."""
+    sentenza = next((r for r in righe if r.get("voce") == "sentenza"), None)
+    parcella = next((r for r in righe if r.get("voce") == "parcella"), None)
+    if not contro_lo_stato or sentenza is None or parcella is None or "distratt" not in str(sentenza.get("stato") or "").lower():
+        return
+    from pct.proforma_unica import attive_non_superate
+
+    bollo = round(sum(float(p.get("bollo") or 0) for p in attive_non_superate(parcelle)), 2)
+    if not bollo:
+        return
+    nota = (f"Il bollo di {_euro(bollo)} della fattura resta a carico dello studio: nei rapporti con lo Stato l'imposta di "
+            "bollo è a carico dell'altra parte (art. 8 D.P.R. 642/1972). Al Ministero si chiedono compenso e accessori "
+            "liquidati, senza il bollo: è l'importo del precetto e della richiesta di pagamento.")
+    parcella["dettaglio"] = " ".join(filter(None, (str(parcella.get("dettaglio") or ""), nota)))
+    parcella["bolloNonRipetibile"] = bollo
+
+
 def righe_parcella(parcelle: list[Mapping[str, Any]], voce_spese: Mapping[str, Any], voce_fondo: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Parcella, spese ed esborsi, anticipazioni: dai documenti economici del fascicolo.
 

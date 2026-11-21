@@ -9,6 +9,7 @@ from typing import Any, Callable
 from flask import has_app_context
 
 from pct.editor import estensione_editabile
+from pct.bozze_passi.modello import etichette_visibili as _etichette_visibili
 from web.services.document_edit_policy import motivo_blocco_editor, pdf_studio_modificabile
 from web.services.pdf_modificabile import modificabile_come_pdf
 from pct.document_signature_state import document_has_real_digital_signature
@@ -167,7 +168,8 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
         "uploadedAt": _date_label(getattr(doc, "data_caricamento", "")),
         "documentDate": _date_label(getattr(doc, "data_documento", "")),
         "notes": _text(getattr(doc, "note", "")),
-        "tags": list(getattr(doc, "tags", []) or []),
+        # Senza i marcatori interni delle bozze («bozza-passo:…»): la scheda mostra «Bozza preparata da IUSENTRA».
+        "tags": _etichette_visibili(doc),
         "signed": signed,
         "hash": _text(getattr(doc, "hash_sha256", "")),
         "source": _text(getattr(doc, "fonte_documento", ""), "CARICAMENTO_STUDIO"),

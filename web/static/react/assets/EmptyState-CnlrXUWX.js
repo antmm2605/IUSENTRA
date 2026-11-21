@@ -1,0 +1,1 @@
+import{et as e,in as t}from"./lettura-fascicolo-D5-ye9UY.js";import"./app-DqjG7Kcj.js";var n=t();function r({title:t,message:r,action:i}){return(0,n.jsx)(e,{title:t,message:r,action:i,className:`iu-empty-state`})}export{r as t};

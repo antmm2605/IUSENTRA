@@ -31,6 +31,17 @@ def _ram_libera_mb() -> int:
     return 0
 
 
+def _gpu_mb() -> int:
+    import subprocess
+
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=10).stdout
+        return int(out.strip().splitlines()[0])
+    except Exception:
+        return -1
+
+
 def _attendi_carico(massimo: float) -> None:
     while _carico() > massimo:
         time.sleep(30)
@@ -66,7 +77,13 @@ def misura(scrittore: str, *, solo_casi: bool = False, massimo: int | None = Non
         inventate = (not esito.criteri.get("inventate", True)) if tipo == "caso" else bool(esito.inventate)
         righe.append({"tipo": tipo, "id": voce["id"], "corretta": corretta, "inventate": inventate,
                       "stesura_accettata": bool(st and st.accettata), "motivo": st.motivo if st else "",
-                      "secondi": round(st.secondi, 1) if st else 0.0, "carico": _carico(), "ram_libera_mb": _ram_libera_mb()})
+                      "secondi": round(st.secondi, 1) if st else 0.0, "carico": _carico(), "ram_libera_mb": _ram_libera_mb(),
+                      "gpu_mb": _gpu_mb()})
+        if os.environ.get("LEX_BANCO_TESTI"):
+            with open(os.environ["LEX_BANCO_TESTI"], "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"scrittore": scrittore, "id": voce["id"], "schema": testo, "stesura": st.testo if st else "",
+                                     "accettata": bool(st and st.accettata), "motivo": st.motivo if st else ""},
+                                    ensure_ascii=False) + "\n")
         print(scrittore, voce["id"], corretta, righe[-1]["stesura_accettata"], righe[-1]["secondi"], righe[-1]["motivo"][:80], flush=True)
     casi = [r for r in righe if r["tipo"] == "caso"]
     bat = [r for r in righe if r["tipo"] == "batteria"]
@@ -75,7 +92,9 @@ def misura(scrittore: str, *, solo_casi: bool = False, massimo: int | None = Non
             "norme_inventate": sum(r["inventate"] for r in righe),
             "stesure_accettate": sum(r["stesura_accettata"] for r in righe),
             "tempo_medio_s": round(sum(tempi) / len(tempi), 1) if tempi else 0.0, "tempo_max_s": round(max(tempi), 1) if tempi else 0.0,
-            "ram_libera_min_mb": min((r["ram_libera_mb"] for r in righe), default=0), "righe": righe}
+            "ram_libera_min_mb": min((r["ram_libera_mb"] for r in righe), default=0),
+            "gpu_max_mb": max((r["gpu_mb"] for r in righe), default=0),
+            "carico_medio": round(sum(r["carico"] for r in righe) / len(righe), 1) if righe else 0.0, "righe": righe}
 
 
 def main(argv: list[str]) -> int:

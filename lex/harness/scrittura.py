@@ -72,6 +72,12 @@ def controlla(schema: str, stesura: str) -> str:
         return "importi nuovi o cambiati: " + ", ".join(sorted(imp_stesura - imp_schema))
     if imp_schema - imp_stesura:
         return "importi dello schema persi: " + ", ".join(sorted(imp_schema - imp_stesura))
+    # Una norma sparita è un'affermazione persa (la mediazione obbligatoria, la tutela applicabile): la stesura deve
+    # citare tutte le norme dello schema.
+    norme_stesura = {k for _, k in citazioni(stesura)}
+    perse = sorted({c for c, k in citazioni(schema) if k not in norme_stesura})
+    if perse:
+        return "norme dello schema perse: " + ", ".join(perse)
     if len(stesura.strip()) < 80:
         return "stesura vuota o troppo breve"
     return ""

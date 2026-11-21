@@ -25,6 +25,25 @@ def _registry_block_payload(result: Any) -> dict[str, Any] | None:
     }
 
 
+# Strumenti che leggono un fascicolo: senza fascicolo scelto il passo non si esegue e lo si dice.
+_SERVE_IL_FASCICOLO = "Nessun fascicolo scelto: questo passo legge il fascicolo. Avvia il lavoro dal fascicolo da trattare."
+
+
+def _manca_il_fascicolo(step: AgentStep) -> bool:
+    return "fascicolo_id" in (step.input_json or {}) and not str(step.input_json.get("fascicolo_id") or "").strip() \
+        and "fascicolo" in f"{step.tool_name} {step.title}".lower()
+
+
+def motivo_errore(step: AgentStep, exc: Exception) -> str:
+    """Il motivo vero dell'errore, in italiano e senza dati del fascicolo né percorsi interni."""
+    if _manca_il_fascicolo(step):
+        return _SERVE_IL_FASCICOLO
+    testo = " ".join(str(exc or "").split())
+    if testo and len(testo) <= 160 and "/" not in testo and "\\" not in testo:
+        return f"Lettura non riuscita: {testo}"
+    return f"Lettura non riuscita ({type(exc).__name__}): l'errore è registrato nel log del server."
+
+
 class WorkflowAgentExecutor:
     def __init__(self, tool_registry: LexToolRegistry | None = None):
         self.tool_registry = tool_registry or LexToolRegistry()
@@ -60,6 +79,11 @@ class WorkflowAgentExecutor:
             if step.mutates_state:
                 proposals.append(self._proposal_from_step(run, step))
                 continue
+            if _manca_il_fascicolo(step):
+                step.status = "blocked"
+                step.error_message = _SERVE_IL_FASCICOLO
+                evidence[step.step_key] = {"blocked": True, "code": "fascicolo_mancante", "message": step.error_message}
+                continue
             try:
                 assert_step_executable(
                     step,
@@ -89,9 +113,9 @@ class WorkflowAgentExecutor:
                 step.status = "blocked"
                 step.error_message = exc.public_message
                 evidence[step.step_key] = {"blocked": True, "code": exc.code, "message": exc.public_message}
-            except Exception:
+            except Exception as exc:
                 step.status = "failed"
-                step.error_message = "Errore controllato durante la lettura operativa."
+                step.error_message = motivo_errore(step, exc)
                 evidence[step.step_key] = {"failed": True, "message": step.error_message}
         run.evidence_json = evidence
         run.proposals = proposals

@@ -23,7 +23,7 @@ def build(payload: dict[str, Any]):
                 "minuti": int(payload.get("params", {}).get("minuti") or 60),
                 "fascicolo_id": fascicolo_id,
                 "cliente_id": cliente_id,
-                "origine": "Regia Agentica Studio",
+                "origine": "Lavori automatici di Lex",
                 "impatto": "Trasforma attività già emerse in consuntivo da verificare.",
             },
             minutes=20,

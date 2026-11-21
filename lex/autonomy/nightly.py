@@ -27,6 +27,7 @@ from lex.autonomy.autonomous_cycle import run_autonomous_cycle
 from lex.autonomy.discovery import (
     CompositeSearchProvider,
     ConfigurableWebSearchProvider,
+    LatestGazzettaProvider,
     LocalArchiveSearchProvider,
     LocalCorpusSearchProvider,
     SearchProvider,
@@ -72,6 +73,7 @@ def run_lex_autonomous_learning_nightly(
     config: dict[str, Any] | None = None,
     search_provider: SearchProvider | None = None,
     fetcher: PoliteFetcher | None = None,
+    novelty_provider: Any = None,
     memory_dir: str | Path | None = None,
     config_path: str | Path | None = None,
     samples_path: str | Path | None = None,
@@ -127,6 +129,8 @@ def run_lex_autonomous_learning_nightly(
             samples=samples,
             search_provider=provider,
             fetcher=polite,
+            # Prima le Gazzette arrivate dopo l'ultima lettura (lette per intero), poi le domande di ricerca.
+            novelty_provider=novelty_provider if novelty_provider is not None else LatestGazzettaProvider(limit=3),
         )
     except SourceAccessError as exc:
         return {"ok": False, "skipped": False, "error": f"fonti non raggiungibili: {exc}"}

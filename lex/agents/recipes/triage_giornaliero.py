@@ -37,7 +37,7 @@ def build(payload: dict[str, Any], *, clock: Clock | None = None):
             "create_task",
             {
                 "titolo": "Presidio priorità del giorno",
-                "descrizione": "Attività proposta dalla regia agentica dopo lettura di fascicoli, agenda e scadenze.",
+                "descrizione": "Attività proposta da Lex dopo lettura di fascicoli, agenda e scadenze.",
                 "fascicolo_id": fascicolo_id,
                 "priorita": "alta",
                 "impatto": "Riduce il controllo manuale quotidiano e concentra l'avvocato sulle urgenze.",
@@ -78,7 +78,7 @@ def recipe() -> WorkflowRecipe:
     return WorkflowRecipe(
         code="triage_giornaliero",
         title="Triage giornaliero",
-        description="Presidio mattutino di fascicoli, scadenze, agenda e comunicazioni con proposte approvabili.",
+        description="Controllo a richiesta di fascicoli, scadenze, agenda e comunicazioni, con proposte da approvare.",
         risk_level="medium",
         baseline_minutes=84,
         builder=build,

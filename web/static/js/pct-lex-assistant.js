@@ -520,19 +520,19 @@
 
   var SURFACE_PRESETS = {
     fascicolo: {
-      label: 'Lex Fascicolo',
+      label: 'Sintesi del fascicolo',
       prompt: 'Fammi una sintesi del fascicolo attivo: documenti chiave, rischi aperti, cosa manca e prossimi passi.',
     },
     udienza: {
-      label: 'Lex Udienza',
+      label: 'Prepara l\'udienza',
       prompt: 'Preparami la prossima udienza con timeline, allegati da vedere, punti critici e verifiche residue.',
     },
     telematico: {
-      label: 'Lex Telematico',
+      label: 'Errori del deposito',
       prompt: 'Spiegami errori, warning e stato di import o deposito telematico, con cosa verificare prima del prossimo passo.',
     },
     operativo: {
-      label: 'Lex Operativo',
+      label: 'Priorità di oggi',
       prompt: 'Dammi la prossima azione giusta della giornata con priorita, scadenze che stanno diventando problemi e fascicoli da presidiare.',
     },
   };
@@ -1660,18 +1660,18 @@
     }
     freeWebButton.classList.toggle('is-active', Boolean(state.freeWebEnabled));
     freeWebButton.setAttribute('aria-pressed', state.freeWebEnabled ? 'true' : 'false');
-    freeWebButton.setAttribute('title', state.freeWebEnabled ? 'Disattiva ricerca web libera' : 'Attiva ricerca web libera');
-    freeWebButton.setAttribute('aria-label', state.freeWebEnabled ? 'Disattiva ricerca web libera' : 'Attiva ricerca web libera');
+    freeWebButton.setAttribute('title', state.freeWebEnabled ? 'Disattiva la ricerca sulle pagine web pubbliche' : 'Cerca anche sulle pagine web pubbliche');
+    freeWebButton.setAttribute('aria-label', state.freeWebEnabled ? 'Disattiva la ricerca sulle pagine web pubbliche' : 'Cerca anche sulle pagine web pubbliche');
     freeWebButton.innerHTML =
       '<i class="bi bi-globe' + (state.freeWebEnabled ? '-americas' : '2') + '"></i>' +
-      '<span>' + (state.freeWebEnabled ? 'Web attivo' : 'Web libero') + '</span>';
+      '<span>' + (state.freeWebEnabled ? 'Web pubblico attivo' : 'Cerca sul web') + '</span>';
   }
 
   function setFreeWebEnabled(enabled, options) {
     state.freeWebEnabled = Boolean(enabled);
     updateFreeWebUi();
     if (!(options && options.silent)) {
-      setStatus(state.freeWebEnabled ? 'Ricerca web libera attiva per le prossime domande.' : 'Ricerca web libera disattivata.');
+      setStatus(state.freeWebEnabled ? 'Ricerca sulle pagine web pubbliche attiva per le prossime domande.' : 'Ricerca sulle pagine web pubbliche disattivata.');
     }
   }
 
@@ -3157,21 +3157,33 @@
   function checkStatus() {
     bridgeConfig = browserBridge() && widget ? browserBridge().rootConfig(widget) : null;
 
+    // Lex risponde sempre con il motore delle fonti certe (norme vigenti, regole e calcoli del software):
+    // il modello linguistico, se c'è, si aggiunge per la stesura. Senza modello Lex non è «offline».
     fetch(widget.dataset.statusUrl || '/api/assistente/stato')
       .then(function (response) { return response.json(); })
       .then(function (data) {
         if (data.ok) {
           updateBadge(true, data.modello_attivo || 'Operativo');
-          setStatus(isPortableClient() ? 'Lex usa il motore AI dello studio su questo dispositivo.' : 'Lex è pronto sul motore AI di IUSENTRA.');
+          setStatus(isPortableClient() ? 'Lex usa il motore AI dello studio su questo dispositivo.' : 'Lex è pronto: fonti certe e modello linguistico attivi.');
         } else {
-          updateBadge(false, 'Offline');
-          setStatus(isPortableClient() ? 'Motore AI dello studio non disponibile in questo momento.' : 'Motore AI non disponibile su questa installazione.');
+          updateFonteCertaBadge();
+          setStatus('Lex risponde con il motore delle fonti certe: norme vigenti dall\'archivio Normattiva, regole e calcoli del software. Il modello linguistico non è attivo.');
         }
       })
       .catch(function () {
-        updateBadge(false, 'Offline');
-        setStatus('Stato del motore non disponibile in questo momento.');
+        updateFonteCertaBadge();
+        setStatus('Lex risponde con il motore delle fonti certe; lo stato del modello linguistico non è leggibile in questo momento.');
       });
+  }
+
+  function updateFonteCertaBadge() {
+    if (!badge) {
+      return;
+    }
+    badge.textContent = 'Fonti certe';
+    badge.title = 'Risposte dalle norme vigenti e dalle regole del software, senza modello linguistico';
+    badge.classList.remove('is-offline');
+    badge.classList.add('is-online');
   }
 
   function getSavedLayout() {

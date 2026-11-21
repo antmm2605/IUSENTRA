@@ -331,7 +331,7 @@ def page_evidence(page: dict, question: str, *, max_chars: int = 6000, semantic_
         source_type="web_libero", source_id=url,
         title=str(page.get("title") or url),
         content="\n\n".join(_render_passage(item) for item in selection["passages"]),
-        score=0.0, verified_reference=False, authority="Web libero",
+        score=0.0, verified_reference=False, authority="Web pubblico",
         metadata={"url": url, "requested_url": page.get("url"),
                   "sha256": page.get("sha256"), "fetched_at": page.get("fetched_at"),
                   "read_status": page["status"], "selection": selection,

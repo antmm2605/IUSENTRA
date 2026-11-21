@@ -84,7 +84,7 @@ def test_search_free_public_web_accetta_risultati_pubblici_non_allowlist():
 
     assert len(results) == 1
     assert results[0]["domain"] == "forogiuridico.it"
-    assert results[0]["source_access_label"] == "Web libero"
+    assert results[0]["source_access_label"] == "Web pubblico"
 
 
 def test_search_free_public_web_usa_fallback_pubblico_se_duckduckgo_blocca():

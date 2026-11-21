@@ -835,16 +835,16 @@ def _free_web_source_rows(items: list[Any]) -> list[dict[str, Any]]:
         rows.append(
             {
                 "id": source_id or url or title,
-                "title": title or "Risultato Web libero",
+                "title": title or "Risultato dal web pubblico",
                 "excerpt": excerpt,
                 "url": url,
-                "authority": "Web libero",
+                "authority": "Web pubblico",
                 "confidence": score,
                 "verified_reference": False,
                 "trust_class": "",
                 "source_type": "web_libero",
                 "source_access_status": "public",
-                "source_access_label": "Web libero",
+                "source_access_label": "Web pubblico",
                 "source_requires_credentials": False,
                 "source_restricted": False,
                 "source_supports_web_search": True,
@@ -861,18 +861,18 @@ def _free_web_answer(question: str, rows: list[dict[str, Any]]) -> str:
     clean_question = _clean_spaces(question)
     if not rows:
         return (
-            f"Ho eseguito la ricerca Web libero per: {clean_question}.\n\n"
+            f"Ho eseguito la ricerca sulle pagine web pubbliche per: {clean_question}.\n\n"
             "Non ho ottenuto risultati pubblici leggibili in questa sessione. "
             "Puoi riprovare con parole chiave più specifiche oppure indicare un indirizzo web diretto da aprire."
         )
 
     lines = [
-        f"Ho eseguito la ricerca Web libero per: {clean_question}.",
+        f"Ho eseguito la ricerca sulle pagine web pubbliche per: {clean_question}.",
         "",
         "Risultati pubblici trovati:",
     ]
     for index, row in enumerate(rows[:4], start=1):
-        title = _clean_spaces(row.get("title")) or "Risultato Web libero"
+        title = _clean_spaces(row.get("title")) or "Risultato dal web pubblico"
         url = _clean_spaces(row.get("url"))
         excerpt = _clean_spaces(row.get("excerpt"))
         lines.append(f"{index}. [{title}]({url})" if url else f"{index}. {title}")
@@ -1046,7 +1046,7 @@ def _free_web_payload_steps(
             "legal_basis": [],
             "considered_sources": citations,
             "compared_sources": sources if synthesis_ok and not source_reading else [],
-            "missing_evidence": [] if sources else ["Nessun risultato pubblico leggibile restituito dal motore Web libero."],
+            "missing_evidence": [] if sources else ["Nessun risultato pubblico leggibile restituito dalla ricerca sul web pubblico."],
             "evidence_summary": {
                 "evidence_count": len(sources),
                 "web_libero": True,
@@ -1064,7 +1064,7 @@ def _free_web_direct_payload(**kwargs) -> dict[str, Any]:
     for step in _free_web_payload_steps(**kwargs):
         if "payload" in step:
             return step["payload"]
-    raise RuntimeError("Il percorso Web libero non ha prodotto un esito.")
+    raise RuntimeError("La ricerca sul web pubblico non ha prodotto un esito.")
 
 
 def build_bounded_http_payload(

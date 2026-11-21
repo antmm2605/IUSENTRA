@@ -1259,7 +1259,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Apri Lex a tutto schermo" in widget_template
     assert "Detta la richiesta a Lex" in widget_template
     assert 'id="pct-ai-free-web"' in widget_template
-    assert "Web libero" in widget_template
+    assert "Cerca sul web" in widget_template
+    assert "Web libero" not in widget_template and "Assistente PCT" not in widget_template
     assert "Ridimensiona la finestra di Lex" in widget_template
     assert "pct-ai-brand-mark" in widget_template
     assert 'id="pct-ai-presets"' in widget_template
@@ -1295,10 +1296,12 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "renderPresetPills" in widget_js
     assert "runPreset" in widget_js
     assert "SURFACE_PRESETS" in widget_js
-    assert "Lex Fascicolo" in widget_js
-    assert "Lex Udienza" in widget_js
-    assert "Lex Telematico" in widget_js
-    assert "Lex Operativo" in widget_js
+    assert "Sintesi del fascicolo" in widget_js
+    assert "Prepara l\\'udienza" in widget_js
+    assert "Errori del deposito" in widget_js
+    assert "Priorità di oggi" in widget_js
+    assert "Lex Operativo" not in widget_js and "Web libero" not in widget_js
+    assert "Motore AI non disponibile" not in widget_js and "Fonti certe" in widget_js
     assert "saveConversationMemory" in widget_js
     assert "restoreConversationMemory" in widget_js
     assert "HISTORY_LIMIT = 12" in widget_js

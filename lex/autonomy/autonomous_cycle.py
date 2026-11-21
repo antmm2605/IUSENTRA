@@ -63,8 +63,13 @@ class AutonomousLearningCycle:
         trust_assessor: Callable[..., object] = assess_source,
         now_fn: Callable[[], float] = _monotonic,
         iso_now: Callable[[], str] = _iso_now_utc,
+        novelty_provider: Callable[[], list] | None = None,
     ) -> None:
         assert_no_autonomous_code_write("autonomous_cycle")
+        # Fonti nuove dagli archivi locali (es. le Gazzette arrivate dopo l'ultima lettura): si leggono prima delle
+        # domande di ricerca. Senza questo passo le domande, sempre le stesse, consumavano ogni notte tutto il budget
+        # su fonti già lette e la lettura si fermava (ultima lettura 16/11/2026 nel collaudo del 21/11).
+        self.novelty_provider = novelty_provider
         self.config = config
         self.knowledge = knowledge
         self.graph = graph
@@ -96,6 +101,7 @@ class AutonomousLearningCycle:
             if cycle_index == 0:
                 for sample in samples or []:
                     self._ingest_sample(sample)
+                readings_ok += self._read_novelties(result, trust_payloads, area_readings, started_monotonic)
 
             gaps = detect_gaps(self.knowledge, self.graph, min_sources_per_area=self.config.min_sources_per_area)
             for gap in gaps:
@@ -252,6 +258,46 @@ class AutonomousLearningCycle:
             {**sample.to_dict(), "text": "", "profile": profile.to_dict()},
         )
 
+    def _read_novelties(self, result: LearningCycleResult, trust_payloads: list[dict], area_readings: Counter[str],
+                        started_monotonic: float) -> int:
+        """Legge le fonti nuove degli archivi locali, con le stesse guardie delle letture per domanda."""
+        if self.novelty_provider is None:
+            return 0
+        try:
+            candidates = list(self.novelty_provider() or [])
+        except Exception as exc:
+            result.errors.append(f"Elenco delle fonti nuove non leggibile: {exc}")
+            return 0
+        letture = 0
+        for candidate in candidates:
+            if self._runtime_stop(started_monotonic) or result.sources_fetched >= self.config.max_sources:
+                break
+            area = str(getattr(candidate, "area", "") or "")
+            assessment = self.trust_assessor(candidate.url, area=area or "civile", mode=self.config.source_mode,
+                                             require_official=self.config.require_official_sources,
+                                             allowlist=self.config.allowlist, denylist=self.config.denylist)
+            payload = assessment.to_dict()
+            trust_payloads.append(payload)
+            self.knowledge.append("trust_assessments", assessment.stable_id(), payload)
+            if not payload.get("allowed_for_learning"):
+                result.sources_rejected += 1
+                continue
+            if self.knowledge.append("source_profiles", candidate.stable_id(), candidate.to_dict()) is False:
+                continue
+            result.sources_fetched += 1
+            area = area or str(payload.get("area") or "")
+            reading, citations, terms = read_source(candidate, area=area,
+                                                    fetcher=None if self.config.mode == "offline" else self.fetcher,
+                                                    iso_now=self._iso_now())
+            self.knowledge.append("source_readings", reading.stable_id(), reading.to_dict())
+            if reading.status == "ok":
+                letture += 1
+                area_readings[reading.area or "n.d."] += 1
+                self._learn_from_reading(ResearchQuestion(question=f"Novità: {candidate.title}", area=area,
+                                                          kind="fonte_nuova"),
+                                         citations, terms, source_url=candidate.url)
+        return letture
+
     def _learn_from_reading(
         self,
         question: ResearchQuestion,
@@ -314,6 +360,7 @@ def run_autonomous_cycle(
     fetcher: PoliteFetcher | None = None,
     now_fn: Callable[[], float] = _monotonic,
     iso_now: Callable[[], str] = _iso_now_utc,
+    novelty_provider: Callable[[], list] | None = None,
 ) -> LearningCycleResult:
     """Esegue il ciclo con memoria/grafo risolti dalla configurazione."""
 
@@ -327,6 +374,7 @@ def run_autonomous_cycle(
         fetcher=fetcher,
         now_fn=now_fn,
         iso_now=iso_now,
+        novelty_provider=novelty_provider,
     )
     return cycle.run(samples)
 

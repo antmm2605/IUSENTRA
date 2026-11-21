@@ -198,3 +198,56 @@ def test_rapporto_distingue_errori_dalla_raccolta_delle_fonti(tmp_path):
     testo = render_text(esito)
     assert "Errori non bloccanti:" in testo
     assert "Fonte non raggiungibile" in testo
+
+
+def _archivio_gazzette(percorso, gazzette):
+    import sqlite3
+
+    con = sqlite3.connect(percorso)
+    con.execute("CREATE TABLE official_documents (id INTEGER PRIMARY KEY, source_id TEXT, title TEXT, original_url TEXT,"
+                " published_at TEXT)")
+    con.execute("CREATE TABLE official_chunks (id INTEGER PRIMARY KEY, document_id INTEGER, chunk_index INTEGER,"
+                " text TEXT)")
+    for numero, (data, frammenti) in enumerate(gazzette, start=1):
+        con.execute("INSERT INTO official_documents VALUES (?, 'gazzetta_ufficiale', ?, ?, ?)",
+                    (numero, f"Gazzetta Ufficiale - Serie Generale n. {numero}",
+                     f"https://www.gazzettaufficiale.it/gazzetta/{numero}", data))
+        for indice, testo in enumerate(frammenti):
+            con.execute("INSERT INTO official_chunks (document_id, chunk_index, text) VALUES (?, ?, ?)",
+                        (numero, indice, testo))
+    con.commit()
+    con.close()
+
+
+def test_gazzetta_letta_per_intero_e_non_solo_il_primo_frammento(tmp_path):
+    """Collaudo 21/11: di ogni Gazzetta si leggevano 3.500 caratteri, cioè un solo frammento dell'archivio."""
+    from lex.autonomy.discovery import LatestGazzettaProvider, testo_intero_documento
+
+    db = tmp_path / "fonti.sqlite"
+    frammenti = ["A" * 3500, "decreto legislativo 10 ottobre 2022, n. 149 " * 10, "fine del fascicolo"]
+    _archivio_gazzette(db, [("2026-11-20", frammenti)])
+    testo = testo_intero_documento(1, db_path=db)
+    assert len(testo) > 3500 and testo.endswith("fine del fascicolo")
+    candidati = LatestGazzettaProvider(limit=3, db_path=db)()
+    assert len(candidati) == 1 and candidati[0].content == testo
+
+
+def test_le_gazzette_nuove_si_leggono_anche_se_le_domande_sono_sempre_le_stesse(monkeypatch, tmp_path):
+    """Collaudo 21/11: dal 16/11 le domande ripetute consumavano il budget e nessuna Gazzetta nuova veniva letta."""
+    from lex.autonomy.discovery import LatestGazzettaProvider
+
+    _abilita_registro(monkeypatch, enabled=True)
+    db = tmp_path / "fonti.sqlite"
+    _archivio_gazzette(db, [("2026-11-19", ["Art. 2043 c.c. risarcimento del danno ingiusto."]),
+                            ("2026-11-20", ["Art. 1385 c.c. caparra confirmatoria e recesso."])])
+    memoria = tmp_path / "memoria"
+    novita = LatestGazzettaProvider(limit=3, db_path=db)
+    primo = run_lex_autonomous_learning_nightly(config={}, search_provider=StaticSearchProvider({}),
+                                                novelty_provider=novita, memory_dir=memoria)
+    assert primo["ok"] is True and primo["letture"] == 2
+    letture = (memoria / "source_readings.jsonl").read_text(encoding="utf-8")
+    assert "Serie Generale n. 2" in letture
+    # La notte dopo le stesse Gazzette non si rileggono.
+    secondo = run_lex_autonomous_learning_nightly(config={}, search_provider=StaticSearchProvider({}),
+                                                  novelty_provider=novita, memory_dir=memoria)
+    assert secondo["letture"] == 0

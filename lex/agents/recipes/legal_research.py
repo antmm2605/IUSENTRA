@@ -53,7 +53,7 @@ def recipe() -> WorkflowRecipe:
     return WorkflowRecipe(
         code="legal_research",
         title="Ricerca preliminare",
-        description="Ricerca governata su fonti interne e archivio giurisprudenza, senza invio di dati fascicolo a canali esterni.",
+        description="Ricerca su fonti interne e archivio della giurisprudenza, senza inviare dati del fascicolo all'esterno.",
         risk_level="medium",
         baseline_minutes=110,
         builder=build,

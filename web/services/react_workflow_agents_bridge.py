@@ -48,14 +48,42 @@ def workflow_agent_flags_payload() -> dict[str, bool]:
     }
 
 
+def _presidio_mattutino() -> dict[str, Any]:
+    """Il presidio automatico di ogni mattina è il «Piano del giorno» dello scheduler: ultimo giro ed esito."""
+    try:
+        from pct.scheduler_registry import scheduler_registry_repository
+
+        repo = scheduler_registry_repository(dict(current_app.config))
+        lavoro = repo.get_job("studio_daily_operational_plan") or {}
+        giro = repo.latest_runs_by_job().get("studio_daily_operational_plan") or {}
+    except Exception:
+        return {}
+    if not lavoro:
+        return {}
+    esiti = {"completed": "Completato", "failed": "Non riuscito", "cancelled": "Annullato", "missed": "Saltato",
+             "running": "In corso"}
+    return {"titolo": "Oggi (piano del giorno)", "attivo": bool(lavoro.get("enabled")),
+            "pianificazione": str(lavoro.get("schedule_label") or ""), "href": "/oggi",
+            "ultimo_giro": {"data": str(giro.get("finished_at") or giro.get("started_at") or ""),
+                            "esito": esiti.get(str(giro.get("status") or ""), str(giro.get("status") or "")),
+                            "messaggio": str(giro.get("error") or "").strip()} if giro else {}}
+
+
 def build_workflow_agents_payload() -> dict[str, Any]:
     tenant_scope = current_tenant_scope()
     runtime = _runtime(tenant_scope)
+    try:
+        # Le anteprime vecchie e senza fascicolo non restano aperte per sempre nella coda (collaudo 21/11).
+        runtime.chiudi_proposte_superate()
+    except Exception:
+        current_app.logger.exception("Lavori automatici di Lex: chiusura delle proposte superate non riuscita")
     return {
         "ok": True,
         "feature_flags": workflow_agent_flags_payload(),
         "workflows": runtime.list_workflows(),
         "latest_runs": runtime.latest_runs(limit=8),
+        "ultimi_giri": runtime.ultimi_giri_per_lavoro(),
+        "presidio_mattutino": _presidio_mattutino(),
         "metrics": runtime.metrics_summary(),
     }
 

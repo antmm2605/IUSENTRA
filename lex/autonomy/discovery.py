@@ -149,6 +149,9 @@ class LocalArchiveSearchProvider:
         for archive_id, row in rows:
             url = _archive_http_url(str(row.get("url_origine") or ""))
             testo = " ".join(str(row.get("testo") or "").split())
+            if archive_id == "gazzetta_ufficiale" and row.get("document_id"):
+                # La riga è un solo frammento (3.500 caratteri) del fascicolo: si legge la Gazzetta intera.
+                testo = testo_intero_documento(row["document_id"]) or testo
             if not url or not testo:
                 continue  # fail-closed: niente ancora ufficiale o niente testo
             key = url.casefold()
@@ -171,6 +174,74 @@ class LocalArchiveSearchProvider:
             if len(candidates) >= max(1, int(limit)):
                 break
         return candidates
+
+
+# Tetto di sicurezza per una Gazzetta intera (le più lunghe del 2026 sono sotto i 350.000 caratteri).
+GAZZETTA_MAX_CHARS = 600_000
+
+
+def _official_db_path(db_path: str | Path | None = None) -> Path:
+    from lex.retrieval import official_sources_retriever as retriever
+
+    return retriever._resolve_runtime_path(
+        db_path, env_names=("PCT_LEX_OFFICIAL_DB", "PCT_OFFICIAL_SOURCES_DB", "PCT_LEX_SOURCES_DB"),
+        container_path=retriever.CONTAINER_OFFICIAL_DB, repo_path=retriever.DEFAULT_OFFICIAL_DB)
+
+
+def testo_intero_documento(document_id: Any, *, db_path: str | Path | None = None,
+                           max_chars: int = GAZZETTA_MAX_CHARS) -> str:
+    """Tutti i frammenti di un documento dell'archivio delle fonti ufficiali, in ordine (sola lettura)."""
+    import sqlite3
+
+    path = _official_db_path(db_path)
+    if not path.exists():
+        return ""
+    try:
+        con = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=10)
+        try:
+            righe = con.execute("SELECT text FROM official_chunks WHERE document_id = ? ORDER BY chunk_index, id",
+                                (str(document_id),)).fetchall()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return ""
+    return " ".join(" ".join(str(r[0] or "") for r in righe).split())[: max(1, int(max_chars))]
+
+
+class LatestGazzettaProvider:
+    """Le Gazzette Ufficiali più recenti dell'archivio locale, lette per intero: le novità di ogni notte."""
+
+    def __init__(self, *, limit: int = 3, db_path: str | Path | None = None) -> None:
+        self.limit = max(1, int(limit))
+        self.db_path = db_path
+
+    def __call__(self) -> list[SourceCandidate]:
+        import sqlite3
+
+        path = _official_db_path(self.db_path)
+        if not path.exists():
+            return []
+        try:
+            con = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=10)
+            try:
+                righe = con.execute(
+                    "SELECT id, title, original_url FROM official_documents WHERE source_id = 'gazzetta_ufficiale' "
+                    "ORDER BY published_at DESC, id DESC LIMIT ?", (self.limit,)).fetchall()
+            finally:
+                con.close()
+        except sqlite3.Error:
+            return []
+        candidati: list[SourceCandidate] = []
+        for documento_id, titolo, url in righe:
+            url = _archive_http_url(str(url or ""))
+            testo = testo_intero_documento(documento_id, db_path=path)
+            if not url or not testo:
+                continue
+            candidati.append(SourceCandidate(url=url, title=str(titolo or ""), snippet=testo[:220],
+                                             source_id="archivio_locale:gazzetta_ufficiale",
+                                             discovered_by="archivio_locale_novita", query="", confidence=0.9,
+                                             content=testo, content_type="text/plain"))
+        return candidati
 
 
 def _archive_http_url(url_origine: str) -> str:

@@ -67,3 +67,25 @@ def test_payload_onesto_senza_memoria(tmp_path, monkeypatch):
     assert payload["memoria_presente"] is False
     assert payload["proposte"] == [] and payload["letture"] == []
     assert not (tmp_path / "intelligence" / "lex_memory").exists()  # mai creata dalla superficie
+
+
+def test_proposte_e_letture_senza_linguaggio_tecnico_e_ultimo_giro(tmp_path, monkeypatch):
+    """Collaudo 21/11: «Ontologia», sigle interne e il collegamento 403 alla console della piattaforma."""
+    from pct.scheduler_registry import SchedulerRegistryRepository
+    from web.services.react_lex_learning_bridge import proposta_per_lo_studio
+
+    _prepara_memoria(tmp_path, monkeypatch)
+    registry_db = tmp_path / "scheduler_registry.sqlite"
+    SchedulerRegistryRepository(registry_db).upsert_default_jobs({})
+    payload = build_react_lex_learning_payload({"SCHEDULER_REGISTRY_DB": str(registry_db)})
+    proposta = payload["proposte"][0]
+    assert proposta["tipo"] == "Vocabolario giuridico" and "ontologia" not in proposta["titolo"].lower()
+    assert proposta["modulo"] == "" and payload["directory"] == ""
+    assert payload["letture"][0]["fonte"] == "Sito ufficiale"
+    # Fuori da una richiesta l'utente non è superamministratore: il collegamento alla console non si mostra.
+    assert payload["job_notturno"]["console_visibile"] is False
+    assert payload["job_notturno"]["ultimo_giro"] == {}
+    testo = proposta_per_lo_studio({"tipo": "ontologia", "titolo": "Aggiungere il concetto 'accesso civico' all'ontologia giuridica",
+                                    "descrizione": "Il termine 'accesso civico' ricorre 3 volte nei testi analizzati (area amministrativo) ma non è nell'ontologia"})
+    assert testo["titolo"] == "Aggiungere «accesso civico» al vocabolario giuridico di Lex"
+    assert "3 volte" in testo["descrizione"] and "amministrativo" in testo["descrizione"]

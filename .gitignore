@@ -221,6 +221,8 @@ htmlcov/
 # Compressed files
 *.zip
 *.gz
+# Testi vigenti dei codici per l'harness di Lex (generati da scripts/lex_harness_rubriche.py)
+!lex/harness/dati/testi_codici.json.gz
 *.tar
 *.tgz
 *.bz2

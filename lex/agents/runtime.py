@@ -146,6 +146,53 @@ class WorkflowAgentRuntime:
             self.storage.save_metric(run.metrics)
         return run
 
+    def chiudi_proposte_superate(self, *, oggi: str | None = None, giorni: int = 30, limite: int = 500) -> int:
+        """Chiude con il motivo le proposte d'anteprima ancora aperte, vecchie e senza fascicolo.
+
+        Una proposta senza fascicolo non si può approvare (manca l'oggetto su cui agire) e dopo 30 giorni il contesto
+        letto dall'anteprima non è più attuale. Solo proposte «pending»: le decisioni dell'avvocato non si toccano."""
+        from datetime import datetime, timedelta, timezone
+
+        adesso = datetime.fromisoformat(oggi.replace("Z", "+00:00")) if oggi else datetime.now(timezone.utc)
+        soglia = adesso - timedelta(days=giorni)
+        chiuse = 0
+        for run in self.storage.list_runs(limit=limite):
+            if run.fascicolo_id or not any(p.status == "pending" for p in run.proposals):
+                continue
+            try:
+                creato = datetime.fromisoformat(str(run.created_at).replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if creato.tzinfo is None:
+                creato = creato.replace(tzinfo=timezone.utc)
+            if creato >= soglia:
+                continue
+            motivo = (f"Chiusa da Lex: anteprima del {creato.strftime('%d/%m/%Y')} senza fascicolo, oltre {giorni} giorni; "
+                      "non si può approvare perché manca il fascicolo su cui agire. Rilanciare il lavoro dal fascicolo.")
+            for proposal in run.proposals:
+                if proposal.status == "pending":
+                    mark_rejected(proposal, actor="Lex (chiusura automatica)", reason=motivo)
+                    chiuse += 1
+            run.status = "cancelled"
+            run.completed_at = utc_now_iso()
+            run.result_json = build_run_result(run)
+            record_agent_audit("workflow.chiusura_automatica", actor="lex", run_id=run.id, details={"reason": motivo})
+            self.storage.save_run(run)
+        return chiuse
+
+    def ultimi_giri_per_lavoro(self, *, limite: int = 200) -> dict[str, dict[str, Any]]:
+        """Per ogni lavoro l'ultimo giro: data, esito e, se un passo non è riuscito, il motivo."""
+        esiti = {"needs_approval": "Proposte da approvare", "executed": "Completato", "cancelled": "Chiuso",
+                 "failed": "Non riuscito", "running": "In corso", "draft": "Preparato"}
+        giri: dict[str, dict[str, Any]] = {}
+        for run in self.storage.list_runs(limit=limite):
+            if run.workflow_code in giri:
+                continue
+            problemi = [s.error_message for s in run.plan.steps if s.status in {"failed", "blocked"} and s.error_message]
+            giri[run.workflow_code] = {"run_id": run.id, "data": run.created_at, "esito": esiti.get(run.status, run.status),
+                                       "problemi": problemi}
+        return giri
+
     def metrics_summary(self) -> dict[str, Any]:
         metrics = self.storage.list_metrics(limit=500)
         if not metrics:

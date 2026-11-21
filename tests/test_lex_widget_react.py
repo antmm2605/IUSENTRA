@@ -25,7 +25,7 @@ def test_componente_ha_gli_stessi_id_e_attributi_del_controllore():
         "/api/assistente/warmup", "/api/assistente/attachments", "/api/assistente/documento",
     ):
         assert percorso in componente
-    for testo in ("Ciao, sono Lex.", "Carica documenti", "Web libero", "Ridimensiona la finestra di Lex"):
+    for testo in ("Ciao, sono Lex.", "Carica documenti", "Cerca sul web", "Ridimensiona la finestra di Lex"):
         assert testo in componente
     assert "style=" not in componente
 
@@ -56,3 +56,14 @@ def test_shell_react_senza_widget_nelle_viste_incorporate_e_senza_utente(tmp_pat
     assert pagina.count('id="lex-widget-root"') == 1
     assert 'id="pct-ai-widget"' not in pagina
     assert 'id="lex-widget-root"' not in incorporata
+
+
+def test_finestra_di_lex_senza_diciture_tecniche_e_mai_offline_senza_modello():
+    """Collaudo 21/11: senza modello la finestra diceva «Offline» e «Motore AI non disponibile»."""
+    componente = COMPONENTE.read_text(encoding="utf-8")
+    controllore = (RADICE / "web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
+    for testo in ("Web libero", "Assistente PCT"):
+        assert testo not in componente
+    for testo in ("Web libero", "Lex Operativo", "Motore AI non disponibile", "updateBadge(false, 'Offline')"):
+        assert testo not in controllore
+    assert "motore delle fonti certe" in controllore

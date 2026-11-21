@@ -602,7 +602,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
     ),
     _src(
         "web_libero",
-        "Web libero",
+        "Web pubblico",
         "ricerca_web",
         "fonti_pubbliche",
         tenant_keys=(),

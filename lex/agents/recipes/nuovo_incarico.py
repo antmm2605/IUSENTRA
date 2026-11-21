@@ -81,7 +81,7 @@ def recipe() -> WorkflowRecipe:
     return WorkflowRecipe(
         code="nuovo_incarico",
         title="Nuovo incarico",
-        description="Riduce apertura pratica, conflitti, preventivo e checklist senza creare dati critici automaticamente.",
+        description="Prepara apertura della pratica, controllo dei conflitti, preventivo e checklist, senza creare dati in automatico.",
         risk_level="medium",
         baseline_minutes=90,
         builder=build,

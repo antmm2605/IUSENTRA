@@ -69,7 +69,7 @@ def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None
             return None
         testo = risposta_certa(domanda)
         if not testo:
-            return None
+            return _risposta_da_rubrica(domanda, c)
         t = normalizza(domanda)
         if re.search(r"\bappell", t) and not re.search(r"lavor|previdenz|penal|tar\b|tributar", t):
             testo += "\n\n" + _NOTA_LAVORO
@@ -90,6 +90,24 @@ def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None
               + (f"; {len(esito.citazioni_non_verificate)} riferimenti da controllare" if esito.citazioni_non_verificate else "")
               + ".")
     return _payload(domanda, esito.testo, esito.affidabilita, motivo, esito.fonti, esito.regola, esito.to_dict())
+
+
+def _risposta_da_rubrica(domanda: str, c) -> dict[str, Any] | None:
+    """Domanda di diritto senza fatti e senza regola dedicata: la norma vigente trovata dalla rubrica ufficiale."""
+    if c.racconto:
+        return None
+    from .rubriche import rispondi_da_rubrica
+
+    try:
+        esito = rispondi_da_rubrica(domanda, c.tipo)
+    except Exception:
+        _log.exception("harness: ricerca della norma per rubrica non riuscita")
+        return None
+    if esito is None:
+        return None
+    return _payload(domanda, esito.testo, 0.9, f"Norma trovata dalla rubrica ufficiale e letta nel testo vigente "
+                    f"({len(esito.norme)} articolo/i dall'archivio Normattiva).", esito.fonti, "norma_per_rubrica",
+                    {"rule": "norma_per_rubrica", "kind": c.tipo, "verified_norms": esito.norme, "deterministic": True})
 
 
 def _payload(domanda: str, testo: str, affidabilita: float, motivo: str, fonti: list[dict[str, str]], regola: str,

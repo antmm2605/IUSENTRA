@@ -297,6 +297,14 @@ def routing_prompt_block(routing, *, opening_line: str = "") -> str:
     return "\n".join(lines).strip()
 
 
+# Il motore delle fonti certe (harness: norme vigenti dall'archivio Normattiva, regole del software, calcoli) non
+# dipende dal modello linguistico: Lex risponde anche quando il modello è spento.
+_FONTI_CERTE = {
+    "fonti_certe": True,
+    "motore_fonti_certe": "Norme vigenti dall'archivio Normattiva, regole processuali e calcoli del software.",
+}
+
+
 def status_payload(orchestrator) -> tuple[dict[str, Any], int]:
     runtime = orchestrator.dependencies.resolved_runtime()
     api_base_url = str(runtime.get("api_base_url") or "").rstrip("/")
@@ -310,16 +318,19 @@ def status_payload(orchestrator) -> tuple[dict[str, Any], int]:
             "url": base_url,
             "modello_attivo": chat_model,
             "modelli": models,
+            "modello_disponibile": True,
+            **_FONTI_CERTE,
         }, 200
     except orchestrator.dependencies.requests_module.exceptions.ConnectionError:
         return {
             "ok": False,
-            "errore": "Ollama non raggiungibile",
-            "suggerimento": "Avvia Ollama con: ollama serve",
+            "errore": "Modello linguistico non raggiungibile",
             "modelli": [],
+            "modello_disponibile": False,
+            **_FONTI_CERTE,
         }, 200
     except Exception as exc:
-        return {"ok": False, "errore": str(exc), "modelli": []}, 200
+        return {"ok": False, "errore": str(exc), "modelli": [], "modello_disponibile": False, **_FONTI_CERTE}, 200
 
 
 def build_context_response(

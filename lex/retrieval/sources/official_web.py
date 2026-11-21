@@ -239,7 +239,7 @@ class OfficialWebSource:
                 item.source_level = 3
                 item.metadata.update({"free_web_enabled": True, "allowlist_used": False,
                                       "source_name": item.title, "source_access_status": "public",
-                                      "source_access_label": "Web libero",
+                                      "source_access_label": "Web pubblico",
                                       "source_requires_credentials": False,
                                       "source_restricted": False, "source_supports_web_search": True})
             return acquired["items"]

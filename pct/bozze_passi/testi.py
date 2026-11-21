@@ -242,6 +242,28 @@ def _al_destinatario(nome: str, *, pa: bool) -> str:
     return f"{preposizione}{'' if preposizione.endswith("'") else ' '}**{nome}**, "
 
 
+def _righe_competenze(competenze: dict[str, Any] | None) -> list[str]:
+    """Le competenze del precetto: la proposta dal tariffario (modificabile nel testo) o il segnaposto."""
+    if not competenze:
+        return [f"- competenze e spese del presente atto: {manca('importo secondo il D.M. 55/2014')}"]
+    righe = [f"- compenso (D.M. 55/2014, Tabella 6 «Atto di precetto», valore medio dello scaglione «{competenze['scaglione']}», "
+             f"nei valori del D.M. 147/2022): {euro(competenze['compenso'])}"]
+    righe += [f"- {riga}" for riga in competenze["righe"][1:]]
+    if competenze.get("totale") is not None:
+        righe.append(f"totale competenze del presente atto: {euro(competenze['totale'])}")
+    return righe
+
+
+def _totale_precetto(totale: Decimal | None, competenze: dict[str, Any] | None, *, pa: bool) -> str:
+    if pa and totale and competenze and competenze.get("totale") is not None:
+        return (f"per un totale di {euro(totale + competenze['totale'])}, oltre gli interessi legali dalla sentenza al saldo "
+                "e le successive occorrende,")
+    if pa and totale:
+        return (f"per un totale di {euro(totale)}, oltre le competenze e spese del presente atto, gli interessi legali dalla "
+                "sentenza al saldo e le successive occorrende,")
+    return f"per un totale di {euro(totale) + ' oltre ' if totale else ''}{manca('totale complessivo con interessi e competenze')},"
+
+
 def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
     """Atto di precetto (artt. 474, 475 e 480 c.p.c.; art. 654 c.p.c. sul decreto ingiuntivo esecutivo; contro la
     P.A. art. 14 D.L. 669/1996 e art. 11 R.D. 1611/1933).
@@ -291,13 +313,15 @@ def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
         # «al Ministero …», «all'Agenzia …», «alla Regione …» per le amministrazioni; «a Mario Rossi» per le persone.
         _al_destinatario(debitore, pa=pa) + recapito + ",",
         "di pagare entro dieci giorni dalla notificazione del presente atto le seguenti somme:",
+        "*a) spese di lite liquidate nel titolo, con gli accessori di legge:*" if titolo.get("competenze") else "",
         *[f"- {voce}" for voce in titolo.get("voci") or []],
-        f"- competenze e spese del presente atto: {manca('importo secondo il D.M. 55/2014')}",
-        # Spese di lite liquidate contro la P.A.: il totale degli importi certi, poi competenze, interessi legali dalla
-        # sentenza al saldo e successive occorrende. Negli altri titoli il totale con gli interessi resta da completare.
-        (f"per un totale di {euro(totale)}, oltre le competenze e spese del presente atto, gli interessi legali dalla "
-         "sentenza al saldo e le successive occorrende," if pa and totale else
-         f"per un totale di {euro(totale) + ' oltre ' if totale else ''}{manca('totale complessivo con interessi e competenze')},"),
+        (f"totale spese di lite liquidate: {euro(totale)}" if titolo.get("competenze") and totale else ""),
+        ("*b) competenze del presente atto (proposta calcolata dal tariffario, modificabile entro i limiti dell'art. 4 "
+         "D.M. 55/2014):*" if titolo.get("competenze") else ""),
+        *_righe_competenze(titolo.get("competenze")),
+        # Spese di lite liquidate contro la P.A.: il totale degli importi certi (con le competenze proposte), poi gli
+        # interessi legali dalla sentenza al saldo e le successive occorrende. Negli altri titoli il totale resta da completare.
+        _totale_precetto(totale, titolo.get("competenze"), pa=pa),
         "con l'avvertimento che, in mancanza, si procederà a esecuzione forzata (art. 480, primo comma, c.p.c.).",
         ("Avverte il debitore che può, con l'ausilio di un organismo di composizione della crisi o di un professionista "
         "nominato dal giudice, porre rimedio alla situazione di sovraindebitamento concludendo con i creditori un accordo "

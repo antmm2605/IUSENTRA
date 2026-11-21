@@ -182,6 +182,28 @@ def _notifica_titolo_provata(conclusioni: list[dict[str, Any]], percorso: list[d
     return {}
 
 
+def competenze_precetto(valore: Decimal, *, iva: str) -> dict[str, Any] | None:
+    """Proposta delle competenze dell'atto di precetto dal tariffario del software (D.M. 55/2014, Tabella 6, nei
+    valori aggiornati dal D.M. 147/2022): valore medio dello scaglione del credito intimato, rimborso forfettario del 15%
+    (art. 2, comma 2, D.M. 55/2014), C.P.A. 4% (art. 11 L. 576/1980), I.V.A. secondo il regime dello studio.
+
+    È una proposta: l'avvocato può modificarla nel testo entro i limiti del D.M. 55/2014 (art. 4). Senza la tabella
+    ufficiale esatta nello snapshot del tariffario non si propone nulla (resta il segnaposto)."""
+    from pct.tariffario import Fase, Grado, Materia, calcola_compenso
+
+    try:
+        esito = calcola_compenso(Materia.ESEC_MOB, Grado.TRIBUNALE, float(valore), [list(Fase)[0]],
+                                 profile_code="esecuzione_precetto")
+    except Exception:
+        return None
+    compenso = (esito.dettaglio or {}).get("Compenso unico")
+    if not esito.exact_snapshot or esito.table_code != "A6" or not compenso or not compenso[1]:
+        return None
+    base = Decimal(str(compenso[1])).quantize(Decimal("0.01"))
+    righe, totale = testi._accessori(base, iva=iva, forfettario=True)
+    return {"compenso": base, "righe": righe, "totale": totale, "scaglione": esito.scaglione}
+
+
 def _credito_pa(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[dict[str, Any]], oggi: date, conto: dict[str, Any] | None) -> list[Bozza]:
     economico = lettura.get("economico") or {}
     liquidazione = economico.get("liquidazione") or {}
@@ -212,7 +234,8 @@ def _credito_pa(lettura: dict[str, Any], ctx: Contesto, conclusioni: list[dict[s
               testi.richiesta_pagamento_pa(ctx, credito), agganci, importo=euro(compenso), distratte=distratte),
         _crea("precetto_pa", riferimento, "Atto di precetto contro la P.A. (dopo 120 giorni dalla notifica del titolo)",
               testi.precetto(ctx, {"descrizione": descrizione, "pa": True, "distratte": distratte, "totale": totale,
-                                   "voci": voci, **notifica}), agganci, importo=euro(compenso), **notifica),
+                                   "voci": voci, "competenze": competenze_precetto(totale, iva=credito["iva"]) if totale else None,
+                                   **notifica}), agganci, importo=euro(compenso), **notifica),
     ]
 
 

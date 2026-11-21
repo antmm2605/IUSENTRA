@@ -326,8 +326,11 @@ def test_precetto_pa_con_le_norme_vigenti_e_i_dati_del_fascicolo():
         assert importo in testo
     assert "I.V.A.: non dovuta (regime forfetario dello studio)" in testo
     assert "Avv. Giuseppe Montagnese** (C.F. MNTGPP94L01G791A), in proprio quale difensore antistatario" in testo
-    # Restano da completare: competenze del precetto, ufficio e PEC del Ministero, giudice dell'esecuzione, data.
-    assert len(precetto.segnaposti) == 4 and "data della notificazione del titolo esecutivo" not in precetto.segnaposti
+    # Competenze del precetto proposte dal tariffario (D.M. 55/2014 Tab. 6, valori D.M. 147/2022, scaglione fino a € 1.100).
+    assert "Tabella 6 «Atto di precetto», valore medio dello scaglione «Fino a € 1.100»" in testo and "€ 142,00" in testo
+    assert "€ 21,30" in testo and "€ 6,53" in testo and "per un totale di € 785,77, oltre gli interessi legali" in testo
+    # Restano da completare solo i dati che il fascicolo non ha: ufficio e PEC del Ministero, giudice dell'esecuzione, data.
+    assert len(precetto.segnaposti) == 3 and "data della notificazione del titolo esecutivo" not in precetto.segnaposti
     assert "il titolo esecutivo è stato notificato il 20/04/2026" in richiesta.testo and len(richiesta.segnaposti) == 3
 
 
@@ -345,3 +348,15 @@ def test_notifica_dal_percorso_solo_se_unica_verificata_e_senza_dubbio_del_model
     # Consegna anteriore alla sentenza: non è la notifica del titolo.
     _r, precetto = _bozze_carbone(percorso=[{**_CONSEGNA_SENTENZA, "data": "2026-02-02"}])
     assert "data della notificazione del titolo esecutivo" in precetto.segnaposti
+
+
+def test_competenze_del_precetto_dal_tariffario_e_iva_secondo_il_regime():
+    from decimal import Decimal
+
+    from pct.bozze_passi.catalogo import competenze_precetto
+
+    forfetario = competenze_precetto(Decimal("615.94"), iva="forfetario")
+    assert forfetario["compenso"] == Decimal("142.00") and forfetario["totale"] == Decimal("169.83")
+    ordinario = competenze_precetto(Decimal("615.94"), iva="")
+    assert ordinario["totale"] is not None and any("I.V.A." in r and "[da completare" in r for r in ordinario["righe"])
+

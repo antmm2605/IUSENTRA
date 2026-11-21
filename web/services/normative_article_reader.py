@@ -166,11 +166,16 @@ def documento_html(item):
         corrected=item.get('rettifica_corrente')
         if corrected:
             archival+="<section aria-label='Parte rettificata della stessa fonte'><h2>Parte rettificata della stessa fonte</h2><pre>"+escape(corrected['text'])+"</pre><p>SHA-256: <code>"+escape(corrected['sha256'])+"</code></p></section>"
+    from lex.normativa.abrogazioni_differite import nota_articolo
+    nota_vigenza = nota_articolo(item)
+    vigenza = ("<p role='note' class='vigenza-nel-tempo'><strong>"+escape(nota_vigenza['testo'])+"</strong> Fonte: "
+               +escape(nota_vigenza['decorrenza'])+".</p>") if nota_vigenza else ''
     source = urlsplit(item['source_url'])
     source_link = ("<a href='"+escape(item['source_url'],quote=True)+"' target='_blank' rel='noopener noreferrer' data-official-outside-reader='1'>Documento della fonte da cui è stato acquisito il testo</a>") if source.scheme == 'https' and source.hostname in HOST_UFFICIALI and not source.username and not source.password else escape(item['source_url'])
     return ("<!doctype html><html lang='it'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
             "<link rel='stylesheet' href='/static/css/normative-article-reader.css'><title>"+escape(title)+"</title></head><body><main>"
             "<header><p>"+escape(heading)+"</p><h1>"+escape(title)+"</h1><p>Edizione della biblioteca: "+escape(edition_label)+"</p></header>"
+            +vigenza+
             "<article aria-label='Testo integrale dell’articolo'><pre>"+escape(item['text'])+"</pre></article>"+archival+external+
             "<details><summary>Provenienza e impronta</summary><p>SHA-256: <code>"+escape(item['sha256'])+"</code></p><p>"
             +source_link+"</p>"

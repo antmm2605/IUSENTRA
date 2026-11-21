@@ -117,6 +117,10 @@ def arricchisci(item: dict) -> dict:
         item["intestazione_lettura"] = presenta(intestazione_articolo(
             item.get("text") or "", str(item.get("data_atto") or ""), str(item.get("numero") or ""),
             str(item.get("number") or "")))["testo"]
+    # Vigente oggi e abrogato da una data futura (testi unici tributari dal 01/01/2027): la scheda lo dice.
+    from lex.normativa.abrogazioni_differite import nota_articolo
+
+    item["vigenza_nel_tempo"] = nota_articolo(item)
     numero = re.sub(r"[\s.-]", "", str(item.get("number") or "")).lower()
     if numero == "1284" and str(item.get("urn") or "").startswith(_CODICE_CIVILE):
         item["saggio_legale_vigente"] = saggio_legale_vigente()

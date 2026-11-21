@@ -17,7 +17,9 @@ type Article = { id: number; number: string; title: string; act_title: string }
 type SaggioLegale = { misura: string; dal: string; al: string; decreto: string; gazzetta: string }
 type Pronuncia = { estremi: string; archivio: string; url?: string; massima?: string }
 type Sentenze = { citazione: string; fonte: string; stato: string; errori: string[]; pronunce: Pronuncia[]; avvertenza: string }
-type FullArticle = Article & { commi?: { numero: string; testo: string }[]; intestazione_lettura?: string; text_lettura?: string; note_aggiornamento?: string; saggio_legale_vigente?: SaggioLegale | null; text: string; act_label: string; updated_at: string; source_url: string; source_label?: string; only_heading?: boolean; consolidated_at?: string; text_quality?: string; source_requested_at?: string; version_date_scope?: string; verified_as_of?: string; temporal_evidence?: { data: string; nota: string } }
+/** Vigente oggi e abrogato da una data futura (lex/normativa/abrogazioni_differite.py). */
+type VigenzaNelTempo = { stato: 'vigente_fino_al' | 'abrogato'; testo: string; dal: string; fino_al: string; decorrenza: string; url: string }
+type FullArticle = Article & { commi?: { numero: string; testo: string }[]; intestazione_lettura?: string; text_lettura?: string; note_aggiornamento?: string; saggio_legale_vigente?: SaggioLegale | null; text: string; act_label: string; updated_at: string; source_url: string; source_label?: string; only_heading?: boolean; consolidated_at?: string; text_quality?: string; source_requested_at?: string; version_date_scope?: string; verified_as_of?: string; temporal_evidence?: { data: string; nota: string }; vigenza_nel_tempo?: VigenzaNelTempo | null }
 type Riscontro = { data: string; atti_richiesti: number; atti_esaminati?: number; atti_con_testo_verificato: number }
 type Vista = 'vigenti' | 'storico'
 type Results = { items: Article[]; total: number; act_id?: number; total_oltre?: boolean; avviso?: string }
@@ -152,6 +154,10 @@ export function CodiciLeggiPage() {
             {selected.version_date_scope === 'contenitore_akn' ? <p className="iu-li-normativa-date-note">La data del contenitore XML non indica la data dell’ultima modifica di ogni articolo. La data richiesta alla fonte è indicata separatamente.</p> : null}{selected.temporal_evidence ? <aside aria-label="Riscontro sugli effetti nel tempo">
               <strong>Effetti nel tempo · {dateIt(selected.temporal_evidence.data)}</strong>
               <p>{selected.temporal_evidence.nota}</p>
+            </aside> : null}
+            {selected.vigenza_nel_tempo ? <aside aria-label="Vigenza dell’articolo nel tempo" className="iu-li-warning">
+              <strong>{selected.vigenza_nel_tempo.testo}</strong>
+              <p>Fonte: {selected.vigenza_nel_tempo.decorrenza}.{selected.vigenza_nel_tempo.url ? <> <a href={selected.vigenza_nel_tempo.url} target="_blank" rel="noreferrer">Testo unico su Normattiva</a></> : null} Per un termine che scade dopo il {dateIt(selected.vigenza_nel_tempo.fino_al)} verifica la disposizione del testo unico.</p>
             </aside> : null}
             {selected.saggio_legale_vigente ? <aside aria-label="Saggio degli interessi legali in vigore">
               <strong>Saggio legale in vigore: {selected.saggio_legale_vigente.misura} dal {selected.saggio_legale_vigente.dal} al {selected.saggio_legale_vigente.al}</strong>

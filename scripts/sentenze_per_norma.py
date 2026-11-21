@@ -120,6 +120,7 @@ def main() -> int:
     ap.add_argument("--norme", default="harness", choices=("harness", "estese"))
     ap.add_argument("--uscita", default=str(RADICE / "lex/harness/dati/giurisprudenza_per_norma.json"))
     ap.add_argument("--pausa", type=float, default=0.2)
+    ap.add_argument("--solo", default="", help="chiavi separate da virgola (es. cpc:473bis11,dlgs206:135bis)")
     args = ap.parse_args()
     archivi = [("Cassazione (SentenzeWeb)", _connetti(args.cassazione)),
                ("archivio dello studio (Consulta e fonti pubbliche)", _connetti(args.consulta))]
@@ -130,7 +131,10 @@ def main() -> int:
         meta[nome] = _metadati_salvati(conn, Path(percorso), uscita.parent)
         print(f"{nome}: {len(meta[nome])} pronunce in {time.monotonic() - inizio:.0f} s", flush=True)
     indice = json.loads(uscita.read_text(encoding="utf-8")) if uscita.is_file() else {"norme": {}}
+    solo = {c.strip() for c in args.solo.split(",") if c.strip()}
     for chiave, estremi in elenco_norme(args.norme):
+        if solo and chiave not in solo:
+            continue
         domande = interrogazioni(chiave, estremi)
         if not domande:
             continue

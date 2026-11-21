@@ -31,3 +31,13 @@ def test_un_precedente_non_puo_essere_successivo_alla_decisione():
 
 def test_atto_con_data_prima_del_numero():
     assert ("D.Lgs. 165/2001", "63", "2") in {(n["sigla"], n["articolo"], n["comma"]) for n in norme_citate(TESTO)}
+
+
+def test_citazioni_degli_articoli_bis_numerati():
+    """«473-bis.11» nell'indice è «473 bis 11»; nelle copie OCR la cifra si attacca alla sigla («11c p c»)."""
+    from lex.normativa.citazioni_norma import interrogazioni
+
+    domande = interrogazioni("cpc:473bis11")
+    assert '"473 bis 11 c p c"' in domande and 'NEAR("473 bis 11" "c p c", 12)' in domande and '"473 bis 11c"' in domande
+    assert interrogazioni("cpc:66bis")[0] == '"66 bis c p c"'
+    assert '"135 bis cod cons"' in interrogazioni("dlgs206:135bis", "art. 135-bis d.lgs. 206/2005")

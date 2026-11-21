@@ -914,7 +914,7 @@ def start_scheduler(app):
 
         with app.app_context():
             try:
-                esito = esegui_da_pianificazione(app.config)
+                esito = esegui_da_pianificazione(app.config, con_storico=True)
                 logger.info(
                     "[scheduler] Gazzetta Ufficiale: %d fascicoli nuovi, %d atti, serie non raggiungibili: %s",
                     int(esito.get("fascicoli_nuovi") or 0),

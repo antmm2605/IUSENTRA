@@ -21,6 +21,21 @@ export type GazzettaAtto = {
   editorialCode: string
   page: string
   officialUrl: string
+  /** Il testo completo dell'atto è salvato nell'archivio e si legge nella pagina. */
+  hasText?: boolean
+}
+
+/** Testo completo di un atto, da /api/v1/ui/gazzetta-ufficiale/atti/<id>/testo. */
+export type GazzettaTesto = {
+  ok: boolean
+  id: string
+  available: boolean
+  heading: string
+  text: string
+  textUrl: string
+  articles: number
+  readAt: string
+  message: string
 }
 
 export type GazzettaFacet = { id: string; label: string; count: number }
@@ -76,7 +91,7 @@ export type GazzettaQuery = {
 
 export const GAZZETTA_PAGINA = '/ricerca-legale/gazzetta-ufficiale'
 export const GAZZETTA_QUERY_INIZIALE: GazzettaQuery = {
-  q: '', serie: '', tipo: '', rubrica: '', ente: '', dal: '', al: '', numero: '', ordine: 'recenti', pagina: 1,
+  q: '', serie: '', tipo: '', rubrica: '', ente: '', dal: '', al: '', numero: '', ordine: '', pagina: 1,
 }
 const ERRORE = 'La Gazzetta Ufficiale non è consultabile in questo momento. Riprova fra poco.'
 
@@ -96,12 +111,15 @@ export function gazzettaVuota(): GazzettaPayload {
   }
 }
 
+/** Ordinamenti scelti dall'avvocato; vuoto = automatico (per pertinenza se c'è una ricerca, altrimenti dalla più recente). */
+export const ORDINI_AMMESSI: readonly string[] = ['pertinenza', 'recenti', 'meno_recenti']
+
 export function gazzettaQueryString(query: GazzettaQuery): string {
   const params = new URLSearchParams()
   for (const chiave of ['q', 'serie', 'tipo', 'rubrica', 'ente', 'dal', 'al', 'numero'] as const) {
     if (query[chiave].trim()) params.set(chiave, query[chiave].trim())
   }
-  if (query.ordine && query.ordine !== 'recenti') params.set('ordine', query.ordine)
+  if (ORDINI_AMMESSI.includes(query.ordine)) params.set('ordine', query.ordine)
   if (query.pagina > 1) params.set('pagina', String(query.pagina))
   const testo = params.toString()
   return testo ? `?${testo}` : ''
@@ -120,7 +138,7 @@ export function gazzettaQueryDaIndirizzo(search: string): GazzettaQuery {
     dal: params.get('dal') || '',
     al: params.get('al') || '',
     numero: params.get('numero') || '',
-    ordine: params.get('ordine') === 'meno_recenti' ? 'meno_recenti' : 'recenti',
+    ordine: ORDINI_AMMESSI.includes(params.get('ordine') || '') ? params.get('ordine') || '' : '',
     pagina: Number.isFinite(pagina) && pagina > 0 ? pagina : 1,
   }
 }
@@ -155,6 +173,10 @@ export function loadGazzetta(query: GazzettaQuery, signal?: AbortSignal): Promis
 
 export function loadGazzettaUltime(signal?: AbortSignal): Promise<GazzettaUltime> {
   return leggi<GazzettaUltime>('/api/v1/ui/gazzetta-ufficiale/ultime', { signal })
+}
+
+export function loadGazzettaTesto(id: string, signal?: AbortSignal): Promise<GazzettaTesto> {
+  return leggi<GazzettaTesto>(`/api/v1/ui/gazzetta-ufficiale/atti/${encodeURIComponent(id)}/testo`, { signal })
 }
 
 export function refreshGazzetta(query: GazzettaQuery): Promise<GazzettaPayload> {

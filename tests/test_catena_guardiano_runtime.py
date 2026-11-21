@@ -76,6 +76,8 @@ def test_ripara_scadenziario_e_agenda_e_registra_il_motivo(studio):
         assert len([a for a in get_agenda().tutti() if a.id_fascicolo == fid]) == 1
         payload = payload_fascicolo(fid)
         assert payload["avvisi"] == [] and len(payload["giri"]) == 2
+        # Il pannello «Controllo della catena» mostra l'esito di ogni anello, anche quando tutto torna.
+        assert [a["codice"] for a in payload["anelli"]] == ["letture", "termini", "passi", "economia", "quadro"]
 
 
 def test_la_scadenza_dell_avvocato_non_si_tocca_e_diventa_un_avviso(studio):
@@ -95,8 +97,12 @@ def test_la_scadenza_dell_avvocato_non_si_tocca_e_diventa_un_avviso(studio):
         assert [(v["codice"], v["riparazione"]) for v in esito["incoerenze"]] == [("termine_della_controparte", "")]
         riletta = get_scadenziario().get(mia.id)
         assert riletta.stato == StatoTermine.APERTO and riletta.note == "la tengo io"
-        (avviso,) = payload_fascicolo(fid)["avvisi"]
+        payload = payload_fascicolo(fid)
+        (avviso,) = payload["avvisi"]
         assert "termine della controparte" in avviso["descrizione"] and "resta com'è" in avviso["perche"]
+        assert avviso["anello"] == "termini"
+        esiti = {a["codice"]: a["esito"] for a in payload["anelli"]}
+        assert esiti["termini"] == "da_verificare" and esiti["passi"] != "da_verificare", esiti
 
 
 def test_api_del_guardiano(studio):
@@ -104,6 +110,7 @@ def test_api_del_guardiano(studio):
     client = app.test_client()
     risposta = client.get(f"/api/v1/ui/fascicoli/{fid}/guardiano-catena", headers={"X-API-Key": "react-test-key"})
     assert risposta.status_code == 200 and risposta.get_json()["stato"] == "mai_controllato"
+    assert {a["esito"] for a in risposta.get_json()["anelli"]} == {"non_controllato"}
     assert client.get("/api/v1/ui/fascicoli/NONCE/guardiano-catena", headers={"X-API-Key": "react-test-key"}).status_code == 404
     studio_intero = client.get("/api/v1/ui/guardiano-catena", headers={"X-API-Key": "react-test-key"}).get_json()
     assert studio_intero["ok"] and any(r["codice"] == "allineamento_scadenziario" for r in studio_intero["mappa"])

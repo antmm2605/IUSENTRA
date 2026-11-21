@@ -55,3 +55,17 @@ def test_indice_precalcolato_per_norma_senza_archivio(tmp_path, monkeypatch):
     assert e is not None and e.pronunce[0].numero == "01234"
     assert G.per_norme(["cc:1137"]).pronunce == []        # nessuna pronuncia trovata: non si interroga l'archivio
     assert G.per_norme(["cc:9999"]) is None
+
+
+def test_le_quattro_norme_senza_sentenze_ora_hanno_le_pronunce_verificate():
+    """Collaudo 21/11/2026: estremi verificati sulla ricerca ufficiale SentenzeWeb e sull'archivio della Consulta."""
+    from lex.harness.giurisprudenza import per_norme
+
+    def estremi(chiave):
+        return {(p.organo, p.sezione, p.numero, p.anno) for p in per_norme([chiave]).pronunce}
+
+    assert ("Corte di Cassazione — civile", "1", "14121", "2024") in estremi("cpc:473bis11")
+    assert {("Corte di Cassazione — civile", "U", "31403", "2025"), ("Corte di Cassazione — civile", "U", "23050", "2023")} <= estremi("cpc:473bis12")
+    assert {("Corte costituzionale", "", "146", "2025"), ("Corte costituzionale", "", "194", "2026")} <= estremi("cpc:473bis49")
+    senza = per_norme(["dlgs206:135bis"])
+    assert senza.pronunce == [] and "Nessuna pronuncia" in senza.errori[0] and "SentenzeWeb" in senza.errori[0]

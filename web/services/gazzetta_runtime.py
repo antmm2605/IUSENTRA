@@ -7,11 +7,13 @@ pagina e della Panoramica legge soltanto, con filtri e paginazione in SQL.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 import re
 import threading
 from typing import Any, Mapping
 
 from pct.gazzetta import tipi
+from pct.gazzetta.accenti import accenta, conosce_di_sistema
 from pct.gazzetta.archivio import ORDINAMENTI, ArchivioGazzetta, Filtri
 from pct.gazzetta.pianificazione import percorso_archivio
 from pct.gazzetta.serie import PER_CODICE, SERIE, SERIE_PRINCIPALI
@@ -33,6 +35,16 @@ MESSAGGIO_ARCHIVIO_ASSENTE = (
 
 def archivio_in_lettura(config: Mapping[str, Any]) -> ArchivioGazzetta | None:
     return ArchivioGazzetta.in_lettura(percorso_archivio(config))
+
+
+@lru_cache(maxsize=1)
+def _dizionario():
+    return conosce_di_sistema()
+
+
+def leggibile(valore: Any) -> str:
+    """Il testo della Gazzetta con gli accenti al posto degli apostrofi, solo nei casi univoci (``pct/gazzetta/accenti``)."""
+    return accenta(str(valore or ""), _dizionario())
 
 
 def _testo(argomenti: Mapping[str, Any], nome: str, limite: int = 120) -> str:
@@ -77,7 +89,8 @@ def filtri_richiesti(argomenti: Mapping[str, Any]) -> Filtri:
         dal=dal,
         al=al,
         numero_gu=str(int(numero)) if numero.isdigit() else "",
-        ordine=ordine if ordine in ORDINAMENTI else "recenti",
+        # Con una ricerca per parole si ordina per pertinenza, salvo scelta diversa dell'avvocato.
+        ordine=ordine if ordine in ORDINAMENTI else ("pertinenza" if _testo(argomenti, "q") else "recenti"),
         pagina=max(1, _intero(argomenti.get("pagina"), 1)),
         per_pagina=min(PER_PAGINA_MASSIMO, max(5, _intero(argomenti.get("per_pagina"), PER_PAGINA))),
     )
@@ -85,8 +98,8 @@ def filtri_richiesti(argomenti: Mapping[str, Any]) -> Filtri:
 
 def voce(atto: Mapping[str, Any]) -> dict[str, Any]:
     serie = PER_CODICE.get(str(atto.get("serie") or ""))
-    intestazione = str(atto.get("intestazione") or "")
-    descrizione = str(atto.get("descrizione") or "")
+    intestazione = leggibile(atto.get("intestazione"))
+    descrizione = leggibile(atto.get("descrizione"))
     return {
         "id": atto["id"],
         "series": atto["serie"],
@@ -98,8 +111,8 @@ def voce(atto: Mapping[str, Any]) -> dict[str, Any]:
         "heading": intestazione,
         "title": intestazione or descrizione,
         "description": descrizione if intestazione else "",
-        "authority": atto.get("emittente") or "",
-        "section": atto.get("rubrica") or "",
+        "authority": leggibile(atto.get("emittente")),
+        "section": leggibile(atto.get("rubrica")),
         "kind": atto["tipo"],
         "kindLabel": tipi.ETICHETTE.get(atto["tipo"], tipi.ETICHETTE["altro"]),
         "actNumber": atto.get("numero_atto") or "",
@@ -107,6 +120,29 @@ def voce(atto: Mapping[str, Any]) -> dict[str, Any]:
         "editorialCode": atto.get("codice_redazionale") or "",
         "page": atto.get("pagina") or "",
         "officialUrl": atto["url"],
+        "hasText": bool(atto.get("con_testo")),
+    }
+
+
+def testo_dell_atto(archivio: ArchivioGazzetta | None, atto_id: str) -> dict[str, Any]:
+    """Il testo completo dell'atto salvato nell'archivio, leggibile nella pagina, con la fonte ufficiale."""
+    if archivio is None or not re.fullmatch(r"gu_[0-9a-f]{24}", atto_id or ""):
+        return {"ok": False, "notFound": True, "message": "Atto non trovato nell'archivio della Gazzetta Ufficiale."}
+    dati = archivio.testo(atto_id)
+    if dati is None:
+        return {"ok": False, "notFound": True, "message": "Atto non trovato nell'archivio della Gazzetta Ufficiale."}
+    testo = leggibile(dati.get("testo"))
+    return {
+        "ok": True,
+        "id": atto_id,
+        "item": voce({**dati, "con_testo": bool(testo)}),
+        "available": bool(testo),
+        "heading": leggibile(dati.get("intestazione_testo") or dati.get("intestazione")),
+        "text": testo,
+        "textUrl": str(dati.get("url_testo") or ""),
+        "articles": int(dati.get("articoli") or 0),
+        "readAt": str(dati.get("testo_letto_il") or ""),
+        "message": "" if testo else "Il testo di questo atto non è ancora stato acquisito: si legge sul sito ufficiale.",
     }
 
 
@@ -248,5 +284,5 @@ def aggiorna_ora(config: Mapping[str, Any], *, adesso: datetime | None = None, e
 
 __all__ = [
     "MESSAGGIO_ARCHIVIO_ASSENTE", "aggiorna_ora", "archivio_in_lettura", "costruisci_vista", "filtri_richiesti",
-    "stato_delle_serie", "ultime_pubblicazioni", "voce",
+    "leggibile", "stato_delle_serie", "testo_dell_atto", "ultime_pubblicazioni", "voce",
 ]

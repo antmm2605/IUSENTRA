@@ -17,11 +17,17 @@ test('i filtri della Gazzetta Ufficiale viaggiano nell’indirizzo e tornano ugu
 
 test('valori estranei nell’indirizzo non diventano filtri', () => {
   const letta = gazzettaQueryDaIndirizzo('?ordine=casuale&pagina=-4')
-  assert.equal(letta.ordine, 'recenti')
+  assert.equal(letta.ordine, '')
   assert.equal(letta.pagina, 1)
 })
 
 test('estremi della Gazzetta con la data in gg/mm/aaaa', () => {
   const dataIt = (valore) => valore.split('-').reverse().join('/')
   assert.equal(estremiGazzetta({ seriesLabel: 'Serie generale', issueNumber: '261', issueDate: '2026-11-09' }, dataIt), 'GU Serie generale n. 261 del 09/11/2026')
+})
+
+test('l’ordinamento automatico non va nell’indirizzo; pertinenza e date scelte sì', () => {
+  assert.equal(gazzettaQueryString({ ...GAZZETTA_QUERY_INIZIALE, q: 'processo civile' }), '?q=processo+civile')
+  assert.equal(gazzettaQueryString({ ...GAZZETTA_QUERY_INIZIALE, q: 'processo civile', ordine: 'recenti' }), '?q=processo+civile&ordine=recenti')
+  assert.equal(gazzettaQueryDaIndirizzo('?ordine=pertinenza').ordine, 'pertinenza')
 })

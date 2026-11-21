@@ -26,7 +26,7 @@ sys.path.insert(0, str(RADICE))
 
 from defusedxml import ElementTree as ET  # noqa: E402
 
-from lex.normativa.commi import INDICE, chiave, raggruppa_commi, voce_indice  # noqa: E402
+from lex.normativa.commi import INDICE, chiave, numerazione_coerente, raggruppa_commi, voce_indice  # noqa: E402
 
 NS = {"a": "http://docs.oasis-open.org/legaldocml/ns/akn/3.0"}
 _A = "{http://docs.oasis-open.org/legaldocml/ns/akn/3.0}"
@@ -102,6 +102,16 @@ def _articoli_nel_corpo(radice):
         yield m.group("n"), intestazione, raggruppa_commi(commi)
 
 
+def _separa_rubrica(intestazione: list[str], commi: list[str]) -> tuple[list[str], list[str]]:
+    """Commi numerati nella fonte preceduti da un paragrafo senza numero: è la rubrica («(Ambito di applicazione)»,
+    «Norme di coordinamento»), non il comma 1. Il testo complessivo non cambia, cambia solo dove comincia il comma 1."""
+    from lex.normativa.commi import _NUMERO_COMMA
+
+    if len(commi) >= 2 and not _NUMERO_COMMA.match(commi[0]) and all(_NUMERO_COMMA.match(c) for c in commi[1:]):
+        return [*intestazione, commi[0]], commi[1:]
+    return intestazione, commi
+
+
 def leggi(percorso: Path) -> tuple[tuple[str, str], list]:
     radice = ET.parse(percorso).getroot()
     this = radice.find(".//a:FRBRWork/a:FRBRthis", NS)
@@ -112,7 +122,7 @@ def leggi(percorso: Path) -> tuple[tuple[str, str], list]:
     articoli = {numero_art: (numero_art, intestazione, commi) for numero_art, intestazione, commi in _articoli_nel_corpo(radice)}
     for numero_art, intestazione, commi in _articoli_strutturati(radice, costituzione):
         articoli.setdefault(numero_art, (numero_art, intestazione, commi))
-    return (data, numero), list(articoli.values())
+    return (data, numero), [(n, *_separa_rubrica(i, c)) for n, i, c in articoli.values()]
 
 
 def main() -> int:
@@ -121,26 +131,39 @@ def main() -> int:
     ap.add_argument("--uscita", default=str(INDICE))
     ap.add_argument("--unisci", default="", help="indice esistente da completare (le voci AKN prevalgono)")
     args = ap.parse_args()
-    voci, fonti = {}, []
+    voci, fonti, metodo = {}, [], ""
     if args.unisci and Path(args.unisci).is_file():
-        with gzip.open(args.unisci, "rt", encoding="utf-8") as file:
+        with (gzip.open if args.unisci.endswith(".gz") else open)(args.unisci, "rt", encoding="utf-8") as file:
             precedente = json.load(file)
+        metodo = precedente.get("metodo", "")
         voci.update(precedente.get("voci", {}))
         fonti.extend(precedente.get("fonti", []))
     for nome in args.file:
         (data, numero), articoli = leggi(Path(nome))
-        quanti = 0
+        # L'atto riletto sostituisce tutte le sue voci precedenti (nessun articolo resta con una divisione superata).
+        prefisso = chiave(data, numero, "")
+        for vecchia in [k for k in voci if k.startswith(prefisso)]:
+            del voci[vecchia]
+        quanti = scartati = 0
         for articolo, intestazione, commi in articoli:
-            if len(commi) >= 2:
-                voci[chiave(data, numero, articolo)] = voce_indice(intestazione, commi)
-                quanti += 1
+            if len(commi) < 2:
+                continue
+            if not numerazione_coerente(commi):
+                # Commi numerati nella fonte che non cominciano ciascuno con il proprio numero: resta intero.
+                voci.pop(chiave(data, numero, articolo), None)
+                scartati += 1
+                continue
+            voci[chiave(data, numero, articolo)] = voce_indice(intestazione, commi)
+            quanti += 1
+        fonti = [f for f in fonti if f.get("file") != Path(nome).name]
         fonti.append({"file": Path(nome).name, "atto": f"{data}/{numero}", "articoli_con_commi": quanti,
-                      "formato": "Akoma Ntoso Normattiva (caricaAKN)"})
-        print(f"{Path(nome).name}: {data} n. {numero}, {quanti} articoli con commi", flush=True)
+                      "articoli_non_certi": scartati, "formato": "Akoma Ntoso Normattiva (caricaAKN)"})
+        print(f"{Path(nome).name}: {data} n. {numero}, {quanti} articoli con commi, {scartati} lasciati interi", flush=True)
     uscita = Path(args.uscita)
     uscita.parent.mkdir(parents=True, exist_ok=True)
     with (gzip.open if uscita.suffix == ".gz" else open)(uscita, "wt", encoding="utf-8") as file:
-        json.dump({"generato_il": date.today().isoformat(), "fonti": fonti, "voci": voci}, file,
+        json.dump({"generato_il": date.today().isoformat(), **({"metodo": metodo} if metodo else {}), "fonti": fonti,
+                   "voci": voci}, file,
                   ensure_ascii=False, separators=(",", ":"))
     print(f"{len(voci)} articoli con commi -> {uscita}")
     return 0

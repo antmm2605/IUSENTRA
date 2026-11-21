@@ -13,11 +13,13 @@ import {
   gazzettaQueryString,
   gazzettaVuota,
   loadGazzetta,
+  loadGazzettaTesto,
   refreshGazzetta,
   type GazzettaAtto,
   type GazzettaPayload,
   type GazzettaQuery,
   type GazzettaStatoSerie,
+  type GazzettaTesto,
 } from '../gazzettaData'
 import './GazzettaUfficialePage.css'
 
@@ -62,9 +64,36 @@ function StatoSerie({ stato }: { stato: GazzettaStatoSerie }) {
   )
 }
 
+function TestoAtto({ id }: { id: string }) {
+  const [testoAtto, setTestoAtto] = useState<GazzettaTesto | null>(null)
+  const [errore, setErrore] = useState('')
+  useEffect(() => {
+    const controllo = new AbortController()
+    loadGazzettaTesto(id, controllo.signal)
+      .then(setTestoAtto)
+      .catch((motivo: unknown) => { if (!controllo.signal.aborted) setErrore(motivo instanceof Error ? motivo.message : 'Testo non disponibile.') })
+    return () => controllo.abort()
+  }, [id])
+  if (errore) return <p className="iu-gazzetta-atto__testo-stato" role="alert"><AlertTriangle size={14} /> {errore}</p>
+  if (!testoAtto) return <p className="iu-gazzetta-atto__testo-stato" role="status"><RefreshCw className="iu-spin" size={14} /> Carico il testo dell’atto…</p>
+  if (!testoAtto.available) return <p className="iu-gazzetta-atto__testo-stato">{testo(testoAtto.message)}</p>
+  const fonte = collegamentoUfficiale(testoAtto.textUrl)
+  return (
+    <section className="iu-gazzetta-atto__testo" aria-label="Testo completo dell’atto">
+      {testoAtto.heading ? <h4>{testo(testoAtto.heading)}</h4> : null}
+      <pre>{testoAtto.text}</pre>
+      <p className="iu-gazzetta-atto__testo-fonte">
+        Testo della Gazzetta Ufficiale (vista «originario»){testoAtto.articles ? `, ${testoAtto.articles} articoli` : ''}, acquisito il {formatDateTimeIt(testoAtto.readAt)}
+        {fonte ? <> · <a href={fonte} target="_blank" rel="noopener noreferrer">fonte ufficiale</a></> : null}
+      </p>
+    </section>
+  )
+}
+
 function RigaAtto({ atto }: { atto: GazzettaAtto }) {
   const url = collegamentoUfficiale(atto.officialUrl)
   const sommario = collegamentoUfficiale(atto.issueUrl)
+  const [testoAperto, setTestoAperto] = useState(false)
   return (
     <li className="iu-gazzetta-atto">
       <span className={`iu-gazzetta-atto__serie is-${atto.series.toLowerCase()}`} title={testo(atto.seriesLabel)}>{testo(atto.seriesShort)}</span>
@@ -81,8 +110,14 @@ function RigaAtto({ atto }: { atto: GazzettaAtto }) {
           {atto.section ? ` · ${testo(atto.section)}` : ''}
           {atto.editorialCode ? ` · codice redazionale ${atto.editorialCode}` : ''}
         </p>
+        {testoAperto ? <TestoAtto id={atto.id} /> : null}
       </div>
       <div className="iu-gazzetta-atto__azioni">
+        {atto.hasText ? (
+          <button type="button" className="iu-gazzetta-atto__leggi" aria-expanded={testoAperto} onClick={() => setTestoAperto((aperto) => !aperto)}>
+            <FileText size={14} /> {testoAperto ? 'Chiudi il testo' : 'Leggi il testo'}
+          </button>
+        ) : null}
         {url ? <a className="iu-gazzetta-atto__apri" href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Apri l’atto</a> : null}
         {sommario ? <a href={sommario} target="_blank" rel="noopener noreferrer"><FileText size={14} /> Sommario del fascicolo</a> : null}
       </div>
@@ -238,6 +273,8 @@ export function GazzettaUfficialePage() {
           <label>
             <span>Ordina</span>
             <select value={query.ordine} onChange={(evento) => cambia({ ordine: evento.currentTarget.value })}>
+              <option value="">{query.q ? 'Più pertinenti' : 'Dalla più recente'}</option>
+              <option value="pertinenza">Più pertinenti</option>
               <option value="recenti">Dalla più recente</option>
               <option value="meno_recenti">Dalla meno recente</option>
             </select>
@@ -275,7 +312,7 @@ export function GazzettaUfficialePage() {
         </section>
         <aside className="iu-gazzetta-stato" aria-label="Stato delle serie">
           <h2>Serie della Gazzetta Ufficiale</h2>
-          <p>Ogni ora il software legge l’elenco ufficiale degli ultimi 30 giorni e archivia i sommari dei fascicoli nuovi.</p>
+          <p>Ogni ora il software legge l’elenco ufficiale degli ultimi 30 giorni e archivia i sommari dei fascicoli nuovi; in sfondo recupera l’archivio dal 01/01/2022 con il testo completo degli atti.</p>
           <ul>{dati.sourceStates.map((stato) => <StatoSerie key={stato.id} stato={stato} />)}</ul>
         </aside>
       </div>

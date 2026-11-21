@@ -51,3 +51,28 @@ def test_elenchi_e_righe_in_minuscolo_restano_nel_comma():
                             "per cento per le cause", "(67)(72)", "La sentenza è sottoscritta."]) == [
         "Essa deve contenere: 1) l'indicazione del giudice; a) la data; per cento per le cause (67)(72)",
         "La sentenza è sottoscritta."]
+
+
+def test_segni_delle_modifiche_e_richiami_di_nota_non_sono_commi():
+    # D.M. 55/2014, art. 4 nell'Akoma Ntoso di Normattiva: «((» e «))» stanno in paragrafi a sé.
+    assert raggruppa_commi(["((13))", "1. Nelle controversie non si applica.", "2. Il presidente designa.",
+                            "((", "2-bis. Il comma aggiunto.", "))", "3. Fermo quanto previsto."]) == [
+        "((13)) 1. Nelle controversie non si applica.", "2. Il presidente designa.", "(( 2-bis. Il comma aggiunto. ))",
+        "3. Fermo quanto previsto."]
+
+
+def test_numerazione_dei_commi_coerente_con_la_fonte():
+    from lex.normativa.commi import numerazione_coerente
+
+    assert numerazione_coerente(["((13)) 1. Primo.", "(( 1-bis. Aggiunto. ))", "2. Secondo."])
+    assert numerazione_coerente(["Nel computo dei termini.", "Per il computo a mesi."])  # codici: commi senza numero
+    assert not numerazione_coerente(["((", "1. Primo.", "))"])  # un segno da solo non è un comma
+    assert not numerazione_coerente(["1. Primo.", "«2. Testo citato da altra legge.", "2. Secondo."])
+    assert not numerazione_coerente(["1. Primo.", "2. Secondo.", "2. Ripetuto."])
+
+
+def test_la_rubrica_nel_primo_paragrafo_non_diventa_il_comma_1():
+    import scripts.normativa_commi_da_akn as akn
+
+    intestazione, commi = akn._separa_rubrica(["Art. 2"], ["(Ambito di applicazione)", "1. Le norme si applicano.", "2. Le spese."])
+    assert intestazione == ["Art. 2", "(Ambito di applicazione)"] and commi == ["1. Le norme si applicano.", "2. Le spese."]

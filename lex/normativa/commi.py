@@ -23,6 +23,8 @@ _NOTE = re.compile(r"\s*-{5,}\s*(?=AGGIORNAMENTO\b)")
 _VOCE_INTERNA = re.compile(r"^\s*(?:\(\(\s*)?(?:\d{1,3}(?:\s*-?\s*[a-z]{3,12})?[)°]|[a-z]{1,2}(?:-?[a-z]{3,12})?\)|-\s|–\s|•)")
 _SPAZI = re.compile(r"\s+")
 _SOLO_NOTE = re.compile(r"(?:\s*\(\(?\d{1,4}[a-z]?\)\)?)+\s*")
+_APRE = re.compile(r"\(\(\s*")
+_CHIUDE = re.compile(r"\s*\)\)(?:\s*\(\(?\d{1,4}[a-z]?\)\)?)*\s*")
 
 
 def senza_spazi(testo: str) -> str:
@@ -40,19 +42,51 @@ def chiave(data_atto: str, numero_atto: str, articolo: str) -> str:
 
 
 def raggruppa_commi(paragrafi: Iterable[str]) -> list[str]:
-    """Paragrafi del corpo → commi: un elenco interno resta con il comma che lo introduce."""
+    """Paragrafi del corpo → commi: un elenco interno resta con il comma che lo introduce.
+
+    I segni delle modifiche di Normattiva in un paragrafo a sé non sono commi: «((» apre il comma che segue,
+    «))» chiude il precedente; un richiamo di nota prima del primo comma («((13))») va con il primo comma.
+    """
     commi: list[str] = []
+    in_attesa = ""
     for paragrafo in paragrafi:
         testo = " ".join(str(paragrafo or "").split())
         if not testo:
             continue
+        if _APRE.fullmatch(testo) or (not commi and _SOLO_NOTE.fullmatch(testo)):
+            in_attesa = f"{in_attesa} {testo}".strip()
+            continue
+        if commi and _CHIUDE.fullmatch(testo):
+            commi[-1] = f"{commi[-1]} {testo}"
+            continue
         # Un comma comincia con la maiuscola (o con il suo numero): un paragrafo in minuscolo, una voce
         # d'elenco o un solo richiamo di nota («(67)(72)») continuano il comma precedente.
-        if commi and (_VOCE_INTERNA.match(testo) or testo[:1].islower() or _SOLO_NOTE.fullmatch(testo)):
+        if commi and not in_attesa and (_VOCE_INTERNA.match(testo) or testo[:1].islower() or _SOLO_NOTE.fullmatch(testo)):
             commi[-1] = f"{commi[-1]} {testo}"
         else:
-            commi.append(testo)
+            commi.append(f"{in_attesa} {testo}".strip())
+            in_attesa = ""
+    if in_attesa:
+        if commi:
+            commi[-1] = f"{commi[-1]} {in_attesa}"
+        else:
+            commi.append(in_attesa)
     return commi
+
+
+_NUMERO_COMMA = re.compile(r"^(?:\(\(?\d{1,4}[a-z]?\)\)?\s*)*(?:\(\(\s*)?(\d{1,3}(?:-?[a-z]{3,12})?)\s*\.(?:\s|\(|$)")
+
+
+def numerazione_coerente(commi: list[str]) -> bool:
+    """Se i commi sono numerati nella fonte («1.», «1-bis.»), ognuno deve cominciare con il proprio numero, senza
+    ripetizioni: altrimenti la divisione non è certa e l'articolo resta intero."""
+    numeri = [_NUMERO_COMMA.match(c) for c in commi]
+    if not any(numeri):
+        return True
+    if not all(numeri):
+        return False
+    valori = [n.group(1).replace("-", "") for n in numeri]
+    return len(set(valori)) == len(valori)
 
 
 def voce_indice(intestazione: list[str], commi: list[str]) -> dict:

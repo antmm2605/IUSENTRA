@@ -430,6 +430,55 @@
   color: #b91c1c;
 }
 
+.iu-gazzetta-atto__leggi {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 8px;
+  background: var(--iu-blue-50, #eff6ff);
+  color: var(--iu-blue-700);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.iu-gazzetta-atto__testo {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--iu-slate-200, #e2e8f0);
+  border-radius: 8px;
+  background: var(--iu-slate-50, #f8fafc);
+}
+
+.iu-gazzetta-atto__testo h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.iu-gazzetta-atto__testo pre {
+  max-height: 480px;
+  margin: 0;
+  overflow: auto;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.iu-gazzetta-atto__testo-fonte,
+.iu-gazzetta-atto__testo-stato {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--iu-slate-600);
+}
+
 @media (max-width: 1080px) {
   .iu-gazzetta__corpo {
     grid-template-columns: minmax(0, 1fr);

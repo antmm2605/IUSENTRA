@@ -1,5 +1,14 @@
-.iu-controllo-catena{display:grid;gap:6px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--iu-amber-200,#fde68a);border-radius:10px;background:var(--iu-amber-50,#fffbeb)}
-.iu-controllo-catena h4{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;font-weight:800;color:var(--iu-amber-800,#92400e)}
-.iu-controllo-catena ul{display:grid;gap:4px;margin:0;padding-left:18px;font-size:13px;color:var(--iu-slate-700,#334155)}
-.iu-controllo-catena__stato{display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--iu-slate-500,#64748b)}
-@media (max-width:640px){.iu-controllo-catena{padding:8px 10px}.iu-controllo-catena ul{padding-left:14px}}
+.iu-controllo-catena{display:grid;gap:8px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--iu-slate-200,#e2e8f0);border-radius:10px;background:var(--iu-surface,#fff)}
+.iu-controllo-catena--avvisi{border-color:var(--iu-amber-200,#fde68a);background:var(--iu-amber-50,#fffbeb)}
+.iu-controllo-catena h4{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;font-weight:800;color:var(--iu-slate-800,#1e293b)}
+.iu-controllo-catena--avvisi h4{color:var(--iu-amber-800,#92400e)}
+.iu-controllo-catena__stato{display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--iu-slate-600,#475569)}
+.iu-controllo-catena__anelli{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.iu-controllo-catena__anello{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid var(--iu-slate-200,#e2e8f0);border-radius:999px;font-size:12px;color:var(--iu-slate-700,#334155);background:var(--iu-slate-50,#f8fafc)}
+.iu-controllo-catena__anello+.iu-controllo-catena__anello::before{content:"→";margin-right:4px;color:var(--iu-slate-400,#94a3b8)}
+.iu-controllo-catena__anello span{color:var(--iu-slate-500,#64748b)}
+.iu-controllo-catena__anello--verificato,.iu-controllo-catena__anello--riparato{border-color:var(--iu-green-200,#bbf7d0);background:var(--iu-green-50,#f0fdf4);color:var(--iu-green-800,#166534)}
+.iu-controllo-catena__anello--da_verificare{border-color:var(--iu-amber-300,#fcd34d);background:var(--iu-amber-100,#fef3c7);color:var(--iu-amber-900,#78350f)}
+.iu-controllo-catena__anello--in_aggiornamento{border-color:var(--iu-blue-200,#bfdbfe);background:var(--iu-blue-50,#eff6ff);color:var(--iu-blue-800,#1e40af)}
+.iu-controllo-catena__avvisi{display:grid;gap:4px;margin:0;padding-left:18px;font-size:13px;color:var(--iu-slate-700,#334155)}
+@media (max-width:640px){.iu-controllo-catena{padding:8px 10px}.iu-controllo-catena__avvisi{padding-left:14px}.iu-controllo-catena__anello+.iu-controllo-catena__anello::before{content:none}}

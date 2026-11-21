@@ -39,3 +39,12 @@ def test_servizio_assente_risposta_deterministica(monkeypatch):
 def test_senza_scrittore_solo_deterministico(monkeypatch):
     monkeypatch.delenv("LEX_HARNESS_SCRITTORE", raising=False)
     assert scrittura.scrivi(SCHEMA).scrittore == "deterministico"
+
+
+def test_stesura_che_perde_una_norma_e_scartata():
+    from lex.harness.scrittura import controlla
+
+    schema = ("- Mediazione obbligatoria in materia di condominio (art. 5 d.lgs. 28/2010).\n"
+              "- La delibera si impugna entro trenta giorni (art. 1137 c.c.).")
+    assert controlla(schema, "- La delibera si impugna entro trenta giorni, come prevede l'art. 1137 c.c., "
+                             "davanti al giudice competente.").startswith("norme dello schema perse")

@@ -209,6 +209,50 @@ def _run_scheduler_command(label: str, command: list[str], *, timeout_seconds: i
 ESCLUSI_SOLO_PROVA = "solo studi di prova"
 
 
+def _esito_canale_posta(channel_report: object) -> dict[str, object]:
+    """Esito di una casella (PEC o posta ordinaria) in un giro di ``mailbox_sync_runtime``.
+
+    Lo stesso errore della casella si segnala una volta sola (decisione del 19/11/2026). Una casella lenta, la cui
+    sincronizzazione prosegue in sfondo oltre il tempo del giro, non è un guasto: 23/11/2026, lo scheduler dell'8080
+    risultava «unhealthy» dopo giri che avevano letto la PEC mentre la posta ordinaria finiva in sfondo. Diventa un
+    avviso dal terzo giro di fila.
+    """
+    channel = channel_report if isinstance(channel_report, dict) else {}
+    result = channel.get("result") if isinstance(channel.get("result"), dict) else {}
+    errore = str(result.get("errore") or result.get("sync_errore") or "").strip()
+    gia_segnalato = bool(result.get("gia_segnalato"))
+    in_sfondo = bool(result.get("in_sfondo")) and int(result.get("tentativi") or 1) < 3
+    warning = (bool(result.get("warning")) or bool(errore)) and not gia_segnalato and not in_sfondo
+    reason = str(channel.get("reason") or "")
+    return {
+        "ok": channel.get("ok"),
+        "skipped": bool(channel.get("skipped")),
+        "reason": reason,
+        "nuove": _as_int(result.get("nuove")),
+        "pst_trovate": _as_int(result.get("pst_trovate")),
+        "allegati_salvati": _as_int(result.get("allegati_salvati")),
+        "warning": warning,
+        "errore": errore,
+        "in_sfondo": in_sfondo,
+        "gia_segnalato": gia_segnalato,
+        "errore_del_giro": bool(channel.get("ok") is False and not gia_segnalato and not in_sfondo and not reason.strip()
+                                and "non configurato" not in errore.lower()),
+    }
+
+
+def _esito_canale_nel_log(canale: object) -> str:
+    """«ok» solo se la casella è stata letta: un errore o una lettura proseguita in sfondo si scrivono nel log."""
+    canale = canale if isinstance(canale, dict) else {}
+    if canale.get("reason"):
+        return str(canale["reason"])
+    risultato = canale.get("result") if isinstance(canale.get("result"), dict) else {}
+    if risultato.get("in_sfondo"):
+        return "in_sfondo"
+    if risultato.get("errore") or risultato.get("sync_errore") or canale.get("ok") is False:
+        return "errore"
+    return "ok"
+
+
 def start_scheduler(app):
     """
     Avvia lo scheduler APScheduler in background.
@@ -1723,6 +1767,7 @@ def start_scheduler(app):
                     "allegati_salvati": 0,
                     "warnings": 0,
                     "errors": 0,
+                    "in_sfondo": 0,
                 }
                 for label, paths in targets:
                     report = sync_mailboxes_for_paths(
@@ -1738,22 +1783,8 @@ def start_scheduler(app):
                     ordinary = report.get("ordinary") or {}
                     tenant_item: dict[str, object] = {"tenant": label, "channels": {}}
                     for channel_name, channel_report in (("pec", pec), ("ordinary", ordinary)):
-                        channel = channel_report if isinstance(channel_report, dict) else {}
-                        result = channel.get("result") if isinstance(channel.get("result"), dict) else {}
-                        errore = str(result.get("errore") or result.get("sync_errore") or "").strip()
-                        # Lo stesso errore della casella si segnala una volta sola (decisione del 19/11/2026).
-                        gia_segnalato = bool(result.get("gia_segnalato"))
-                        warning = (bool(result.get("warning")) or bool(errore)) and not gia_segnalato
-                        channel_payload = {
-                            "ok": channel.get("ok"),
-                            "skipped": bool(channel.get("skipped")),
-                            "reason": str(channel.get("reason") or ""),
-                            "nuove": _as_int(result.get("nuove")),
-                            "pst_trovate": _as_int(result.get("pst_trovate")),
-                            "allegati_salvati": _as_int(result.get("allegati_salvati")),
-                            "warning": warning,
-                            "errore": errore,
-                        }
+                        channel_payload = _esito_canale_posta(channel_report)
+                        warning, in_sfondo = channel_payload["warning"], channel_payload["in_sfondo"]
                         tenant_item["channels"][channel_name] = channel_payload
                         totals["channels"] += 1
                         totals["nuove"] += int(channel_payload["nuove"])
@@ -1765,18 +1796,18 @@ def start_scheduler(app):
                             totals["warnings"] += 1
                             canale = "PEC" if channel_name == "pec" else "posta ordinaria"
                             connessioni_incomplete.append(f"{label} ({canale})")
-                        channel_payload["gia_segnalato"] = gia_segnalato
-                        if (channel.get("ok") is False and not gia_segnalato and not str(channel_payload["reason"]).strip()
-                                and "non configurato" not in errore.lower()):
+                        if in_sfondo:
+                            totals["in_sfondo"] += 1
+                        if channel_payload["errore_del_giro"]:
                             totals["errors"] += 1
                     tenant_reports.append(tenant_item)
                     logger.info(
                         "[scheduler] Mailbox sync %s: pec=%s/%s ordinary=%s/%s",
                         label,
                         "skipped" if pec.get("skipped") else "run",
-                        pec.get("reason") or "ok",
+                        _esito_canale_nel_log(pec),
                         "skipped" if ordinary.get("skipped") else "run",
-                        ordinary.get("reason") or "ok",
+                        _esito_canale_nel_log(ordinary),
                     )
                 if processed_targets:
                     logger.info("[scheduler] Mailbox sync completata per %d target", processed_targets)

@@ -498,7 +498,8 @@ def _sync_with_runtime_guard(
     if lavoro.is_alive():
         # La casella non risponde entro il tempo massimo: il giro prosegue; la sincronizzazione resta in sfondo
         # e tiene il proprio blocco, così il giro successivo la trova «già in corso» e non ne apre un'altra.
-        result = {"ok": False, "errore": f"Casella non sincronizzata entro {int(limite_tempo)} secondi: si riprova più tardi."}
+        result = {"ok": False, "in_sfondo": True,
+                  "errore": f"Casella non sincronizzata entro {int(limite_tempo)} secondi: si riprova più tardi."}
     else:
         result = esito.get("result") or {"ok": False, "errore": "Sincronizzazione senza riscontro."}
     return {"ok": bool(result.get("ok", False)), "skipped": False, "reason": "", "result": _annota_fallimento(key, result)}

@@ -96,3 +96,36 @@ def test_polling_esiti_deposito_salta_lo_studio_di_prova(monkeypatch):
     assert visti == ["studio-vero"]
     assert esito["studi_esclusi_posta"] == ["studio-prova"]
     assert MOTIVO_ESCLUSO_POSTA in esito["message"]
+
+
+def test_casella_lenta_in_sfondo_non_rende_fallito_il_giro(contesto, monkeypatch):
+    """8080, 23/11/2026: la PEC letta, la posta ordinaria oltre i 240 s finita in sfondo; il giro era registrato
+    «failed» e lo scheduler «unhealthy». Ora il giro è completato; dal terzo giro lento di fila diventa un avviso."""
+    from pct.scheduler import _esito_canale_nel_log, _esito_canale_posta
+    from pct.scheduler_registry import esito_job_result
+
+    sblocca = threading.Event()
+
+    def casella_lenta(ctx, **kwargs):
+        sblocca.wait(10)
+        return {"ok": True}
+
+    monkeypatch.setattr(runtime, "_tempo_massimo_casella", lambda ctx: 0.2)
+    lenta = runtime._sync_with_runtime_guard("ordinary", casella_lenta, ctx=contesto, cooldown_seconds=0)
+    sblocca.set()
+    canale = _esito_canale_posta(lenta)
+    assert lenta["result"]["in_sfondo"] and canale["in_sfondo"]
+    assert not canale["warning"] and not canale["errore_del_giro"]
+    assert _esito_canale_nel_log(lenta) == "in_sfondo"
+    pec = _esito_canale_posta({"ok": True, "result": {"ok": True, "nuove": 6}})
+    giro = {"ok": not (canale["errore_del_giro"] or pec["errore_del_giro"]),
+            "status": "parziale" if (canale["warning"] or pec["warning"]) else "ok"}
+    assert esito_job_result(giro) == ("completed", "")
+    # Terzo giro lento di fila: la casella va guardata, il giro torna «parziale».
+    terzo = {"ok": False, "skipped": False, "reason": "",
+             "result": {"ok": False, "in_sfondo": True, "tentativi": 3, "errore": "Casella non sincronizzata entro 240 secondi."}}
+    assert _esito_canale_posta(terzo)["warning"] is True
+    # Un errore vero della casella resta un errore del giro e nel log non si legge più «ok».
+    rotta = {"ok": False, "skipped": False, "reason": "", "result": {"ok": False, "errore": "Connessione IMAP non completata."}}
+    assert _esito_canale_posta(rotta)["errore_del_giro"] and _esito_canale_nel_log(rotta) == "errore"
+    assert _esito_canale_nel_log({"ok": True, "skipped": True, "reason": "attesa_dopo_errore"}) == "attesa_dopo_errore"

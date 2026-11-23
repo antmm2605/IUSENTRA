@@ -79,6 +79,27 @@ def _rilascia_utente(chiave: str) -> None:
             _UTENTI.pop(chiave, None)
 
 
+def _materializza(risposta: Any) -> Any:
+    """Una risposta in streaming si consuma qui, nel thread del calcolo e nel suo contesto di richiesta.
+
+    Il generatore di ``stream_with_context`` creato nel thread dell'esecutore conserva il contesto copiato: consumato
+    poi dal thread del server lo rimetteva in cima e ne eseguiva di nuovo la chiusura (teardown ripetuti, connessioni
+    SQLite chiuse da un thread diverso, ``LookupError`` sul contesto con il client di prova). Consumarlo qui fa anche
+    rientrare la generazione del testo nel tempo massimo, che altrimenti proseguiva dopo la risposta.
+    """
+    from flask import Response
+
+    if not isinstance(risposta, Response) or not risposta.is_streamed:
+        return risposta
+    try:
+        corpo = b"".join(parte if isinstance(parte, bytes) else str(parte).encode("utf-8") for parte in risposta.response)
+    finally:
+        risposta.close()
+    intestazioni = [(nome, valore) for nome, valore in risposta.headers.items()
+                    if nome.lower() not in {"content-length", "transfer-encoding"}]
+    return Response(corpo, status=risposta.status_code, headers=intestazioni)
+
+
 def con_limite(calcolo: Callable[[], Any], *, secondi: float | None = None, chiave: str = "", dati: dict | None = None):
     """Esegue ``calcolo`` nel contesto della richiesta corrente, entro tempo, posti e lunghezza massimi."""
     from flask import copy_current_request_context, g
@@ -99,7 +120,7 @@ def con_limite(calcolo: Callable[[], Any], *, secondi: float | None = None, chia
     def esegui():
         for nome, valore in stato_g.items():
             setattr(g, nome, valore)
-        return calcolo()
+        return _materializza(calcolo())
 
     def finito(_):
         _POSTI.release()

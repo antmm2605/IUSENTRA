@@ -76,3 +76,39 @@ def test_testo_troppo_lungo_ha_un_messaggio_chiaro():
         r = con_limite(lambda: "mai", dati={"messages": [{"role": "user", "content": "x" * (TESTO_MASSIMO + 1)}]})
         corpo = "".join(x.decode() if isinstance(x, bytes) else x for x in r.response)
         assert "troppo lungo" in corpo
+
+
+def test_risposta_in_streaming_si_consuma_nel_calcolo_senza_rompere_il_contesto():
+    """Collaudo 23/11/2026: lo stream creato nel thread di Lex rimetteva il contesto copiato nel thread del server.
+
+    Con il client di prova la chiusura falliva (LookupError su flask.app_ctx) e il teardown girava di nuovo su un
+    contesto già chiuso; ora lo stream si consuma nel calcolo, entro il tempo massimo, e torna una risposta normale.
+    """
+    from flask import Response, request, stream_with_context
+
+    from lex.limite_tempo import con_limite
+
+    app = Flask(__name__)
+    chiusure = []
+
+    @app.teardown_request
+    def _chiudi(_exc):
+        chiusure.append(1)
+
+    def risposta():
+        def genera():
+            yield "data: " + request.path + "\n\n"
+            yield "data: [DONE]\n\n"
+        return Response(stream_with_context(genera()), mimetype="text/event-stream", headers={"X-Accel-Buffering": "no"})
+
+    @app.post("/api/assistente/chat")
+    def chat():
+        return con_limite(risposta, chiave="avv")
+
+    with app.test_client() as client:
+        r = client.post("/api/assistente/chat")
+        assert r.status_code == 200
+        assert r.get_data(as_text=True) == "data: /api/assistente/chat\n\ndata: [DONE]\n\n"
+        assert r.mimetype == "text/event-stream"
+        assert r.headers.get("X-Accel-Buffering") == "no"
+    assert len(chiusure) <= 3

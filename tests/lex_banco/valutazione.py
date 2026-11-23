@@ -213,7 +213,12 @@ def _connessioni_controllate(root: Path):
     finally:
         sqlite3.connect = connect
         for connection in connections:
-            connection.close()
+            try:
+                connection.close()
+            except sqlite3.ProgrammingError:
+                # Dalla 2.490.2 Lex calcola nei thread dell'esecutore (lex/limite_tempo.py): una connessione aperta
+                # in quei thread si puo' chiudere solo li', e la rilascia il garbage collector.
+                pass
 
 
 def esegui_banco(tmp_path: Path | None = None, *, solo: set[str] | None = None) -> list[EsitoDomanda]:

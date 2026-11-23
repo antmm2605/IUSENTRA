@@ -120,7 +120,7 @@ def test_status_payload_when_ollama_is_unreachable():
 
     assert status == 200
     assert payload["ok"] is False
-    assert payload["errore"] == "Ollama non raggiungibile"
+    assert payload["errore"] == "Modello linguistico non raggiungibile"
     assert payload["modelli"] == []
 
 

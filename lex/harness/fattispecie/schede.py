@@ -29,6 +29,7 @@ class Scadenza:
     rif: tuple[Rif, ...]
     sospensione_feriale: bool = True
     sostanziale: bool = False
+    modello: str = ""           # modello del motore dei termini (pct/termini_processuali.py), se esiste
 
 
 @dataclass
@@ -116,6 +117,12 @@ def _calcola(s: Scadenza, f: Fatti) -> Punto | None:
     dal = data_dopo(f, s.evento)
     if dal is None:
         return None
+    if s.modello:
+        from ..termini import termine
+
+        al = termine(s.modello, dal)
+        return Punto(f"Dal {data_breve(dal)}: {s.descrizione} {data_breve(al)} ({s.quantita} {s.unita}, calcolo del motore "
+                     f"dei termini di IUSENTRA).", list(s.rif))
     if s.unita == "giorni":
         al = termine_giorni(dal, s.quantita, sospensione_feriale=s.sospensione_feriale, sostanziale=s.sostanziale)
     elif s.unita == "mesi":

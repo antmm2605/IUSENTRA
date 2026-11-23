@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from .schede import R, Scadenza, Scheda, p
 
-_NON_CIVILE = r"lavor|licenzia|penal|imputat|reato|tributar|\btar\b|amministrativ|cartella|agenzia delle entrate|\binps\b"
+_NON_CIVILE = r"lavorator|rapporto di lavoro|datore di lavoro|giudice del lavoro|rito del lavoro|causa di lavoro|licenzia|penal|imputat|reato|tributar|\btar\b|amministrativ|cartella|agenzia delle entrate|\binps\b"
 _FERIALE = p("I termini sono sospesi dal 1° al 31 agosto.", R("l742:1", "giurisdizioni ordinarie ed a quelle amministrative"))
 _NOTIFICA = r"(?:sentenza|decisione)[^0-9]{0,40}(?:notificat\w*|comunicat\w*)(?: il)?"
 _PUBBLICAZIONE = r"(?:pubblicat\w*|depositat\w*)(?: il)?"
@@ -68,7 +68,7 @@ MEMORIE = Scheda(
 
 APPELLO = Scheda(
     regola="civ_appello", materia="civile ordinario", nome="appello civile",
-    segnali=(r"appell", r"sentenz|tribunale|giudice di pace|corte"), esclusi=(_NON_CIVILE, r"cassazion|revocazion"),
+    segnali=(r"appell", r"sentenz|tribunale|giudice di pace|corte|motivi|inammissibil|atto di appello"), esclusi=(_NON_CIVILE, r"cassazion|revocazion"),
     punteggio=4,
     capito="Impugnazione con appello di una sentenza civile di primo grado.",
     rimedio="atto di citazione in appello con motivi specifici per capo",
@@ -345,6 +345,7 @@ NUOVA_OPERA = Scheda(
     dati=["data di inizio dei lavori e stato dell'opera", "danno temuto", "titolo del ricorrente"],
 )
 
+# La domanda di sequestro ante causam è coperta da sequestro_ante_causam (fattispecie/varie.py, branch lex-regole).
 SCHEDE = (MEMORIE, REVOCAZIONE, OPPOSIZIONE_TERZO_SENTENZA, REGOLAMENTO_COMPETENZA, RECLAMO_CAUTELARE, ATP,
-          ISTRUZIONE_PREVENTIVA, SEQUESTRO_DOMANDA, URGENZA_700, REINTEGRAZIONE, MANUTENZIONE, NUOVA_OPERA,
+          ISTRUZIONE_PREVENTIVA, URGENZA_700, REINTEGRAZIONE, MANUTENZIONE, NUOVA_OPERA,
           CASSAZIONE, APPELLO, CITAZIONE)

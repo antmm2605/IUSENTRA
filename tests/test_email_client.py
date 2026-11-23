@@ -3811,3 +3811,77 @@ def test_poll_cancelleria_pec_apre_la_casella_in_sola_lettura(tmp_path, monkeypa
         state_path=str(tmp_path / "pec_cancelleria_state.json"),
     )
     assert aperture == [("INBOX", True)]
+
+
+def test_giro_senza_posta_nuova_non_riscrive_la_casella(tmp_path, monkeypatch):
+    """8080, 23/11/2026: la posta ordinaria (3.795 messaggi, 99 MB) superava i 240 s del giro perché ogni giro
+    confrontava e riscriveva tutto il catalogo anche senza posta nuova. Si leggono e si salvano solo i nuovi."""
+    import pct.email_client as email_runtime
+
+    msg = EmailMessage()
+    msg["From"] = "cliente@example.it"
+    msg["To"] = "studio@example.it"
+    msg["Subject"] = "Documenti per la causa"
+    msg["Message-ID"] = "<nuovo@example.test>"
+    msg["Date"] = "Mon, 23 Nov 2026 10:00:00 +0100"
+    msg.set_content("Le invio i documenti richiesti.")
+    raw = msg.as_bytes()
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "ordinaria.json"))
+    ge.aggiungi(EmailRicevuta(id="MAIL-STORICA", cartella=CartellaEmail.INBOX, stato=StatoEmail.LETTA,
+                              mittente="altro@example.it", oggetto="Storica", data="2026-11-01T10:00:00+01:00",
+                              corpo_testo="Testo.", uid_imap="INBOX:UID:7", message_id="<storica@example.test>"))
+    server = {"uid": [b"7"], "fetch": []}
+
+    class _FakeIMAP:
+        def login(self, username, password):
+            return "OK", []
+
+        def select(self, mailbox, readonly=True):
+            return "OK", [b"1"]
+
+        def uid(self, command, *args):
+            if command == "SEARCH":
+                return "OK", [b" ".join(server["uid"])]
+            if command == "FETCH":
+                server["fetch"].append(args[0])
+                return "OK", [(args[0].encode() + b" (RFC822)", raw)]
+            return "NO", []
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+    salvataggi = []
+    originale = ge._salva
+    monkeypatch.setattr(ge, "_salva", lambda: salvataggi.append(1) or originale())
+
+    def giro():
+        return ge.sincronizza_imap(imap_host="imap.example.it", imap_port=993, username="studio@example.it",
+                                   password="x", cartelle_imap=["INBOX"], limite=25, incremental_only=True)
+
+    vuoto = giro()
+    assert vuoto["nuove"] == 0 and server["fetch"] == [] and salvataggi == [] and vuoto["salvato"] is False
+    server["uid"].append(b"8")
+    nuovo = giro()
+    assert nuovo["nuove"] == 1 and server["fetch"] == ["8"] and salvataggi == [1] and nuovo["salvato"] is True
+    # Il giro dopo: nulla di nuovo, nessuna lettura e nessun salvataggio.
+    di_nuovo = giro()
+    assert di_nuovo["nuove"] == 0 and server["fetch"] == ["8"] and salvataggi == [1]
+
+
+def test_pulizia_dei_circuiti_imap_comprende_quelli_delle_caselle():
+    """Il circuito di una casella aperto da un test precedente (due errori, 60 s) bloccava il collegamento del test
+    dopo, secondo l'ordine e i tempi: «pec_imap» pulisce anche «pec_imap:<casella>»."""
+    from pct.imap_runtime import get_imap_circuit_breaker, run_imap_runtime_operation
+    from pct.runtime_resilience import clear_runtime_circuit_breakers, runtime_circuit_breaker_snapshots
+
+    account = ("imaps.example.test", 993, "studio@example.test")
+    for _ in range(3):
+        try:
+            run_imap_runtime_operation(lambda: (_ for _ in ()).throw(OSError("rete")), account=account)
+        except Exception:
+            pass
+    assert get_imap_circuit_breaker(account=account).snapshot()["open"] is True
+    clear_runtime_circuit_breakers("pec_imap")
+    assert not [k for k in runtime_circuit_breaker_snapshots() if k.startswith("pec_imap:")]
+    assert get_imap_circuit_breaker(account=account).snapshot()["open"] is False

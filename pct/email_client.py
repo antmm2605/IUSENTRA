@@ -1626,6 +1626,11 @@ class GestioneEmailRicevute:
         riparazioni_tentate = self._riparazioni_tentate() if incremental_only else {}
         riparazioni_rimaste = self.RIPARAZIONI_PER_SINCRONIZZAZIONE if incremental_only else None
         risultato["riparazioni_rinviate"] = 0
+        # Si salva solo se il giro ha cambiato l'archivio: senza posta nuova il salvataggio confrontava e riscriveva
+        # l'intero catalogo (3.795 messaggi, 99 MB nella posta ordinaria dello studio) e la copia di scambio a ogni
+        # giro, oltre i 240 s del giro con il disco carico (8080, 23/11/2026).
+        modifiche = {"messaggi_letti": 0}
+        risultato["salvato"] = False
 
         try:
             for cartella_imap in self._cartelle_imap_effettive(mail, cartelle_imap):
@@ -1699,6 +1704,7 @@ class GestioneEmailRicevute:
                                 continue
 
                             parsed = email.message_from_bytes(raw)
+                            modifiche["messaggi_letti"] += 1
                             em = self._parse_message(
                                 parsed,
                                 uid_str,
@@ -1744,7 +1750,9 @@ class GestioneEmailRicevute:
                     risultato["errori"] += 1
 
             risultato["duplicati_rimossi"] += self._deduplica_db_in_memoria(db)
-            self._salva()
+            if self._giro_ha_modificato(risultato, modifiche):
+                self._salva()
+                risultato["salvato"] = True
             if incremental_only:
                 self._salva_riparazioni_tentate(riparazioni_tentate)
             _logout_quietly(mail)
@@ -1752,12 +1760,21 @@ class GestioneEmailRicevute:
         except Exception as e:
             risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
             try:
-                self._salva()
+                if self._giro_ha_modificato(risultato, modifiche):
+                    self._salva()
+                    risultato["salvato"] = True
             except Exception:
                 pass
             _logout_quietly(mail)
 
         return risultato
+
+    @staticmethod
+    def _giro_ha_modificato(risultato: dict, modifiche: dict) -> bool:
+        """Un messaggio letto dal server (nuovo o riparato), una cartella riallineata o un doppione tolto."""
+        return bool(modifiche.get("messaggi_letti") or risultato.get("nuove") or risultato.get("cartelle_corrette")
+                    or risultato.get("duplicati_rimossi") or risultato.get("allegati_salvati")
+                    or risultato.get("testi_corretti"))
 
     def sincronizza_inviati(self, messaggi_inviati: list) -> int:
         """

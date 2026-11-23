@@ -2235,7 +2235,12 @@ class GestioneFascicoli:
             )
             if primary_id and primary_id in self._fascicoli:
                 return self._fascicoli[primary_id]
-        self._salva()
+        if self._studio_db is not None and not self._archivio_completo:
+            # Archivio caricato per un solo fascicolo (letture in sfondo, automazione della sentenza): il salvataggio
+            # integrale è bloccato per non alterare gli altri fascicoli, quindi si salva solo questo.
+            self._salva_fascicoli_parziale([f])
+        else:
+            self._salva()
         return f
 
     def aggiorna_pagamenti(self, id_fasc: str, pagamenti: dict[str, Any]) -> Fascicolo:

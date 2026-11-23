@@ -19,6 +19,15 @@ from pct.scheduler_registry import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _rapporti_agenti_nella_cartella_del_test(tmp_path, monkeypatch):
+    """I micro-agenti delegati registrano il rapporto in ``lex_operational_agents.sqlite``. Senza un percorso
+    esplicito ``_db_path`` ripiega su ``/data/intelligence`` se ``/data`` esiste (sul PC è dell'utente root, in sola
+    lettura: «attempt to write a readonly database» → «agente non completato») o su ``./intelligence`` nella
+    cartella corrente: i test non devono scrivere in nessuno dei due."""
+    monkeypatch.setenv("IUSENTRA_LEX_OPERATIONAL_AGENTS_DB", str(tmp_path / "lex_operational_agents.sqlite"))
+
+
 def test_scheduler_consegna_audit_non_riscrive_funzione_come_fallita(tmp_path, monkeypatch):
     repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
     repo.upsert_default_jobs({})

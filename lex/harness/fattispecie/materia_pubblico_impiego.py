@@ -241,7 +241,8 @@ def _extra_esecuzione(a: Analisi, c: Comprensione, f: Fatti) -> None:
 
 ESECUZIONE_PA = Scheda(
     regola="pi_esecuzione_pa", materia="pubblico impiego", nome="esecuzione contro la PA e ottemperanza",
-    segnali=(PA_ESEC, _ESECUZIONE, _TITOLO), esclusi=(_CARTA,), punteggio=7,
+    segnali=(PA_ESEC, _ESECUZIONE, _TITOLO), esclusi=(_CARTA, r"sentenza del (?:tar|consiglio di stato)|tar passata|del tar\b"),
+    punteggio=7,
     capito="Creditore di una pubblica amministrazione con un titolo (sentenza o decreto) non pagato.",
     rimedio="notificare il titolo, attendere 120 giorni, poi precetto e pignoramento presso terzi; in alternativa, "
             "passata in giudicato la sentenza, ricorso per ottemperanza al TAR",
@@ -290,4 +291,8 @@ COMPETENZA_PI = Scheda(
     extra=_extra_competenza,
 )
 
+# Differenze retributive, foro ed esecuzione contro la PA hanno anche le regole ricorso_dipendente_pubblico ed
+# esecuzione_contro_pa (fattispecie/pubblico.py), che sono prima nell'elenco e vincono a parità di punteggio: queste
+# schede rispondono solo alle formulazioni che quelle non riconoscono (es. «differenze stipendiali del docente supplente
+# contro il Ministero»).
 SCHEDE = (CARTA_DOCENTE, ABUSO_TERMINE, RICOSTRUZIONE, ESECUZIONE_PA, DIFFERENZE, COMPETENZA_PI)

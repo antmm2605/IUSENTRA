@@ -135,8 +135,8 @@ PREV_AMMINISTRATIVO = Scheda(
 
 PREV_GIUDIZIALE = Scheda(
     regola="prev_ricorso_giudiziale", materia="previdenza", nome="causa previdenziale e assistenziale (artt. 442-444 c.p.c.)",
-    segnali=(ENTE, r"giudice|tribunale|fare causa|causa\b|ricorso giudiziale|in giudizio|decadenza|competen|ricorso al"),
-    esclusi=(_INVALIDITA, r"\btar\b|precett|pignor|licenzia|sfratt"), punteggio=6,
+    segnali=(ENTE, r"giudice|tribunale|fare causa|causa\b|ricorso giudiziale|in giudizio|decadenza|competen"),
+    esclusi=(_INVALIDITA, r"\btar\b|precett|pignor|licenzia|sfratt|comitato provinciale"), punteggio=7,
     capito="Azione giudiziaria contro un ente previdenziale (INPS, INAIL) per una prestazione.",
     rimedio="ricorso al tribunale in funzione di giudice del lavoro del luogo di residenza, dopo il ricorso amministrativo",
     conclusione=[
@@ -163,7 +163,7 @@ PREV_GIUDIZIALE = Scheda(
 ATPO = Scheda(
     regola="prev_atp_obbligatorio", materia="previdenza", nome="accertamento tecnico preventivo obbligatorio (art. 445-bis c.p.c.)",
     segnali=(_INVALIDITA,), alcuni=(ENTE, r"commissione medica|verbale (?:sanitario|di visita)|ricors|causa|giudice"),
-    esclusi=(r"precett|pignor|licenzia|sfratt|sinistro|incidente",), punteggio=6,
+    esclusi=(r"precett|pignor|licenzia|sfratt|sinistro|incidente",), punteggio=8,
     capito="Prestazione legata a invalidità civile, handicap, inabilità o assegno di invalidità negata per motivi sanitari.",
     rimedio="ricorso per accertamento tecnico preventivo obbligatorio al tribunale (giudice del lavoro) del luogo di residenza",
     giudice="Tribunale in funzione di giudice del lavoro del circondario di residenza del ricorrente",
@@ -189,4 +189,7 @@ ATPO = Scheda(
     extra=_extra_prev,
 )
 
-SCHEDE = (CONCILIAZIONE, MOBBING, PREV_AMMINISTRATIVO, PREV_GIUDIZIALE, ATPO)
+# Ricorso amministrativo e causa previdenziale hanno anche ricorso_amministrativo_inps e ricorso_442 (pubblico.py), che
+# vincono a parità; l'ATP obbligatorio ha punteggio più alto perché per invalidità civile, handicap e inabilità la via
+# è l'accertamento tecnico preventivo (art. 445-bis c.p.c.).
+SCHEDE = (CONCILIAZIONE, MOBBING, ATPO, PREV_AMMINISTRATIVO, PREV_GIUDIZIALE)

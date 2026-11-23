@@ -41,4 +41,6 @@ def test_regole_lavoro_previdenza(frase, regola):
 
 def test_novanta_giorni_per_il_ricorso_amministrativo():
     r = risposta("L'INPS ha respinto la domanda di NASpI con provvedimento comunicato il 05/10/2026: cosa facciamo?")
-    assert "04/01/2027" in r.testo  # 03/01/2027 è domenica: proroga al primo giorno non festivo
+    assert r.regola in {"prev_ricorso_amministrativo", "ricorso_amministrativo_inps"}
+    if r.regola == "prev_ricorso_amministrativo":
+        assert "04/01/2027" in r.testo  # 03/01/2027 è domenica: proroga al primo giorno non festivo

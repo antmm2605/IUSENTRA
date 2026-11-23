@@ -58,7 +58,7 @@ PIGNORAMENTO_IMMOBILIARE = Scheda(
     segnali=(r"pignoramento immobiliare|pignor\w*[^.?]{0,50}(?:\bcasa\b|immobil|appartamento|terreno|villa|fabbricat)|"
              r"(?:\bcasa\b|immobil|appartamento|terreno|villa)[^.?]{0,60}pignor|"
              r"documentazione ipocatastale|certificato notarile|ventennale|nota di trascrizione",),
-    esclusi=(r"opposizion|conversion|a rate|\bmobili\b|merce|impignorabil|presso terzi|stipendi|pension", *_NON_ESEC), punteggio=6,
+    esclusi=(r"opposizion|conversion|a rate|\bmobili\b|merce|impignorabil|presso terzi|stipendi|pension", *_NON_ESEC), punteggio=7,
     capito="Creditore che vuole pignorare un immobile del debitore.",
     rimedio="atto di pignoramento immobiliare notificato e trascritto, iscrizione a ruolo, istanza di vendita con la documentazione",
     conclusione=[
@@ -124,10 +124,10 @@ OPPOSIZIONE_ESECUZIONE = Scheda(
     segnali=(r"oppo|contest|sospension\w* dell esecuzione|sospendere l esecuzione",
              r"pignorament\w*[^.]{0,30}(?:gia|e stato|avvenut|eseguit|notificat)|esecuzione (?:gia )?iniziat|dopo il pignoramento|"
              r"beni pignorati|ci hanno pignorato|hanno pignorato|pignorat\w* (?:il|la|lo|i|le) |impignorabil"),
-    esclusi=(r"\b617\b|vizi\w* (?:di forma|formal)|nullit|irregolar|atti esecutivi|di mia proprieta|non (?:e|sono) del debitore|"
+    esclusi=(r"\b617\b|precett|vizi\w* (?:di forma|formal)|nullit|irregolar|atti esecutivi|di mia proprieta|non (?:e|sono) del debitore|"
              r"proprieta (?:di|del) terz|intestat\w* a|terzo proprietario|619|decreto ingiuntiv|ingiunzion|\b650\b|"
              r"vero proprietario", *_NON_ESEC),
-    punteggio=6,
+    punteggio=7,
     capito="Debitore che contesta il diritto del creditore a procedere, o la pignorabilità dei beni, a esecuzione già iniziata.",
     rimedio="ricorso al giudice dell'esecuzione (art. 615, secondo comma, c.p.c.) con istanza di sospensione",
     conclusione=[
@@ -156,7 +156,7 @@ OPPOSIZIONE_TERZO = Scheda(
     segnali=(r"pignor", r"di mia proprieta|non (?:e|sono) del debitore|proprieta (?:di|del|della) (?:terz|madre|padre|moglie|marito|societa)|"
              r"intestat\w* a|terzo proprietario|opposizione di terzo|\b619\b|terzo che (?:e|e il) proprietario|appartengono a|"
              r"vero proprietario|il proprietario (?:dei|del|delle) ben"),
-    esclusi=_NON_ESEC, punteggio=6,
+    esclusi=(r"intestat\w* a lui|intestat\w* al debitore|\(creditore", *_NON_ESEC), punteggio=8,
     capito="Terzo, estraneo al debito, i cui beni sono stati pignorati.",
     rimedio="ricorso di opposizione di terzo al giudice dell'esecuzione prima della vendita o dell'assegnazione",
     conclusione=[
@@ -253,9 +253,9 @@ OBBLIGHI_FARE = Scheda(
 OPPOSIZIONE_TARDIVA = Scheda(
     regola="mon_opposizione_tardiva", materia="monitorio", nome="opposizione tardiva a decreto ingiuntivo (art. 650)",
     segnali=(r"decreto ingiuntiv|ingiunzion|\bdi\b notificat|opposizione tardiva|\b650\b",
-             r"tardiv|\b650\b|scadut|oltre il termine|scopert\w* solo|vecchio indirizzo|altro indirizzo|ricoverat|"
-             r"mai ricevut|mai notificat|notifica\w* (?:nulla|irregolar|inesistent)|(?:40|quaranta) giorni (?:sono )?(?:scadut|passat|decors)|non (?:ne )?(?:ho|abbiamo|ha) avuto conoscenza"),
-    esclusi=(r"ordinanza.ingiunzione",), punteggio=6,
+             r"tardiv|\b650\b|(?:termine|giorni)[^.]{0,50}(?:scadut|decors)|oltre il termine|scopert\w* solo|vecchio indirizzo|altro indirizzo|ricoverat|"
+             r"mai ricevut|mai notificat|notifica\w* (?:era |e )?(?:nulla|irregolar|inesistent)|(?:40|quaranta) giorni (?:sono )?(?:scadut|passat|decors)|non (?:ne )?(?:ho|abbiamo|ha) avuto conoscenza"),
+    esclusi=(r"ordinanza.ingiunzione|\(creditore",), punteggio=6,
     capito="Ingiunto che ha saputo del decreto dopo la scadenza del termine per l'opposizione.",
     rimedio="opposizione tardiva con atto di citazione davanti all'ufficio che ha emesso il decreto, provando l'incolpevole ignoranza",
     conclusione=[
@@ -300,5 +300,8 @@ PROVVISORIA_ESECUZIONE = Scheda(
     dati=["documenti a fondamento del credito", "pericolo nel ritardo", "somme contestate e non contestate"],
 )
 
+# Pignoramento presso terzi e ricerca dei beni hanno anche pignoramento_terzi e ricerca_beni (esecuzione.py), che vincono a
+# parità; immobiliare e opposizione all'esecuzione iniziata hanno punteggio 7 perché pignoramento_terzi scatta anche su
+# «banca» (ipoteca) e su «sospensione» (contiene «pension»).
 SCHEDE = (OPPOSIZIONE_TERZO, OPPOSIZIONE_ESECUZIONE, CONVERSIONE, RICERCA_BENI, OBBLIGHI_FARE, PIGNORAMENTO_TERZI,
           PIGNORAMENTO_IMMOBILIARE, PIGNORAMENTO_MOBILIARE, OPPOSIZIONE_TARDIVA, PROVVISORIA_ESECUZIONE)

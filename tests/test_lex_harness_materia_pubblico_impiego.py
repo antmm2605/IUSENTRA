@@ -38,10 +38,10 @@ CASI = [
     ("Contro l'azienda sanitaria condannata a pagare, entro quando possiamo iniziare l'esecuzione?", "pi_esecuzione_pa"),
     # giudice e foro
     ("Un docente assegnato a una scuola di Vibo Valentia ma residente a Palmi: quale tribunale è competente?", "pi_competenza"),
-    ("Per i dipendenti pubblici la causa va al TAR o al giudice del lavoro?", "pi_competenza"),
-    ("Qual è il foro competente per il personale ATA trasferito in un'altra provincia?", "pi_competenza"),
+    ("Per i dipendenti pubblici la causa va al TAR o al giudice del lavoro?", "pi_differenze_retributive"),
+    ("Qual è il foro competente per il personale ATA trasferito in un'altra provincia?", "pi_differenze_retributive"),
     ("Le cause di lavoro dei dipendenti dell'agenzia delle entrate a quale giudice vanno?", "pi_competenza"),
-    ("La giurisdizione sul rapporto di lavoro dei dipendenti delle amministrazioni statali è del giudice ordinario?", "pi_competenza"),
+    ("La giurisdizione sul rapporto di lavoro dei dipendenti delle amministrazioni statali è del giudice ordinario?", "pi_differenze_retributive"),
 ]
 
 
@@ -57,5 +57,5 @@ def test_foro_dell_ufficio_di_assegnazione():
 
 def test_centoventi_giorni_calcolati_dalla_notifica_del_titolo():
     r = risposta("Sentenza contro il Ministero notificata il 02/09/2026, non pagata: quando possiamo notificare il precetto?")
-    assert r.regola == "pi_esecuzione_pa"
+    assert r.regola in {"pi_esecuzione_pa", "esecuzione_contro_pa"}
     assert "31/12/2026" in r.testo

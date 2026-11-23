@@ -68,3 +68,12 @@ def testo_chiarimento_strumento(scelte: list[str], nomi: list[str]) -> str:
             "- Dai fatti descritti non riconosco con certezza lo strumento. I più vicini sono: " + "; ".join(nomi) + ". "
             "Scegli quello che ti serve: rispondo con le norme vigenti di quello strumento.\n\n"
             "**Scegli una delle domande e rimandala**\n" + righe)
+
+
+def testo_fuori_materia() -> str:
+    return ("**Serve una precisazione**\n"
+            "- La richiesta riguarda il diritto, ma non riconosco né la fattispecie né uno strumento vicino fra quelli che le "
+            "regole di Lex sanno trattare con le norme vigenti. Per non indovinare, ti chiedo di indicare i fatti essenziali: "
+            "chi assisti, che cosa è successo o quale atto hai ricevuto, e che cosa vuoi ottenere.\n"
+            "- Se la questione è fuori dalle materie delle regole (per esempio una consulenza fiscale di pianificazione o una "
+            "questione di diritto straniero), Lex non la tratta: va esaminata dall'avvocato.")

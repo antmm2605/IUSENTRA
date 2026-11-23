@@ -46,6 +46,8 @@ def _app(tmp_path: Path, *, sql_fascicoli_list: bool = False):
     # nei test e' la cartella `instance/` della repository: senza questa riga un
     # test lascerebbe il proprio payload agli altri e alla copia di lavoro.
     app.config["LETTURA_FASCICOLO_CACHE_DIR"] = str(tmp_path / "cache" / "lettura-fascicolo")
+    # Lo stesso per la base dell'elenco dei fascicoli condivisa fra i worker (instance/cache/fascicoli-elenco).
+    app.config["FASCICOLI_ELENCO_CACHE_DIR"] = str(tmp_path / "cache" / "fascicoli-elenco")
     # Questi casi verificano il contratto storico indipendentemente dal nuovo
     # catalogo: i test SQL della pagina usano invece il provider primario reale.
     def reference_list(**params):

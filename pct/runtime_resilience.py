@@ -146,7 +146,12 @@ def clear_runtime_circuit_breakers(*names: str) -> None:
             _BREAKERS.clear()
             return
         for name in names:
-            _BREAKERS.pop(str(name or "").strip(), None)
+            nome = str(name or "").strip()
+            _BREAKERS.pop(nome, None)
+            # «pec_imap» comprende i circuiti delle singole caselle («pec_imap:<alias>»): restavano aperti per 60 s
+            # dopo due errori e rendevano instabili, secondo l'ordine e i tempi, i test e la diagnostica successivi.
+            for chiave in [k for k in _BREAKERS if nome and k.startswith(nome + ":")]:
+                _BREAKERS.pop(chiave, None)
 
 
 def runtime_circuit_breaker_snapshots() -> dict[str, dict[str, Any]]:

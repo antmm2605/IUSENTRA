@@ -335,9 +335,16 @@ def _fascicoli_base_cache_key(
             if _text(value).strip()
         )
     )
+    # L'archivio dei fascicoli fa parte dell'identità, come nella cache della risposta (api_v1_react): due
+    # applicazioni nello stesso processo o sulla stessa cartella d'istanza (test, installazioni con più radici dati)
+    # con lo stesso nome di studio non si scambiano l'elenco. Nei test la base di un altro archivio rendeva
+    # instabili, a ogni esecuzione in modo diverso, i test dell'elenco (23/11/2026).
+    archivio = _text(current_app.config.get("FASCICOLI_DB") or current_app.config.get("DATA_ROOT")).strip() \
+        if has_app_context() else ""
     return (
         "fascicoli-list-base",
         _current_cache_scope(),
+        archivio,
         _current_user_cache_id(),
         APP_VERSION,
         oggi_roma().isoformat(),

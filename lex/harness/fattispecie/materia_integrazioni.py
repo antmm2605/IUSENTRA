@@ -46,7 +46,8 @@ NEGOZIAZIONE_SINISTRI = Scheda(
     regola="rc_negoziazione_sinistri", materia="responsabilità civile", nome="negoziazione assistita obbligatoria nei sinistri stradali",
     segnali=(r"negoziazion|prima della causa|procedibil|direttamente dal giudice|andare dal giudice|fare causa subito|invit\w* (?:a stipulare|alla compagnia|l assicurazione)|prima di (?:fare|andare in) causa",
              r"sinistr|incident|tamponat|investit|circolazion|assicura|compagnia|rca|scontro"),
-    esclusi=(r"lavoro\b|medic|ospedal|locazion|conduttor|inquilin|moros|canon",), punteggio=4,
+    # Se si chiede anche il giudice competente risponde la regola del sinistro, che dà competenza e procedibilità insieme.
+    esclusi=(r"lavoro\b|medic|ospedal|locazion|conduttor|inquilin|moros|canon|quale giudice|competen",), punteggio=4,
     capito="Danno da circolazione stradale: passi obbligatori prima di agire in giudizio.",
     rimedio="richiesta di risarcimento all'assicurazione, attesa dei termini, poi invito alla negoziazione assistita tramite avvocato",
     conclusione=[

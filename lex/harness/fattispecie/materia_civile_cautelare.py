@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from .schede import R, Scadenza, Scheda, p
 
-_NON_CIVILE = r"lavorator|rapporto di lavoro|datore di lavoro|giudice del lavoro|rito del lavoro|causa di lavoro|licenzia|penal|imputat|reato|tributar|\btar\b|amministrativ|cartella|agenzia delle entrate|\binps\b"
+_NON_CIVILE = r"lavorator|\blavoro\b|licenzia|contro la condanna|per saltum|condannat\w* (?:penal|per )|penal|imputat|reato|tributar|\btar\b|amministrativ|cartella|agenzia delle entrate|\binps\b"
 _FERIALE = p("I termini sono sospesi dal 1° al 31 agosto.", R("l742:1", "giurisdizioni ordinarie ed a quelle amministrative"))
 _NOTIFICA = r"(?:sentenza|decisione)[^0-9]{0,40}(?:notificat\w*|comunicat\w*)(?: il)?"
 _PUBBLICAZIONE = r"(?:pubblicat\w*|depositat\w*)(?: il)?"
@@ -20,7 +20,9 @@ CITAZIONE = Scheda(
     segnali=(r"atto di citazione|\bcitazione\b|citare in giudizio|atto introduttivo|termini? a comparire|fare causa|"
              r"prima udienza[^.]{0,40}notifica",),
     esclusi=(_NON_CIVILE, r"appell|opposizion|caparra|delibera|sfratt|decreto ingiuntiv|precett|separazion|divorzi|"
-             r"revocazion|cassazion|semplificat|281-?decies|comparsa|memori"), punteggio=3,
+             r"revocazion|cassazion|semplificat|281-?decies|comparsa|memori|2932|forma specifica|responsabilit|amministrator|"
+             r"incidente|sinistro|risoluzion|nullit|annullament|usucap|divisione|riduzion|petizione|negatori|confessori|confin|"
+             r"diffam|medic|ospedal|usur|anatocism|indebit"), punteggio=3,
     capito="Introduzione di una causa civile davanti al tribunale con atto di citazione.",
     rimedio="atto di citazione a udienza fissa notificato al convenuto, con iscrizione a ruolo",
     conclusione=[

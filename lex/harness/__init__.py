@@ -44,7 +44,8 @@ class RispostaHarness:
         return {"answer": self.testo, "kind": self.tipo, "rule": self.regola, "confidence": self.affidabilita,
                 "sources": self.fonti, "verified_norms": self.norme_verificate,
                 "removed_claims": self.affermazioni_tolte, "unverified_citations": self.citazioni_non_verificate,
-                "draft": self.bozza, "deterministic": True, "registro": self.registro}
+                "draft": self.bozza, "deterministic": True, "registro": self.registro,
+                **({"choices": self.registro["scelte"]} if self.registro.get("scelte") else {})}
 
 
 def _affidabilita(esito: EsitoControllo, punti: int) -> float:
@@ -82,6 +83,12 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
         return None
     if c.tipo == "norma":
         return risposta_norma(domanda)
+    from .chiarimenti import materia_da_chiarire, testo_chiarimento
+
+    scelte = materia_da_chiarire(domanda)
+    if scelte:
+        return RispostaHarness(testo_chiarimento(scelte), "chiarimento", "chiarimento_materia", 1.0,
+                               registro={"rule": "chiarimento_materia", "scelte": scelte})
     f = leggi_fatti(domanda, oggi=oggi)
     regola = scegli(c, f)
     if regola is None:

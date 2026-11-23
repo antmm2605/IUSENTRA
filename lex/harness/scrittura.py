@@ -24,7 +24,36 @@ from .controllo import citazioni
 
 _DATA = re.compile(r"\b\d{2}/\d{2}/\d{4}\b")
 _IMPORTO = re.compile(r"€\s?\d{1,3}(?:\.\d{3})*(?:,\d{2})?")
-_SEZIONI_RISCRITTE = ("**Conclusione**", "**Come e perché**", "**Termini**", "**Avvertenze**")
+# Conclusione e Avvertenze restano quelle deterministiche, alla lettera: lo scrittore rende in prosa solo la motivazione
+# («Come e perché») e i termini. Una stesura accettata non può togliere una conclusione o un'avvertenza.
+_SEZIONI_RISCRITTE = ("**Come e perché**", "**Termini**")
+
+# Operatori giuridici decisivi: se lo schema li usa, la stesura deve conservarli con la stessa polarità.
+_DECISIVI = ("non e obbligatori", "e obbligatori", "obbligatori", "condizione di procedibilita", "non e condizione", "improcedibil",
+             "inammissibil", "decadut", "decadenza", "tardiv", "inefficac", "prescritt", "prescrizione", "nullit",
+             "inadatt", "non si applica", "non e applicabile", "esclus", "competent", "per iscritto", "integralmente",
+             "residenza abituale", "luogo in cui si trova", "sospensione feriale", "a pena di", "rito del lavoro",
+             "rito ordinario", "rito semplificato", "semplificato di cognizione", "giudice di pace", "tribunale")
+
+
+def _piano(t: str) -> str:
+    import unicodedata
+
+    t = unicodedata.normalize("NFKD", t.lower())
+    return " ".join("".join(c for c in t if not unicodedata.combining(c)).replace("'", " ").split())
+
+
+# Equivalenze giuridiche ammesse per un operatore decisivo («diventa inefficace» = «perde efficacia»).
+_EQUIVALENTI = {"inefficac": ("perde efficacia", "perde la sua efficacia", "privo di efficacia", "priva di efficacia"),
+                "tardiv": ("oltre il termine", "fuori termine"),
+                "decadut": ("e decaduto", "incorso nella decadenza"),
+                "semplificato di cognizione": ("rito semplificato",)}
+
+
+def elementi_persi(schema: str, stesura: str) -> list[str]:
+    """Gli operatori decisivi dello schema che la stesura non conserva (con le sole equivalenze dichiarate)."""
+    a, b = _piano(schema), _piano(stesura)
+    return [d for d in _DECISIVI if d in a and d not in b and not any(e in b for e in _EQUIVALENTI.get(d, ()))]
 
 ISTRUZIONI = (
     "Sei l'assistente di uno studio legale italiano. Riscrivi in italiano forense, chiaro e professionale, il PARERE che "
@@ -78,17 +107,21 @@ def controlla(schema: str, stesura: str) -> str:
     perse = sorted({c for c, k in citazioni(schema) if k not in norme_stesura})
     if perse:
         return "norme dello schema perse: " + ", ".join(perse)
+    persi = elementi_persi(schema, stesura)
+    if persi:
+        return "elementi decisivi persi: " + ", ".join(persi)
     if len(stesura.strip()) < 80:
         return "stesura vuota o troppo breve"
     return ""
 
 
-def _chiama(scrittore: str, testo: str, timeout: float) -> str:
+def _chiama(scrittore: str, testo: str, timeout: float, istruzioni: str | None = None) -> str:
+    istruzioni = istruzioni or ISTRUZIONI
     tipo, _, resto = scrittore.partition(":")
     if tipo == "ollama":
         corpo = {"model": resto, "stream": False, "think": False, "keep_alive": os.environ.get("LEX_HARNESS_KEEP_ALIVE", "10m"),
                  "options": {"temperature": 0.1, "num_ctx": 8192, "num_predict": 1400},
-                 "messages": [{"role": "system", "content": ISTRUZIONI}, {"role": "user", "content": testo}]}
+                 "messages": [{"role": "system", "content": istruzioni}, {"role": "user", "content": testo}]}
         url = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/") + "/api/chat"
         richiesta = urllib.request.Request(url, json.dumps(corpo).encode(), {"Content-Type": "application/json"})
         with urllib.request.urlopen(richiesta, timeout=timeout) as r:
@@ -97,7 +130,7 @@ def _chiama(scrittore: str, testo: str, timeout: float) -> str:
         base, _, modello = resto.partition("|")
         corpo = {"model": modello or "locale", "temperature": 0.1, "max_tokens": 1400,
                  "chat_template_kwargs": {"enable_thinking": False},
-                 "messages": [{"role": "system", "content": ISTRUZIONI}, {"role": "user", "content": testo}]}
+                 "messages": [{"role": "system", "content": istruzioni}, {"role": "user", "content": testo}]}
         richiesta = urllib.request.Request(base.rstrip("/") + "/chat/completions", json.dumps(corpo).encode(),
                                            {"Content-Type": "application/json"})
         with urllib.request.urlopen(richiesta, timeout=timeout) as r:
@@ -132,5 +165,7 @@ def scrivi(testo_deterministico: str, scrittore: str | None = None) -> Stesura:
         if not motivo:
             testo = "\n".join(x for x in (prima, "**Parere**", stesura, dopo) if x)
             return Stesura(testo, scrittore, True, "", time.monotonic() - t0)
-    nota = f"\n\n_La stesura del modello ({scrittore}) è stata scartata dal controllo ({motivo}): risposta deterministica._"
+    # Il motivo resta nel registro: nel testo per l'avvocato non si ripete la norma o la data inventata dal modello.
+    tipo_motivo = motivo.split(":")[0] if motivo else "controllo non superato"
+    nota = f"\n\n_La stesura del modello ({scrittore}) è stata scartata dal controllo ({tipo_motivo}): risposta deterministica._"
     return Stesura(testo_deterministico + nota, scrittore, False, motivo, time.monotonic() - t0)

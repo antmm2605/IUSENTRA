@@ -24,7 +24,7 @@
     "tribunale di bari",
     "50\\.000",
     "doppio della caparra",
-    "negoziazione assistita obbligatoria",
+    "negoziazione assistita obbligatoria|negoziazione assistita[^.]{0,30}(?:e|è|risulta) obbligatori|obbligatori\\w*[^.]{0,30}negoziazione assistita",
     "non richied\\w+ la prova del danno",
     "atto di citazione",
     "conclusioni",
@@ -71,7 +71,7 @@
    "conclusione": [
     "20\\.000",
     "tribunale di milano",
-    "negoziazione assistita obbligatoria"
+    "negoziazione assistita obbligatoria|negoziazione assistita[^.]{0,30}(?:e|è|risulta) obbligatori|obbligatori\\w*[^.]{0,30}negoziazione assistita"
    ],
    "vietate": [
     "giudice di pace di milano"
@@ -109,7 +109,7 @@
     "dl132:3"
    ],
    "conclusione": [
-    "negoziazione assistita obbligatoria",
+    "negoziazione assistita obbligatoria|negoziazione assistita[^.]{0,30}(?:e|è|risulta) obbligatori|obbligatori\\w*[^.]{0,30}negoziazione assistita",
     "non eccedenti",
     "art\\. 3 d\\.l\\. 132/2014"
    ],
@@ -147,7 +147,7 @@
    ],
    "conclusione": [
     "giudice di pace",
-    "residenza o domicilio elettivo del consumatore",
+    "residenza o (?:di )?domicilio elettivo del consumatore",
     "non e obbligatoria"
    ],
    "vietate": [
@@ -165,7 +165,7 @@
     "dlgs28:5"
    ],
    "conclusione": [
-    "mediazione obbligatoria",
+    "mediazione obbligatoria|mediazione (?:e|è) obbligatori|obbligatori\\w* (?:il tentativo di |esperire (?:il procedimento di |la )?|la )?mediazione|mediazione[^.]{0,40}condizione di procedibilita",
     "condominio"
    ],
    "vietate": [],
@@ -181,7 +181,7 @@
     "dlgs28:5"
    ],
    "conclusione": [
-    "mediazione obbligatoria",
+    "mediazione obbligatoria|mediazione (?:e|è) obbligatori|obbligatori\\w* (?:il tentativo di |esperire (?:il procedimento di |la )?|la )?mediazione|mediazione[^.]{0,40}condizione di procedibilita",
     "bancari"
    ],
    "vietate": [],
@@ -198,9 +198,9 @@
     "cpc:447bis"
    ],
    "conclusione": [
-    "mediazione obbligatoria",
+    "mediazione obbligatoria|mediazione (?:e|è) obbligatori|obbligatori\\w* (?:il tentativo di |esperire (?:il procedimento di |la )?|la )?mediazione|mediazione[^.]{0,40}condizione di procedibilita",
     "locazione",
-    "luogo in cui si trova l'immobile|luogo dove e posto l'immobile"
+    "luogo (?:in cui|dove) (?:si trova|e posto|è posto|e situato|è situato) l.immobile"
    ],
    "vietate": [
     "competente per valore e il giudice di pace"
@@ -255,7 +255,7 @@
    "conclusione": [
     "tribunale",
     "taranto",
-    "negoziazione assistita obbligatoria"
+    "negoziazione assistita obbligatoria|negoziazione assistita[^.]{0,30}(?:e|è|risulta) obbligatori|obbligatori\\w*[^.]{0,30}negoziazione assistita"
    ],
    "vietate": [
     "giudice di pace di taranto"
@@ -436,7 +436,7 @@
     "trenta giorni"
    ],
    "vietate": [
-    "sospensione feriale.{0,30}si applica\\b(?! alle)"
+    "sospensione feriale(?:(?!\\bnon\\b).){0,30}\\bsi applica\\b(?! alle)"
    ],
    "percorso": "harness",
    "nota": "senza sospensione feriale"

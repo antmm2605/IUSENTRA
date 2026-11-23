@@ -42,9 +42,36 @@ def _gpu_mb() -> int:
         return -1
 
 
+def _pressione_io() -> float:
+    try:
+        riga = Path("/proc/pressure/io").read_text().splitlines()[0]
+        return float(riga.split("avg60=")[1].split()[0])
+    except Exception:
+        return 0.0
+
+
+def _app_8080_risponde() -> bool:
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:8080/api/pronto", timeout=20) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
 def _attendi_carico(massimo: float) -> None:
+    """Pausa se il PC è carico, se l'8080 non risponde entro 20 s o se la pressione di I/O supera l'80% (avg60)."""
     while _carico() > massimo:
         time.sleep(30)
+    pausa = 0
+    while _pressione_io() > float(os.environ.get("LEX_BANCO_IO_MAX", "80")) or not _app_8080_risponde():
+        if pausa == 0:
+            print(f"[pausa] I/O {_pressione_io():.0f}% o 8080 lenta: attendo", flush=True)
+        pausa += 1
+        time.sleep(30)
+    if pausa:
+        print(f"[ripresa] dopo {pausa * 30} s", flush=True)
 
 
 def _certa(domanda: str) -> str:
@@ -54,7 +81,7 @@ def _certa(domanda: str) -> str:
     return esito.testo if esito else ""
 
 
-def misura(scrittore: str, *, solo_casi: bool = False, massimo: int | None = None) -> dict:
+def misura(scrittore: str, *, solo_casi: bool = False, massimo: int | None = None, modalita: str = "libera") -> dict:
     os.environ["LEX_HARNESS_SCRITTORE"] = ""  # lo schema si calcola sempre deterministico; la stesura si applica dopo
     carico_max = float(os.environ.get("LEX_BANCO_CARICO_MAX", "16"))
     voci = [("caso", c, c["domanda"]) for c in carica_casi()]
@@ -68,7 +95,14 @@ def misura(scrittore: str, *, solo_casi: bool = False, massimo: int | None = Non
         payload = payload_harness(domanda, risposta_certa=_certa)
         testo = str(payload.get("answer") or "") if payload else ""
         operativa = payload is None
-        st = scrivi(testo, None if scrittore == "deterministico" else scrittore) if payload and payload.get("query_type") == "lex_harness" else None
+        if not (payload and payload.get("query_type") == "lex_harness"):
+            st = None
+        elif modalita == "segnaposto" and scrittore != "deterministico":
+            from lex.harness.scrittura_segnaposto import scrivi_per_punto
+
+            st = scrivi_per_punto(testo, scrittore, float(os.environ.get("LEX_HARNESS_SCRITTORE_TIMEOUT", "300")))
+        else:
+            st = scrivi(testo, None if scrittore == "deterministico" else scrittore)
         finale = st.testo if st else testo
         if st:
             tempi.append(st.secondi)
@@ -81,13 +115,13 @@ def misura(scrittore: str, *, solo_casi: bool = False, massimo: int | None = Non
                       "gpu_mb": _gpu_mb()})
         if os.environ.get("LEX_BANCO_TESTI"):
             with open(os.environ["LEX_BANCO_TESTI"], "a", encoding="utf-8") as fh:
-                fh.write(json.dumps({"scrittore": scrittore, "id": voce["id"], "schema": testo, "stesura": st.testo if st else "",
+                fh.write(json.dumps({"scrittore": scrittore, "modalita": modalita, "id": voce["id"], "schema": testo, "stesura": st.testo if st else "",
                                      "accettata": bool(st and st.accettata), "motivo": st.motivo if st else ""},
                                     ensure_ascii=False) + "\n")
-        print(scrittore, voce["id"], corretta, righe[-1]["stesura_accettata"], righe[-1]["secondi"], righe[-1]["motivo"][:80], flush=True)
+        print(scrittore, modalita, voce["id"], corretta, righe[-1]["stesura_accettata"], righe[-1]["secondi"], righe[-1]["motivo"][:80], flush=True)
     casi = [r for r in righe if r["tipo"] == "caso"]
     bat = [r for r in righe if r["tipo"] == "batteria"]
-    return {"scrittore": scrittore, "casi_corretti": sum(r["corretta"] for r in casi), "casi": len(casi),
+    return {"scrittore": scrittore, "modalita": modalita, "casi_corretti": sum(r["corretta"] for r in casi), "casi": len(casi),
             "batteria_corrette": sum(r["corretta"] for r in bat), "batteria": len(bat),
             "norme_inventate": sum(r["inventate"] for r in righe),
             "stesure_accettate": sum(r["stesura_accettata"] for r in righe),
@@ -102,11 +136,13 @@ def main(argv: list[str]) -> int:
     massimo = int(argv[argv.index("--max") + 1]) if "--max" in argv else None
     scrittori = [a for i, a in enumerate(argv) if not a.startswith("--") and (i == 0 or argv[i - 1] != "--max")]
     risultati = json.loads(USCITA.read_text(encoding="utf-8")) if USCITA.is_file() else {}
-    for s in scrittori:
-        risultati[s] = misura(s, solo_casi=solo, massimo=massimo)
+    modalita = [m for m in os.environ.get("LEX_BANCO_MODALITA", "libera,segnaposto").split(",") if m]
+    for s, m in [(s, m) for s in scrittori for m in (modalita if s != "deterministico" else ["libera"])]:
+        nome = s if m == "libera" else f"{s} [segnaposto]"
+        risultati[nome] = misura(s, solo_casi=solo, massimo=massimo, modalita=m)
         USCITA.write_text(json.dumps(risultati, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-        r = risultati[s]
-        print(f"== {s}: casi {r['casi_corretti']}/{r['casi']}, batteria {r['batteria_corrette']}/{r['batteria']}, "
+        r = risultati[nome]
+        print(f"== {nome}: casi {r['casi_corretti']}/{r['casi']}, batteria {r['batteria_corrette']}/{r['batteria']}, "
               f"norme inventate {r['norme_inventate']}, stesure accettate {r['stesure_accettate']}, tempo medio "
               f"{r['tempo_medio_s']} s, massimo {r['tempo_max_s']} s")
     return 0

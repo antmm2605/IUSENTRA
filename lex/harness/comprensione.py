@@ -129,6 +129,9 @@ def e_racconto_di_fatti(testo: str) -> bool:
 
 
 def comprendi(testo: str) -> Comprensione:
+    from .normalizzazione import normalizza_richiesta
+
+    testo = normalizza_richiesta(testo)
     t = piano(testo)
     if not t:
         return Comprensione("altro")
@@ -166,12 +169,13 @@ def comprendi(testo: str) -> Comprensione:
         return Comprensione("parere", atto, racconto, True, motivi)
     if re.search(_OPERATIVA, t) and not oggetto:
         return Comprensione("operativa", "", racconto, False, ["richiesta sui dati dello studio"])
-    # Domanda esplicita su un istituto giuridico, senza le formule dell'elenco: è una questione di diritto.
-    if "?" in testo and oggetto and not comunicazione and not re.search(_OPERATIVA, t):
+    # Un messaggio su un istituto giuridico è una questione di diritto anche senza punto interrogativo: l'avvocato spesso
+    # racconta i fatti e dice che cosa vuole («mi è successo X, voglio Y»). Restano fuori saluti e richieste operative.
+    if oggetto and not comunicazione and not re.search(_OPERATIVA, t):
         return Comprensione("termine" if termine else "parere", atto, racconto, True, ["domanda su un istituto giuridico"])
     # Ingresso dalla fattispecie: una domanda o una richiesta di redazione entra nell'harness quando i fatti descritti
     # corrispondono a una regola, anche senza le formule di parere o le parole-oggetto degli elenchi.
-    if (domanda or verbo) and not comunicazione:
+    if not comunicazione and not re.search(_OPERATIVA, t):
         tipo = "redazione" if verbo else ("termine" if termine else "parere")
         if _fattispecie_riconosciuta(testo, Comprensione(tipo, atto, racconto, True)):
             return Comprensione(tipo, atto, racconto, True, ["fattispecie riconosciuta dai fatti descritti"])

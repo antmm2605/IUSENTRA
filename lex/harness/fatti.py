@@ -106,7 +106,7 @@ _SEGNALI = {
     "circolazione": r"incidente stradale|sinistro stradale|circolazione|tamponament|veicol",
     "abitativo": r"abitativ|appartamento|abitazione",
     "locazione": r"locazion|conduttor|locator|canon|inquilin|affitt(?!o (?:d |di |dell )?(?:azienda|ramo))|pigion",
-    "morosita": r"moros|non paga|mancato pagamento|canoni non pagati|non ha pagato|non versa|arretrat|insolut",
+    "morosita": r"moros|non (?:mi |ci |gli |le )?paga|mancato pagamento|canoni non pagati|non (?:mi |ci |gli |le )?ha pagato|non versa|arretrat|insolut",
     "figli_minori": r"figli\w* minor|minore|minorenn",
     "lavoro_subordinato": r"dipendent|subordinat|lavorator|datore di lavoro",
     "licenziamento": r"licenzia",

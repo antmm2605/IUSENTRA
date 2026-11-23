@@ -182,15 +182,7 @@ CASI = [
 ]
 
 
-# Su queste frasi risponde la regola principale «ordini_protezione», che cita ancora gli artt. 342-bis e 342-ter c.c.
-# abrogati: segnalato all'agente di lex-regole, la frase resta in collaudo ma si attende la correzione.
-_CITA_ABROGATI = {"Il marito minaccia la moglie ogni sera: c'è un ordine di protezione per mandarlo via di casa?",
-                  "Violenze psicologiche dal convivente: possiamo ottenere l'allontanamento dalla casa familiare?",
-                  "Dopo l'aggressione la cliente vuole che lui stia lontano: ordine di protezione o altro?"}
-
-
-@pytest.mark.parametrize("frase,regola", [pytest.param(f, r, marks=pytest.mark.xfail(reason="ordini_protezione cita norme abrogate", strict=False))
-                                          if f in _CITA_ABROGATI else (f, r) for f, r in CASI])
+@pytest.mark.parametrize("frase,regola", CASI)
 def test_schede_complementari(frase, regola):
     from tests.lex_materie_casi import EQUIVALENTI
 

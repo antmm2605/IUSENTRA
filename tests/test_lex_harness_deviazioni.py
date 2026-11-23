@@ -174,7 +174,8 @@ def test_civile_esecuzione_famiglia_locazione_alla_regola_giusta(frase, regola):
 
 def test_ordini_di_protezione_nel_codice_di_procedura():
     r = rispondi(CIVILE_ESECUZIONE_FAMIGLIA_LOCAZIONE[6][0], oggi=OGGI)
-    assert "cpc:473bis69" in r.norme_verificate and "342-bis" in r.testo and not r.affermazioni_tolte
+    assert "cpc:473bis69" in r.norme_verificate and "342-bis" not in r.testo and "342-ter" not in r.testo
+    assert not r.affermazioni_tolte and not r.citazioni_non_verificate
 
 
 def test_negoziazione_familiare_con_figli_minori_serve_l_autorizzazione():

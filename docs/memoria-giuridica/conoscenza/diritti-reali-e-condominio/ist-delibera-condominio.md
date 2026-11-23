@@ -1,7 +1,7 @@
 # Impugnazione della delibera condominiale (art. 1137)
 
-- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1137 c.c., art. 5 d.lgs. 28/2010.
 
@@ -29,20 +29,31 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- Il Tribunale di Torino, nellacontumacia del convenuto Condominio, aveva accolto l’impugnazioneex art. 1137 c.c. avanzata dalla condomina Imasaf S.p.a. — _Corte di Cassazione — civile, sez. 2, n. 28134/2026_ (passaggio letto nel testo integrale della pronuncia)
+- - Dall’approvazione del rendiconto annuale dell’amministratore,pertanto, per effetto della vincolatività tipica dell’atto collegialestabilita dal primo comma dell’art. 1137 c.c., discende l’insorgenza, equindi anche la prova, dell’obbligazione in base alla quale ciascunodei condomini è tenuto a contribuire alle spese ordinarie per laconservazione e la manutenzione delle parti comuni dell'edificio o perla prestazione dei servizi nell’interesse comune (Cass. — _Corte di Cassazione — civile, sez. 2, n. 28135/2026_ (passaggio letto nel testo integrale della pronuncia)
+- - La causa ha ad oggetto l’impugnazione ex art. 1137 c.c. propostadinanzi al Tribunale di Milano dai condomini Anna Adele Appiotti eCarlo Polimene (comproprietari in regime di multiproprietà e/o diproprietà turnaria di un appartamento compreso nel complessocondominiale Portorotondo Gardens) avverso una deliberadell’assemblea del 14 novembre 2010 con la quale erano statiapprovati i rendiconti e i relativi — _Corte di Cassazione — civile, sez. 2, n. 28136/2026_ (passaggio letto nel testo integrale della pronuncia)
+- a pronunciato la seguente nel giudizio di legittimità costituzionale, degli articoli 1137, 1334 e 1335 del codice civile promosso dal Giudice istruttore del Tribunale ordinario di Catania, nel procedimento vertente tra D.S.G. — _Corte costituzionale, n. 52/2014_ (passaggio letto nel testo integrale della pronuncia)
+- Il giudice rimettente ricorda che la Corte costituzionale ha già affermato (esaminando il termine di decadenza stabilito dall'art. 1137 del codice civile per l'impugnazione delle delibere dell'assemblea dei condomini) che la sospensione dei termini nel periodo feriale, disciplinata dall'art. — _Corte costituzionale, n. 268/1993_ (passaggio letto nel testo integrale della pronuncia)
+- 742 ("Sospensione dei termini processuali nel periodo feriale"), nella parte in cui non dispone che la sospensione ivi prevista si applichi anche al termine di 30 giorni, di cui all'ultimo comma dell'art. 1137 del codice civile, in tema di impugnazione delle delibere dell'assemblea condominiale. — _Corte costituzionale, n. 49/1990_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «impugnazione_delibera»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
 - Questione della regola impugnazione_delibera non riportata (senza norma citata): «La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: depositala entro i trenta giorni.»
 - Norma di riferimento art. 71-quater disp. att. c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 1137 c.c. (Impugnazione delle deliberazioni dell'assemblea) — testo vigente, aggiornamento archivio 29/04/2026, versione `b55891c7a8b508f2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1137
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- Corte di Cassazione — civile, sez. 2, n. 28134/2026 (testo integrale) — versione `7b876f209a3c6f99` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228134S&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 2, n. 28135/2026 (testo integrale) — versione `ae33f4c650a43414` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228135S&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 2, n. 28136/2026 (testo integrale) — versione `96796078334f683d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228136S&rows=1&wt=json
+- Corte costituzionale, n. 52/2014 (testo integrale) — versione `cc1:5bb5ad76c14a` — https://www.cortecostituzionale.it/scheda-pronuncia/2014/52
+- Corte costituzionale, n. 268/1993 (testo integrale) — versione `cc1:98639ad8eadf` — https://www.cortecostituzionale.it/scheda-pronuncia/1993/268
+- Corte costituzionale, n. 49/1990 (testo integrale) — versione `cc1:a05cab50cfee` — https://www.cortecostituzionale.it/scheda-pronuncia/1990/49
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

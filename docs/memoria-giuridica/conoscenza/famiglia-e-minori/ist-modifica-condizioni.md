@@ -1,6 +1,6 @@
 # Modifica delle condizioni di separazione o divorzio
 
-- ID: `ist-modifica-condizioni` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-modifica-condizioni` · materia: famiglia e minori · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per la revisione dei provvedimenti con le forme del rito unitario della famiglia, oppure accordo con negoziazione assistita.
@@ -30,14 +30,14 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «modifica_condizioni»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Norma di riferimento art. 473-bis.29 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 - Norma di riferimento art. 9 l. 898/1970 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 - Norma di riferimento art. 337-quinquies c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 6 d.l. 132/2014 (Convenzione di negoziazione assistita per la separazione e il divorzio) — testo vigente, aggiornamento archivio n.d., versione `f93d860729b2dafa` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art6
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

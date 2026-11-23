@@ -1,6 +1,6 @@
 # Procedimento semplificato di cognizione (art. 281-decies)
 
-- ID: `ist-rito-semplificato` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-rito-semplificato` · materia: civile ordinario · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 281-decies c.p.c., art. 281-undecies c.p.c..
@@ -29,14 +29,14 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «rito_semplificato»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Norma di riferimento art. 281-duodecies c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
@@ -44,4 +44,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 281-undecies c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `981c5b5c10967d9e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art281undecies
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

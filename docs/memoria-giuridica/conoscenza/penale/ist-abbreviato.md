@@ -1,6 +1,6 @@
 # Giudizio abbreviato
 
-- ID: `ist-abbreviato` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-abbreviato` · materia: penale · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di giudizio abbreviato (semplice o condizionato).
@@ -33,7 +33,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
@@ -41,7 +41,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 438 c.p.p. (Presupposti del giudizio abbreviato) — testo vigente, aggiornamento archivio n.d., versione `f55d21855e4f813d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art438
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 458 c.p.p. (Richiesta di giudizio abbreviato) — testo vigente, aggiornamento archivio n.d., versione `066b96c1e8dd6643` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art458
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

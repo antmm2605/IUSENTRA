@@ -1,7 +1,7 @@
 # Atto di appello civile
 
-- ID: `ist-appello-civile` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-appello-civile` · materia: civile ordinario · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in appello con motivi specifici per capo.
 
@@ -35,15 +35,20 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- B) si evidenzia anche il mancato rispetto del termine dicui agli artt. 325, 326 e 327 c.p.c.Infatti, ove anche si voglia sostenere che sia applicabile il terminelungo di cui all’art. — _Corte di Cassazione — civile, sez. 2, n. 28413/2026_ (passaggio letto nel testo integrale della pronuncia)
+- ata di pubblicazione della sentenzae quella della notificazione del ricorso per cassazione (qualeemerge dalla relata di notificazione dello stesso) assicuracomunque lo scopo, cui tende la norma citata, di consentire algiudice dell’impugnazione, sin dal momento del deposito delricorso, di accertarne la tempestività in relazione al termine di cuiall’art. 325, comma 2°, c.p.c. (Cass. — _Corte di Cassazione — civile, sez. 1, n. 28268/2026_ (passaggio letto nel testo integrale della pronuncia)
+- che la sentenza impugnata è stata notificata, ma non ha prodotto lacopia della stessa munita delle relazioni di notificazione, in tal modoimpedendo alla Corte la verifica della tempestività dell’impugnazione.Il termine di 60 giorni previsto dall’art. 325 c.p.c., in tale ipotesi, vaconteggiato a decorrere dalla data di pubblicazione della decisioneimpugnata, che nella specie è avvenuta il 26.2.2024. — _Corte di Cassazione — civile, sez. 2, n. 28276/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 24 e 111 Cost., in quanto, nel caso di notifica effettuata a mezzo PEC, la previsione di un limite irragionevole alle notifiche, l'ultimo giorno utile per proporre appello, comporterebbe una grave limitazione del diritto di difesa del notificante giacché, «trovandosi a notificare l'ultimo giorno utile (ex art. 325 cod. proc. civ.) è costretto a farlo entro i limiti di cui all'art. — _Corte costituzionale, n. 75/2019_ (passaggio letto nel testo integrale della pronuncia)
+- 1.2.- Circa la rilevanza della questione, il rimettente osserva che l'impugnazione proposta è una revocazione straordinaria per fatti successivi al giudicato, la cui ammissibilità è soggetta al rispetto del termine di trenta giorni di cui all'art. 325 cod. proc. civ., termine decorrente, ai sensi dell'art. — _Corte costituzionale, n. 93/2018_ (passaggio letto nel testo integrale della pronuncia)
+- 123 delle disposizioni di attuazione del codice di procedura civile – la rimettente osserva che la sentenza civile ritualmente depositata, se notificata, diviene definitiva se non è impugnata nei trenta giorni dalla notifica ai sensi dell'art. 325 del codice di procedura civile ovvero, se non notificata, dopo la scadenza del termine di un anno dal deposito ai sensi del successivo art. — _Corte costituzionale, n. 74/2005_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «civ_appello»
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Giudice e rito, Prove e oneri, Questioni interpretative.
 - Norma di riferimento art. 348-bis c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
@@ -55,6 +60,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 326 c.p.c. (Decorrenza dei termini) — testo vigente, aggiornamento archivio n.d., versione `358eb8a805aa88ab` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 - art. 341 c.p.c. (Giudice dell'appello) — testo vigente, aggiornamento archivio n.d., versione `d3a70ba21106f7a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art341
+- Corte di Cassazione — civile, sez. 2, n. 28413/2026 (testo integrale) — versione `def30439bbd8966a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228413O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 1, n. 28268/2026 (testo integrale) — versione `3538f83c3f829d64` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026128268O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 2, n. 28276/2026 (testo integrale) — versione `557bf2017798c6d0` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228276O&rows=1&wt=json
+- Corte costituzionale, n. 75/2019 (testo integrale) — versione `cc1:53780ec3a1d4` — https://www.cortecostituzionale.it/scheda-pronuncia/2019/75
+- Corte costituzionale, n. 93/2018 (testo integrale) — versione `cc1:9db4452d56b6` — https://www.cortecostituzionale.it/scheda-pronuncia/2018/93
+- Corte costituzionale, n. 74/2005 (testo integrale) — versione `cc1:fb0b759f00ec` — https://www.cortecostituzionale.it/scheda-pronuncia/2005/74
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

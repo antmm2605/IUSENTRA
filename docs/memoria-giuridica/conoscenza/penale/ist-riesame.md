@@ -1,6 +1,6 @@
 # Riesame e appello cautelare
 
-- ID: `ist-riesame` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-riesame` · materia: penale · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di riesame al tribunale distrettuale (o appello cautelare ex art. 310 c.p.p.).
@@ -33,7 +33,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
@@ -41,7 +41,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Avvertenza della regola pen_riesame non riportata (senza norma citata): «Nei procedimenti con imputati detenuti i termini non sono sospesi nel periodo feriale.»
 
 ## Fonti con versione
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 324 c.p.p. (Procedimento di riesame) — testo vigente, aggiornamento archivio n.d., versione `811c91160be3c5ca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art324
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

@@ -1,7 +1,7 @@
 # Vizi e difformità nell'appalto
 
-- ID: `ist-vizi-appalto` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-vizi-appalto` · materia: contratti · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di garanzia per vizi dell'appalto (artt. 1667-1668 c.c.): diffida interruttiva della prescrizione, accertamento tecnico preventivo e poi giudizio di merito per l'eliminazione dei vizi o la riduzione del prezzo.
 
@@ -33,15 +33,22 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 - L'art. 5, comma 1, d.lgs. 28/2010 elenca fra le materie a mediazione obbligatoria i contratti «di opera»: l'appalto è un contratto distinto (art. 1655 c.c.), ma se il giudice lo assimilasse la mancanza si rileva entro la prima udienza; valutare la domanda di mediazione per prudenza. — _art. 5 d.lgs. 28/2010; art. 1655 c.c._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola)
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- 3) e 5), c.p.c., i ricorrenti deducono laviolazione degli artt. 2943, quarto comma, 2945, terzo comma, c.c. e115 c.p.c., nonché omessa, insufficiente e contraddittoria motivazionesu fatti decisivi della controversia, per avere la Corte d’appello ritenutoprescritto il loro diritto alla restituzione delle somme versate,escludendo l’efficacia interruttiva dell’atto di riassunzione del giudizioche il loro dante causa Giuseppe Spilateri aveva notificato alpr — _Corte di Cassazione — civile, sez. 2, n. 29574/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Titolare di tale diritto è pertanto il suddettoistituto, e solo esso; correlativamente, gli atti idonei adinterrompere il corso della relativa prescrizione, ai sensidell’art. 2943 c.c., sono soltanto quelli, in tale norma indicati,che provengano dal titolare del diritto stesso, e cioè dall'istitutoprevidenziale. — _Corte di Cassazione — civile, sez. L, n. 28751/2026_ (passaggio letto nel testo integrale della pronuncia)
+- e rilievo alla sostanziale inesigibilità di comportamenti interruttivi della prescrizione che si renderebbero necessari al fine di tutelare la pienezza dei diritti che un coniuge vanta nei confronti dell'altro; l'interruzione del termine, infatti, salva l'ipotesi del riconoscimento del debito, si avrebbe solo con atti aventi carattere contenzioso (art. 2943 c.c.) che, come tali, risultano certamente in conflitto con il normale svolgersi delle relazioni di convivenza familiare». — _Corte costituzionale, n. 7/2026_ (passaggio letto nel testo integrale della pronuncia)
+- La previsione censurata evidenzierebbe, inoltre, una manifesta irragionevolezza, perché «[i]n base agli articoli 2943 c.c. e 2944 c.c. — _Corte costituzionale, n. 260/2021_ (passaggio letto nel testo integrale della pronuncia)
+- Questa, invero, può essere conseguita non solo attraverso la domanda giudiziale, ma anche, ai sensi dell'art. 2943 cod. civ., attraverso atti stragiudiziali idonei alla costituzione in mora, che, anche in materia previdenziale, sono utilmente sperimentabili dal creditore diligente e timoroso del fatto che lo spatium deliberandi concesso al giudice competente per la pronunzia del decreto suddetto si risolva in una sostanziale abbreviazione del termine di prescrizione del — _Corte costituzionale, n. 1021/1988_ (passaggio letto nel testo integrale della pronuncia)
+- Dusty ha quindi convenuto Aciambiente dinanzi al Tribunale diCatania, chiedendo di dichiarare illegittime e inefficaci le determinazioni.Ha dedotto, in particolare, la tardività delle contestazioni edell’applicazione delle penali, in relazione all’art. 1667, commi 2 e 3, c.c. eagli artt. — _Corte di Cassazione — civile, sez. 1, n. 27842/2026_ (passaggio letto nel testo integrale della pronuncia)
+- e il Nepa,chiedendone la condanna al risarcimento dei danni ai sensi degli artt.1667 c.c. e/o 1669 c.c. — _Corte di Cassazione — civile, sez. 3, n. 26951/2026_ (passaggio letto nel testo integrale della pronuncia)
+- to la decisione: qualificato il contratto come appalto,ha ravvisato l’accettazione tacita dell’opera senza riserve ai sensi dell’art.1665 c.c., desumendola dall’utilizzo inaugurale del 3 agosto 2003,intervenuto dopo che l’installazione era stata completata da oltre quindicigiorni, e ne ha tratto l’esclusione della garanzia per i vizi ai sensi dell’art.1667 c.c.; ha rigettato pertanto l’opposizione e le domande riconvenzionalie ha condannato Cinema Ardente alla restituzione di € 40.567,81 e allespese dei due gradi di merito.Avverso tale sentenza Cinema Ardente propone ricorso per cassazione,affidato a tre motivi, illustrati da memoria. — _Corte di Cassazione — civile, sez. 2, n. 25702/2026_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «vizi_appalto»
 - Atto di citazione ordinario — `/template-atti?scheda=CIV_ORD_001`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri.
 
 ## Fonti con versione
 - art. 1667 c.c. (Difformità e vizi dell'opera) — testo vigente, aggiornamento archivio 29/04/2026, versione `f4267ba8c75bbdca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1667
@@ -52,6 +59,14 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 1655 c.c. (Nozione dell'appalto) — testo vigente, aggiornamento archivio 29/04/2026, versione `db574c2d4aee85ca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1655
+- Corte di Cassazione — civile, sez. 2, n. 29574/2026 (testo integrale) — versione `dc3fa8ddc02b84df` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229574O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. L, n. 28751/2026 (testo integrale) — versione `5032e0c2aab88b72` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L28751S&rows=1&wt=json
+- Corte costituzionale, n. 7/2026 (testo integrale) — versione `cc1:01f8e20f1ac5` — https://www.cortecostituzionale.it/scheda-pronuncia/2026/7
+- Corte costituzionale, n. 260/2021 (testo integrale) — versione `cc1:d80d40c0473a` — https://www.cortecostituzionale.it/scheda-pronuncia/2021/260
+- Corte costituzionale, n. 1021/1988 (testo integrale) — versione `cc1:91bcfe8292dc` — https://www.cortecostituzionale.it/scheda-pronuncia/1988/1021
+- Corte di Cassazione — civile, sez. 1, n. 27842/2026 (testo integrale) — versione `6949e0e16f76f2a7` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026127842O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 26951/2026 (testo integrale) — versione `0533da309996b3d9` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026326951I&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 2, n. 25702/2026 (testo integrale) — versione `df2953290a141073` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026225702O&rows=1&wt=json
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

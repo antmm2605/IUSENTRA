@@ -1,7 +1,7 @@
 # Opposizione agli atti esecutivi (art. 617)
 
-- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: verificata · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: verificata · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a precetto (art. 615, comma 1, c.p.c.) con istanza di sospensione dell'efficacia esecutiva del titolo per gravi motivi; giudice del luogo dell'esecuzione.
 
@@ -35,8 +35,13 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- e 617 c.p.c., per omessoaccertamento della tardività ex articolo 617 c.p.c. delmotivo di opposizione sollevato.5. — _Corte di Cassazione — civile, sez. L, n. 29520/2026_ (passaggio letto nel testo integrale della pronuncia)
+- issibilità della domanda iniziale”. Il ricorrente sostiene che il giudice d’appello, nel formulare il giudizio disoccombenza virtuale, si sarebbe fondato sull’assunto per cui l’opposizioneera stata spiegata ai sensi dell’art. 617 cod. proc. civ. e che nonsussistevano elementi per qualificare l’opposizione come inammissibile.2. — _Corte di Cassazione — civile, sez. 3, n. 29404/2026_ (passaggio letto nel testo integrale della pronuncia)
+- L’appellato eccepivapreliminarmente l’inammissibilità del gravame, sostenendo che la decisionedi primo grado aveva sostanzialmente accolto un’opposizione agli attiesecutivi ex art. 617 c.p.c.; pertanto, secondo tale impostazione, il mezzodi impugnazione esperibile sarebbe stato il ricorso per cassazione e nonl’appello. — _Corte di Cassazione — civile, sez. 3, n. 29409/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Tale cautela è tanto più necessaria ove si consideri, da un lato, che il decreto di trasferimento è impugnabile soltanto con l'opposizione agli atti esecutivi ai sensi dell'art. 617 cod. proc. civ., strumento soggetto a un breve termine di decadenza e la cui decisione non è appellabile, ma solo ricorribile per cassazione; dall'altro, che le Sezioni unite della Corte di cassazione, nel risolvere un contrasto di giurisprudenza, hanno affermato l'obbligo del conservatore dei registri immobiliari di eseguire immediatamente le cancellazioni ordin — _Corte costituzionale, n. 151/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 1.2.- Ai fini della rilevanza delle questioni sollevate, il Tribunale di Cosenza evidenzia di dover delibare, in sede di opposizione ex art. 617 del codice di procedura civile, la sussistenza delle condizioni per la conferma della sospensione dell'ordinanza che medio tempore ha assegnato parte delle somme pignorate, escludendo dal riparto alcune posizioni debitorie, e ha disposto lo «svincolo» delle somme non assegnate. — _Corte costituzionale, n. 114/2024_ (passaggio letto nel testo integrale della pronuncia)
+- 337), ovvero dell'opposizione agli atti esecutivi, di cui all'art. 617 del codice di procedura civile. — _Corte costituzionale, n. 190/2021_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «opposizione_atti_esecutivi»
@@ -45,7 +50,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Prove e oneri, Questioni interpretative.
 - Norma di riferimento art. 618 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
@@ -59,6 +64,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 624 c.p.c. (Sospensione per opposizione all'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `158a7a6ded98357b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art624
 - art. 27 c.p.c. (Competenza per le opposizioni all'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `81d6ecb19fa3446b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art27
 - art. 163 c.p.c. (Contenuto della citazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `77209d0b61dd6ee9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art163
+- Corte di Cassazione — civile, sez. L, n. 29520/2026 (testo integrale) — versione `2361848f004b5c53` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29520O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29404/2026 (testo integrale) — versione `7a4117ecae67c197` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329404O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29409/2026 (testo integrale) — versione `073a2915e3e9b677` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329409O&rows=1&wt=json
+- Corte costituzionale, n. 151/2026 (testo integrale) — versione `cc1:f28e57c96b31` — https://www.cortecostituzionale.it/scheda-pronuncia/2026/151
+- Corte costituzionale, n. 114/2024 (testo integrale) — versione `cc1:9c7528a655cb` — https://www.cortecostituzionale.it/scheda-pronuncia/2024/114
+- Corte costituzionale, n. 190/2021 (testo integrale) — versione `cc1:a64988172f16` — https://www.cortecostituzionale.it/scheda-pronuncia/2021/190
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

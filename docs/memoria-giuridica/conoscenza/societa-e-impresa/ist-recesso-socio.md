@@ -1,6 +1,6 @@
 # Recesso del socio
 
-- ID: `ist-recesso-socio` · materia: società e impresa · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-recesso-socio` · materia: società e impresa · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di recesso nelle forme e nei termini di legge o di statuto.
@@ -33,14 +33,14 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «soc_recesso_socio»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 2437 c.c. (Diritto di recesso) — testo vigente, aggiornamento archivio n.d., versione `5e07c01661a64a3a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2437
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2437-bis c.c. (Termini e modalità di esercizio del recesso) — testo vigente, aggiornamento archivio n.d., versione `f33f1877dcf8634d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2437bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

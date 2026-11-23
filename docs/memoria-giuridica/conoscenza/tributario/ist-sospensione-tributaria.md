@@ -1,6 +1,6 @@
 # Sospensione dell'atto impugnato (art. 47)
 
-- ID: `ist-sospensione-tributaria` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-sospensione-tributaria` · materia: tributario · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza motivata di sospensione dell'atto impugnato alla Corte di giustizia tributaria.
@@ -30,18 +30,18 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «sospensione_tributaria»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Norma di riferimento art. 96 d.lgs. 175/2024 (TU giustizia tributaria) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 47 d.lgs. 546/1992 (Sospensione dell'atto impugnato) — testo vigente, aggiornamento archivio 12/05/2026, versione `0bd64c25c67793ae` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art47
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

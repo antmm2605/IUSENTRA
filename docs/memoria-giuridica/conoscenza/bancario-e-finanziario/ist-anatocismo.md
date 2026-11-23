@@ -1,6 +1,6 @@
 # Anatocismo e ripetizione di indebito bancario
 
-- ID: `ist-anatocismo` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-anatocismo` · materia: bancario e finanziario · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** mediazione e poi citazione per accertamento del saldo e ripetizione dell'indebito.
@@ -33,7 +33,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
@@ -41,7 +41,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Norma di riferimento art. 1283 c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
@@ -51,4 +51,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

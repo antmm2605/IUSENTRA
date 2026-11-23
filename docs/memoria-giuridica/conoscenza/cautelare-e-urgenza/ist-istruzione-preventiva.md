@@ -1,6 +1,6 @@
 # Istruzione preventiva (testimoni a futura memoria, art. 692)
 
-- ID: `ist-istruzione-preventiva` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-istruzione-preventiva` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per assunzione di testimoni a futura memoria.
@@ -33,14 +33,14 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «cau_istruzione_preventiva»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 692 c.p.c. (Assunzione di testimoni) — testo vigente, aggiornamento archivio n.d., versione `f2e94d156ae5dc66` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art692
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 698 c.p.c. (Assunzione ed efficacia delle prove preventive) — testo vigente, aggiornamento archivio n.d., versione `d77fb6c07fd432c7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art698
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

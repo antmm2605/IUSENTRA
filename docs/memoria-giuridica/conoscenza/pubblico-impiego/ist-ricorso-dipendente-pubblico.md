@@ -1,7 +1,7 @@
 # Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
 
-- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: verificata · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
 
@@ -51,8 +51,13 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- a dioperaio, livello II, mansione ‘aggiustatetti’, CCNL EdiliIndustria”; allegava, altresì, che “aveva l’ordine di eseguire lapropria prestazione per la Sicurtetto/Triservice, nonché per altreaziende collegate (MM76, Tri.service srl), con sede operativa inCamaiore, Capezzano Pianore, via del Commercio, 21, di tal chela competenza per territorio ex art. 413 c.p.c. deve essereindividuata nel Tribunale di Lucca, in quanto nella relativacircoscrizione si trova una dipendenza dell’azienda (Viareggio,via Volta 54 e anche altra, sempre utilizzata come sedeoperativa per le riunioni, in Camaiore, Capezzano Pianore, viadel Commercio, 21)”;in accoglimento del ricorso, il Tribunale adito ingiungeva allaTriservice s.r. — _Corte di Cassazione — civile, sez. L, n. 28948/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 42 c.p.c., deducendo duemotivi: (I) violazione dell'art. 413 c.p.c., per avere il Tribunaleomesso di fare riferimento alla sede di effettivo svolgimentodell'attività sociale, in luogo della mera sede legale formale; (II)violazione dell'art. — _Corte di Cassazione — civile, sez. L, n. 28745/2026_ (passaggio letto nel testo integrale della pronuncia)
+- la sede di Milano; che la documentazione prodotta (visuracamerale del Pubblico registro delle imprese, lettere di impegnodi assunzione, lettera di assunzione, lettera di contestazione diaddebito disciplinare e lettera di licenziamento) dimostravanoche la società aveva a Milano la sede legale, criterio (tra i foriterritoriali concorrenti di cui all’art. 413 c.p.c.) utilizzato perindividuare il giudice competente.2. — _Corte di Cassazione — civile, sez. L, n. 28345/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Tuttavia, rimarca la difesa dello Stato, lo stesso rimettente ravvisa un vuoto di tutela anche nel caso in cui il soggetto che invoca la misura cautelare, pur essendo a conoscenza della pendenza del giudizio di merito continente, intenda, cionondimeno, avvalersi di un foro territoriale alternativo, nella specie ai sensi dell'art. 413 cod. proc. civ. Ad avviso dell'Avvocatura generale dello Stato, la questione di legittimità costituzionale non potrebbe essere indifferentemente basata su entrambe le indicate prospettazioni del fatto processuale. — _Corte costituzionale, n. 54/2023_ (passaggio letto nel testo integrale della pronuncia)
+- sul procedimento di conciliazione innanzi alla relativa commissione individuata secondo i criteri di cui all'art. 413 cod. proc. civ.; dall'altra, ha dettato un'articolata disciplina per la risoluzione della controversia innanzi al collegio arbitrale, intervenendo sugli artt. — _Corte costituzionale, n. 212/2020_ (passaggio letto nel testo integrale della pronuncia)
+- appartiene in primo grado al tribunale in funzione di giudice del lavoro, ai sensi dell'art. 413 cod. proc. civ. come modificato dall'art. — _Corte costituzionale, n. 66/2002_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «pi_differenze_retributive»
@@ -65,7 +70,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
 - Avvertenza della regola pi_differenze_retributive non riportata (senza norma citata): «Per i dipendenti pubblici non si usa il foro dell'azienda (art. 413, secondo comma): vale l'ufficio di assegnazione.»
 - Questione della regola pi_differenze_retributive non riportata (senza norma citata): «Notifica all'amministrazione statale: va eseguita presso l'Avvocatura dello Stato del distretto (r.d. 1611/1933); la norma non è ancora legg»
 - Questione della regola pi_competenza non riportata (senza norma citata): «Notifica all'amministrazione statale: va eseguita presso l'Avvocatura dello Stato del distretto (r.d. 1611/1933); la norma non è ancora legg»
@@ -86,6 +91,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 417-bis c.p.c. (Difesa delle pubbliche amministrazioni) — testo vigente, aggiornamento archivio n.d., versione `4be8ad6c1a8ece93` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art417bis
 - art. 9 d.P.R. 115/2002 (Contributo unificato) — testo vigente, aggiornamento archivio 21/11/2026, versione `eef544e027a4f323` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art9
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
+- Corte di Cassazione — civile, sez. L, n. 28948/2026 (testo integrale) — versione `bb491cf7c19b0fb3` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L28948O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. L, n. 28745/2026 (testo integrale) — versione `9060d3cb4b531dc7` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L28745O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. L, n. 28345/2026 (testo integrale) — versione `2d057bb66b43778f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L28345O&rows=1&wt=json
+- Corte costituzionale, n. 54/2023 (testo integrale) — versione `cc1:fd09adf50e46` — https://www.cortecostituzionale.it/scheda-pronuncia/2023/54
+- Corte costituzionale, n. 212/2020 (testo integrale) — versione `cc1:646cd827e06c` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/212
+- Corte costituzionale, n. 66/2002 (testo integrale) — versione `cc1:a7ce4ecb946c` — https://www.cortecostituzionale.it/scheda-pronuncia/2002/66
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

@@ -71,7 +71,11 @@ Legenda: **esiste** = funziona ed è usato; **parziale** = c'è un pezzo, non il
   punti. Restano dichiarate, non riempite.
 - Le norme di riferimento del catalogo presenti in biblioteca ma non nel registro delle norme di Lex sono elencate fra
   le lacune: vanno aggiunte a `lex/harness/norme_materie.py` (lavoro del branch delle regole).
-- L'indice delle pronunce per norma nasce da una ricerca testuale (citazione + rubrica): molte pronunce non citano
-  l'articolo e quindi non entrano. Gli orientamenti restano pochi finché l'indice non si costruisce sulle citazioni.
+- L'indice delle pronunce per norma nasce da una ricerca testuale (citazione + rubrica): delle 827 pronunce
+  dell'indice, 556 citano davvero l'articolo e hanno il passaggio (295 Cassazione, 261 Corte costituzionale); 271 non
+  entrano. Il passaggio può stare nella parte in fatto (difese delle parti): per questo la sezione si chiama
+  «Giurisprudenza che cita le norme (orientamenti da valutare)» e la valutazione favorevole/contraria è dell'avvocato.
+- I collegamenti alle procedure guidate non sono ancora mappati per istituto (ci sono regole, modelli d'atto e
+  calcolatori).
 - La rigenerazione non è ancora un lavoro dello scheduler: si lancia con lo script; lo stato «da riesaminare» è però
   calcolato dal vivo a ogni apertura.

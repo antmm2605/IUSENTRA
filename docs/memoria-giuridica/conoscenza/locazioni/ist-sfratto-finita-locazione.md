@@ -1,7 +1,7 @@
 # Licenza e sfratto per finita locazione
 
-- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di licenza (prima della scadenza) o di sfratto (dopo la scadenza) per finita locazione, con citazione per la convalida; Tribunale del luogo dell'immobile.
 
@@ -30,15 +30,20 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- 29253 del 2024), secondocui, “a seguito delle modifiche introdotte nell'art. 657 c.p.c. dall'art. — _Corte di Cassazione — civile, sez. 3, n. 11406/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Udita la relazione svolta nella pubblica udienza del 4 nov embre 202 4 Oggetto Procedimenti sommari ─ Convalida di sfratto per morosità– Ambito di applicazione ─ Alla luce delle modifiche apportate all’art. 657, primo comma, c.p.c. dall’art. — _Corte di Cassazione — civile, sez. 3, n. 29253/2024_ (passaggio letto nel testo integrale della pronuncia)
+- di ablazione del vincolo negoziale agrario” (ovvero, il tentativo di conciliazione in sede agraria), “mentre dall’altro ha inteso rispettare l’iter procedurale sotteso a far cessare di validità ed efficacia di un classico contratto di locazione”, inviando dapprima lettera di disdetta e poi notificando intimazione di sfratto per finta locazione ex art. 657 cod. proc. civ. Orbene, tale “aporia” risulterebbe, nel caso di specie, “insuperabile”, e ciò poiché nella controversia giudiziale in esame “difetta l’accertamento, in via preliminare, dell’effettiva natura del contratto in parola”, da compiersi da parte della Sezione Specializzata Agraria. — _Corte di Cassazione — civile, sez. 3, n. 25286/2024_ (passaggio letto nel testo integrale della pronuncia)
+- D'altra parte, il dato testuale costituito dall'art. 657 cod. proc. civ., coniugato con il carattere additivo che le precedenti decisioni hanno assunto rispetto all'art. — _Corte costituzionale, n. 192/1995_ (passaggio letto nel testo integrale della pronuncia)
+- to per convalida di sfratto ed è proposta una questione a rilevanza meramente eventuale; Considerato che il terzo interveniente nel procedimento per convalida di sfratto può essere legittimato a proporre opposizione con gli stessi effetti della comparizione e della opposizione dell'intimato solo se titolare di uno dei rapporti tipici previsti dall'art. 657 del codice di procedura civile; che il Pretore rimettente non ha accertato la posizione sostanziale dell'interveniente e non ha motivato in ordine ad essa sotto il profilo sopra indicato; che ne deriva la manifesta inammissibilità della questione proposta; Visti gli artt. — _Corte costituzionale, n. 286/1992_ (passaggio letto nel testo integrale della pronuncia)
+- 392 ("Disciplina delle locazioni di immobili urbani"), e dell'art. 657 del codice di procedura civile, promosso con ordinanza emessa il 18 febbraio 1988 dal Pretore di Cortina d'Ampezzo nel procedimento civile vertente tra l'Amministrazione provinciale di Venezia e Barbato Elia, iscritta al n. — _Corte costituzionale, n. 1080/1988_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «sfratto_finita_locazione»
 - Intimazione di sfratto per morosità con citazione per la convalida — `/template-atti?scheda=LOC_001`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
 - Norma di riferimento art. 28 l. 392/1978 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
@@ -46,6 +51,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 3 l. 431/1998 (Disdetta del contratto da parte del locatore e recesso del conduttore) — testo vigente, aggiornamento archivio n.d., versione `388fb1babc9cbc46` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1998-12-09;431~art3
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 661 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `bed85335f84f3c14` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art661
+- Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29253/2024 (testo integrale) — versione `84a43c2b77894d4c` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024329253S&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 25286/2024 (testo integrale) — versione `a9bfc3ae2af13df3` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024325286O&rows=1&wt=json
+- Corte costituzionale, n. 192/1995 (testo integrale) — versione `cc1:d24123bade57` — https://www.cortecostituzionale.it/scheda-pronuncia/1995/192
+- Corte costituzionale, n. 286/1992 (testo integrale) — versione `cc1:b9c9a06ff0c3` — https://www.cortecostituzionale.it/scheda-pronuncia/1992/286
+- Corte costituzionale, n. 1080/1988 (testo integrale) — versione `cc1:c374d1f89985` — https://www.cortecostituzionale.it/scheda-pronuncia/1988/1080
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

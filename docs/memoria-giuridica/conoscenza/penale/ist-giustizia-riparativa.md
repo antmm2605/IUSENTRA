@@ -1,6 +1,6 @@
 # Giustizia riparativa
 
-- ID: `ist-giustizia-riparativa` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-giustizia-riparativa` · materia: penale · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta all'autorità giudiziaria di invio al Centro per la giustizia riparativa.
@@ -33,14 +33,14 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «pen_giustizia_riparativa»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Norma di riferimento art. 42 d.lgs. 150/2022 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 - Norma di riferimento art. 44 d.lgs. 150/2022 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 152 c.p. (Remissione della querela) — testo vigente, aggiornamento archivio n.d., versione `e1776bcb6189d67a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398~art152
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

@@ -1,6 +1,6 @@
 # Ricorso tributario di primo grado
 
-- ID: `ist-ricorso-tributario` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-ricorso-tributario` · materia: tributario · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 18 d.lgs. 546/1992, art. 21 d.lgs. 546/1992.
@@ -29,7 +29,7 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
@@ -38,7 +38,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Questione della regola ricorso_tributario non riportata (senza norma citata): «L'istanza di accertamento con adesione sospende il termine per novanta giorni: verifica se è stata presentata.»
 - Questione della regola ricorso_tributario non riportata (senza norma citata): «Il testo unico della giustizia tributaria (d.lgs. 175/2024) sostituirà il d.lgs. 546/1992: verifica sull'archivio la data da cui si applica »
 - Norma di riferimento art. 67 d.lgs. 175/2024 (TU giustizia tributaria) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

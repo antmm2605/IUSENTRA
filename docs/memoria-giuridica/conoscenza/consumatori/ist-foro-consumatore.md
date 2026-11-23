@@ -1,6 +1,6 @@
 # Foro del consumatore e competenza
 
-- ID: `ist-foro-consumatore` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-foro-consumatore` · materia: consumatori · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Giudice di pace.
@@ -33,7 +33,7 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
@@ -42,7 +42,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Norma di riferimento art. 33 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 - Norma di riferimento art. 66-bis d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
@@ -55,4 +55,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

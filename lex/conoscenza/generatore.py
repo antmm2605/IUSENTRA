@@ -40,7 +40,7 @@ SEZIONI: tuple[tuple[str, str], ...] = (
     ("prove_oneri", "Prove e oneri"),
     ("documenti", "Documenti e dati da verificare"),
     ("questioni", "Questioni interpretative"),
-    ("orientamenti", "Orientamenti della giurisprudenza"),
+    ("orientamenti", "Giurisprudenza che cita le norme (orientamenti da valutare)"),
 )
 ESSENZIALI = ("presupposti", "rimedi", "giudice_rito", "termini")
 

@@ -1,7 +1,7 @@
 # Rinuncia all'eredità
 
-- ID: `ist-rinuncia-eredita` · materia: successioni · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-rinuncia-eredita` · materia: successioni · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 519 c.c., art. 480 c.c..
 
@@ -31,20 +31,31 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- può, a suavolta, precedere o seguire detto inventario.Il Collegio ha rilevato, inoltre, che con atto depositato il14/9/2017, in ossequio al disposto dell’art. 485 c.c., per cuil’eventuale proroga del termine va richiesta al Tribunale, DeniBuffoli avanzò formale istanza al Tribunale di proroga del termineper la redazione dell’inventario; con tale atto la Buffoli riconobbe,a parere del giudice di secondo grado, espressamente di averiniziato la redazione dell’inventario dei beni del marito, ma di nonaverlo ultimato — _Corte di Cassazione — civile, sez. 2, n. 22239/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Civ.», deducendo l’erroneità della sentenza impugnataladdove ha valorizzato la mancata esibizione dell’inventarioereditario inerente alla delazione di Gianni Hoepli, nonavvedendosi che, a norma dell’art. 485 cod. civ., per il caso dierede nel possesso dei beni ereditari, e dell’art. — _Corte di Cassazione — civile, sez. 1, n. 21931/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Il giudice, in particolare, osservò che il convenutoera rimasto nel possesso dei beni ereditari dal decesso di entrambi i danticausa, sicché, ai sensi dell’art. 485 c.c., doveva ritenersi erede puro esemplice, non avendo effettuato l’inventario dei beni caduti in successionenei tre mesi successivi.2.- Avverso tale sentenza, ha proposto appello Dall’Igna Enzoriproponendo la tesi che l’appellante non poteva essere considerato come Numero di raccolta general — _Corte di Cassazione — civile, sez. 2, n. 21468/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Ilcompimento dell'atto determina la perdita del diritto all'eredità ed ilrinunciante è considerato come se non fosse stato mai chiamato(cosiddetto effetto retroattivo della rinuncia): tanto discende dallalettera dell'istituto disciplinato dall'art. 519 c.c. L'effetto primaindicato, tuttavia non discende dalla sola rinuncia, ma dall'avvenutoacquisto dell'eredità da parte degli altri chiamati; fino a quando ciònon si verifichi, il rinunziante può sempre esercitare il diritto di — _Corte di Cassazione — civile, sez. 2, n. 18652/2026_ (passaggio letto nel testo integrale della pronuncia)
+- to giuridico unilaterale,mediante il quale il chiamato all'eredità dismette il suo diritto di accettarla.Il compimento dell'atto determina la perdita del diritto all'eredità ed ilrinunciante è considerato come se non fosse stato mai chiamato(cosiddetto effetto retroattivo della rinuncia): tanto discende dalla letteradell'istituto disciplinato dall'art. 519 del codice civile.L'effetto prima indicato, tuttavia, non discende dalla sola rinuncia, madall'avvenuto acquisto dell'eredità da parte degli altri chiamati; fino a quando ciò non si verifichi, il rinunziante può sempre esercitare il diritto — _Corte di Cassazione — civile, sez. 5, n. 17656/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Ai sensi dell’art. 519 c.c. la rinuncia all'eredità consiste in unregistro delle successioni, mediante il quale il chiamato all'ereditàdismette il suo diritto di accettarla. — _Corte di Cassazione — civile, sez. 5, n. 10832/2026_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «chiamato_nel_possesso»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Questioni interpretative.
 - Norma di riferimento art. 525 c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 519 c.c. (Rinunzia all'eredità) — testo vigente, aggiornamento archivio 29/04/2026, versione `4144b4ba08129e6d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art519
 - art. 480 c.c. (Prescrizione del diritto di accettare l'eredità) — testo vigente, aggiornamento archivio 29/04/2026, versione `1512d31b2d9be96a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art480
 - art. 485 c.c. (Chiamato all'eredità che è nel possesso di beni) — testo vigente, aggiornamento archivio 29/04/2026, versione `e9995b00ed463c54` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art485
+- Corte di Cassazione — civile, sez. 2, n. 22239/2026 (testo integrale) — versione `09f871902d6e88ca` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026222239O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 1, n. 21931/2026 (testo integrale) — versione `b8d4fd997097356d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026121931O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 2, n. 21468/2026 (testo integrale) — versione `e292dda9f2ef1ee8` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026221468O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 2, n. 18652/2026 (testo integrale) — versione `e377aa889a2ba7a1` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026218652S&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 5, n. 17656/2026 (testo integrale) — versione `20a4444a831919c0` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026517656O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 5, n. 10832/2026 (testo integrale) — versione `150b400cf87b2006` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026510832O&rows=1&wt=json
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

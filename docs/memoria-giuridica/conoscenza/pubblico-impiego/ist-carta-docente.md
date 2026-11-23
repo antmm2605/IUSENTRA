@@ -1,7 +1,7 @@
 # Carta del docente per i supplenti
 
-- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: verificata · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: verificata · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per l'accertamento del diritto alla carta per gli anni scolastici indicati e la condanna del Ministero all'attribuzione o al risarcimento per equivalente; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
 
@@ -38,8 +38,13 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- Autotrasporto, la stessa non introduceva un obbligo a carico del lavoratore tale daprecludergli il ricorso alla procedura di cui all’art. 410 c.p.c. e ad invalidarne gli esiti; hainoltre respinto, per mancanza di prova, della quale ha ritenuto onerato il lavoratore, ladoglianza con la quale questi lamentava sotto diversi profili il difetto di effettività diassistenza da parte del rappresentante sindacale presente alle due conciliazionisottoscritte, per come pacifico, presso la sede dell’aziend — _Corte di Cassazione — civile, sez. L, n. 12056/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 4”) direttaa dimostrare la notificazione del tentativo di conciliazione ex art. 410c.p.c. asseritamente avvenuta nel luglio 2009, né erano state dedottevalide ragioni per l’acquisizione del documento in appello ai sensidell’art. — _Corte di Cassazione — civile, sez. 3, n. 7759/2026_ (passaggio letto nel testo integrale della pronuncia)
+- llo di Milano“aveva dichiarato la sussistenza di un rapporto di lavorosubordinato a tempo indeterminato tra la sig.ra Coen e PosteItaliane SpA a decorrere dal 4.1.2003, condannando la societàa riammettere la lavoratrice in servizio ed a pagarle a titolo dirisarcimento le retribuzioni maturate dalla data di notifica deltentativo di conciliazione ex art. 410 c.p.c. (18/02/2003) fino alripristino del rapporto, detratto l’aliunde perceptum”.11.2. — _Corte di Cassazione — civile, sez. L, n. 7556/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Invero, con quella pronuncia fu dichiarata (tra l'altro) non fondata la questione di legittimità costituzionale degli artt. 410, 410-bis e 412-bis cod. proc. civ., come modificati, aggiunti o sostituiti dagli artt. — _Corte costituzionale, n. 272/2012_ (passaggio letto nel testo integrale della pronuncia)
+- La disposizione sub lettera f) introduce come principi e criteri direttivi: la «previsione di espletare il tentativo obbligatorio di conciliazione previsto dall'art. 410 del codice di procedura civile innanzi all'organo preposto alla certificazione quando si intenda impugnare l'erronea qualificazione dello stesso o la difformità tra il programma negoziale certificato e la sua successiva attuazione, prevedendo che gli effetti dell'accertamento svolto dall'organo preposto alla certificazione permangano fino al momento in cui venga provata l'erron — _Corte costituzionale, n. 50/2005_ (passaggio letto nel testo integrale della pronuncia)
+- 59); che la questione è stata proposta dal rimettente con riferimento alla parte del suddetto ultimo comma, costituita dalle parole "d'urgenza e di quelli previsti nel capo III" in quanto attraverso tali parole quel comma escluderebbe la necessità dell'esperimento del previo tentativo di conciliazione obbligatoria ex art. 410 del codice di procedura civile, per i "provvedimenti speciali d'urgenza" e "per quelli cautelari previsti nel capo II del titolo I del libro IV" del codice di procedura civile, senza che in tali formule possa reputarsi compreso il procedimento per decreto ingiuntivo, con la conseguenza che anche tale procedimento dovrebbe necessariamente essere preceduto dall'esperimento della — _Corte costituzionale, n. 29/2001_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «pi_carta_docente»
@@ -48,7 +53,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
 - Questione della regola pi_carta_docente non riportata (senza norma citata): «Prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio SentenzeWeb prima di indicarli al cl»
 - Questione della regola pi_carta_docente non riportata (senza norma citata): «Notifica all'amministrazione statale: va eseguita presso l'Avvocatura dello Stato del distretto (r.d. 1611/1933); la norma non è ancora legg»
 - Norma di riferimento art. 1 l. 107/2015 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
@@ -63,6 +68,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
 - art. 417-bis c.p.c. (Difesa delle pubbliche amministrazioni) — testo vigente, aggiornamento archivio n.d., versione `4be8ad6c1a8ece93` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art417bis
 - art. 9 d.P.R. 115/2002 (Contributo unificato) — testo vigente, aggiornamento archivio 21/11/2026, versione `eef544e027a4f323` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art9
+- Corte di Cassazione — civile, sez. L, n. 12056/2026 (testo integrale) — versione `af4afda2304cef9d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L12056O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 7759/2026 (testo integrale) — versione `490601e1d2324fde` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026307759O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. L, n. 7556/2026 (testo integrale) — versione `1bf9aa81747796bf` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L07556O&rows=1&wt=json
+- Corte costituzionale, n. 272/2012 (testo integrale) — versione `cc1:4ee1e1b7a1aa` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/272
+- Corte costituzionale, n. 50/2005 (testo integrale) — versione `cc1:9e4ebb9aa39e` — https://www.cortecostituzionale.it/scheda-pronuncia/2005/50
+- Corte costituzionale, n. 29/2001 (testo integrale) — versione `cc1:526ba51dccec` — https://www.cortecostituzionale.it/scheda-pronuncia/2001/29
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

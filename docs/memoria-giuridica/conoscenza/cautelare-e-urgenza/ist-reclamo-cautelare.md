@@ -1,6 +1,6 @@
 # Reclamo cautelare (art. 669-terdecies)
 
-- ID: `ist-reclamo-cautelare` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-reclamo-cautelare` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** reclamo al collegio del tribunale (o ad altra sezione della corte d'appello).
@@ -31,7 +31,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
@@ -39,11 +39,11 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Avvertenza della regola cau_reclamo non riportata (senza norma citata): «I procedimenti cautelari non godono della sospensione feriale.»
 
 ## Fonti con versione
 - art. 669-terdecies c.p.c. (Reclamo contro i provvedimenti cautelari) — testo vigente, aggiornamento archivio n.d., versione `92eb7670efd7bec7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669terdecies
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

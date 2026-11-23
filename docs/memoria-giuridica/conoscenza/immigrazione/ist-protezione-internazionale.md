@@ -1,6 +1,6 @@
 # Ricorso contro il diniego di protezione internazionale
 
-- ID: `ist-protezione-internazionale` · materia: immigrazione · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-protezione-internazionale` · materia: immigrazione · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso alla sezione specializzata immigrazione del tribunale ordinario.
@@ -32,14 +32,14 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «imm_protezione_internazionale»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Questione della regola imm_protezione_internazionale non riportata (senza norma citata): «Termini ridotti ed effetto sospensivo nelle procedure accelerate e di frontiera (artt. 35-bis e 35-ter): verificare il tipo di procedura ind»
 - Norma di riferimento art. 2 d.lgs. 251/2007 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 35-bis d.lgs. 25/2008 (Controversie in materia di protezione internazionale) — testo vigente, aggiornamento archivio 23/11/2026, versione `568e1397b0c798ac` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2008-01-28;25~art35bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

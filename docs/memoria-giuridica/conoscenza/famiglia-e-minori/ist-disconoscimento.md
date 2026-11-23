@@ -1,7 +1,7 @@
 # Disconoscimento di paternità
 
-- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** tribunale della residenza abituale del minore.
 
@@ -32,14 +32,20 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- rticolare, nell'ordinanza si rileva che, «[s]tante il combinato disposto degli articoli 269, comma 1 e 253 del codice civile, la dichiarazione di filiazione fuori del matrimonio presuppone l'assenza di uno stato di figlio il quale, se presente, andrà previamente rimosso - a seconda dei casi - per mezzo delle azioni di disconoscimento di paternità (art. 243-bis del codice civile), di impugnazione del riconoscimento (articoli 263 e seguenti del codice civile) ovvero di contestazione dello stato di figlio (art. — _Corte costituzionale, n. 177/2022_ (passaggio letto nel testo integrale della pronuncia)
+- civ., sostituito dalla semplice previsione dell'art. 243-bis, secondo comma, cod. civ., secondo cui «chi esercita l'azione è ammesso a provare che non sussiste rapporto di filiazione tra il figlio e il presunto padre». — _Corte costituzionale, n. 133/2021_ (passaggio letto nel testo integrale della pronuncia)
+- 154 del 2013 deve ritenersi ora riferito all'art. 243-bis cod. civ.) e dell'impugnazione ex art. — _Corte costituzionale, n. 162/2014_ (passaggio letto nel testo integrale della pronuncia)
+- la violazione di legge con riferimento in relazione agli artt.244 e 2964 c.c., 11 primo comma preleggi, art. — _Corte di Cassazione — civile, sez. 1, n. 12245/2025_ (passaggio letto nel testo integrale della pronuncia)
+- Il pubblico ministero avrebbe legittimazione ad agire nell'azione di disconoscimento di paternità, ai sensi dell'art. 244 cod. civ., ma non nell'impugnazione del riconoscimento per difetto di veridicità. — _Corte costituzionale, n. 133/2021_ (passaggio letto nel testo integrale della pronuncia)
+- nuale di decadenza il diritto del genitore di esperire l'azione di impugnazione del riconoscimento di figlio naturale per difetto di veridicità»; che, in particolare, il rimettente ritiene ingiustificata la disparità del trattamento che (prendendo quale tertium comparationis il termine di proposizione dell'azione di disconoscimento di paternità ex art. 244 cod. civ.) sarebbe riservata ai minori in ragione del fatto dell'essere o meno nati in costanza di matrimonio (giacché la situazione del figlio legittimo - il quale, decorso il termine di decadenza sancito da tale ultima disposizione, potrà contare sul persistere del legame e sui diritti economici ed ereditari derivanti dal suo status - diverge dalla situaz — _Corte costituzionale, n. 7/2012_ (passaggio letto nel testo integrale della pronuncia)
+- cata coabitazione dei coniugi nel periodo compreso tra il trecentesimo ed il centottantesimo giorno prima della nascita, per impotenza del marito durante il tempo suddetto e per esistenza di una relazione extraconiugale della moglie - parte convenuta ha eccepito pregiudizialmente l'intervenuta decadenza dall'azione di disconoscimento ai sensi dell'art. 244 cod. civ. atteso che, fino alla pronuncia della sentenza di interdizione, l'attore era pienamente capace di agire giuridicamente. — _Corte costituzionale, n. 322/2011_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «disconoscimento_paternita»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Termini, Rimedi e forme, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Termini, Rimedi e forme, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 243-bis c.c. (Disconoscimento di paternità) — testo vigente, aggiornamento archivio 29/04/2026, versione `723d49d6d0cea8fe` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art243bis
@@ -47,6 +53,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 247 c.c. (Legittimazione passiva) — testo vigente, aggiornamento archivio 29/04/2026, versione `5437008404b4cacb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art247
 - art. 473-bis.12 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `a434907c6fd0499d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.12
 - art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
+- Corte costituzionale, n. 177/2022 (testo integrale) — versione `cc1:6a61ad4f3639` — https://www.cortecostituzionale.it/scheda-pronuncia/2022/177
+- Corte costituzionale, n. 133/2021 (testo integrale) — versione `cc1:4c969c5f3fba` — https://www.cortecostituzionale.it/scheda-pronuncia/2021/133
+- Corte costituzionale, n. 162/2014 (testo integrale) — versione `cc1:b3f8d7eea121` — https://www.cortecostituzionale.it/scheda-pronuncia/2014/162
+- Corte di Cassazione — civile, sez. 1, n. 12245/2025 (testo integrale) — versione `cbc59fa481a8e491` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025112245O&rows=1&wt=json
+- Corte costituzionale, n. 7/2012 (testo integrale) — versione `cc1:0cf8c3ead48e` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/7
+- Corte costituzionale, n. 322/2011 (testo integrale) — versione `cc1:5ff778503614` — https://www.cortecostituzionale.it/scheda-pronuncia/2011/322
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

@@ -1,6 +1,6 @@
 # Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
 
-- ID: `ist-sinistro-stradale` · materia: responsabilità civile · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-sinistro-stradale` · materia: responsabilità civile · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
@@ -35,7 +35,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
@@ -43,7 +43,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Messa in mora dell’assicurazione — `/template-atti?scheda=RCD_015`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Rimedi e forme, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Rimedi e forme, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «I termini per l'offerta e per la proponibilità decorrono dalla ricezione della richiesta, non ancora inviata.»
 - Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «La negoziazione assistita è obbligatoria per il danno da circolazione a prescindere dal valore.»
 - Norma di riferimento art. 145 d.lgs. 209/2005 (cod. ass.) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
@@ -60,4 +60,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

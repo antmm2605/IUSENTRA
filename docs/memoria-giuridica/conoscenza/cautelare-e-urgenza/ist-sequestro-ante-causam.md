@@ -1,7 +1,7 @@
 # Sequestro ante causam: efficacia e inizio del giudizio di merito
 
-- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per sequestro conservativo ante causam al giudice competente per il merito; poi esecuzione entro trenta giorni e inizio del merito nel termine perentorio; Tribunale competente per territorio sul merito.
 
@@ -36,8 +36,11 @@ _Sezione mancante: nessuna conclusione verificata nelle regole dell'istituto._
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- Luigi D’Orazio Si premette che in data 8/10/2015 il Comune di Mazzarrone hachiesto, in corso di causa, il sequestro conservativo dei beni ex art.671 c.p.c.Il presidente del tribunale ha fissato l’udienza al 4/11/2015 conprovvedimento del 14/10/2015.È stata tentata una prima notifica il 20/10/2015, ma l’ufficialegiudiziario ha riportato la dichiarazione di terzi presenti nell’immobilein ordine al decesso di Maria Tidona.All’udienza del 4/11/2015 il difensore di Maria Tidona non hadichiarato alcunché ( — _Corte di Cassazione — civile, sez. 1, n. 8579/2026_ (passaggio letto nel testo integrale della pronuncia)
+- potrebbe essere esclusa per il sol fatto che sia possibile richiedere il sequestro conservativo dei beni del datore di lavoro inadempiente (art. 671 del codice di procedura civile), in quanto il ricorrente dovrebbe dimostrare «dati di fatto ulteriori», riguardanti il fondato timore di perdere la garanzia del proprio credito. — _Corte costituzionale, n. 154/2021_ (passaggio letto nel testo integrale della pronuncia)
+- civ., che prevedono l'obbligo degli alimenti anche a carico degli ascendenti naturali; all'art. 671 cod. proc. civ., che regola il sequestro conservativo, mezzo di tutela della garanzia patrimoniale di portata generale, applicabile, ricorrendone le condizioni, anche nelle controversie tra genitori naturali per questioni concernenti il mantenimento dei figli. — _Corte costituzionale, n. 99/1997_ (passaggio letto nel testo integrale della pronuncia)
+- 3, 29, 30 e 31 della Costituzione, poiché il coniuge in difficoltà si troverebbe nella concreta impossibilità di ottenere il sequestro durante la fase istruttoria, non potendosi neppure applicare la norma generale di cui all'art. 671 cod. proc. civ., dal momento che il sequestro conservativo si fonda su presupposti del tutto differenti. — _Corte costituzionale, n. 258/1996_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «sequestro_ante_causam»
@@ -45,7 +48,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Rimedi e forme, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Rimedi e forme, Questioni interpretative.
 
 ## Fonti con versione
 - art. 671 c.p.c. (Sequestro conservativo) — testo vigente, aggiornamento archivio 05/03/2026, versione `f2d2a0674576a1f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art671
@@ -58,6 +61,10 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 18 c.p.c. (Foro generale delle persone fisiche) — testo vigente, aggiornamento archivio 05/03/2026, versione `edfe283095fec60d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art18
 - art. 20 c.p.c. (Foro facoltativo per le cause relative a diritti di obbligazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `a85515452e1b2416` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art20
 - art. 669-bis c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `3a6217845747074c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669bis
+- Corte di Cassazione — civile, sez. 1, n. 8579/2026 (testo integrale) — versione `22347cd7530e511d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026108579O&rows=1&wt=json
+- Corte costituzionale, n. 154/2021 (testo integrale) — versione `cc1:3d8b45552679` — https://www.cortecostituzionale.it/scheda-pronuncia/2021/154
+- Corte costituzionale, n. 99/1997 (testo integrale) — versione `cc1:3d86221a81cc` — https://www.cortecostituzionale.it/scheda-pronuncia/1997/99
+- Corte costituzionale, n. 258/1996 (testo integrale) — versione `cc1:b060d4defd6b` — https://www.cortecostituzionale.it/scheda-pronuncia/1996/258
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

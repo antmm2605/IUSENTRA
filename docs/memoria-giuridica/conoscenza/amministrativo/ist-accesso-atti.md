@@ -1,6 +1,6 @@
 # Accesso agli atti (l. 241/1990, art. 116 c.p.a.)
 
-- ID: `ist-accesso-atti` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-accesso-atti` · materia: amministrativo · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR nel rito dell'accesso, oppure richiesta di riesame al difensore civico o alla Commissione per l'accesso.
@@ -31,14 +31,14 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 ## Questioni interpretative
 - Il termine del rito dell'accesso (art. 116 c.p.a.) non si può leggere: nella biblioteca l'articolo risulta senza testo. È più breve del termine ordinario di sessanta giorni: contarlo sul testo ufficiale prima di fissare la scadenza. — _art. 116 c.p.a._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola)
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «accesso_atti»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Norma di riferimento art. 22 l. 241/1990 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 116 c.p.a. (Rito in materia di accesso ai documenti amministrativi) — testo vigente, aggiornamento archivio 12/12/2025, versione `a6733ca6c05aeb97` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art116
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

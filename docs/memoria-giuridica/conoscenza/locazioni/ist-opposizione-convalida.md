@@ -1,7 +1,7 @@
 # Opposizione alla convalida di sfratto e termine di grazia
 
-- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** comparsa di costituzione e opposizione alla convalida (art. 665 c.p.c.), non l'istanza di termine di grazia dell'art. 55 l. 392/1978.
 
@@ -38,8 +38,17 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- 392/1978, eccependo l’erroneascelta del rito operata da parte attrice e la temerarietà della lite, così chiedendoil rigetto delle domande.Negata dal giudice del procedimento sommario l’ordinanza provvisoria di rilascioex art. 665 c.p.c., richiesta dall’intimante, il giudizio proseguì per il merito evenne disposto il mutamento di rito ai sensi degli artt. — _Corte di Cassazione — civile, sez. 3, n. 25727/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 69 - intimò sfratto per morosità nei confronti delconduttore Annunziata Farro, chiedendo pronunciarsi la convalida e la condannadella predetta all’immediato rilascio; nel caso di eventuale ingiusta opposizione,previa concessione dell’ordinanza provvisoria di rilascio ex art. 665 c.p.c., ilSomazzi chiese disporsi ex art. — _Corte di Cassazione — civile, sez. 3, n. 23217/2026_ (passaggio letto nel testo integrale della pronuncia)
+- civ.), sia sollevare eccezioni, quali esse siano (ex art. 665 cod. proc. civ.), le quali, se fondate su prova scritta, precludono al giudice di pronunciare, su istanza del locatore, ordinanza non impugnabile di rilascio dell'immobile locato, immediatamente esecutiva. — _Corte costituzionale, n. 205/2021_ (passaggio letto nel testo integrale della pronuncia)
+- L'opposizione, quale essa sia, non consente la convalida dell'intimazione di sfratto, ma comporta - salva la possibilità che il giudice emetta, ricorrendone i presupposti, ordinanza provvisoria di rilascio con riserva delle eccezioni del convenuto (art. 665 cod. proc. civ.) - il mutamento di rito ai sensi dell'art. — _Corte costituzionale, n. 79/2020_ (passaggio letto nel testo integrale della pronuncia)
+- 551 del 1988, da un lato sospende l'esecuzione dei provvedimenti (sentenze, convalide di licenza o di sfratto, ordinanze di rilascio di cui all'art. 665 c.p.c.), indicati dall'art. — _Corte costituzionale, n. 142/1990_ (passaggio letto nel testo integrale della pronuncia)
+- 665 c.p.c., ilSomazzi chiese disporsi ex art. 667 c.p.c. il mutamento del rito per il prosieguodel giudizio di merito, onde ottenere declaratoria di risoluzione del contratto perinadempimento del conduttore, con sua condanna al pagamento dei canoni edelle somme accessorie, oltre accessori e spese.Si costituì Annunziata Farro, contestando l’intimato sfratto e deducendo chesussisteva grave inadempimento d — _Corte di Cassazione — civile, sez. 3, n. 23217/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 392/1978.Il Tribunale di Cassino, con ordinanza del 24.02.2022, non ha convalidatolo sfratto; ha disposto il mutamento del rito, ex art. 667 c.p.c. e haconcesso, alle parti, termine per il deposito di memorie integrative deirispettivi atti difensivi.Con sentenza del 3/5/2022 il Tribunale, ritenuta fondata l’intimazione disfratto per finita locazione e dichiarato cessato il contratto di locazionestipulato inter-partes alla sua iniziale, prevista scadenza biennale -condannava la Pastificio Dome — _Corte di Cassazione — civile, sez. 3, n. 11783/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Con l’ottavo motivo viene denunciata “violazione dell’art. 667 c.p.c.e dei principi sul mutamento del rito – incompatibilità tra mediazione earbitrato”;viene censurata la statuizione con cui, rigettata la richiesta delprovvedimento interinale di rilascio, il giudice della fase sommaria, dopo averedisposto la prosecuzione della causa con rito locatizio, ha assegnato alle partiil termine per promuovere la mediazione o — _Corte di Cassazione — civile, sez. 3, n. 11406/2026_ (passaggio letto nel testo integrale della pronuncia)
+- civ.) - il mutamento di rito ai sensi dell'art. 667 cod. proc. civ. e il giudizio prosegue nelle forme ordinarie del processo locatizio. — _Corte costituzionale, n. 79/2020_ (passaggio letto nel testo integrale della pronuncia)
+- civ.), e che in tale procedimento non sono previste preclusioni o decadenze, le quali si verificano solo nell'eventuale giudizio di cognizione che segue in caso di opposizione (art. 667 cod. proc. civ.); che la seconda questione di legittimità costituzionale - relativa all'art. — _Corte costituzionale, n. 448/1998_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «opposizione_sfratto_commerciale»
@@ -49,7 +58,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente.»
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Tentare subito un accordo con la locatrice sul piano di rientro.»
@@ -67,6 +76,14 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1587 c.c. (Obbligazioni principali del conduttore) — testo vigente, aggiornamento archivio 29/04/2026, versione `dc85ae269c231cc5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1587
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 27 l. 392/1978 (Durata della locazione non abitativa) — testo vigente, aggiornamento archivio n.d., versione `9c738325e9dc4a12` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art27
+- Corte di Cassazione — civile, sez. 3, n. 25727/2026 (testo integrale) — versione `b9ee8da77c469255` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026325727O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 23217/2026 (testo integrale) — versione `6b9dffcd07047a29` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026323217O&rows=1&wt=json
+- Corte costituzionale, n. 205/2021 (testo integrale) — versione `cc1:5651109f55f8` — https://www.cortecostituzionale.it/scheda-pronuncia/2021/205
+- Corte costituzionale, n. 79/2020 (testo integrale) — versione `cc1:17b03ab6d9e5` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/79
+- Corte costituzionale, n. 142/1990 (testo integrale) — versione `cc1:d859afabe4fd` — https://www.cortecostituzionale.it/scheda-pronuncia/1990/142
+- Corte di Cassazione — civile, sez. 3, n. 11783/2026 (testo integrale) — versione `fd9ef9b3a45ea526` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311783O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
+- Corte costituzionale, n. 448/1998 (testo integrale) — versione `cc1:60449d2460f3` — https://www.cortecostituzionale.it/scheda-pronuncia/1998/448
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

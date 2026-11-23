@@ -1,6 +1,6 @@
 # Clausole vessatorie
 
-- ID: `ist-clausole-vessatorie` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-clausole-vessatorie` · materia: consumatori · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 0 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Scheda in attesa di fonti.
@@ -29,14 +29,14 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - nessuno
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - la regola «consumatore» richiede fatti concreti (ValueError)
 - Norma di riferimento art. 33 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 - Norma di riferimento art. 34 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Fonti con versione
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

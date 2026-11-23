@@ -1,7 +1,7 @@
 # Restituzione del deposito cauzionale e cause di locazione
 
-- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
-- Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 1 · ultimo controllo 24/11/2026 00:20
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 447-bis c.p.c..
 
@@ -31,15 +31,19 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+## Giurisprudenza che cita le norme (orientamenti da valutare)
+- S.r.l., conduttrice di un immobile di proprietà di Reteristorazione all’interno della stazione ferroviaria di Pescara PortaNuova, adì con ricorso ex art. 447-bis c.p.c. il Tribunale di Pescara,chiedendo pronunciarsi la risoluzione del contratto di locazione pergrave inadempimento della locatrice all’obbligo di mantenerel’immobile in buono stato locativo e la condanna della stessa alrisarcimento dei danni.2. — _Corte di Cassazione — civile, sez. 3, n. 28985/2026_ (passaggio letto nel testo integrale della pronuncia)
+- rito del lavoro), in quanto applicabili (art. 447-bis, primocomma, cod. proc. civ.).in relazione a tali specifiche controversie, infatti, la legge stabilisce«espressamente» (arg. — _Corte di Cassazione — civile, sez. 3, n. 28247/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Con ricorso ex art.447-bis cod. proc. civ., depositato il 28dicembre 2012, Luigina Pace convenne il Ministero della Giustiziadinanzi al Tribunale di Roma, deducendo che:- in quanto dipendente, sino al maggio 2012, del Ministeroconvenuto presso il Dipartimento della Giustizia Minorile, le era statoconcesso, dal febbraio 1990, l’uso di un alloggio demaniale di proprietàdell’amministrazione, — _Corte di Cassazione — civile, sez. 3, n. 27991/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 1.- Nel corso di un giudizio di opposizione a decreto ingiuntivo - proposto «nelle forme ordinarie», con atto di citazione notificato alla controparte, in relazione al quale era stato però disposto il mutamento del rito, per inerenza del credito azionato a rapporto di locazione ricadente (ex art. 447-bis del codice di procedura civile) nell'ambito delle controversie per le quali è prescritto il rito speciale del lavoro (da introdursi con deposito del ricorso in cancelleria ai sensi degli articoli 409 e seguenti dello stesso codice) - l'adito Tribunale ordinario di Verona, in composizione monocratica, chiamato a pronunciarsi sull'eccezione avversaria di tardività dell'opposizion — _Corte costituzionale, n. 45/2018_ (passaggio letto nel testo integrale della pronuncia)
+- 23»; che la questione è sorta nel corso di un giudizio promosso con ricorso ex art. 447-bis del codice di procedura civile, mediante il quale un locatore ha chiesto l'accertamento della validità e dell'efficacia del contratto di locazione immobiliare per uso abitativo concluso verbalmente il 15 luglio 2002, ma non registrato entro il termine di legge, e ha chiesto la condanna del conduttore al pagamento della somma pari alla differenza tra il canone concordato e quell — _Corte costituzionale, n. 135/2016_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «causa_locazione»
 - Regola di Lex «mediazione_obbligatoria»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
 - Norma di riferimento art. 1590 c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 - Norma di riferimento art. 11 l. 392/1978 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
@@ -50,6 +54,11 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 21 c.p.c. (Foro per le cause relative a diritti reali e ad azioni possessorie) — testo vigente, aggiornamento archivio 05/03/2026, versione `a49b022144e077b5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art21
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 - art. 9 c.p.c. (Competenza del tribunale) — testo vigente, aggiornamento archivio 05/03/2026, versione `3513c78f4e954cde` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art9
+- Corte di Cassazione — civile, sez. 3, n. 28985/2026 (testo integrale) — versione `e8cd4974c151d4cf` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328985O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 28247/2026 (testo integrale) — versione `c4b908fbb0b25482` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328247O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 27991/2026 (testo integrale) — versione `019041502f9b7c7f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026327991I&rows=1&wt=json
+- Corte costituzionale, n. 45/2018 (testo integrale) — versione `cc1:2bc5f6ecb724` — https://www.cortecostituzionale.it/scheda-pronuncia/2018/45
+- Corte costituzionale, n. 135/2016 (testo integrale) — versione `cc1:f93b6ee0b69a` — https://www.cortecostituzionale.it/scheda-pronuncia/2016/135
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

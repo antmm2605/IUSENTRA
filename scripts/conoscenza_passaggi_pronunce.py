@@ -90,19 +90,6 @@ def _apri(percorso: str):
     return c
 
 
-_NUMERI: dict[int, dict] = {}
-
-
-def _indice_numeri(db) -> dict:
-    """(numero, anno) → id, con una sola lettura dell'archivio (la colonna numero non ha indice)."""
-    if id(db) not in _NUMERI:
-        indice: dict = {}
-        for r in db.execute("SELECT id, numero_sentenza, anno_sentenza FROM sentenze"):
-            indice.setdefault((str(r[1] or "").lstrip("0"), int(r[2] or 0)), []).append(r[0])
-        _NUMERI[id(db)] = indice
-    return _NUMERI[id(db)]
-
-
 def leggi(ingresso: Path, uscita: Path) -> None:
     dati = json.loads(ingresso.read_text(encoding="utf-8"))
     cass = _apri(os.environ.get("SENTENZEWEB_DB", "/public-sentenzeweb/giurisprudenza_corpus.db"))
@@ -124,9 +111,12 @@ def leggi(ingresso: Path, uscita: Path) -> None:
                 # Identificativo SentenzeWeb dell'URL ufficiale: lettura per indice, senza scansioni dell'archivio.
                 righe = db.execute(f"SELECT {colonne} FROM sentenze WHERE uuid_interno=?",
                                    ("sentenzeweb:" + uuid.group(1),)).fetchall()
+            elif costituzionale:
+                # ECLI della Corte costituzionale (indicizzato): niente scansioni dell'archivio dello studio.
+                righe = db.execute(f"SELECT {colonne} FROM sentenze WHERE ecli=?",
+                                   (f"ECLI:IT:COST:{int(p['anno'])}:{str(p['numero']).lstrip('0')}",)).fetchall()
             else:
-                ids = _indice_numeri(db).get((str(p["numero"]).lstrip("0"), int(p["anno"])), [])
-                righe = [r for i in ids for r in db.execute(f"SELECT {colonne} FROM sentenze WHERE id=?", (i,)).fetchall()]
+                righe = []
             ramo = "pen" if "penale" in p.get("organo", "").lower() else ("civ" if "civile" in p.get("organo", "").lower() else "")
             righe = [r for r in righe if not ramo or ramo in str(r["organo_giudicante"] or "").lower()] or righe
             trovato = None
@@ -164,8 +154,24 @@ def leggi(ingresso: Path, uscita: Path) -> None:
 
 
 # ------------------------------------------------------------------------------------------------ 3. scrivi
+_INTESTAZIONI = re.compile(
+    r"(?:^\s*\d{1,6}/\d{4}\s+)?(?:Numero registro generale|Numero di raccolta generale|Num\s?ero sezionale)\s*\d+/?\d*|"
+    r"Data pubblicazione\s*\d{2}/\d{2}/\d{4}|Firmato Da:[^.]{0,120}?Serial#:\s*\w+", re.I)
+
+
+def pulisci(passaggio: str) -> str:
+    """Toglie le intestazioni di pagina del PDF della Cassazione finite in mezzo al testo; le parole della pronuncia
+    restano come sono (nessuna correzione del testo)."""
+    t = _INTESTAZIONI.sub(" ", passaggio)
+    t = re.sub(r"^\s*\d{1,6}/\d{4}\s+", "", t)
+    return " ".join(t.split())
+
+
 def scrivi(letti: Path) -> None:
     dati = json.loads(letti.read_text(encoding="utf-8"))
+    for elenco in dati["norme"].values():
+        for p in elenco:
+            p["passaggio"] = pulisci(p["passaggio"])
     out = {"metodo": "pronunce dell'indice per norma lette nel testo: entra solo chi cita l'articolo dell'atto, con il "
                      "passaggio; «massima» quando il passaggio è solo nella massima",
            "letto_il": dati["letto_il"], "conteggi": dati["conteggi"],

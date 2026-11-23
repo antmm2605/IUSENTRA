@@ -1,6 +1,6 @@
 # Composizione negoziata della crisi
 
-- ID: `ist-composizione-negoziata` · materia: crisi d'impresa e sovraindebitamento · revisione 1 · ultimo controllo 23/11/2026 23:42
+- ID: `ist-composizione-negoziata` · materia: crisi d'impresa e sovraindebitamento · revisione 1 · ultimo controllo 24/11/2026 00:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di nomina dell'esperto sulla piattaforma telematica della camera di commercio, con eventuali misure protettive.
@@ -33,14 +33,14 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
-## Orientamenti della giurisprudenza
+## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
 
 ## Strumenti del software
 - Regola di Lex «crisi_composizione_negoziata»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Orientamenti della giurisprudenza.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 12 d.lgs. 14/2019 (CCII) (Composizione negoziata per la soluzione della crisi d'impresa) — testo vigente, aggiornamento archivio 21/11/2026, versione `70f62dfa2c3d4a5a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art12
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 18 d.lgs. 14/2019 (CCII) (Misure protettive) — testo vigente, aggiornamento archivio 21/11/2026, versione `e2c7f6a5f873ce5f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art18
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:42 · prima generazione
+- r1 · 24/11/2026 00:20 · prima generazione

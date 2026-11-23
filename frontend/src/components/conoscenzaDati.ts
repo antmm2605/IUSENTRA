@@ -32,7 +32,7 @@ export type Norma = { citazione: string; rubrica: string; testo: string; inizio:
 export const SEZIONI: [string, string][] = [
   ['presupposti', 'Presupposti'], ['eccezioni', 'Eccezioni e tranelli'], ['termini', 'Termini'], ['rimedi', 'Rimedi e forme'],
   ['giudice_rito', 'Giudice e rito'], ['prove_oneri', 'Prove e oneri'], ['documenti', 'Documenti e dati da verificare'],
-  ['questioni', 'Questioni interpretative'], ['orientamenti', 'Orientamenti della giurisprudenza'],
+  ['questioni', 'Questioni interpretative'], ['orientamenti', 'Giurisprudenza che cita le norme (orientamenti da valutare)'],
 ]
 export const STATI: Record<string, { etichetta: string; tono: 'success' | 'warning' | 'danger' | 'neutral' }> = {
   verificata: { etichetta: 'Verificata', tono: 'success' },

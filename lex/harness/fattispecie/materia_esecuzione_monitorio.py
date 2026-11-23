@@ -58,7 +58,7 @@ PIGNORAMENTO_IMMOBILIARE = Scheda(
     segnali=(r"pignoramento immobiliare|pignor\w*[^.?]{0,50}(?:\bcasa\b|immobil|appartamento|terreno|villa|fabbricat)|"
              r"(?:\bcasa\b|immobil|appartamento|terreno|villa)[^.?]{0,60}pignor|"
              r"documentazione ipocatastale|certificato notarile|ventennale|nota di trascrizione",),
-    esclusi=(r"opposizion|conversion|a rate|\bmobili\b|merce|impignorabil|presso terzi|stipendi|pension", *_NON_ESEC), punteggio=7,
+    esclusi=(r"opposizion|conversion|a rate|\bmobili\b|merce|impignorabil|presso terzi|stipendi|pension|usucap", *_NON_ESEC), punteggio=7,
     capito="Creditore che vuole pignorare un immobile del debitore.",
     rimedio="atto di pignoramento immobiliare notificato e trascritto, iscrizione a ruolo, istanza di vendita con la documentazione",
     conclusione=[

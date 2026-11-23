@@ -231,7 +231,7 @@ ATP = Scheda(
     regola="cau_atp", materia="cautelare e urgenza", nome="accertamento tecnico preventivo e consulenza tecnica preventiva",
     segnali=(r"\batp\b|accertamento tecnico preventivo|696-?bis|consulenza tecnica preventiva|\b696\b|cristallizzar\w* lo stato|"
              r"stato dei luoghi[^.]{0,40}prima",),
-    esclusi=(_NON_CIVILE, r"invalidita|445-?bis|obbligatorio|responsabilita (?:medica|sanitaria)|ospedal|medic"), punteggio=6,
+    esclusi=(_NON_CIVILE, r"invalidita|445-?bis|obbligatorio|responsabilita (?:medica|sanitaria)|ospedal|medic|clinica|chirurg|sanitari"), punteggio=6,
     capito="Accertamento tecnico prima della causa: urgente (art. 696) o a fini conciliativi (art. 696-bis).",
     rimedio="ricorso per accertamento tecnico preventivo o per consulenza tecnica preventiva ai fini della composizione della lite",
     conclusione=[

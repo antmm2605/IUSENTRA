@@ -4,6 +4,7 @@ import { ApplicazionePage } from '../../components/ApplicazionePage'
 import { ChecklistAttiPage } from '../../components/ChecklistAttiPage'
 import { ContrattiPage } from '../../components/ContrattiPage'
 import { CodiciLeggiPage } from '../../components/CodiciLeggiPage'
+import { ConoscenzaPage } from '../../components/ConoscenzaPage'
 import { DocumentEditorPage } from '../../components/DocumentEditorPage'
 import { DocumentToolsPage } from '../../components/DocumentToolsPage'
 import { EditorProfessionalePage } from '../../components/EditorProfessionalePage'
@@ -37,6 +38,7 @@ export const EditorProfessionale: Story = createPageStory({ sourcePath: 'src/com
 export const RicercaLegale: Story = createPageStory({ sourcePath: 'src/components/LegalIntelligencePage.tsx', title: 'Ricerca legale', render: () => <LegalIntelligencePage /> })
 export const CodiciLeggi: Story = createPageStory({ sourcePath: 'src/components/CodiciLeggiPage.tsx', title: 'Codici e leggi', render: () => <CodiciLeggiPage /> })
 export const GazzettaUfficiale: Story = createPageStory({ sourcePath: 'src/components/GazzettaUfficialePage.tsx', title: 'Gazzetta Ufficiale', render: () => <GazzettaUfficialePage /> })
+export const Conoscenza: Story = createPageStory({ sourcePath: 'src/components/ConoscenzaPage.tsx', title: 'Conoscenza — schede di istituto', render: () => <ConoscenzaPage /> })
 export const NormeModelliAtto: Story = createPageStory({ sourcePath: 'src/components/SchedeFontiPage.tsx', title: 'Norme dei modelli d’atto', render: () => <SchedeFontiPage /> })
 export const ContenutiSitoStudio: Story = createPageStory({ sourcePath: 'src/components/SitoStudioContenutiPage.tsx', title: 'Contenuti del sito dello studio', render: () => <SitoStudioContenutiPage /> })
 export const ChecklistAtti: Story = createPageStory({ sourcePath: 'src/components/ChecklistAttiPage.tsx', title: 'Checklist degli atti', render: () => <ChecklistAttiPage /> })

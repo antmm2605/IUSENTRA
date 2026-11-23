@@ -458,6 +458,11 @@ function payloadFor(url: URL): ApiPayload {
       text: 'La capacità giuridica si acquista dal momento della nascita.\nI diritti che la legge riconosce a favore del concepito sono subordinati all’evento della nascita.',
       source_url: 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262', source_label: 'Normattiva' },
   }
+  if (url.pathname === '/api/v1/ui/conoscenza') return {
+    ok: true, puo_annotare: true, totale: 1, aggiornato_il: '2026-11-23T23:30:00+01:00', conteggi: { verificata: 1, lacune: 0, da_riesaminare: 0 },
+    materie: [{ materia: 'esecuzione contro la PA', conteggi: { verificata: 1 }, schede: [{ id: 'ist-esecuzione-contro-pa', titolo: 'Esecuzione forzata contro la PA e ottemperanza del giudicato', materia: 'esecuzione contro la PA',
+      sintesi: 'Precetto non prima di 120 giorni dalla notifica del titolo esecutivo.', fonti_dirette: 4, stato: 'verificata', sezioni_compilate: 5, sezioni_mancanti: [], revisione: 1, ultimo_controllo: '2026-11-23T23:30:00+01:00' }] }],
+  }
   if (url.pathname === '/api/v1/ui/schede-fonti') return {
     ok: true, puo_decidere: true,
     riepilogo: { eseguito_il: '2026-10-24T23:10:00', norme: 2473, stati: { presente: 2473 }, commi_abrogati: 75,

@@ -1,0 +1,4113 @@
+{
+ "schema": 1,
+ "origine": "catalogo degli strumenti dell'avvocato (~/iusentra-controlli/lex/copertura-strumenti/catalogo.json, 23/11/2026): 150 istituti in 25 materie, norme verificate nella biblioteca vigente",
+ "materie": [
+  "pubblico impiego",
+  "lavoro",
+  "previdenza",
+  "esecuzione contro la PA",
+  "amministrativo",
+  "esecuzione",
+  "civile ordinario",
+  "cautelare e urgenza",
+  "possessorio",
+  "monitorio",
+  "famiglia e minori",
+  "successioni",
+  "diritti reali e condominio",
+  "contratti",
+  "responsabilità civile",
+  "locazioni",
+  "consumatori",
+  "bancario e finanziario",
+  "società e impresa",
+  "crisi d'impresa e sovraindebitamento",
+  "tributario",
+  "penale",
+  "violazioni amministrative",
+  "immigrazione",
+  "privacy",
+  "stragiudiziale"
+ ],
+ "istituti": [
+  {
+   "id": "citazione",
+   "materia": "civile ordinario",
+   "nome": "Atto di citazione (rito ordinario di cognizione)",
+   "regole": [
+    "civ_citazione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:163",
+     "citazione": "art. 163 c.p.c.",
+     "rubrica": "Contenuto della citazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:163bis",
+     "citazione": "art. 163-bis c.p.c.",
+     "rubrica": "Termini per comparire",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:165",
+     "citazione": "art. 165 c.p.c.",
+     "rubrica": "Costituzione dell'attore",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:171ter",
+     "citazione": "art. 171-ter c.p.c.",
+     "rubrica": "Memorie integrative",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Mi prepari un atto di citazione per far condannare il vicino a pagarmi 18.000 euro di danni?"
+  },
+  {
+   "id": "comparsa",
+   "materia": "civile ordinario",
+   "nome": "Comparsa di costituzione e risposta",
+   "regole": [
+    "comparsa_risposta"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:166",
+     "citazione": "art. 166 c.p.c.",
+     "rubrica": "Costituzione del convenuto",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:167",
+     "citazione": "art. 167 c.p.c.",
+     "rubrica": "Comparsa di risposta",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:171ter",
+     "citazione": "art. 171-ter c.p.c.",
+     "rubrica": "Memorie integrative",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Scrivi la comparsa di costituzione e risposta per il convenuto nella causa per i danni da infiltrazioni."
+  },
+  {
+   "id": "memorie_171ter",
+   "materia": "civile ordinario",
+   "nome": "Memorie integrative art. 171-ter c.p.c.",
+   "regole": [
+    "civ_memorie_171ter"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:171ter",
+     "citazione": "art. 171-ter c.p.c.",
+     "rubrica": "Memorie integrative",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:171bis",
+     "citazione": "art. 171-bis c.p.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Quando scadono le tre memorie del 171-ter se l'udienza è fissata al 15/03/2027?"
+  },
+  {
+   "id": "appello_civile",
+   "materia": "civile ordinario",
+   "nome": "Atto di appello civile",
+   "regole": [
+    "civ_appello"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:339",
+     "citazione": "art. 339 c.p.c.",
+     "rubrica": "Appellabilità delle sentenze",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:342",
+     "citazione": "art. 342 c.p.c.",
+     "rubrica": "Forma dell'appello",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:325",
+     "citazione": "art. 325 c.p.c.",
+     "rubrica": "Termini per le impugnazioni",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:327",
+     "citazione": "art. 327 c.p.c.",
+     "rubrica": "Decadenza dall'impugnazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:348bis",
+     "citazione": "art. 348-bis c.p.c.",
+     "rubrica": "Inammissibilità e manifesta infondatezza dell'appello",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La sentenza del tribunale ci ha dato torto, entro quando possiamo fare appello?"
+  },
+  {
+   "id": "cassazione_civile",
+   "materia": "civile ordinario",
+   "nome": "Ricorso per cassazione civile",
+   "regole": [
+    "civ_cassazione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:360",
+     "citazione": "art. 360 c.p.c.",
+     "rubrica": "Sentenze impugnabili e motivi di ricorso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:365",
+     "citazione": "art. 365 c.p.c.",
+     "rubrica": "Sottoscrizione del ricorso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:366",
+     "citazione": "art. 366 c.p.c.",
+     "rubrica": "Contenuto del ricorso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:325",
+     "citazione": "art. 325 c.p.c.",
+     "rubrica": "Termini per le impugnazioni",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:327",
+     "citazione": "art. 327 c.p.c.",
+     "rubrica": "Decadenza dall'impugnazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:380bis",
+     "citazione": "art. 380-bis c.p.c.",
+     "rubrica": "Procedimento per la decisione accelerata dei ricorsi inammissibili, improcedibili o manifestamente infondati",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Vogliamo ricorrere in Cassazione contro la sentenza della Corte d'appello: termini e motivi?"
+  },
+  {
+   "id": "revocazione",
+   "materia": "civile ordinario",
+   "nome": "Revocazione della sentenza",
+   "regole": [
+    "civ_revocazione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:395",
+     "citazione": "art. 395 c.p.c.",
+     "rubrica": "Casi di revocazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:396",
+     "citazione": "art. 396 c.p.c.",
+     "rubrica": "Revocazione delle sentenze per le quali è scaduto il termine per l'appello",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:398",
+     "citazione": "art. 398 c.p.c.",
+     "rubrica": "Proposizione della domanda",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Abbiamo scoperto che la sentenza si basa su documenti falsi, possiamo chiederne la revocazione?"
+  },
+  {
+   "id": "opposizione_terzo",
+   "materia": "civile ordinario",
+   "nome": "Opposizione di terzo",
+   "regole": [
+    "civ_opposizione_terzo"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:404",
+     "citazione": "art. 404 c.p.c.",
+     "rubrica": "Casi di opposizione di terzo",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:405",
+     "citazione": "art. 405 c.p.c.",
+     "rubrica": "Domanda di opposizione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Una sentenza tra altri pregiudica i diritti del mio cliente, come può opporsi?"
+  },
+  {
+   "id": "regolamento_competenza",
+   "materia": "civile ordinario",
+   "nome": "Regolamento di competenza",
+   "regole": [
+    "civ_regolamento_competenza"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:42",
+     "citazione": "art. 42 c.p.c.",
+     "rubrica": "Regolamento necessario di competenza",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:43",
+     "citazione": "art. 43 c.p.c.",
+     "rubrica": "Regolamento facoltativo di competenza",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:47",
+     "citazione": "art. 47 c.p.c.",
+     "rubrica": "Procedimento del regolamento di competenza",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il tribunale si è dichiarato incompetente, possiamo fare regolamento di competenza?"
+  },
+  {
+   "id": "rito_semplificato",
+   "materia": "civile ordinario",
+   "nome": "Procedimento semplificato di cognizione (art. 281-decies)",
+   "regole": [
+    "rito_semplificato"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:281decies",
+     "citazione": "art. 281-decies c.p.c.",
+     "rubrica": "Ambito di applicazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:281undecies",
+     "citazione": "art. 281-undecies c.p.c.",
+     "rubrica": "Forma della domanda e costituzione delle parti",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:281duodecies",
+     "citazione": "art. 281-duodecies c.p.c.",
+     "rubrica": "Procedimento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Quando si può usare il rito semplificato di cognizione?"
+  },
+  {
+   "id": "ricorso_700",
+   "materia": "cautelare e urgenza",
+   "nome": "Provvedimento d'urgenza (art. 700 c.p.c.)",
+   "regole": [
+    "cau_700"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:700",
+     "citazione": "art. 700 c.p.c.",
+     "rubrica": "Condizioni per la concessione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:669bis",
+     "citazione": "art. 669-bis c.p.c.",
+     "rubrica": "Forma della domanda",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:669octies",
+     "citazione": "art. 669-octies c.p.c.",
+     "rubrica": "Provvedimento di accoglimento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Mi serve un ricorso d'urgenza ex 700 per far riattivare la fornitura elettrica al cliente."
+  },
+  {
+   "id": "sequestro",
+   "materia": "cautelare e urgenza",
+   "nome": "Sequestro conservativo e giudiziario",
+   "regole": [
+    "sequestro_conservativo"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:671",
+     "citazione": "art. 671 c.p.c.",
+     "rubrica": "Sequestro conservativo",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:670",
+     "citazione": "art. 670 c.p.c.",
+     "rubrica": "Sequestro giudiziario",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:675",
+     "citazione": "art. 675 c.p.c.",
+     "rubrica": "Termine d'efficacia del provvedimento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:669novies",
+     "citazione": "art. 669-novies c.p.c.",
+     "rubrica": "Inefficacia del provvedimento cautelare",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2905",
+     "citazione": "art. 2905 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il debitore sta vendendo tutti i beni, possiamo chiedere un sequestro conservativo?"
+  },
+  {
+   "id": "atp",
+   "materia": "cautelare e urgenza",
+   "nome": "Accertamento tecnico preventivo e consulenza tecnica preventiva (artt. 696 e 696-bis)",
+   "regole": [
+    "cau_atp"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:696",
+     "citazione": "art. 696 c.p.c.",
+     "rubrica": "Accertamento tecnico e ispezione giudiziale",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:696bis",
+     "citazione": "art. 696-bis c.p.c.",
+     "rubrica": "Consulenza tecnica preventiva ai fini della composizione della lite",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Prima di fare causa all'impresa vogliamo un accertamento tecnico preventivo sulle crepe: come si fa?"
+  },
+  {
+   "id": "istruzione_preventiva",
+   "materia": "cautelare e urgenza",
+   "nome": "Istruzione preventiva (testimoni a futura memoria, art. 692)",
+   "regole": [
+    "cau_istruzione_preventiva"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:692",
+     "citazione": "art. 692 c.p.c.",
+     "rubrica": "Assunzione di testimoni",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:693",
+     "citazione": "art. 693 c.p.c.",
+     "rubrica": "Istanza",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:698",
+     "citazione": "art. 698 c.p.c.",
+     "rubrica": "Assunzione ed efficacia delle prove preventive",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Un testimone fondamentale è gravemente malato, possiamo sentirlo prima della causa?"
+  },
+  {
+   "id": "reclamo_cautelare",
+   "materia": "cautelare e urgenza",
+   "nome": "Reclamo cautelare (art. 669-terdecies)",
+   "regole": [
+    "cau_reclamo"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:669terdecies",
+     "citazione": "art. 669-terdecies c.p.c.",
+     "rubrica": "Reclamo contro i provvedimenti cautelari",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il giudice ha rigettato il nostro 700, entro quando possiamo reclamare?"
+  },
+  {
+   "id": "reintegrazione",
+   "materia": "possessorio",
+   "nome": "Azione di reintegrazione (spoglio)",
+   "regole": [
+    "pos_reintegrazione"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1168",
+     "citazione": "art. 1168 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:703",
+     "citazione": "art. 703 c.p.c.",
+     "rubrica": "Domande di reintegrazione e di manutenzione nel possesso",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il vicino ha cambiato la serratura del cancello e il mio cliente non può più entrare: cosa facciamo?"
+  },
+  {
+   "id": "manutenzione",
+   "materia": "possessorio",
+   "nome": "Azione di manutenzione",
+   "regole": [
+    "pos_manutenzione"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1170",
+     "citazione": "art. 1170 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:703",
+     "citazione": "art. 703 c.p.c.",
+     "rubrica": "Domande di reintegrazione e di manutenzione nel possesso",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il vicino ci molesta nel passaggio sul fondo, possiamo agire in manutenzione?"
+  },
+  {
+   "id": "nuova_opera",
+   "materia": "possessorio",
+   "nome": "Denuncia di nuova opera e di danno temuto",
+   "regole": [
+    "pos_nuova_opera_danno_temuto"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1171",
+     "citazione": "art. 1171 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1172",
+     "citazione": "art. 1172 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:688",
+     "citazione": "art. 688 c.p.c.",
+     "rubrica": "Forma dell'istanza",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il confinante sta costruendo un muro che ci toglie luce, i lavori sono iniziati da un mese: possiamo bloccarli?"
+  },
+  {
+   "id": "decreto_ingiuntivo",
+   "materia": "monitorio",
+   "nome": "Ricorso per decreto ingiuntivo",
+   "regole": [
+    "decreto_ingiuntivo",
+    "notifica_decreto_ingiuntivo"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:633",
+     "citazione": "art. 633 c.p.c.",
+     "rubrica": "Condizioni di ammissibilità",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:634",
+     "citazione": "art. 634 c.p.c.",
+     "rubrica": "Prova scritta",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:641",
+     "citazione": "art. 641 c.p.c.",
+     "rubrica": "Accoglimento della domanda",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:644",
+     "citazione": "art. 644 c.p.c.",
+     "rubrica": "Mancata notificazione del decreto",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente ha fatture non pagate per 12.000 euro e la diffida è rimasta senza esito: facciamo un decreto ingiuntivo?"
+  },
+  {
+   "id": "provvisoria_esecuzione",
+   "materia": "monitorio",
+   "nome": "Provvisoria esecuzione del decreto (artt. 642 e 648)",
+   "regole": [
+    "decreto_ingiuntivo",
+    "opposizione_decreto_ingiuntivo",
+    "mon_provvisoria_esecuzione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:642",
+     "citazione": "art. 642 c.p.c.",
+     "rubrica": "Esecuzione provvisoria",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:648",
+     "citazione": "art. 648 c.p.c.",
+     "rubrica": "Esecuzione provvisoria in pendenza di opposizione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Possiamo chiedere che il decreto ingiuntivo sia subito esecutivo?"
+  },
+  {
+   "id": "opposizione_di",
+   "materia": "monitorio",
+   "nome": "Opposizione a decreto ingiuntivo",
+   "regole": [
+    "opposizione_decreto_ingiuntivo"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:645",
+     "citazione": "art. 645 c.p.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:641",
+     "citazione": "art. 641 c.p.c.",
+     "rubrica": "Accoglimento della domanda",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:647",
+     "citazione": "art. 647 c.p.c.",
+     "rubrica": "Esecutorietà per mancata opposizione o per mancata attività dell'opponente",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Mi è arrivato un decreto ingiuntivo n. 345/2026 notificato il 02/11/2026, come ci opponiamo?"
+  },
+  {
+   "id": "opposizione_tardiva_di",
+   "materia": "monitorio",
+   "nome": "Opposizione tardiva a decreto ingiuntivo (art. 650)",
+   "regole": [
+    "mon_opposizione_tardiva"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:650",
+     "citazione": "art. 650 c.p.c.",
+     "rubrica": "Opposizione tardiva",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il decreto ingiuntivo è stato notificato a un vecchio indirizzo e l'ho scoperto solo ora: si può ancora fare opposizione?"
+  },
+  {
+   "id": "precetto",
+   "materia": "esecuzione",
+   "nome": "Atto di precetto",
+   "regole": [
+    "termini_precetto"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:480",
+     "citazione": "art. 480 c.p.c.",
+     "rubrica": "Forma del precetto",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:481",
+     "citazione": "art. 481 c.p.c.",
+     "rubrica": "Cessazione dell'efficacia del precetto",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:479",
+     "citazione": "art. 479 c.p.c.",
+     "rubrica": "Notificazione del titolo esecutivo e del precetto",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Abbiamo la sentenza esecutiva, come redigo il precetto?"
+  },
+  {
+   "id": "pignoramento_mobiliare",
+   "materia": "esecuzione",
+   "nome": "Pignoramento mobiliare presso il debitore",
+   "regole": [
+    "es_pignoramento_mobiliare"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:513",
+     "citazione": "art. 513 c.p.c.",
+     "rubrica": "Ricerca delle cose da pignorare",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:518",
+     "citazione": "art. 518 c.p.c.",
+     "rubrica": "Forma del pignoramento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:497",
+     "citazione": "art. 497 c.p.c.",
+     "rubrica": "Cessazione dell'efficacia del pignoramento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Come faccio un pignoramento dei beni mobili in casa del debitore?"
+  },
+  {
+   "id": "pignoramento_immobiliare",
+   "materia": "esecuzione",
+   "nome": "Pignoramento immobiliare",
+   "regole": [
+    "es_pignoramento_immobiliare"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:555",
+     "citazione": "art. 555 c.p.c.",
+     "rubrica": "Forma del pignoramento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:557",
+     "citazione": "art. 557 c.p.c.",
+     "rubrica": "Deposito dell'atto di pignoramento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:567",
+     "citazione": "art. 567 c.p.c.",
+     "rubrica": "Istanza di vendita",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il debitore ha una casa: come procediamo con il pignoramento immobiliare?"
+  },
+  {
+   "id": "pignoramento_terzi",
+   "materia": "esecuzione",
+   "nome": "Pignoramento presso terzi",
+   "regole": [
+    "es_pignoramento_terzi",
+    "pignoramento_terzi"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:543",
+     "citazione": "art. 543 c.p.c.",
+     "rubrica": "Forma del pignoramento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:545",
+     "citazione": "art. 545 c.p.c.",
+     "rubrica": "Crediti impignorabili",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:547",
+     "citazione": "art. 547 c.p.c.",
+     "rubrica": "Dichiarazione del terzo",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:548",
+     "citazione": "art. 548 c.p.c.",
+     "rubrica": "Mancata dichiarazione del terzo",
+     "stato_biblioteca": "vigente (alcuni commi abrogati)"
+    }
+   ],
+   "frase_esempio": "Il debitore lavora come dipendente, possiamo pignorare lo stipendio?"
+  },
+  {
+   "id": "opposizione_esecuzione",
+   "materia": "esecuzione",
+   "nome": "Opposizione all'esecuzione (art. 615)",
+   "regole": [
+    "opposizione_precetto",
+    "es_opposizione_esecuzione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:615",
+     "citazione": "art. 615 c.p.c.",
+     "rubrica": "Forma dell'opposizione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:624",
+     "citazione": "art. 624 c.p.c.",
+     "rubrica": "Sospensione per opposizione all'esecuzione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Ci hanno notificato un precetto ma il debito è già stato pagato: come ci opponiamo?"
+  },
+  {
+   "id": "opposizione_atti_esecutivi",
+   "materia": "esecuzione",
+   "nome": "Opposizione agli atti esecutivi (art. 617)",
+   "regole": [
+    "opposizione_atti_esecutivi",
+    "opposizione_precetto"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:617",
+     "citazione": "art. 617 c.p.c.",
+     "rubrica": "Forma dell'opposizione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:618",
+     "citazione": "art. 618 c.p.c.",
+     "rubrica": "Provvedimenti del giudice dell'esecuzione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il pignoramento contiene un vizio di forma, entro quanto facciamo opposizione agli atti esecutivi?"
+  },
+  {
+   "id": "opposizione_terzo_esecuzione",
+   "materia": "esecuzione",
+   "nome": "Opposizione di terzo all'esecuzione (art. 619)",
+   "regole": [
+    "es_opposizione_terzo"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:619",
+     "citazione": "art. 619 c.p.c.",
+     "rubrica": "Forma dell'opposizione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:620",
+     "citazione": "art. 620 c.p.c.",
+     "rubrica": "Opposizione tardiva",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Hanno pignorato mobili che sono di mia proprietà, non del debitore: cosa posso fare?"
+  },
+  {
+   "id": "conversione_pignoramento",
+   "materia": "esecuzione",
+   "nome": "Conversione del pignoramento (art. 495)",
+   "regole": [
+    "es_conversione_pignoramento"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:495",
+     "citazione": "art. 495 c.p.c.",
+     "rubrica": "Conversione del pignoramento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il debitore vuole evitare la vendita della casa pagando a rate: è possibile la conversione del pignoramento?"
+  },
+  {
+   "id": "ricerca_beni",
+   "materia": "esecuzione",
+   "nome": "Ricerca telematica dei beni (art. 492-bis)",
+   "regole": [
+    "es_ricerca_beni",
+    "ricerca_beni"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:492bis",
+     "citazione": "art. 492-bis c.p.c.",
+     "rubrica": "Ricerca con modalità telematiche dei beni da pignorare",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dispattcpc:155quinquies",
+     "citazione": "art. 155-quinquies disp. att. c.p.c.",
+     "rubrica": "Accesso alle banche dati tramite i gestori",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Non sappiamo che beni ha il debitore: come chiediamo la ricerca telematica?"
+  },
+  {
+   "id": "obblighi_fare",
+   "materia": "esecuzione",
+   "nome": "Esecuzione degli obblighi di fare e non fare; misure coercitive (artt. 612 e 614-bis)",
+   "regole": [
+    "es_obblighi_fare"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:612",
+     "citazione": "art. 612 c.p.c.",
+     "rubrica": "Provvedimento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:614bis",
+     "citazione": "art. 614-bis c.p.c.",
+     "rubrica": "Misure di coercizione indiretta",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2931",
+     "citazione": "art. 2931 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La sentenza condanna il vicino a demolire la veranda ma non lo fa: come si esegue?"
+  },
+  {
+   "id": "separazione",
+   "materia": "famiglia e minori",
+   "nome": "Separazione personale (giudiziale e consensuale)",
+   "regole": [
+    "separazione_giudiziale"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:151",
+     "citazione": "art. 151 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:473bis.12",
+     "citazione": "art. 473-bis.12 c.p.c.",
+     "rubrica": "Forma della domanda",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:473bis.51",
+     "citazione": "art. 473-bis.51 c.p.c.",
+     "rubrica": "Procedimento su domanda congiunta",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:473bis.11",
+     "citazione": "art. 473-bis.11 c.p.c.",
+     "rubrica": "Competenza per territorio",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La cliente vuole separarsi dal marito violento, come impostiamo il ricorso?"
+  },
+  {
+   "id": "divorzio",
+   "materia": "famiglia e minori",
+   "nome": "Divorzio (scioglimento e cessazione degli effetti civili)",
+   "regole": [
+    "separazione_giudiziale",
+    "divorzio_tempi"
+   ],
+   "norme": [
+    {
+     "chiave": "l898:3",
+     "citazione": "art. 3 l. 898/1970",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l898:5",
+     "citazione": "art. 5 l. 898/1970",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:473bis.49",
+     "citazione": "art. 473-bis.49 c.p.c.",
+     "rubrica": "Cumulo di domande di separazione e scioglimento o cessazione degli effetti civili del matrimonio",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Siamo separati da un anno, possiamo chiedere il divorzio?"
+  },
+  {
+   "id": "modifica_condizioni",
+   "materia": "famiglia e minori",
+   "nome": "Modifica delle condizioni di separazione o divorzio",
+   "regole": [
+    "modifica_condizioni"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:473bis.29",
+     "citazione": "art. 473-bis.29 c.p.c.",
+     "rubrica": "Modificabilità dei provvedimenti",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l898:9",
+     "citazione": "art. 9 l. 898/1970",
+     "rubrica": "",
+     "stato_biblioteca": "vigente (alcuni commi abrogati)"
+    },
+    {
+     "chiave": "cc:337quinquies",
+     "citazione": "art. 337-quinquies c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente ha perso il lavoro e non riesce più a pagare l'assegno: possiamo ridurlo?"
+  },
+  {
+   "id": "affidamento",
+   "materia": "famiglia e minori",
+   "nome": "Affidamento e collocamento dei figli (anche nati fuori dal matrimonio)",
+   "regole": [
+    "fam_affidamento_figli"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:337ter",
+     "citazione": "art. 337-ter c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:337quater",
+     "citazione": "art. 337-quater c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:473bis.12",
+     "citazione": "art. 473-bis.12 c.p.c.",
+     "rubrica": "Forma della domanda",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Non eravamo sposati e ci siamo lasciati, come regoliamo l'affidamento del bambino?"
+  },
+  {
+   "id": "mantenimento",
+   "materia": "famiglia e minori",
+   "nome": "Mantenimento dei figli e del coniuge",
+   "regole": [
+    "figlio_maggiorenne",
+    "separazione_giudiziale"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:337ter",
+     "citazione": "art. 337-ter c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:337septies",
+     "citazione": "art. 337-septies c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:156",
+     "citazione": "art. 156 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:473bis.36",
+     "citazione": "art. 473-bis.36 c.p.c.",
+     "rubrica": "Garanzie a tutela del credito",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il figlio ha 26 anni e non lavora, il padre deve ancora mantenerlo?"
+  },
+  {
+   "id": "ordini_protezione",
+   "materia": "famiglia e minori",
+   "nome": "Ordini di protezione contro gli abusi familiari",
+   "regole": [
+    "ordini_protezione"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:342bis",
+     "citazione": "art. 342-bis c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "abrogato"
+    },
+    {
+     "chiave": "cc:342ter",
+     "citazione": "art. 342-ter c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "abrogato"
+    },
+    {
+     "chiave": "cpc:473bis.69",
+     "citazione": "art. 473-bis.69 c.p.c.",
+     "rubrica": "Ordini di protezione contro gli abusi familiari",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:473bis.70",
+     "citazione": "art. 473-bis.70 c.p.c.",
+     "rubrica": "Contenuto degli ordini di protezione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La cliente subisce violenze dal convivente: possiamo farlo allontanare da casa con un ordine del giudice?"
+  },
+  {
+   "id": "negoziazione_familiare",
+   "materia": "famiglia e minori",
+   "nome": "Negoziazione assistita familiare",
+   "regole": [
+    "negoziazione_familiare"
+   ],
+   "norme": [
+    {
+     "chiave": "dl132:6",
+     "citazione": "art. 6 d.l. 132/2014",
+     "rubrica": "Convenzione di negoziazione assistita da avvocati per le soluzioni consensuali di separazione personale, di cessazione degli effetti civili o di scioglimento del matrimonio, di modifica delle condizioni di separazione o di divorzio, di affidamento e mantenimento dei figli nati fuori del matrimonio, e loro modifica, e di alimenti",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Possiamo separarci senza andare in tribunale, con gli avvocati?"
+  },
+  {
+   "id": "disconoscimento",
+   "materia": "famiglia e minori",
+   "nome": "Disconoscimento di paternità",
+   "regole": [
+    "disconoscimento_paternita"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:243bis",
+     "citazione": "art. 243-bis c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:244",
+     "citazione": "art. 244 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il marito ha scoperto che il figlio non è suo: entro quando può fare disconoscimento?"
+  },
+  {
+   "id": "beneficio_inventario",
+   "materia": "successioni",
+   "nome": "Accettazione con beneficio d'inventario",
+   "regole": [
+    "chiamato_nel_possesso"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:484",
+     "citazione": "art. 484 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:485",
+     "citazione": "art. 485 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:487",
+     "citazione": "art. 487 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il padre è morto con molti debiti, conviene accettare con beneficio d'inventario?"
+  },
+  {
+   "id": "rinuncia_eredita",
+   "materia": "successioni",
+   "nome": "Rinuncia all'eredità",
+   "regole": [
+    "chiamato_nel_possesso"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:519",
+     "citazione": "art. 519 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:480",
+     "citazione": "art. 480 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:525",
+     "citazione": "art. 525 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Mia madre è morta piena di debiti, posso rinunciare all'eredità?"
+  },
+  {
+   "id": "petizione_eredita",
+   "materia": "successioni",
+   "nome": "Petizione di eredità",
+   "regole": [
+    "suc_petizione_eredita"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:533",
+     "citazione": "art. 533 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:534",
+     "citazione": "art. 534 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Un parente si è preso tutti i beni dell'eredità ma l'erede è il mio cliente: come li recuperiamo?"
+  },
+  {
+   "id": "divisione",
+   "materia": "successioni",
+   "nome": "Divisione ereditaria (e scioglimento della comunione)",
+   "regole": [
+    "suc_divisione",
+    "mediazione_obbligatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:713",
+     "citazione": "art. 713 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:718",
+     "citazione": "art. 718 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:784",
+     "citazione": "art. 784 c.p.c.",
+     "rubrica": "Litisconsorzio necessario",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs28:5",
+     "citazione": "art. 5 d.lgs. 28/2010",
+     "rubrica": "Condizione di procedibilità e rapporti con il processo",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Tre fratelli ereditano una casa e non si mettono d'accordo: come si divide?"
+  },
+  {
+   "id": "riduzione",
+   "materia": "successioni",
+   "nome": "Azione di riduzione (lesione di legittima)",
+   "regole": [
+    "suc_riduzione"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:553",
+     "citazione": "art. 553 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:554",
+     "citazione": "art. 554 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:557",
+     "citazione": "art. 557 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:564",
+     "citazione": "art. 564 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il papà ha lasciato tutto alla seconda moglie con testamento: i figli possono reclamare la legittima?"
+  },
+  {
+   "id": "delibera_condominio",
+   "materia": "diritti reali e condominio",
+   "nome": "Impugnazione della delibera condominiale (art. 1137)",
+   "regole": [
+    "impugnazione_delibera"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1137",
+     "citazione": "art. 1137 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dispattcc:71quater",
+     "citazione": "art. 71-quater disp. att. c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs28:5",
+     "citazione": "art. 5 d.lgs. 28/2010",
+     "rubrica": "Condizione di procedibilità e rapporti con il processo",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Come impugno una delibera condominiale che ha approvato lavori senza maggioranza?"
+  },
+  {
+   "id": "revoca_amministratore",
+   "materia": "diritti reali e condominio",
+   "nome": "Revoca giudiziale dell'amministratore di condominio",
+   "regole": [
+    "dr_revoca_amministratore"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1129",
+     "citazione": "art. 1129 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dispattcc:64",
+     "citazione": "art. 64 disp. att. c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'amministratore non presenta il rendiconto da due anni: possiamo farlo revocare dal giudice?"
+  },
+  {
+   "id": "lite_condominio",
+   "materia": "diritti reali e condominio",
+   "nome": "Danni da parti comuni e liti condominiali",
+   "regole": [
+    "lite_condominio"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1117",
+     "citazione": "art. 1117 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2051",
+     "citazione": "art. 2051 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs28:5",
+     "citazione": "art. 5 d.lgs. 28/2010",
+     "rubrica": "Condizione di procedibilità e rapporti con il processo",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Infiltrazioni dal lastrico solare condominiale: chi paga i danni?"
+  },
+  {
+   "id": "negatoria",
+   "materia": "diritti reali e condominio",
+   "nome": "Azione negatoria",
+   "regole": [
+    "dr_negatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:949",
+     "citazione": "art. 949 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il vicino pretende una servitù di passaggio che non esiste: come lo blocchiamo?"
+  },
+  {
+   "id": "confessoria",
+   "materia": "diritti reali e condominio",
+   "nome": "Azione confessoria (servitù)",
+   "regole": [
+    "dr_confessoria"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1079",
+     "citazione": "art. 1079 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il vicino ci impedisce di passare sulla stradina di cui abbiamo la servitù: come la facciamo riconoscere?"
+  },
+  {
+   "id": "usucapione",
+   "materia": "diritti reali e condominio",
+   "nome": "Usucapione",
+   "regole": [
+    "dr_usucapione",
+    "mediazione_obbligatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1158",
+     "citazione": "art. 1158 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1159",
+     "citazione": "art. 1159 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs28:5",
+     "citazione": "art. 5 d.lgs. 28/2010",
+     "rubrica": "Condizione di procedibilità e rapporti con il processo",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente coltiva quel terreno da 25 anni come proprietario: può diventarne proprietario?"
+  },
+  {
+   "id": "regolamento_confini",
+   "materia": "diritti reali e condominio",
+   "nome": "Regolamento di confini",
+   "regole": [
+    "dr_regolamento_confini"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:950",
+     "citazione": "art. 950 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:951",
+     "citazione": "art. 951 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il confine tra i due terreni è incerto: come lo fissiamo?"
+  },
+  {
+   "id": "risoluzione",
+   "materia": "contratti",
+   "nome": "Risoluzione per inadempimento",
+   "regole": [
+    "con_risoluzione"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1453",
+     "citazione": "art. 1453 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1455",
+     "citazione": "art. 1455 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1458",
+     "citazione": "art. 1458 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il fornitore non consegna da mesi: possiamo sciogliere il contratto e chiedere i danni?"
+  },
+  {
+   "id": "caparra",
+   "materia": "contratti",
+   "nome": "Caparra confirmatoria e preliminare",
+   "regole": [
+    "caparra_confirmatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1385",
+     "citazione": "art. 1385 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1386",
+     "citazione": "art. 1386 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il venditore non si è presentato al rogito: possiamo trattenere o chiedere il doppio della caparra?"
+  },
+  {
+   "id": "rescissione",
+   "materia": "contratti",
+   "nome": "Rescissione del contratto",
+   "regole": [
+    "con_rescissione"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1447",
+     "citazione": "art. 1447 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1448",
+     "citazione": "art. 1448 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1449",
+     "citazione": "art. 1449 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente ha venduto il terreno a metà prezzo perché aveva bisogno di soldi: si può rescindere?"
+  },
+  {
+   "id": "annullamento",
+   "materia": "contratti",
+   "nome": "Annullamento del contratto (vizi del consenso, incapacità)",
+   "regole": [
+    "con_annullamento"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1427",
+     "citazione": "art. 1427 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1441",
+     "citazione": "art. 1441 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1442",
+     "citazione": "art. 1442 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'anziano ha firmato la vendita mentre era incapace: possiamo annullarla?"
+  },
+  {
+   "id": "nullita",
+   "materia": "contratti",
+   "nome": "Nullità del contratto",
+   "regole": [
+    "con_nullita"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1418",
+     "citazione": "art. 1418 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1421",
+     "citazione": "art. 1421 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1422",
+     "citazione": "art. 1422 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il contratto non ha la forma scritta richiesta: è nullo?"
+  },
+  {
+   "id": "esecuzione_2932",
+   "materia": "contratti",
+   "nome": "Esecuzione in forma specifica dell'obbligo di concludere il contratto (art. 2932)",
+   "regole": [
+    "caparra_confirmatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:2932",
+     "citazione": "art. 2932 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2652",
+     "citazione": "art. 2652 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il promittente venditore non vuole più fare il rogito: possiamo ottenere una sentenza che trasferisca la casa?"
+  },
+  {
+   "id": "recesso_contratto",
+   "materia": "contratti",
+   "nome": "Recesso dal contratto",
+   "regole": [
+    "recesso_contratto"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1373",
+     "citazione": "art. 1373 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1385",
+     "citazione": "art. 1385 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Possiamo recedere dal contratto di fornitura prima della scadenza?"
+  },
+  {
+   "id": "risarcimento_contrattuale",
+   "materia": "contratti",
+   "nome": "Risarcimento del danno da inadempimento",
+   "regole": [
+    "con_risarcimento_inadempimento"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1218",
+     "citazione": "art. 1218 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1223",
+     "citazione": "art. 1223 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1226",
+     "citazione": "art. 1226 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1227",
+     "citazione": "art. 1227 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il corriere ha perso la merce: possiamo chiedere tutti i danni?"
+  },
+  {
+   "id": "diffida_1454",
+   "materia": "contratti",
+   "nome": "Diffida ad adempiere (art. 1454)",
+   "regole": [
+    "diffida_1454"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1454",
+     "citazione": "art. 1454 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Mandiamo una diffida ad adempiere all'impresa che non finisce i lavori?"
+  },
+  {
+   "id": "vizi_appalto",
+   "materia": "contratti",
+   "nome": "Vizi e difformità nell'appalto",
+   "regole": [
+    "vizi_appalto"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1667",
+     "citazione": "art. 1667 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1668",
+     "citazione": "art. 1668 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1669",
+     "citazione": "art. 1669 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'impresa edile ha rifatto il bagno e ci sono infiltrazioni: entro quando denunciamo i vizi?"
+  },
+  {
+   "id": "sinistro_stradale",
+   "materia": "responsabilità civile",
+   "nome": "Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)",
+   "regole": [
+    "sinistro_stradale"
+   ],
+   "norme": [
+    {
+     "chiave": "codass:145",
+     "citazione": "art. 145 d.lgs. 209/2005 (cod. ass.)",
+     "rubrica": "Proponibilita' dell'azione di risarcimento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codass:148",
+     "citazione": "art. 148 d.lgs. 209/2005 (cod. ass.)",
+     "rubrica": "Procedura di risarcimento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codass:149",
+     "citazione": "art. 149 d.lgs. 209/2005 (cod. ass.)",
+     "rubrica": "Procedura di risarcimento diretto",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2054",
+     "citazione": "art. 2054 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente è stato tamponato al semaforo: come chiediamo il risarcimento all'assicurazione?"
+  },
+  {
+   "id": "negoziazione_sinistri",
+   "materia": "responsabilità civile",
+   "nome": "Negoziazione assistita per sinistri stradali",
+   "regole": [
+    "sinistro_stradale",
+    "negoziazione_obbligatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "dl132:3",
+     "citazione": "art. 3 d.l. 132/2014",
+     "rubrica": "Improcedibilità",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codass:145",
+     "citazione": "art. 145 d.lgs. 209/2005 (cod. ass.)",
+     "rubrica": "Proponibilita' dell'azione di risarcimento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Per il risarcimento da sinistro stradale serve la negoziazione assistita prima della causa?"
+  },
+  {
+   "id": "responsabilita_medica",
+   "materia": "responsabilità civile",
+   "nome": "Responsabilità sanitaria (l. 24/2017)",
+   "regole": [
+    "rc_responsabilita_sanitaria"
+   ],
+   "norme": [
+    {
+     "chiave": "l24:7",
+     "citazione": "art. 7 l. 24/2017",
+     "rubrica": "Responsabilità civile della struttura e dell'esercente la professione sanitaria",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l24:8",
+     "citazione": "art. 8 l. 24/2017",
+     "rubrica": "Tentativo obbligatorio di conciliazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l24:12",
+     "citazione": "art. 12 l. 24/2017",
+     "rubrica": "Azione diretta del soggetto danneggiato",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:696bis",
+     "citazione": "art. 696-bis c.p.c.",
+     "rubrica": "Consulenza tecnica preventiva ai fini della composizione della lite",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Errore del chirurgo durante l'operazione: come chiediamo i danni all'ospedale?"
+  },
+  {
+   "id": "cose_in_custodia",
+   "materia": "responsabilità civile",
+   "nome": "Danno da cose in custodia (art. 2051) e insidia stradale",
+   "regole": [
+    "rc_cose_in_custodia"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:2051",
+     "citazione": "art. 2051 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2043",
+     "citazione": "art. 2043 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2947",
+     "citazione": "art. 2947 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La cliente è caduta per una buca sul marciapiede: il Comune risponde?"
+  },
+  {
+   "id": "diffamazione_civile",
+   "materia": "responsabilità civile",
+   "nome": "Diffamazione: risarcimento civile",
+   "regole": [
+    "rc_diffamazione"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:2043",
+     "citazione": "art. 2043 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2059",
+     "citazione": "art. 2059 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cp:595",
+     "citazione": "art. 595 c.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Hanno scritto su Facebook che il mio cliente è un truffatore: possiamo chiedere i danni?"
+  },
+  {
+   "id": "licenziamento",
+   "materia": "lavoro",
+   "nome": "Impugnazione del licenziamento",
+   "regole": [
+    "impugnazione_licenziamento"
+   ],
+   "norme": [
+    {
+     "chiave": "l604:6",
+     "citazione": "art. 6 l. 604/1966",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs23:3",
+     "citazione": "art. 3 d.lgs. 23/2015",
+     "rubrica": "Licenziamento per giustificato motivo e giusta causa",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l300:18",
+     "citazione": "art. 18 l. 300/1970",
+     "rubrica": "Tutela del lavoratore in caso di licenziamento illegittimo",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:441bis",
+     "citazione": "art. 441-bis c.p.c.",
+     "rubrica": "Controversie in materia di licenziamento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il mio cliente è stato licenziato ieri per giusta causa: cosa facciamo?"
+  },
+  {
+   "id": "differenze_retributive",
+   "materia": "lavoro",
+   "nome": "Differenze retributive e crediti di lavoro",
+   "regole": [
+    "crediti_lavoro"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:414",
+     "citazione": "art. 414 c.p.c.",
+     "rubrica": "Forma della domanda",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2948",
+     "citazione": "art. 2948 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2099",
+     "citazione": "art. 2099 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il datore ha pagato meno di quanto previsto dal contratto collettivo: come recuperiamo le differenze retributive?"
+  },
+  {
+   "id": "tfr",
+   "materia": "lavoro",
+   "nome": "TFR (trattamento di fine rapporto)",
+   "regole": [
+    "crediti_lavoro",
+    "decreto_ingiuntivo"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:2120",
+     "citazione": "art. 2120 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2948",
+     "citazione": "art. 2948 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il datore non ha pagato il TFR alla fine del rapporto: come lo recuperiamo?"
+  },
+  {
+   "id": "mobbing",
+   "materia": "lavoro",
+   "nome": "Mobbing, straining e demansionamento",
+   "regole": [
+    "lav_mobbing_demansionamento"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:2087",
+     "citazione": "art. 2087 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2103",
+     "citazione": "art. 2103 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La lavoratrice è isolata e umiliata dal capo da mesi: è mobbing?"
+  },
+  {
+   "id": "ricorso_414",
+   "materia": "lavoro",
+   "nome": "Ricorso nel rito del lavoro (art. 414)",
+   "regole": [
+    "crediti_lavoro",
+    "competenza_lavoro",
+    "impugnazione_licenziamento"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:414",
+     "citazione": "art. 414 c.p.c.",
+     "rubrica": "Forma della domanda",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:413",
+     "citazione": "art. 413 c.p.c.",
+     "rubrica": "Giudice competente",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:415",
+     "citazione": "art. 415 c.p.c.",
+     "rubrica": "Deposito del ricorso e decreto di fissazione dell'udienza",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Come si scrive un ricorso ex art. 414 c.p.c.?"
+  },
+  {
+   "id": "conciliazione_lavoro",
+   "materia": "lavoro",
+   "nome": "Conciliazione in materia di lavoro (artt. 410-412-ter)",
+   "regole": [
+    "lav_conciliazione_rinunce"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:410",
+     "citazione": "art. 410 c.p.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:411",
+     "citazione": "art. 411 c.p.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:412ter",
+     "citazione": "art. 412-ter c.p.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2113",
+     "citazione": "art. 2113 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Vogliamo chiudere la vertenza con il datore: conciliazione in sede sindacale?"
+  },
+  {
+   "id": "di_retribuzioni",
+   "materia": "lavoro",
+   "nome": "Decreto ingiuntivo per retribuzioni",
+   "regole": [
+    "decreto_ingiuntivo",
+    "crediti_lavoro",
+    "mon_provvisoria_esecuzione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:633",
+     "citazione": "art. 633 c.p.c.",
+     "rubrica": "Condizioni di ammissibilità",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:642",
+     "citazione": "art. 642 c.p.c.",
+     "rubrica": "Esecuzione provvisoria",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il dipendente ha le buste paga firmate ma non pagate: possiamo fare decreto ingiuntivo?"
+  },
+  {
+   "id": "appello_lavoro",
+   "materia": "lavoro",
+   "nome": "Appello nel rito del lavoro (art. 434)",
+   "regole": [
+    "appello_lavoro"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:434",
+     "citazione": "art. 434 c.p.c.",
+     "rubrica": "Deposito del ricorso in appello",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:433",
+     "citazione": "art. 433 c.p.c.",
+     "rubrica": "Giudice d'appello",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Entro quando si fa appello contro una sentenza del giudice del lavoro?"
+  },
+  {
+   "id": "ricorso_dipendente_pubblico",
+   "materia": "pubblico impiego",
+   "nome": "Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)",
+   "regole": [
+    "pi_differenze_retributive",
+    "pi_competenza",
+    "pi_ricostruzione_carriera",
+    "ricorso_dipendente_pubblico"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs165:63",
+     "citazione": "art. 63 d.lgs. 165/2001",
+     "rubrica": "Controversie relative ai rapporti di lavoro (Art.68 del d.lgs n.29 del 1993, come sostituito prima dall'art.33 del d.lgs n.546 del 1993 e poi dall'art.29 del d.lgs n.80 del 1998 e successivamente modificato dall'art.18 del d.lgs n.387 del 1998)",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:413",
+     "citazione": "art. 413 c.p.c.",
+     "rubrica": "Giudice competente",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:414",
+     "citazione": "art. 414 c.p.c.",
+     "rubrica": "Forma della domanda",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La docente precaria vuole le differenze retributive dal Ministero dell'istruzione: come impostiamo il ricorso?"
+  },
+  {
+   "id": "carta_docente",
+   "materia": "pubblico impiego",
+   "nome": "Carta del docente per i supplenti",
+   "regole": [
+    "pi_carta_docente"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs165:63",
+     "citazione": "art. 63 d.lgs. 165/2001",
+     "rubrica": "Controversie relative ai rapporti di lavoro (Art.68 del d.lgs n.29 del 1993, come sostituito prima dall'art.33 del d.lgs n.546 del 1993 e poi dall'art.29 del d.lgs n.80 del 1998 e successivamente modificato dall'art.18 del d.lgs n.387 del 1998)",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l107_2015:1",
+     "citazione": "art. 1 l. 107/2015",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il supplente annuale ha diritto alla carta del docente da 500 euro?"
+  },
+  {
+   "id": "abuso_termine_pa",
+   "materia": "pubblico impiego",
+   "nome": "Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)",
+   "regole": [
+    "pi_abuso_termine"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs165:36",
+     "citazione": "art. 36 d.lgs. 165/2001",
+     "rubrica": "Personale a tempo determinato o assunto con forme di lavoro flessibile",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il collaboratore scolastico ha avuto contratti a termine per dieci anni: risarcimento per abuso?"
+  },
+  {
+   "id": "esecuzione_contro_pa",
+   "materia": "esecuzione contro la PA",
+   "nome": "Esecuzione forzata contro la PA e ottemperanza del giudicato",
+   "regole": [
+    "pi_esecuzione_pa",
+    "esecuzione_contro_pa"
+   ],
+   "norme": [
+    {
+     "chiave": "dl669:14",
+     "citazione": "art. 14 d.l. 669/1996",
+     "rubrica": "Esecuzione forzata nei confronti di pubbliche amministrazioni",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:112",
+     "citazione": "art. 112 c.p.a.",
+     "rubrica": "Disposizioni generali sul giudizio di ottemperanza",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:114",
+     "citazione": "art. 114 c.p.a.",
+     "rubrica": "Procedimento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:480",
+     "citazione": "art. 480 c.p.c.",
+     "rubrica": "Forma del precetto",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il Ministero non paga le somme della sentenza del giudice del lavoro: precetto o ottemperanza al TAR?"
+  },
+  {
+   "id": "ricorso_amministrativo_inps",
+   "materia": "previdenza",
+   "nome": "Ricorso amministrativo INPS",
+   "regole": [
+    "prev_ricorso_amministrativo"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:443",
+     "citazione": "art. 443 c.p.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dpr639:47",
+     "citazione": "art. 47 d.P.R. 639/1970",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l88:46",
+     "citazione": "art. 46 l. 88/1989",
+     "rubrica": "(Contenzioso in materia di prestazioni).",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'INPS ha respinto la domanda di pensione: bisogna fare prima il ricorso amministrativo?"
+  },
+  {
+   "id": "ricorso_442",
+   "materia": "previdenza",
+   "nome": "Controversie previdenziali (artt. 442-443 c.p.c.)",
+   "regole": [
+    "prev_ricorso_giudiziale"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:442",
+     "citazione": "art. 442 c.p.c.",
+     "rubrica": "Controversie in materia di previdenza e di assistenza obbligatorie",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:443",
+     "citazione": "art. 443 c.p.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:444",
+     "citazione": "art. 444 c.p.c.",
+     "rubrica": "Giudice competente",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Causa contro l'INPS per la pensione di reversibilità: qual è il giudice competente?"
+  },
+  {
+   "id": "atpo_445bis",
+   "materia": "previdenza",
+   "nome": "Accertamento tecnico preventivo obbligatorio (art. 445-bis)",
+   "regole": [
+    "prev_atp_obbligatorio"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:445bis",
+     "citazione": "art. 445-bis c.p.c.",
+     "rubrica": "Accertamento tecnico preventivo obbligatorio",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'INPS ha negato l'invalidità civile: dobbiamo fare l'ATP obbligatorio?"
+  },
+  {
+   "id": "sfratto_morosita",
+   "materia": "locazioni",
+   "nome": "Intimazione di sfratto per morosità e citazione per la convalida",
+   "regole": [
+    "sfratto_morosita",
+    "negoziazione_locazione_inadatta",
+    "opposizione_sfratto_commerciale"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:658",
+     "citazione": "art. 658 c.p.c.",
+     "rubrica": "Intimazione di sfratto per morosità",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:663",
+     "citazione": "art. 663 c.p.c.",
+     "rubrica": "Mancata comparizione o mancata opposizione dell'intimato",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l392:5",
+     "citazione": "art. 5 l. 392/1978",
+     "rubrica": "Inadempimento del conduttore",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'inquilino non paga da quattro mesi: facciamo lo sfratto?"
+  },
+  {
+   "id": "sfratto_finita_locazione",
+   "materia": "locazioni",
+   "nome": "Licenza e sfratto per finita locazione",
+   "regole": [
+    "sfratto_finita_locazione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:657",
+     "citazione": "art. 657 c.p.c.",
+     "rubrica": "Intimazione di licenza e di sfratto per finita locazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l431:3",
+     "citazione": "art. 3 l. 431/1998",
+     "rubrica": "Disdetta del contratto da parte del locatore",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l392:28",
+     "citazione": "art. 28 l. 392/1978",
+     "rubrica": "Rinnovazione del contratto",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il contratto scade a dicembre e l'inquilino non vuole andarsene: licenza per finita locazione?"
+  },
+  {
+   "id": "opposizione_convalida",
+   "materia": "locazioni",
+   "nome": "Opposizione alla convalida di sfratto e termine di grazia",
+   "regole": [
+    "opposizione_sfratto_commerciale",
+    "sanatoria_morosita",
+    "opposizione_convalida"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:665",
+     "citazione": "art. 665 c.p.c.",
+     "rubrica": "Opposizione, provvedimenti del giudice",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:666",
+     "citazione": "art. 666 c.p.c.",
+     "rubrica": "Contestazione sull'ammontare dei canoni",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l392:55",
+     "citazione": "art. 55 l. 392/1978",
+     "rubrica": "Termine per il pagamento dei canoni scaduti",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Siamo il conduttore intimato di sfratto: possiamo opporci alla convalida?"
+  },
+  {
+   "id": "rilascio",
+   "materia": "locazioni",
+   "nome": "Esecuzione per rilascio dell'immobile",
+   "regole": [
+    "rilascio"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:605",
+     "citazione": "art. 605 c.p.c.",
+     "rubrica": "Precetto per consegna o rilascio",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:608",
+     "citazione": "art. 608 c.p.c.",
+     "rubrica": "Modo del rilascio",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:610",
+     "citazione": "art. 610 c.p.c.",
+     "rubrica": "Provvedimenti temporanei",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Abbiamo la convalida ma l'inquilino non esce: come si esegue lo sfratto?"
+  },
+  {
+   "id": "recesso_conduttore",
+   "materia": "locazioni",
+   "nome": "Recesso del conduttore per gravi motivi",
+   "regole": [
+    "loc_recesso_conduttore"
+   ],
+   "norme": [
+    {
+     "chiave": "l392:27",
+     "citazione": "art. 27 l. 392/1978",
+     "rubrica": "Durata della locazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l431:3",
+     "citazione": "art. 3 l. 431/1998",
+     "rubrica": "Disdetta del contratto da parte del locatore",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'inquilino deve trasferirsi per lavoro: può lasciare la casa prima della scadenza?"
+  },
+  {
+   "id": "aggiornamento_canone",
+   "materia": "locazioni",
+   "nome": "Aggiornamento ISTAT del canone",
+   "regole": [
+    "loc_aggiornamento_istat"
+   ],
+   "norme": [
+    {
+     "chiave": "l392:32",
+     "citazione": "art. 32 l. 392/1978",
+     "rubrica": "Aggiornamento del canone",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il locatore chiede l'aggiornamento ISTAT degli ultimi cinque anni: è dovuto?"
+  },
+  {
+   "id": "deposito_cauzionale",
+   "materia": "locazioni",
+   "nome": "Restituzione del deposito cauzionale e cause di locazione",
+   "regole": [
+    "causa_locazione",
+    "mediazione_obbligatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1590",
+     "citazione": "art. 1590 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l392:11",
+     "citazione": "art. 11 l. 392/1978",
+     "rubrica": "Deposito cauzionale",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpc:447bis",
+     "citazione": "art. 447-bis c.p.c.",
+     "rubrica": "Norme applicabili alle controversie in materia di locazione, di comodato e di affitto",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il proprietario non restituisce il deposito cauzionale dopo la riconsegna: cosa facciamo?"
+  },
+  {
+   "id": "canone_nero",
+   "materia": "locazioni",
+   "nome": "Restituzione del canone non registrato o in nero",
+   "regole": [
+    "restituzione_canone_non_registrato"
+   ],
+   "norme": [
+    {
+     "chiave": "l431:13",
+     "citazione": "art. 13 l. 431/1998",
+     "rubrica": "(Patti contrari alla legge)",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Pagavo 200 euro in nero oltre al canone registrato: posso riaverli?"
+  },
+  {
+   "id": "garanzia_conformita",
+   "materia": "consumatori",
+   "nome": "Garanzia legale di conformità",
+   "regole": [
+    "garanzia_conformita"
+   ],
+   "norme": [
+    {
+     "chiave": "codcons:128",
+     "citazione": "art. 128 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "(( (Ambito di applicazione e definizioni). ))",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:133",
+     "citazione": "art. 133 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "(Responsabilita' del venditore)",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:135",
+     "citazione": "art. 135 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "(( (Onere della prova). ))",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il televisore comprato sei mesi fa si è rotto e il negozio rifiuta la riparazione: diritti del consumatore?"
+  },
+  {
+   "id": "recesso_consumatore",
+   "materia": "consumatori",
+   "nome": "Diritto di recesso del consumatore",
+   "regole": [
+    "cons_recesso"
+   ],
+   "norme": [
+    {
+     "chiave": "codcons:52",
+     "citazione": "art. 52 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "Diritto di recesso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:54",
+     "citazione": "art. 54 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "((Esercizio del diritto di recesso))",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:57",
+     "citazione": "art. 57 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "Obblighi del consumatore nel caso di recesso",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Ho comprato online e voglio restituire il prodotto: entro quanti giorni?"
+  },
+  {
+   "id": "clausole_vessatorie",
+   "materia": "consumatori",
+   "nome": "Clausole vessatorie",
+   "regole": [
+    "consumatore"
+   ],
+   "norme": [
+    {
+     "chiave": "codcons:33",
+     "citazione": "art. 33 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "Clausole vessatorie nel contratto tra professionista e consumatore",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:34",
+     "citazione": "art. 34 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "Accertamento della vessatorieta' delle clausole",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:36",
+     "citazione": "art. 36 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "Nullita' di protezione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1341",
+     "citazione": "art. 1341 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il contratto prevede una penale enorme a carico del cliente: è vessatoria?"
+  },
+  {
+   "id": "pratiche_scorrette",
+   "materia": "consumatori",
+   "nome": "Pratiche commerciali scorrette",
+   "regole": [
+    "cons_pratiche_scorrette"
+   ],
+   "norme": [
+    {
+     "chiave": "codcons:20",
+     "citazione": "art. 20 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "((Divieto delle pratiche commerciali scorrette))",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:21",
+     "citazione": "art. 21 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "Azioni ingannevoli",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:27",
+     "citazione": "art. 27 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "Tutela amministrativa e giurisdizionale",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La compagnia telefonica ha attivato servizi non richiesti: è pratica commerciale scorretta?"
+  },
+  {
+   "id": "adr_consumo",
+   "materia": "consumatori",
+   "nome": "Risoluzione alternativa delle controversie di consumo (ADR, Corecom)",
+   "regole": [
+    "cons_adr"
+   ],
+   "norme": [
+    {
+     "chiave": "codcons:141",
+     "citazione": "art. 141 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "(Disposizioni generali: definizioni ed ambito di applicazione).",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:141bis",
+     "citazione": "art. 141-bis d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "(( (Obblighi, facolta' e requisiti degli organismi ADR). ))",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Contestazione della bolletta della luce: c'è una conciliazione prima del giudice?"
+  },
+  {
+   "id": "foro_consumatore",
+   "materia": "consumatori",
+   "nome": "Foro del consumatore e competenza",
+   "regole": [
+    "consumatore",
+    "negoziazione_obbligatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "codcons:33",
+     "citazione": "art. 33 d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "Clausole vessatorie nel contratto tra professionista e consumatore",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "codcons:66bis",
+     "citazione": "art. 66-bis d.lgs. 206/2005 (cod. consumo)",
+     "rubrica": "((Foro competente))",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il consumatore deve pagare 2.000 euro a una società di Milano: quale giudice è competente?"
+  },
+  {
+   "id": "usura",
+   "materia": "bancario e finanziario",
+   "nome": "Usura bancaria",
+   "regole": [
+    "ban_usura"
+   ],
+   "norme": [
+    {
+     "chiave": "cp:644",
+     "citazione": "art. 644 c.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l108:2",
+     "citazione": "art. 2 l. 108/1996",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1815",
+     "citazione": "art. 1815 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il mutuo ha tassi oltre la soglia antiusura: cosa può ottenere il cliente?"
+  },
+  {
+   "id": "anatocismo",
+   "materia": "bancario e finanziario",
+   "nome": "Anatocismo e ripetizione di indebito bancario",
+   "regole": [
+    "ban_anatocismo"
+   ],
+   "norme": [
+    {
+     "chiave": "tub:120",
+     "citazione": "art. 120 d.lgs. 385/1993 (TUB)",
+     "rubrica": "Decorrenza delle valute e calcolo degli interessi",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1283",
+     "citazione": "art. 1283 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2033",
+     "citazione": "art. 2033 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La banca ha capitalizzato gli interessi trimestralmente sul conto: possiamo recuperarli?"
+  },
+  {
+   "id": "estratti_conto",
+   "materia": "bancario e finanziario",
+   "nome": "Contestazione degli estratti conto e richiesta documenti (art. 119 TUB)",
+   "regole": [
+    "ban_documenti_estratti"
+   ],
+   "norme": [
+    {
+     "chiave": "tub:119",
+     "citazione": "art. 119 d.lgs. 385/1993 (TUB)",
+     "rubrica": "Comunicazioni periodiche alla clientela",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1832",
+     "citazione": "art. 1832 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La banca non ci consegna gli estratti conto degli ultimi dieci anni: come li otteniamo?"
+  },
+  {
+   "id": "abf",
+   "materia": "bancario e finanziario",
+   "nome": "Arbitro Bancario Finanziario (ABF)",
+   "regole": [
+    "ban_abf"
+   ],
+   "norme": [
+    {
+     "chiave": "tub:128bis",
+     "citazione": "art. 128-bis d.lgs. 385/1993 (TUB)",
+     "rubrica": "Risoluzione delle controversie",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Possiamo fare ricorso all'ABF contro la banca per una commissione illegittima?"
+  },
+  {
+   "id": "acf",
+   "materia": "bancario e finanziario",
+   "nome": "Arbitro per le Controversie Finanziarie (ACF)",
+   "regole": [
+    "ban_acf"
+   ],
+   "norme": [
+    {
+     "chiave": "tuf:32ter",
+     "citazione": "art. 32-ter d.lgs. 58/1998 (TUF)",
+     "rubrica": "(Risoluzione stragiudiziale di controversie).",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La banca ci ha venduto obbligazioni rischiose senza informarci: ricorso all'ACF?"
+  },
+  {
+   "id": "centrale_rischi",
+   "materia": "bancario e finanziario",
+   "nome": "Segnalazione illegittima in Centrale Rischi o CRIF",
+   "regole": [
+    "ban_segnalazione_centrale_rischi"
+   ],
+   "norme": [
+    {
+     "chiave": "tub:125",
+     "citazione": "art. 125 d.lgs. 385/1993 (TUB)",
+     "rubrica": "Banche dati",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "tub:53",
+     "citazione": "art. 53 d.lgs. 385/1993 (TUB)",
+     "rubrica": "Vigilanza regolamentare",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La banca ha segnalato il cliente in Centrale Rischi senza preavviso: come la cancelliamo?"
+  },
+  {
+   "id": "impugnazione_delibere_societarie",
+   "materia": "società e impresa",
+   "nome": "Impugnazione delle delibere societarie",
+   "regole": [
+    "soc_impugnazione_delibere"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:2377",
+     "citazione": "art. 2377 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2378",
+     "citazione": "art. 2378 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2479ter",
+     "citazione": "art. 2479-ter c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il socio di minoranza vuole impugnare la delibera di approvazione del bilancio della srl: termini?"
+  },
+  {
+   "id": "responsabilita_amministratori",
+   "materia": "società e impresa",
+   "nome": "Azione di responsabilità contro gli amministratori",
+   "regole": [
+    "soc_responsabilita_amministratori"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:2393",
+     "citazione": "art. 2393 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2394",
+     "citazione": "art. 2394 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2476",
+     "citazione": "art. 2476 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'amministratore ha distratto soldi dalla società: come agiamo contro di lui?"
+  },
+  {
+   "id": "recesso_socio",
+   "materia": "società e impresa",
+   "nome": "Recesso del socio",
+   "regole": [
+    "soc_recesso_socio"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:2437",
+     "citazione": "art. 2437 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2473",
+     "citazione": "art. 2473 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il socio non condivide il cambio di oggetto sociale: può recedere?"
+  },
+  {
+   "id": "composizione_negoziata",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "Composizione negoziata della crisi",
+   "regole": [
+    "crisi_composizione_negoziata"
+   ],
+   "norme": [
+    {
+     "chiave": "ccii:12",
+     "citazione": "art. 12 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Composizione negoziata per la soluzione della crisi d'impresa",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:17",
+     "citazione": "art. 17 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Accesso alla composizione negoziata e suo funzionamento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:18",
+     "citazione": "art. 18 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Misure protettive",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'impresa è in difficoltà ma recuperabile: possiamo chiedere la composizione negoziata?"
+  },
+  {
+   "id": "concordato",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "Concordato preventivo",
+   "regole": [
+    "crisi_concordato_preventivo"
+   ],
+   "norme": [
+    {
+     "chiave": "ccii:84",
+     "citazione": "art. 84 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Finalità del concordato preventivo e tipologie di piano",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:87",
+     "citazione": "art. 87 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Contenuto del piano di concordato",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:44",
+     "citazione": "art. 44 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Accesso a uno strumento di regolazione della crisi e dell'insolvenza con riserva di deposito di documentazione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La società vuole proporre un concordato preventivo in continuità: requisiti?"
+  },
+  {
+   "id": "liquidazione_controllata",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "Liquidazione controllata del sovraindebitato",
+   "regole": [
+    "crisi_liquidazione_controllata"
+   ],
+   "norme": [
+    {
+     "chiave": "ccii:268",
+     "citazione": "art. 268 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Liquidazione controllata",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:269",
+     "citazione": "art. 269 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Domanda del debitore",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente non riesce più a pagare i debiti: possiamo chiedere la liquidazione controllata?"
+  },
+  {
+   "id": "ristrutturazione_consumatore",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "Ristrutturazione dei debiti del consumatore",
+   "regole": [
+    "crisi_ristrutturazione_consumatore"
+   ],
+   "norme": [
+    {
+     "chiave": "ccii:67",
+     "citazione": "art. 67 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Procedura di ristrutturazione dei debiti",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:68",
+     "citazione": "art. 68 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Presentazione della domanda e attività dell'OCC",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:69",
+     "citazione": "art. 69 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Condizioni soggettive ostative",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:70",
+     "citazione": "art. 70 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Apertura e omologazione del piano",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il consumatore sovraindebitato può proporre un piano senza il consenso dei creditori?"
+  },
+  {
+   "id": "esdebitazione",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "Esdebitazione (anche del debitore incapiente)",
+   "regole": [
+    "crisi_esdebitazione"
+   ],
+   "norme": [
+    {
+     "chiave": "ccii:278",
+     "citazione": "art. 278 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Oggetto e ambito di applicazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:282",
+     "citazione": "art. 282 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Condizioni e procedimento di esdebitazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "ccii:283",
+     "citazione": "art. 283 d.lgs. 14/2019 (CCII)",
+     "rubrica": "Esdebitazione del sovraindebitato incapiente",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente non ha nulla: può ottenere l'esdebitazione dell'incapiente?"
+  },
+  {
+   "id": "ricorso_tar",
+   "materia": "amministrativo",
+   "nome": "Ricorso al TAR (art. 29 c.p.a.)",
+   "regole": [
+    "ricorso_tar"
+   ],
+   "norme": [
+    {
+     "chiave": "cpa:29",
+     "citazione": "art. 29 c.p.a.",
+     "rubrica": "Azione di annullamento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:41",
+     "citazione": "art. 41 c.p.a.",
+     "rubrica": "Notificazione del ricorso e suoi destinatari",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:40",
+     "citazione": "art. 40 c.p.a.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il Comune ha negato il permesso di costruire: entro quando ricorriamo al TAR?"
+  },
+  {
+   "id": "motivi_aggiunti",
+   "materia": "amministrativo",
+   "nome": "Motivi aggiunti",
+   "regole": [
+    "motivi_aggiunti"
+   ],
+   "norme": [
+    {
+     "chiave": "cpa:43",
+     "citazione": "art. 43 c.p.a.",
+     "rubrica": "Motivi aggiunti",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Dopo il ricorso al TAR il Comune ha emesso un nuovo atto collegato: motivi aggiunti?"
+  },
+  {
+   "id": "sospensiva",
+   "materia": "amministrativo",
+   "nome": "Sospensiva e misure cautelari al TAR",
+   "regole": [
+    "ricorso_tar"
+   ],
+   "norme": [
+    {
+     "chiave": "cpa:55",
+     "citazione": "art. 55 c.p.a.",
+     "rubrica": "Misure cautelari collegiali",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:56",
+     "citazione": "art. 56 c.p.a.",
+     "rubrica": "Misure cautelari monocratiche",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Possiamo chiedere al TAR di sospendere subito l'ordinanza di chiusura del locale?"
+  },
+  {
+   "id": "ottemperanza",
+   "materia": "esecuzione contro la PA",
+   "nome": "Giudizio di ottemperanza",
+   "regole": [
+    "ottemperanza"
+   ],
+   "norme": [
+    {
+     "chiave": "cpa:112",
+     "citazione": "art. 112 c.p.a.",
+     "rubrica": "Disposizioni generali sul giudizio di ottemperanza",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:114",
+     "citazione": "art. 114 c.p.a.",
+     "rubrica": "Procedimento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il Comune non esegue la sentenza del TAR passata in giudicato: cosa facciamo?"
+  },
+  {
+   "id": "accesso_atti",
+   "materia": "amministrativo",
+   "nome": "Accesso agli atti (l. 241/1990, art. 116 c.p.a.)",
+   "regole": [
+    "accesso_atti"
+   ],
+   "norme": [
+    {
+     "chiave": "l241:22",
+     "citazione": "art. 22 l. 241/1990",
+     "rubrica": "Definizioni e principi in materia di accesso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l241:25",
+     "citazione": "art. 25 l. 241/1990",
+     "rubrica": "Modalità di esercizio del diritto di accesso e ricorsi",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:116",
+     "citazione": "art. 116 c.p.a.",
+     "rubrica": "Rito in materia di accesso ai documenti amministrativi",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il Comune non ci dà copia del fascicolo della pratica edilizia: come otteniamo l'accesso?"
+  },
+  {
+   "id": "silenzio",
+   "materia": "amministrativo",
+   "nome": "Ricorso avverso il silenzio della PA",
+   "regole": [
+    "silenzio"
+   ],
+   "norme": [
+    {
+     "chiave": "cpa:117",
+     "citazione": "art. 117 c.p.a.",
+     "rubrica": "Ricorsi avverso il silenzio",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:31",
+     "citazione": "art. 31 c.p.a.",
+     "rubrica": "Azione avverso il silenzio e declaratoria di nullità",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l241:2",
+     "citazione": "art. 2 l. 241/1990",
+     "rubrica": "Conclusione del procedimento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Abbiamo presentato un'istanza alla Regione sei mesi fa e non risponde: cosa facciamo?"
+  },
+  {
+   "id": "ricorso_straordinario",
+   "materia": "amministrativo",
+   "nome": "Ricorso straordinario al Capo dello Stato",
+   "regole": [
+    "ricorso_straordinario"
+   ],
+   "norme": [
+    {
+     "chiave": "dpr1199:8",
+     "citazione": "art. 8 d.P.R. 1199/1971",
+     "rubrica": "Ricorso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dpr1199:9",
+     "citazione": "art. 9 d.P.R. 1199/1971",
+     "rubrica": "Termine - Presentazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dpr1199:10",
+     "citazione": "art. 10 d.P.R. 1199/1971",
+     "rubrica": "Opposizione dei controinteressati",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Invece del TAR possiamo fare ricorso straordinario al Presidente della Repubblica?"
+  },
+  {
+   "id": "appalti_120",
+   "materia": "amministrativo",
+   "nome": "Contenzioso sugli appalti pubblici (art. 120 c.p.a.)",
+   "regole": [
+    "appalti_120"
+   ],
+   "norme": [
+    {
+     "chiave": "cpa:120",
+     "citazione": "art. 120 c.p.a.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpa:119",
+     "citazione": "art. 119 c.p.a.",
+     "rubrica": "Rito abbreviato comune a determinate materie",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs36:209",
+     "citazione": "art. 209 d.lgs. 36/2023",
+     "rubrica": "Modifiche al codice del processo amministrativo di cui all'allegato 1 al decreto legislativo 2 luglio 2010, n. 104",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Siamo stati esclusi dalla gara d'appalto: entro quanto impugniamo?"
+  },
+  {
+   "id": "ricorso_tributario",
+   "materia": "tributario",
+   "nome": "Ricorso tributario di primo grado",
+   "regole": [
+    "ricorso_tributario"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs546:18",
+     "citazione": "art. 18 d.lgs. 546/1992",
+     "rubrica": "Il ricorso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs546:21",
+     "citazione": "art. 21 d.lgs. 546/1992",
+     "rubrica": "Termine per la proposizione del ricorso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "tu175:67",
+     "citazione": "art. 67 d.lgs. 175/2024 (TU giustizia tributaria)",
+     "rubrica": "Termine per la proposizione del ricorso",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Mi è arrivato un avviso di accertamento IRPEF: entro quanto si fa ricorso?"
+  },
+  {
+   "id": "reclamo_mediazione_tributaria",
+   "materia": "tributario",
+   "nome": "Reclamo e mediazione tributaria (art. 17-bis, abrogato)",
+   "regole": [
+    "reclamo_mediazione_tributaria"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs546:17bis",
+     "citazione": "art. 17-bis d.lgs. 546/1992",
+     "rubrica": "",
+     "stato_biblioteca": "abrogato"
+    }
+   ],
+   "frase_esempio": "Per una cartella sotto i 50.000 euro devo fare prima il reclamo-mediazione?"
+  },
+  {
+   "id": "autotutela_tributaria",
+   "materia": "tributario",
+   "nome": "Autotutela tributaria",
+   "regole": [
+    "trib_autotutela"
+   ],
+   "norme": [
+    {
+     "chiave": "l212:10quater",
+     "citazione": "art. 10-quater l. 212/2000",
+     "rubrica": "Esercizio del potere di autotutela obbligatoria",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l212:10quinquies",
+     "citazione": "art. 10-quinquies l. 212/2000",
+     "rubrica": "(Esercizio del potere di autotutela facoltativa)",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "L'Agenzia ha sbagliato palesemente: possiamo chiedere l'annullamento in autotutela?"
+  },
+  {
+   "id": "adesione",
+   "materia": "tributario",
+   "nome": "Accertamento con adesione",
+   "regole": [
+    "trib_adesione"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs218:6",
+     "citazione": "art. 6 d.lgs. 218/1997",
+     "rubrica": "Istanza del contribuente",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs218:12",
+     "citazione": "art. 12 d.lgs. 218/1997",
+     "rubrica": "Istanza del contribuente",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Possiamo trattare con l'Agenzia per ridurre l'accertamento?"
+  },
+  {
+   "id": "sospensione_tributaria",
+   "materia": "tributario",
+   "nome": "Sospensione dell'atto impugnato (art. 47)",
+   "regole": [
+    "sospensione_tributaria"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs546:47",
+     "citazione": "art. 47 d.lgs. 546/1992",
+     "rubrica": "Sospensione dell'atto impugnato",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "tu175:96",
+     "citazione": "art. 96 d.lgs. 175/2024 (TU giustizia tributaria)",
+     "rubrica": "Sospensione dell'atto impugnato",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Abbiamo fatto ricorso contro la cartella ma l'Agenzia Riscossione minaccia il fermo: possiamo chiedere la sospensione?"
+  },
+  {
+   "id": "appello_tributario",
+   "materia": "tributario",
+   "nome": "Appello tributario",
+   "regole": [
+    "appello_tributario"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs546:51",
+     "citazione": "art. 51 d.lgs. 546/1992",
+     "rubrica": "Termini d'impugnazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs546:53",
+     "citazione": "art. 53 d.lgs. 546/1992",
+     "rubrica": "Forma dell'appello",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "tu175:107",
+     "citazione": "art. 107 d.lgs. 175/2024 (TU giustizia tributaria)",
+     "rubrica": "Forma dell'appello",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La Corte tributaria di primo grado ha respinto il ricorso: entro quando appelliamo?"
+  },
+  {
+   "id": "rateizzazione",
+   "materia": "tributario",
+   "nome": "Rateizzazione delle cartelle",
+   "regole": [
+    "trib_rateizzazione"
+   ],
+   "norme": [
+    {
+     "chiave": "dpr602:19",
+     "citazione": "art. 19 d.P.R. 602/1973",
+     "rubrica": "Dilazione del pagamento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente ha cartelle per 80.000 euro: può chiedere di pagare a rate?"
+  },
+  {
+   "id": "definizioni_agevolate",
+   "materia": "tributario",
+   "nome": "Definizioni agevolate (rottamazione)",
+   "regole": [],
+   "norme": [
+    {
+     "chiave": "dpr602:19",
+     "citazione": "art. 19 d.P.R. 602/1973",
+     "rubrica": "Dilazione del pagamento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs218:15",
+     "citazione": "art. 15 d.lgs. 218/1997",
+     "rubrica": "Sanzioni applicabili nel caso di omessa impugnazione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "C'è una rottamazione delle cartelle quest'anno?"
+  },
+  {
+   "id": "querela",
+   "materia": "penale",
+   "nome": "Querela",
+   "regole": [
+    "termine_querela"
+   ],
+   "norme": [
+    {
+     "chiave": "cp:120",
+     "citazione": "art. 120 c.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cp:124",
+     "citazione": "art. 124 c.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:336",
+     "citazione": "art. 336 c.p.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente è stato diffamato su un social: entro quando si fa la querela?"
+  },
+  {
+   "id": "remissione_querela",
+   "materia": "penale",
+   "nome": "Remissione della querela",
+   "regole": [
+    "pen_remissione_querela"
+   ],
+   "norme": [
+    {
+     "chiave": "cp:152",
+     "citazione": "art. 152 c.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:340",
+     "citazione": "art. 340 c.p.p.",
+     "rubrica": "Remissione della querela",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Abbiamo fatto pace con il querelato: come si ritira la querela?"
+  },
+  {
+   "id": "opposizione_archiviazione",
+   "materia": "penale",
+   "nome": "Opposizione alla richiesta di archiviazione",
+   "regole": [
+    "pen_opposizione_archiviazione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:408",
+     "citazione": "art. 408 c.p.p.",
+     "rubrica": "Richiesta di archiviazione per infondatezza della notizia di reato",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:410",
+     "citazione": "art. 410 c.p.p.",
+     "rubrica": "Opposizione alla richiesta di archiviazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:409",
+     "citazione": "art. 409 c.p.p.",
+     "rubrica": "Provvedimenti del giudice sulla richiesta di archiviazione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il PM ha chiesto l'archiviazione della nostra denuncia: possiamo opporci?"
+  },
+  {
+   "id": "patteggiamento",
+   "materia": "penale",
+   "nome": "Applicazione della pena su richiesta (patteggiamento)",
+   "regole": [
+    "pen_patteggiamento"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:444",
+     "citazione": "art. 444 c.p.p.",
+     "rubrica": "Applicazione della pena su richiesta",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:446",
+     "citazione": "art. 446 c.p.p.",
+     "rubrica": "Richiesta di applicazione della pena e consenso",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Conviene patteggiare per il cliente accusato di furto?"
+  },
+  {
+   "id": "abbreviato",
+   "materia": "penale",
+   "nome": "Giudizio abbreviato",
+   "regole": [
+    "pen_abbreviato"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:438",
+     "citazione": "art. 438 c.p.p.",
+     "rubrica": "Presupposti del giudizio abbreviato",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:442",
+     "citazione": "art. 442 c.p.p.",
+     "rubrica": "Decisione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Possiamo chiedere il rito abbreviato per avere lo sconto di pena?"
+  },
+  {
+   "id": "messa_alla_prova",
+   "materia": "penale",
+   "nome": "Sospensione del procedimento con messa alla prova",
+   "regole": [
+    "pen_messa_alla_prova"
+   ],
+   "norme": [
+    {
+     "chiave": "cp:168bis",
+     "citazione": "art. 168-bis c.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:464bis",
+     "citazione": "art. 464-bis c.p.p.",
+     "rubrica": "(Sospensione del procedimento con messa alla prova).",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente è incensurato e accusato di guida in stato di ebbrezza: può fare la messa alla prova?"
+  },
+  {
+   "id": "riesame",
+   "materia": "penale",
+   "nome": "Riesame e appello cautelare",
+   "regole": [
+    "pen_riesame"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:309",
+     "citazione": "art. 309 c.p.p.",
+     "rubrica": "Riesame delle ordinanze che dispongono una misura coercitiva",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:310",
+     "citazione": "art. 310 c.p.p.",
+     "rubrica": "A p p e l l o",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:324",
+     "citazione": "art. 324 c.p.p.",
+     "rubrica": "Procedimento di riesame",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente è stato arrestato e messo in custodia cautelare: possiamo fare riesame?"
+  },
+  {
+   "id": "appello_penale",
+   "materia": "penale",
+   "nome": "Appello penale",
+   "regole": [
+    "impugnazione_penale"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:593",
+     "citazione": "art. 593 c.p.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:585",
+     "citazione": "art. 585 c.p.p.",
+     "rubrica": "Termini per l'impugnazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:581",
+     "citazione": "art. 581 c.p.p.",
+     "rubrica": "(Forma dell'impugnazione)",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La sentenza di condanna è stata depositata: entro quanto proponiamo appello?"
+  },
+  {
+   "id": "cassazione_penale",
+   "materia": "penale",
+   "nome": "Ricorso per cassazione penale",
+   "regole": [
+    "impugnazione_penale"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:606",
+     "citazione": "art. 606 c.p.p.",
+     "rubrica": "Casi di ricorso",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:585",
+     "citazione": "art. 585 c.p.p.",
+     "rubrica": "Termini per l'impugnazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:610",
+     "citazione": "art. 610 c.p.p.",
+     "rubrica": "Atti preliminari",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Vogliamo ricorrere in Cassazione contro la condanna della Corte d'appello: termini?"
+  },
+  {
+   "id": "parte_civile",
+   "materia": "penale",
+   "nome": "Costituzione di parte civile",
+   "regole": [
+    "pen_parte_civile"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:74",
+     "citazione": "art. 74 c.p.p.",
+     "rubrica": "Legittimazione all'azione civile",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:76",
+     "citazione": "art. 76 c.p.p.",
+     "rubrica": "Costituzione di parte civile",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:78",
+     "citazione": "art. 78 c.p.p.",
+     "rubrica": "Formalita' della costituzione di parte civile",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:79",
+     "citazione": "art. 79 c.p.p.",
+     "rubrica": "Termine per la costituzione di parte civile",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La vittima vuole il risarcimento nel processo penale: come si costituisce parte civile?"
+  },
+  {
+   "id": "giustizia_riparativa",
+   "materia": "penale",
+   "nome": "Giustizia riparativa",
+   "regole": [
+    "pen_giustizia_riparativa"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:129bis",
+     "citazione": "art. 129-bis c.p.p.",
+     "rubrica": "(Accesso ai programmi di giustizia riparativa)",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs150_22:42",
+     "citazione": "art. 42 d.lgs. 150/2022",
+     "rubrica": "Definizioni",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs150_22:44",
+     "citazione": "art. 44 d.lgs. 150/2022",
+     "rubrica": "Principi sull'accesso",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente vuole incontrare la vittima per riparare: c'è un programma di giustizia riparativa?"
+  },
+  {
+   "id": "esecuzione_penale",
+   "materia": "penale",
+   "nome": "Esecuzione penale e incidente di esecuzione",
+   "regole": [
+    "pen_esecuzione"
+   ],
+   "norme": [
+    {
+     "chiave": "cpp:665",
+     "citazione": "art. 665 c.p.p.",
+     "rubrica": "Giudice competente",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:666",
+     "citazione": "art. 666 c.p.p.",
+     "rubrica": "Procedimento di esecuzione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cpp:656",
+     "citazione": "art. 656 c.p.p.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "È arrivato l'ordine di carcerazione sospeso: entro quanto chiediamo l'affidamento in prova?"
+  },
+  {
+   "id": "ricorso_prefetto",
+   "materia": "violazioni amministrative",
+   "nome": "Ricorso al Prefetto contro il verbale (art. 203 cod. strada)",
+   "regole": [
+    "opposizione_verbale_cds"
+   ],
+   "norme": [
+    {
+     "chiave": "cds:203",
+     "citazione": "art. 203 d.lgs. 285/1992 (cod. strada)",
+     "rubrica": "Ricorso al prefetto",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cds:204",
+     "citazione": "art. 204 d.lgs. 285/1992 (cod. strada)",
+     "rubrica": "Provvedimenti del prefetto",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Ho preso una multa per eccesso di velocità: posso fare ricorso al Prefetto?"
+  },
+  {
+   "id": "ricorso_gdp_cds",
+   "materia": "violazioni amministrative",
+   "nome": "Opposizione al verbale davanti al giudice di pace (art. 204-bis cod. strada, art. 7 d.lgs. 150/2011)",
+   "regole": [
+    "opposizione_verbale_cds"
+   ],
+   "norme": [
+    {
+     "chiave": "cds:204bis",
+     "citazione": "art. 204-bis d.lgs. 285/1992 (cod. strada)",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs150_11:7",
+     "citazione": "art. 7 d.lgs. 150/2011",
+     "rubrica": "Dell'opposizione al verbale di accertamento di violazione del codice della strada",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Multa dell'autovelox non segnalato: entro quando ricorriamo al giudice di pace?"
+  },
+  {
+   "id": "ordinanza_ingiunzione",
+   "materia": "violazioni amministrative",
+   "nome": "Opposizione all'ordinanza-ingiunzione (l. 689/1981, art. 6 d.lgs. 150/2011)",
+   "regole": [
+    "ordinanza_ingiunzione"
+   ],
+   "norme": [
+    {
+     "chiave": "l689:18",
+     "citazione": "art. 18 l. 689/1981",
+     "rubrica": "Ordinanza-ingiunzione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "l689:22",
+     "citazione": "art. 22 l. 689/1981",
+     "rubrica": "Opposizione all'ordinanza-ingiunzione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs150_11:6",
+     "citazione": "art. 6 d.lgs. 150/2011",
+     "rubrica": "Dell'opposizione ad ordinanza-ingiunzione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente ha ricevuto un'ordinanza-ingiunzione dall'ispettorato del lavoro: come la impugniamo?"
+  },
+  {
+   "id": "protezione_internazionale",
+   "materia": "immigrazione",
+   "nome": "Ricorso contro il diniego di protezione internazionale",
+   "regole": [
+    "imm_protezione_internazionale"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs25:35",
+     "citazione": "art. 35 d.lgs. 25/2008",
+     "rubrica": "Impugnazione",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs25:35bis",
+     "citazione": "art. 35-bis d.lgs. 25/2008",
+     "rubrica": "Delle controversie in materia di riconoscimento della protezione internazionale).",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs251:2",
+     "citazione": "art. 2 d.lgs. 251/2007",
+     "rubrica": "Definizioni",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La Commissione territoriale ha negato l'asilo: entro quando ricorriamo?"
+  },
+  {
+   "id": "permesso_soggiorno",
+   "materia": "immigrazione",
+   "nome": "Diniego o revoca del permesso di soggiorno ed espulsione",
+   "regole": [
+    "permesso_soggiorno"
+   ],
+   "norme": [
+    {
+     "chiave": "tui:5",
+     "citazione": "art. 5 d.lgs. 286/1998 (TU immigrazione)",
+     "rubrica": "Permesso di soggiorno (Legge 6 marzo 1998, n. 40, art. 5)",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "tui:13",
+     "citazione": "art. 13 d.lgs. 286/1998 (TU immigrazione)",
+     "rubrica": "Espulsione amministrativa (Legge 6 marzo 1998, n. 40, art. 11)",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "La Questura ha negato il rinnovo del permesso di soggiorno: TAR o tribunale?"
+  },
+  {
+   "id": "reclamo_garante",
+   "materia": "privacy",
+   "nome": "Reclamo al Garante privacy",
+   "regole": [
+    "priv_reclamo_garante"
+   ],
+   "norme": [
+    {
+     "chiave": "gdpr:77",
+     "citazione": "art. 77 Reg. UE 2016/679",
+     "rubrica": "Diritto di proporre reclamo all'autorità di controllo",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "privacy:140bis",
+     "citazione": "art. 140-bis d.lgs. 196/2003",
+     "rubrica": "(( (Forme alternative di tutela) ))",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "privacy:141",
+     "citazione": "art. 141 d.lgs. 196/2003",
+     "rubrica": "(( (Reclamo al Garante) ))",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Un'azienda continua a chiamarmi per pubblicità dopo l'opposizione: reclamo al Garante?"
+  },
+  {
+   "id": "ricorso_giudice_privacy",
+   "materia": "privacy",
+   "nome": "Ricorso al giudice per violazione dei dati personali",
+   "regole": [
+    "priv_ricorso_giudice"
+   ],
+   "norme": [
+    {
+     "chiave": "gdpr:79",
+     "citazione": "art. 79 Reg. UE 2016/679",
+     "rubrica": "Diritto a un ricorso giurisdizionale effettivo nei confronti del titolare del trattamento o del responsabile del trattamento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "gdpr:82",
+     "citazione": "art. 82 Reg. UE 2016/679",
+     "rubrica": "Diritto al risarcimento e responsabilità",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "privacy:152",
+     "citazione": "art. 152 d.lgs. 196/2003",
+     "rubrica": "(Autorita' giudiziaria ordinaria)",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs150_11:10",
+     "citazione": "art. 10 d.lgs. 150/2011",
+     "rubrica": "(Delle controversie in materia di applicazione delle disposizioni in materia di protezione dei dati personali)",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Hanno pubblicato i dati sanitari della cliente: possiamo chiedere il risarcimento al giudice?"
+  },
+  {
+   "id": "diffida_messa_mora",
+   "materia": "stragiudiziale",
+   "nome": "Diffida e messa in mora",
+   "regole": [
+    "diffida_commerciale",
+    "diffida_messa_mora"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1219",
+     "citazione": "art. 1219 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2943",
+     "citazione": "art. 2943 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs231:4",
+     "citazione": "art. 4 d.lgs. 231/2002",
+     "rubrica": "Termini di pagamento",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Scrivi una diffida al cliente che non paga le fatture di 5.000 euro della mia società."
+  },
+  {
+   "id": "mediazione",
+   "materia": "stragiudiziale",
+   "nome": "Mediazione civile e commerciale (d.lgs. 28/2010)",
+   "regole": [
+    "mediazione_obbligatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "dlgs28:5",
+     "citazione": "art. 5 d.lgs. 28/2010",
+     "rubrica": "Condizione di procedibilità e rapporti con il processo",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs28:8",
+     "citazione": "art. 8 d.lgs. 28/2010",
+     "rubrica": "Procedimento",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dlgs28:12",
+     "citazione": "art. 12 d.lgs. 28/2010",
+     "rubrica": "Efficacia esecutiva ed esecuzione",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Per una lite sulla successione serve la mediazione obbligatoria?"
+  },
+  {
+   "id": "negoziazione_assistita",
+   "materia": "stragiudiziale",
+   "nome": "Negoziazione assistita (d.l. 132/2014)",
+   "regole": [
+    "negoziazione_obbligatoria"
+   ],
+   "norme": [
+    {
+     "chiave": "dl132:2",
+     "citazione": "art. 2 d.l. 132/2014",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "dl132:3",
+     "citazione": "art. 3 d.l. 132/2014",
+     "rubrica": "Improcedibilità",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Per un credito di 30.000 euro è obbligatoria la negoziazione assistita?"
+  },
+  {
+   "id": "transazione",
+   "materia": "stragiudiziale",
+   "nome": "Transazione",
+   "regole": [
+    "str_transazione"
+   ],
+   "norme": [
+    {
+     "chiave": "cc:1965",
+     "citazione": "art. 1965 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1966",
+     "citazione": "art. 1966 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:1975",
+     "citazione": "art. 1975 c.c.",
+     "rubrica": "",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Vogliamo chiudere la lite con un accordo: come si scrive una transazione?"
+  },
+  {
+   "id": "parere",
+   "materia": "stragiudiziale",
+   "nome": "Parere legale scritto",
+   "regole": [
+    "str_parere"
+   ],
+   "norme": [
+    {
+     "chiave": "l247:2",
+     "citazione": "art. 2 l. 247/2012",
+     "rubrica": "Disciplina della professione di avvocato",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Mi serve un parere scritto per il cliente sulla validità della clausola di non concorrenza."
+  },
+  {
+   "id": "atp_conciliativo",
+   "materia": "stragiudiziale",
+   "nome": "Consulenza tecnica preventiva ai fini conciliativi (art. 696-bis)",
+   "regole": [
+    "cau_atp"
+   ],
+   "norme": [
+    {
+     "chiave": "cpc:696bis",
+     "citazione": "art. 696-bis c.p.c.",
+     "rubrica": "Consulenza tecnica preventiva ai fini della composizione della lite",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Prima della causa contro il costruttore possiamo fare un ATP conciliativo?"
+  },
+  {
+   "id": "procedibilita_locazione",
+   "materia": "locazioni",
+   "nome": "Condizioni di procedibilità nelle cause di locazione",
+   "regole": [
+    "procedibilita_locazione"
+   ],
+   "norme": [],
+   "frase_esempio": "Per una causa di locazione serve la mediazione obbligatoria prima di agire?",
+   "origine": "regola dell'harness di Lex senza voce nel catalogo"
+  },
+  {
+   "id": "sequestro_ante_causam",
+   "materia": "cautelare e urgenza",
+   "nome": "Sequestro ante causam: efficacia e inizio del giudizio di merito",
+   "regole": [
+    "sequestro_ante_causam"
+   ],
+   "norme": [],
+   "frase_esempio": "Ho ottenuto un sequestro prima della causa: entro quando devo iniziare il giudizio di merito?",
+   "origine": "regola dell'harness di Lex senza voce nel catalogo"
+  },
+  {
+   "id": "competenza_pagamento",
+   "materia": "civile ordinario",
+   "nome": "Competenza per territorio nelle cause di pagamento",
+   "regole": [
+    "competenza_pagamento"
+   ],
+   "norme": [],
+   "frase_esempio": "Quale giudice è competente per una causa di pagamento di 12.000 euro contro un'impresa di Milano?",
+   "origine": "regola dell'harness di Lex senza voce nel catalogo"
+  }
+ ]
+}

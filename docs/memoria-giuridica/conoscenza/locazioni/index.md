@@ -1,0 +1,13 @@
+# Locazioni — schede di istituto
+
+| ID | Istituto | Sintesi | Fonti dirette | Stato | Sezioni | Revisione | Ultimo controllo |
+|---|---|---|---:|---|---:|---:|---|
+| `ist-aggiornamento-canone` | [Aggiornamento ISTAT del canone](ist-aggiornamento-canone.md) | richiesta scritta del locatore; contestazione delle somme non dovute. | 1 | lacune | 2/9 | r1 | 23/11/2026 23:38 |
+| `ist-procedibilita-locazione` | [Condizioni di procedibilità nelle cause di locazione](ist-procedibilita-locazione.md) | intimazione di sfratto per morosità con citazione per la convalida, senza mediazione preventiva; mediazione da avviare dopo il mutamento del rito, se il giudizio prosegue nel merito; Tribunale del luogo dell'immobile. | 7 | lacune | 3/9 | r1 | 23/11/2026 23:38 |
+| `ist-rilascio` | [Esecuzione per rilascio dell'immobile](ist-rilascio.md) | precetto per rilascio, poi avviso di sloggio dell'ufficiale giudiziario almeno dieci giorni prima dell'accesso. | 4 | lacune | 1/9 | r1 | 23/11/2026 23:38 |
+| `ist-sfratto-morosita` | [Intimazione di sfratto per morosità e citazione per la convalida](ist-sfratto-morosita.md) | intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile. | 15 | verificata | 5/9 | r1 | 23/11/2026 23:38 |
+| `ist-sfratto-finita-locazione` | [Licenza e sfratto per finita locazione](ist-sfratto-finita-locazione.md) | intimazione di licenza (prima della scadenza) o di sfratto (dopo la scadenza) per finita locazione, con citazione per la convalida; Tribunale del luogo dell'immobile. | 4 | lacune | 4/9 | r1 | 23/11/2026 23:38 |
+| `ist-opposizione-convalida` | [Opposizione alla convalida di sfratto e termine di grazia](ist-opposizione-convalida.md) | comparsa di costituzione e opposizione alla convalida (art. 665 c.p.c.), non l'istanza di termine di grazia dell'art. 55 l. 392/1978. | 12 | lacune | 4/9 | r1 | 23/11/2026 23:38 |
+| `ist-recesso-conduttore` | [Recesso del conduttore per gravi motivi](ist-recesso-conduttore.md) | comunicazione di recesso con preavviso di sei mesi (per gravi motivi o se previsto dal contratto). | 2 | lacune | 2/9 | r1 | 23/11/2026 23:38 |
+| `ist-canone-nero` | [Restituzione del canone non registrato o in nero](ist-canone-nero.md) | Norme di riferimento: art. 13 l. 431/1998. | 5 | lacune | 2/9 | r1 | 23/11/2026 23:38 |
+| `ist-deposito-cauzionale` | [Restituzione del deposito cauzionale e cause di locazione](ist-deposito-cauzionale.md) | Norme di riferimento: art. 447-bis c.p.c.. | 6 | lacune | 3/9 | r1 | 23/11/2026 23:38 |

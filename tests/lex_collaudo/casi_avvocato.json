@@ -152,7 +152,7 @@
     "avvertenze": [
      "inadatta",
      "pagare integralmente",
-     "mediazione obbligatoria"
+     "mediazione obbligatoria|mediazione (?:e|è) obbligatori|obbligatori\\w* (?:il tentativo di |esperire (?:il procedimento di |la )?|la )?mediazione|mediazione[^.]{0,40}condizione di procedibilita"
     ],
     "dati": [
      "interessi e spese",
@@ -537,7 +537,7 @@
    "attese": {
     "rimedio": [
      "restituzione",
-     "mediazione obbligatoria"
+     "mediazione obbligatoria|mediazione (?:e|è) obbligatori|obbligatori\\w* (?:il tentativo di |esperire (?:il procedimento di |la )?|la )?mediazione|mediazione[^.]{0,40}condizione di procedibilita"
     ],
     "giudice_rito": [
      "organismo di mediazione"

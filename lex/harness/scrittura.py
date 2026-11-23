@@ -33,7 +33,8 @@ _DECISIVI = ("non e obbligatori", "e obbligatori", "obbligatori", "condizione di
              "inammissibil", "decadut", "decadenza", "tardiv", "inefficac", "prescritt", "prescrizione", "nullit",
              "inadatt", "non si applica", "non e applicabile", "esclus", "competent", "per iscritto", "integralmente",
              "residenza abituale", "luogo in cui si trova", "sospensione feriale", "a pena di", "rito del lavoro",
-             "rito ordinario", "rito semplificato", "semplificato di cognizione", "giudice di pace", "tribunale")
+             "rito ordinario", "rito semplificato", "semplificato di cognizione", "giudice di pace", "tribunale",
+             "perentori", "ordinatori", "camera di consiglio", "camerale", "esecutiv", "provvisori")
 
 
 def _piano(t: str) -> str:

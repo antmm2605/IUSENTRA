@@ -218,6 +218,14 @@ def scrivi_per_punto(testo_deterministico: str, scrittore: str, timeout: float =
         "; scartati: " + "; ".join(motivi[:4]) if motivi else ""), time.monotonic() - t0)
 
 
+# Operatori che, aggiunti, cambiano l'effetto giuridico; «competente», «tribunale», «condizione di procedibilità»
+# aggiunti a una frase che già lo dice in altre parole non sono un'invenzione.
+_AGGIUNTE_VIETATE = {"non e obbligatori", "improcedibil", "inammissibil", "decadut", "decadenza", "tardiv", "inefficac",
+                     "prescritt", "prescrizione", "nullit", "inadatt", "non si applica", "non e applicabile", "esclus",
+                     "a pena di", "perentori", "ordinatori", "camera di consiglio", "camerale", "esecutiv", "provvisori",
+                     "rito del lavoro", "rito ordinario", "rito semplificato", "sospensione feriale", "integralmente"}
+
+
 def _controlla_punto(frase: str, mappa: dict[str, str], originale: str) -> str:
     usati = set(_SEGNAPOSTO.findall(frase))
     if usati - set(mappa):
@@ -235,6 +243,15 @@ def _controlla_punto(frase: str, mappa: dict[str, str], originale: str) -> str:
     persi = elementi_persi(originale, frase)
     if persi:
         return "elementi decisivi persi: " + ", ".join(persi)
+    # Nessun operatore decisivo nuovo («a pena di decadenza» aggiunto a un invito che non lo prevede).
+    aggiunti = [d for d in elementi_persi(frase, originale) if d in _AGGIUNTE_VIETATE]
+    if aggiunti:
+        return "elementi decisivi aggiunti: " + ", ".join(aggiunti)
+    # I nomi propri (città, parti, uffici) della frase di partenza restano: «(Taranto)» non può sparire.
+    nomi = {w for w in re.findall(r"(?<![.!?]\s)(?<!^)\b[A-ZÀ-Ý][a-zà-ÿ]{2,}\b", _SEGNAPOSTO.sub("", originale))}
+    persi_nomi = sorted(n for n in nomi if n not in frase)
+    if persi_nomi:
+        return "nomi persi: " + ", ".join(persi_nomi[:4])
     if len(fuori.strip()) < 20:
         return "frase troppo breve"
     return ""

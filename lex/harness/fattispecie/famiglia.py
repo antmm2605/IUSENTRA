@@ -111,7 +111,8 @@ def riconosci_modifica_condizioni(c: Comprensione, f: Fatti) -> int:
         return 0
     return 6 if re.search(r"(?:modific|revision|revoc|riduzion|ridurr|aument|rivede|rivision)\w* (?:delle |le |dell |l |dell assegno|del mantenimento|"
                           r"dell affidamento|del contributo)?(?:condizion|assegno|mantenimento|affidamento|contribut)", t) and re.search(
-        r"separazion|divorzi|figli|assegno|mantenimento|ex (?:moglie|marito|coniuge)", t) else 0
+        r"separazion|divorzi|figli|mantenimento|ex (?:moglie|marito|coniuge)|assegno (?:divorzile|di mantenimento)", t) and not re.search(
+        r"\binps\b|assegno sociale|pension|invalidit|assegno unico", t) else 0
 
 
 def analizza_modifica_condizioni(c: Comprensione, f: Fatti) -> Analisi:

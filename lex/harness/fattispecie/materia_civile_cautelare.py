@@ -49,6 +49,8 @@ MEMORIE = Scheda(
     regola="civ_memorie_171ter", materia="civile ordinario", nome="memorie integrative (art. 171-ter c.p.c.)",
     segnali=(r"171-?ter|memorie integrative|prima memoria|seconda memoria|terza memoria|tre memorie",),
     esclusi=(_NON_CIVILE,), punteggio=6,
+    # Il calcolo delle date delle memorie resta al calcolatore dei termini (motori certi).
+    tipi=frozenset({"parere", "redazione", "termine"}),
     capito="Termini e contenuto delle tre memorie integrative del rito ordinario.",
     rimedio="deposito delle memorie integrative a quaranta, venti e dieci giorni prima dell'udienza di prima comparizione",
     conclusione=[p("Le parti, a pena di decadenza, possono: almeno quaranta giorni prima dell'udienza precisare o modificare "
@@ -189,7 +191,7 @@ REGOLAMENTO_COMPETENZA = Scheda(
 
 URGENZA_700 = Scheda(
     regola="cau_700", materia="cautelare e urgenza", nome="provvedimento d'urgenza (art. 700 c.p.c.)",
-    segnali=(r"\b700\b|provvediment\w* d urgenza|ricorso d urgenza|pregiudizio imminente|irreparabil|tutela (?:cautelare )?urgente|"
+    segnali=(r"(?:art\.? ?|ex |articolo |il |un |del |nel )700\b(?!\s*(?:euro|mila|€))|\b700 c\.?p\.?c|provvediment\w* d urgenza|ricorso d urgenza|pregiudizio imminente|irreparabil|tutela (?:cautelare )?urgente|"
              r"ordine del giudice (?:prima|subito)|subito un ordine",),
     esclusi=(_NON_CIVILE, r"sequestro|\btar\b|sospensiva"), punteggio=5,
     capito="Tutela urgente atipica in attesa del giudizio di merito.",

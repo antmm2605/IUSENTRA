@@ -24,6 +24,10 @@ _PROFESSIONISTA_ACQUIRENTE = r"\b(?:s\.?r\.?l|s\.?p\.?a|s\.?n\.?c|s\.?a\.?s)\b[^
 
 def riconosci_garanzia_consumo(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
+    # Domanda solo su giudice o procedibilità, senza i rimedi della garanzia: risponde la regola del consumatore.
+    if re.search(r"quale giudice|competen|negoziazione|mediazione", t) and not re.search(
+            r"garanzi|ripar|sostitu|rimedi|diritti|riduzione del prezzo|risoluzione|rimborso|che (?:cosa )?(?:possiamo|puo) chiedere", t):
+        return 0
     if re.search(_NON_CONSUMO, t) or re.search(_PROFESSIONISTA_ACQUIRENTE, t):
         return 0
     if re.search(r"difett\w* di conformit|garanzia (?:legale )?di conformit", t):

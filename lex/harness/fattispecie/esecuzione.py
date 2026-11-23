@@ -201,9 +201,9 @@ def analizza_termini_precetto(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- pignoramento presso terzi
 def riconosci_pignoramento_terzi(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    if re.search(r"terzo proprietari|opposizione di terzo|619|tesoreria|dello stato\b|amministrazion", t) or "precett" in t:
+    if re.search(r"terzo proprietari|opposizione di terzo|619|tesoreria|dello stato\b|amministrazion|ipotec", t) or "precett" in t:
         return 0
-    return 6 if re.search(r"pignor", t) and re.search(r"stipendi|salari|pension|conto corrent|presso terzi|datore di lavoro|"
+    return 6 if re.search(r"pignor", t) and re.search(r"stipendi|salari|\bpension|conto corrent|presso terzi|datore di lavoro|"
                                                      r"\bterzo\b|banca|crediti del debitore|canoni di locazione", t) and not re.search(
         r"492[- ]bis|ricerca (?:telematica )?(?:dei )?beni|scopr|dove lavora", t) else 0
 

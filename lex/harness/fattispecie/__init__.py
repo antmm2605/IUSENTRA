@@ -9,7 +9,7 @@ from collections.abc import Callable
 from ..comprensione import Comprensione
 from ..fatti import Fatti
 from ..modello import Analisi
-from . import appalto, civile, consumo, domande, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
+from . import amministrativo, appalto, civile, consumo, domande, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
 
 Regola = tuple[str, Callable[[Comprensione, Fatti], int], Callable[[Comprensione, Fatti], Analisi]]
 
@@ -48,6 +48,15 @@ REGOLE: tuple[Regola, ...] = (
     ("lite_condominio", domande.riconosci_lite_condominio, domande.analizza_lite_condominio),
     ("consumatore", domande.riconosci_consumatore, domande.analizza_consumatore),
     ("ricorso_tar", domande.riconosci_tar, domande.analizza_tar),
+    ("appalti_120", amministrativo.riconosci_appalti, amministrativo.analizza_appalti),
+    ("accesso_atti", amministrativo.riconosci_accesso, amministrativo.analizza_accesso),
+    ("silenzio", amministrativo.riconosci_silenzio, amministrativo.analizza_silenzio),
+    ("motivi_aggiunti", amministrativo.riconosci_motivi_aggiunti, amministrativo.analizza_motivi_aggiunti),
+    ("ottemperanza", amministrativo.riconosci_ottemperanza, amministrativo.analizza_ottemperanza),
+    ("permesso_soggiorno", amministrativo.riconosci_unita_familiare, amministrativo.analizza_unita_familiare),
+    ("appello_tributario", amministrativo.riconosci_appello_tributario, amministrativo.analizza_appello_tributario),
+    ("sospensione_tributaria", amministrativo.riconosci_sospensione_tributaria, amministrativo.analizza_sospensione_tributaria),
+    ("reclamo_mediazione_tributaria", amministrativo.riconosci_reclamo_tributario, amministrativo.analizza_reclamo_tributario),
     ("ricorso_tributario", domande.riconosci_tributario, domande.analizza_tributario),
     ("ricorso_straordinario", domande.riconosci_straordinario, domande.analizza_straordinario),
     ("termine_querela", domande.riconosci_querela, domande.analizza_querela),

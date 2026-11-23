@@ -10,7 +10,8 @@ from lex.harness.normalizzazione import correggi_refusi, normalizza_richiesta
 
 
 @pytest.mark.parametrize("scritto,atteso", [("stipendo", "stipendio"), ("condutore", "conduttore"), ("sfrato", "sfratto"),
-                                            ("opposizone", "opposizione")])
+                                            ("opposizone", "opposizione"), ("decretto", "decreto"),
+                                            ("aplello", "appello"), ("sentensa", "sentenza"), ("pignoramneto", "pignoramento")])
 def test_refusi_corretti_solo_con_un_candidato(scritto, atteso):
     assert correggi_refusi(f"il {scritto} del cliente") == f"il {atteso} del cliente"
 

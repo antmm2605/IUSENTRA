@@ -91,26 +91,41 @@ def _stessa_parola(a: str, b: str) -> bool:
     return a[k:] in _DESINENZE and b[k:] in _DESINENZE
 
 
+def _refuso_di(parola: str, s: str) -> bool:
+    """La parola letta è un refuso tipico della parola del lessico s?"""
+    if s[0] != parola[0]:
+        return False
+    # Lettere mancanti (anche una doppia tolta: «sfrato», «stipendo»), al massimo due.
+    if len(parola) < len(s) <= len(parola) + 2:
+        resto = iter(s)
+        return all(c in resto for c in parola)
+    # Una doppia in più («decretto»).
+    if len(parola) == len(s) + 1:
+        return any(parola[i] == parola[i + 1] and parola[:i] + parola[i + 1:] == s for i in range(len(parola) - 1))
+    if len(parola) == len(s):
+        diverse = [k for k, (a, b) in enumerate(zip(parola, s)) if a != b]
+        # Due lettere vicine scambiate («pignoramneto»).
+        if len(diverse) == 2 and diverse[1] == diverse[0] + 1 and parola[diverse[0]] == s[diverse[1]] and parola[diverse[1]] == s[diverse[0]]:
+            return True
+        # Una sola consonante sbagliata («sentensa», «aplello»); mai una vocale, che cambia parola («distratto» / «distretto»).
+        return len(diverse) == 1 and parola[diverse[0]] not in "aeiou" and s[diverse[0]] not in "aeiou"
+    return False
+
+
 @lru_cache(maxsize=4096)
 def _corretta(parola: str) -> str:
     if parola in lessico() or _parola_italiana(parola):
         return parola
-    # Come legal_ocr/lessico: si corregge solo se UNA SOLA parola del lessico è abbastanza vicina.
-    # Le forme flesse della stessa parola («sfratto», «sfratti») contano come una sola parola.
-    simili = get_close_matches(parola, lessico(), n=6, cutoff=0.88)
+    # Come legal_ocr/lessico: si corregge solo se UNA SOLA parola del lessico è un refuso tipico della parola letta
+    # (le forme flesse della stessa parola, «sfratto» e «sfratti», contano come una sola).
+    simili = [x for x in get_close_matches(parola, lessico(), n=8, cutoff=0.8) if _refuso_di(parola, x)]
     if not simili or any(not _stessa_parola(simili[0], x) for x in simili[1:]):
         return parola
     s = simili[0]
-    # Una flessione diversa della stessa parola («licenziato» / «licenzia») non è un refuso: si lascia com'è.
-    # Una forma flessa diversa ma completa («licenziato» accanto a «licenzia») resta; una parola più corta della forma
-    # del lessico con la stessa radice è un refuso per lettera mancante («sfrato», «stipendo»).
-    if _stessa_parola(s, parola) and len(parola) >= len(s):
+    # Una forma flessa diversa ma completa («licenziato» accanto a «licenzia») non è un refuso.
+    if _stessa_parola(s, parola) and len(parola) >= len(s) and not (len(parola) == len(s) + 1 and _refuso_di(parola, s)):
         return parola
-    # Solo refusi per lettera mancante o lettere scambiate: una sostituzione può trasformare una parola italiana valida
-    # («distratto») in un'altra del lessico («distretto») e non si fa.
-    mancante = len(parola) < len(s) <= len(parola) + 2
-    scambiate = len(parola) == len(s) and sorted(parola) == sorted(s)
-    return s if s[0] == parola[0] and (mancante or scambiate) else parola
+    return s
 
 
 def correggi_refusi(testo: str) -> str:

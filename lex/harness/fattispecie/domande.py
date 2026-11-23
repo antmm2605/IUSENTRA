@@ -115,7 +115,13 @@ def analizza_appello_lavoro(c: Comprensione, f: Fatti) -> Analisi:
 
 # ---------------------------------------------------------------------------------- esecuzione
 def riconosci_opposizione_atti(c: Comprensione, f: Fatti) -> int:
-    return 3 if re.search(r"opposizione agli atti esecutivi|617", _t(f)) else 0
+    t = _t(f)
+    if re.search(r"opposizione agli atti esecutivi|617", t):
+        return 5
+    # Vizi di forma del titolo, del precetto o di un atto esecutivo: non si contesta il diritto, ma la regolarità.
+    return 5 if re.search(r"precett|pignorament|atto esecutiv|titolo esecutivo", t) and re.search(
+        r"\bnull\w*|irregolar|vizi\w* (?:di )?form|manca (?:l |la |il )?(?:avvertiment|indicazion|sottoscrizion|firma)|"
+        r"notifica\w* (?:nulla|irregolare|viziata)|difett\w* di (?:forma|notifica)", t) else 0
 
 
 def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:
@@ -195,7 +201,7 @@ def analizza_consumatore(c: Comprensione, f: Fatti) -> Analisi:
 
 # ---------------------------------------------------------------------------------- amministrativo
 def riconosci_straordinario(c: Comprensione, f: Fatti) -> int:
-    return 3 if re.search(r"ricorso straordinario", _t(f)) else 0
+    return 4 if re.search(r"ricorso straordinario|ricorso al (?:presidente della repubblica|capo dello stato)", _t(f)) else 0
 
 
 def analizza_straordinario(c: Comprensione, f: Fatti) -> Analisi:
@@ -203,6 +209,20 @@ def analizza_straordinario(c: Comprensione, f: Fatti) -> Analisi:
     a.conclusione = [Punto("Il ricorso straordinario al Presidente della Repubblica si propone entro centoventi giorni "
                            "dalla notificazione o comunicazione dell'atto impugnato o da quando l'interessato ne ha avuto "
                            "piena conoscenza.", [Rif("dpr1199:9", "centoventi giorni")])]
+    a.inquadramento = [
+        Punto("Il ricorso straordinario è ammesso contro gli atti amministrativi definitivi, per soli motivi di legittimità, ed "
+              "è alternativo al ricorso al TAR: se l'atto è già stato impugnato in sede giurisdizionale dallo stesso "
+              "interessato, il ricorso straordinario non è ammesso.",
+              [Rif("dpr1199:8", "Contro gli atti amministrativi definitivi"), Rif("dpr1199:8", "per motivi di legittimita'"),
+               Rif("dpr1199:8", "non e' ammesso il ricorso straordinario da parte dello stesso interessato")]),
+        Punto("I controinteressati, entro sessanta giorni dalla notificazione del ricorso, possono chiedere che sia deciso in "
+              "sede giurisdizionale (trasposizione): il ricorrente che vuole insistere deve costituirsi davanti al giudice "
+              "amministrativo entro sessanta giorni dal ricevimento dell'opposizione.",
+              [Rif("dpr1199:10", "entro il termine di sessanta giorni dalla notificazione del ricorso"),
+               Rif("dpr1199:10", "nel termine di sessanta giorni dal ricevimento dell'atto di opposizione")]),
+    ]
+    a.rimedio = "ricorso straordinario al Presidente della Repubblica entro centoventi giorni, in alternativa al TAR"
+    a.forma = "atto" if c.tipo == "redazione" else "parere (consulenza)"
     return a
 
 
@@ -268,6 +288,12 @@ def riconosci_tar(c: Comprensione, f: Fatti) -> int:
     atto_amministrativo = re.search(r"\btar\b|tribunale amministrativo|diniego|permesso di costruire|ordinanza (?:sindacale|di demolizione)|"
                                     r"aggiudicazion|esclusione dalla gara|provvedimento (?:amministrativo|del comune|della regione)|"
                                     r"revoca dell autorizzazione|annullamento d ufficio", t)
+    if re.search(r"ricorso straordinario|presidente della repubblica|capo dello stato", t):
+        return 0
+    # Provvedimenti che non vanno al TAR: protezione internazionale, unità familiare, prestazioni previdenziali.
+    if re.search(r"protezione (?:internazionale|sussidiaria|speciale)|asilo|rifugiat|ricongiungimento|motivi familiari|"
+                 r"naspi|\binps\b|pension|invalidit|indennita di disoccupazione", t):
+        return 0
     return 3 if atto_amministrativo and re.search(r"impugn|ricors|termin|entro", t) else 0
 
 
@@ -341,7 +367,7 @@ def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
 
 def riconosci_tributario(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    return 3 if re.search(r"avviso di accertamento|cartella|tributar|agenzia delle entrate|intimazione di pagamento fiscal", t) and re.search(r"ricors|impugn|termin|entro", t) else 0
+    return 3 if re.search(r"avviso di accertamento|cartella|tributar|agenzia delle entrate|intimazione di pagamento fiscal|avviso (?:imu|tari)|\bimu\b|\btari\b", t) and re.search(r"ricors|impugn|termin|entro", t) else 0
 
 
 def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:

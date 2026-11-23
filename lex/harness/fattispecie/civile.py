@@ -16,7 +16,7 @@ def _nome(parte, ruolo: str) -> str:
 
 # --------------------------------------------------------------------------------------------- caparra e preliminare
 def riconosci_caparra(c: Comprensione, f: Fatti) -> int:
-    if "caparra" not in piano(f.testo):
+    if "caparra" not in piano(f.testo) or "penitenzial" in piano(f.testo):
         return 0
     return 3 if f.ha("preliminare") or "rogito" in piano(f.testo) else 2
 
@@ -214,7 +214,7 @@ def _contributo(valore: float) -> str:
 # --------------------------------------------------------------------------------------------- pagamento generico
 def riconosci_pagamento(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    if not f.importi or f.ha("locazione") or f.ha("lavoro_subordinato") or f.ha("condominio"):
+    if not f.importi or f.ha("locazione") or f.ha("lavoro_subordinato") or f.ha("condominio") or re.search(r"cauzion", t):
         return 0
     if re.search(r"quale giudice|giudice competente|chi e competente|competen", t):
         return 2
@@ -277,4 +277,35 @@ def analizza_comparsa(c: Comprensione, f: Fatti) -> Analisi:
         from ..bozze import comparsa_generica
 
         a.bozza = comparsa_generica(f)
+    return a
+
+
+
+# ------------------------------------------------------------------- recesso convenzionale e caparra penitenziale
+def riconosci_recesso_contratto(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    return 6 if re.search(r"caparra penitenzial|clausola di recesso|diritto di recesso (?:previsto|pattuito|convenzional)|"
+                          r"facolta di recesso|lettera di recesso|recesso dal contratto|recedere dal contratto", t) and not re.search(
+        r"consumator|fuori dai locali commerciali|a distanza|online|conduttor|inquilin|locazion|lavor|licenzia|dimission|"
+        r"caparra confirmatori|1385", t) else 0
+
+
+def analizza_recesso_contratto(c: Comprensione, f: Fatti) -> Analisi:
+    from .strumenti import forma
+
+    t = piano(f.testo)
+    a = Analisi("recesso_contratto", "contratti — recesso convenzionale", forma=forma(c))
+    a.capito = ["Contratto con facoltà di recesso pattuita" + (" e caparra penitenziale." if "penitenzial" in t else ".")]
+    a.rimedio = "dichiarazione di recesso alla controparte, nei limiti pattuiti"
+    a.conclusione = [Punto("La facoltà di recesso attribuita dal contratto si esercita finché il contratto non ha avuto un "
+                           "principio di esecuzione; nei contratti a esecuzione continuata o periodica anche dopo, ma senza "
+                           "effetto per le prestazioni già eseguite o in corso.",
+                           [Rif("cc:1373", "finche' il contratto non abbia avuto un principio di esecuzione")])]
+    if "penitenzial" in t:
+        a.conclusione.append(Punto("Con la caparra penitenziale la caparra è solo il corrispettivo del recesso: chi recede perde "
+                                   "la caparra data o deve restituire il doppio di quella ricevuta, senza altro risarcimento.",
+                                   [Rif("cc:1386", "la caparra ha la sola funzione di corrispettivo del recesso"),
+                                    Rif("cc:1386", "il recedente perde la caparra data o deve restituire il doppio")]))
+        a.avvertenze.append("La caparra penitenziale non va confusa con la confirmatoria (art. 1385 c.c.): qui non servono "
+                            "inadempimento né diffida, basta la dichiarazione di recesso.")
     return a

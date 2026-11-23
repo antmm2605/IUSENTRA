@@ -172,3 +172,56 @@ def analizza_sinistro(c: Comprensione, f: Fatti) -> Analisi:
     a.dati_mancanti = ["data di invio e ricezione della richiesta", "certificazione medica di guarigione ed eventuali postumi",
                        "luogo del sinistro (competenza territoriale)"]
     return a
+
+
+
+# ------------------------------------------------------------------- diffida e messa in mora fuori dalle transazioni commerciali
+def riconosci_diffida_messa_mora(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    richiesta = piano(f.richiesta) or t
+    if riconosci_diffida_commerciale(c, f) or re.search(r"sfratt", t) or re.search(_DIFFIDA_GIA_FATTA + r"|diffida (?:e )?rimasta", t):
+        return 0
+    return 5 if re.search(r"diffida|messa in mora|costituzione in mora", richiesta) and re.search(
+        r"prima del (?:decreto|ricorso|giudizio|la causa)|mandiamo|inviamo|scriv|prepar|serve|conviene|obbligatori|necessari|"
+        r"\?", t) else 0
+
+
+_DIFFIDA_ADEMPIERE = r"diffida ad adempiere|1454|risolv\w*|risoluzion|sciogliere il contratto|scioglimento del contratto"
+
+
+def riconosci_diffida_1454(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    return 6 if re.search(r"diffida", t) and re.search(_DIFFIDA_ADEMPIERE, t) and not re.search(r"sfratt|delibera|caparra", t) else 0
+
+
+def analizza_diffida_1454(c: Comprensione, f: Fatti) -> Analisi:
+    a = analizza_diffida_messa_mora(c, f)
+    a.regola = "diffida_1454"
+    a.materia = "contratti — diffida ad adempiere"
+    a.rimedio = ("diffida ad adempiere per iscritto con termine non inferiore a quindici giorni e dichiarazione che, decorso "
+                 "inutilmente, il contratto si intenderà risolto")
+    a.conclusione.insert(0, a.conclusione.pop(2))
+    a.avvertenze.append("La risoluzione di diritto presuppone un inadempimento non di scarsa importanza (art. 1455 c.c.): "
+                        "valutarlo prima di inviare la diffida.")
+    return a
+
+
+def analizza_diffida_messa_mora(c: Comprensione, f: Fatti) -> Analisi:
+    from .strumenti import forma
+
+    a = Analisi("diffida_messa_mora", "stragiudiziale — diffida e messa in mora", forma=forma(c))
+    a.capito = ["Diffida al debitore prima di agire in giudizio."]
+    a.rimedio = "lettera di diffida e messa in mora via PEC o raccomandata, con termine per adempiere"
+    a.conclusione = [
+        Punto("L'intimazione o richiesta fatta per iscritto costituisce in mora il debitore e fa decorrere gli effetti della mora.",
+              [Rif("cc:1219", "intimazione o richiesta fatta per iscritto")]),
+        Punto("La stessa diffida interrompe la prescrizione, perché è un atto che vale a costituire in mora il debitore.",
+              [Rif("cc:2943", "costituire in mora il debitore")]),
+        Punto("Se si vuole anche la risoluzione del contratto, la diffida ad adempiere deve dare un termine non inferiore a "
+              "quindici giorni, decorso il quale il contratto è risolto di diritto.",
+              [Rif("cc:1454", "quindici giorni"), Rif("cc:1454", "risoluto di diritto")]),
+        Punto("Il ricorso per decreto ingiuntivo non richiede la negoziazione assistita: la diffida è utile, ma non è una "
+              "condizione per chiedere l'ingiunzione.",
+              [Rif("dl132:3", "procedimenti per ingiunzione, inclusa l'opposizione")]),
+    ]
+    return a

@@ -27,6 +27,7 @@ ATTI = {
     "dpr639": ("d.p.r. 639/1970", "d.P.R. 639/1970", "decreto.del.presidente.della.repubblica:1970-04-30;639"),
     "dlgs81": ("d.lgs. 81/2015", "d.lgs. 81/2015", "decreto.legislativo:2015-06-15;81"),
     "l742": ("l. 742/1969", "l. 742/1969", "legge:1969-10-07;742"),
+    "l898": ("l. 898/1970", "l. 898/1970", "legge:1970-12-01;898"),
     "dlgs28": ("d.lgs. 28/2010", "d.lgs. 28/2010", "decreto.legislativo:2010-03-04;28"),
     "dl132": ("d.l. 132/2014", "d.l. 132/2014", "decreto.legge:2014-09-12;132"),
     "dlgs150g": ("d.lgs. 150/2022", "d.lgs. 150/2022", "decreto.legislativo:2022-10-10;150"),
@@ -53,6 +54,7 @@ ATTI = {
     "dlgs23_11": ("d.lgs. 23/2011", "d.lgs. 23/2011", "decreto.legislativo:2011-03-14;23"),
     "dlgs116": ("d.lgs. 116/2017", "d.lgs. 116/2017", "decreto.legislativo:2017-07-13;116"),
     "rd1611": ("r.d. 1611/1933", "r.d. 1611/1933", "regio.decreto:1933-10-30;1611"),
+    "l199": ("l. 199/2025", "l. 199/2025", "legge:2025-12-30;199"),
 }
 
 
@@ -367,6 +369,15 @@ NORME_MATERIE: tuple[tuple[str, str, str, str, str, str], ...] = (
     _v("dlgs116", "27", "Modifiche al codice civile e alle disposizioni di attuazione"),
     _v("dlgs116", "32", "Disposizioni transitorie e abrogazioni"),
     _v("rd1611", "11", "Notificazioni alle Amministrazioni dello Stato"),
+    _v("cc", "467", "Rappresentazione"),
+    _v("cc", "476", "Accettazione tacita"),
+    _v("cc", "480", "Prescrizione del diritto di accettare"),
+    _v("cc", "519", "Dichiarazione di rinunzia"),
+    _v("cc", "521", "Retroattività della rinunzia"),
+    _v("cc", "525", "Revoca della rinunzia"),
+    _v("cpc", "153", "Improrogabilità dei termini perentori"),
+    _v("l898", "3", "Casi di scioglimento"),
+    _v("l199", "1", "Definizione agevolata dei carichi (commi 82-98)") + ((" 82. ", " 99. "),),
     ("bdiabf:I.4", "Disposizioni Banca d'Italia ABF, Sez. I, par. 4", "Disposizioni Banca d'Italia sull'ABF, Sezione I, par. 4",
      "Ambito di applicazione oggettivo", "banca.italia:provvedimento:2009-06-18;abf", "I.4"),
     ("bdiabf:VI.1", "Disposizioni Banca d'Italia ABF, Sez. VI, par. 1", "Disposizioni Banca d'Italia sull'ABF, Sezione VI, par. 1",

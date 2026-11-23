@@ -57,7 +57,9 @@ def main() -> int:
     db = Path(sys.argv[1])
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     norme, mancanti = {}, {}
-    for chiave, _estremi, citazione, _rubrica, urn, numero in NORME_MATERIE:
+    for voce in NORME_MATERIE:
+        chiave, _estremi, citazione, _rubrica, urn, numero = voce[:6]
+        estratto = voce[6] if len(voce) > 6 else None   # (inizio, fine): solo i commi utili di un articolo molto lungo
         doc = _documento(conn, urn)
         if doc is None:
             mancanti[chiave] = "atto non presente nella biblioteca"
@@ -68,6 +70,12 @@ def main() -> int:
             mancanti[chiave] = f"articolo {numero} non trovato nell'edizione {doc[0]}"
             continue
         testo = " ".join((r[1] or "").split())
+        if estratto:
+            i, j = testo.find(estratto[0]), testo.find(estratto[1])
+            if i < 0 or j <= i:
+                mancanti[chiave] = f"commi {estratto} non trovati nell'articolo"
+                continue
+            testo = testo[i:j].strip()
         if re.search(r"\(\(\s*(?:ARTICOLO|PROVVEDIMENTO) ABROGAT", testo[:200]):
             mancanti[chiave] = "articolo abrogato nel testo vigente"
             continue

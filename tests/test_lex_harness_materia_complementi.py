@@ -13,7 +13,7 @@ ALT = {
     "fam_mantenimento": {"figlio_maggiorenne", "separazione_giudiziale"}, "fam_ordini_protezione": {"ordini_protezione"},
     "fam_negoziazione": {"negoziazione_familiare"}, "fam_disconoscimento": {"disconoscimento_paternita"},
     "suc_beneficio_inventario": {"chiamato_nel_possesso"}, "con_recesso": {"recesso_contratto"},
-    "rc_sinistro": {"sinistro_stradale"}, "lav_crediti": {"crediti_lavoro"}, "lav_tfr": {"crediti_lavoro", "decreto_ingiuntivo"},
+    "rc_sinistro": {"sinistro_stradale", "rc_negoziazione_sinistri"}, "lav_crediti": {"crediti_lavoro"}, "lav_tfr": {"crediti_lavoro", "decreto_ingiuntivo", "lav_decreto_ingiuntivo"},
     "lav_ricorso_414": {"crediti_lavoro", "competenza_lavoro"}, "lav_appello": {"appello_lavoro"},
     "loc_disdetta": {"sfratto_finita_locazione"}, "loc_mobili_rilascio": {"rilascio"},
     "loc_canone_nero": {"restituzione_canone_non_registrato"}, "cons_garanzia": {"garanzia_conformita"},

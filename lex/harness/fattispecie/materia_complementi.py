@@ -298,6 +298,8 @@ APPELLO_LAVORO = Scheda(
           "giudice del lavoro.", R("cpc:433", "deve essere proposto con ricorso davanti alla corte di appello")),
         p("Il ricorso, motivato in modo chiaro, sintetico e specifico per capi, si deposita entro trenta giorni dalla "
           "notificazione della sentenza (quaranta se all'estero).", R("cpc:434", "entro trenta giorni dalla notificazione della sentenza")),
+        p("Se la sentenza non è notificata vale il termine lungo: sei mesi dalla pubblicazione (deposito) della sentenza.",
+          R("cpc:327", "dalla pubblicazione della sentenza")),
     ],
     termini=[_FERIALE_NO],
     dati=["sentenza e data di notifica o pubblicazione", "capi impugnati"],

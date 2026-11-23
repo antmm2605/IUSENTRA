@@ -57,8 +57,9 @@ AGGIORNAMENTO_CANONE = Scheda(
     segnali=(r"\bistat\b|aggiornamento del canone|rivalutazione del canone|adeguamento del canone",), punteggio=6,
     capito="Aggiornamento annuale del canone di locazione all'indice ISTAT.",
     rimedio="richiesta scritta del locatore; contestazione delle somme non dovute",
-    conclusione=[p("Le parti possono convenire l'aggiornamento annuale del canone su richiesta del locatore; per i contratti "
-                   "di durata non superiore a quella legale l'aumento non può superare il 75 per cento della variazione ISTAT.",
+    conclusione=[p("Le parti possono convenire l'aggiornamento annuale del canone su richiesta del locatore: è dovuto dalla "
+                   "richiesta scritta in poi, non per gli anni in cui non è stato chiesto; per i contratti di durata non "
+                   "superiore a quella legale l'aumento non può superare il 75 per cento della variazione ISTAT.",
                    R("l392:32", "aggiornato annualmente su richiesta del locatore"), R("l392:32", "75 per cento"))],
     inquadramento=[p("Se il locatore ha optato per la cedolare secca, la facoltà di chiedere l'aggiornamento del canone, anche "
                      "ISTAT, è sospesa per la durata dell'opzione.",

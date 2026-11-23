@@ -84,6 +84,11 @@ REGOLE: tuple[Regola, ...] = (
     ("competenza_pagamento", civile.riconosci_pagamento, civile.analizza_pagamento),
 )
 
+# Regole per materia (schede in materia_*.py): in coda, vincono solo con un punteggio più alto.
+from .materie import REGOLE_MATERIE  # noqa: E402
+
+REGOLE = REGOLE + REGOLE_MATERIE
+
 
 def scegli(c: Comprensione, f: Fatti) -> Regola | None:
     migliore, punteggio = None, 0

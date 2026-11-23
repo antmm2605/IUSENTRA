@@ -266,6 +266,14 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("dpr115:13", "art. 13 d.p.r. 115/2002", "art. 13 d.P.R. 115/2002", "Contributo unificato"),
 )}
 
+# Norme delle fattispecie per materia (lex/harness/norme_materie.py, istantanea dati/norme_vigenti_materie.json):
+# si aggiungono senza sostituire le voci del catalogo principale.
+from .norme_materie import NORME_MATERIE as _NORME_MATERIE  # noqa: E402
+
+for _voce in _NORME_MATERIE:
+    NORME.setdefault(_voce[0], Norma(*_voce[:4]))
+ISTANTANEA_MATERIE = CARTELLA_DATI / "norme_vigenti_materie.json"
+
 
 def normalizza(testo: str) -> str:
     """Confronto robusto: minuscole, senza accenti né apostrofi tipografici, spazi singoli."""
@@ -294,9 +302,16 @@ class TestoNorma:
 @lru_cache(maxsize=1)
 def _istantanea() -> dict[str, dict[str, Any]]:
     try:
-        return json.loads(ISTANTANEA.read_text(encoding="utf-8")).get("norme", {})
+        norme = json.loads(ISTANTANEA.read_text(encoding="utf-8")).get("norme", {})
     except (OSError, ValueError):
-        return {}
+        norme = {}
+    try:
+        for chiave, riga in json.loads(ISTANTANEA_MATERIE.read_text(encoding="utf-8")).get("norme", {}).items():
+            if not (norme.get(chiave) or {}).get("testo"):
+                norme[chiave] = riga
+    except (OSError, ValueError):
+        pass
+    return norme
 
 
 def _archivio_dal_vivo(norma: Norma) -> dict[str, Any] | None:

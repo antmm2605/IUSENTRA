@@ -36,7 +36,7 @@ USURA = Scheda(
 ANATOCISMO = Scheda(
     regola="ban_anatocismo", materia="bancario e finanziario", nome="anatocismo e ripetizione dell'indebito bancario",
     segnali=(r"anatocism|\bcicr\b|capitalizz|interessi (?:sugli|su) interessi|ripetizione d\w* ?indebit|rimesse solutori|ricalcolo del conto",),
-    alcuni=(_BANCA, r"interess"), punteggio=6,
+    alcuni=(_BANCA, r"interess|anatocism|\bcicr\b|rimesse|ricalcolo"), punteggio=6,
     capito="Correntista che contesta la capitalizzazione degli interessi e chiede la restituzione di quanto addebitato.",
     rimedio="mediazione e poi citazione per accertamento del saldo e ripetizione dell'indebito",
     conclusione=[
@@ -83,8 +83,13 @@ ABF = Scheda(
           R("tub:128bis", "aderiscono a sistemi di risoluzione stragiudiziale delle controversie con la clientela"),
           R("tub:128bis", "articolo 5, comma 1, del decreto legislativo 4 marzo 2010, n. 28")),
     ],
-    dubbi=["Limiti di valore, termini dal reclamo ed effetti della decisione sono fissati dalle disposizioni della Banca "
-           "d'Italia e del CICR, non presenti nella biblioteca: verificarli sul sito dell'ABF prima di indicarli."],
+    termini=[p("All'ABF vanno le controversie su operazioni e servizi bancari e finanziari (non quelle sui servizi di "
+               "investimento); se si chiede una somma, l'importo non deve superare 200.000 euro; sono escluse le operazioni "
+               "anteriori al sesto anno precedente al ricorso.",
+               R("bdiabf:I.4", "non sia superiore a 200.000 euro"), R("bdiabf:I.4", "sesto anno precedente")),
+             p("Il ricorso si propone se il reclamo all'intermediario è rimasto senza esito o insoddisfatto nei 60 giorni, e "
+               "non oltre 12 mesi dalla presentazione del reclamo; il cliente può ricorrere anche senza avvocato.",
+               R("bdiabf:VI.1", "60 giorni"), R("bdiabf:VI.1", "12 mesi dalla presentazione del reclamo all"))],
     dati=["reclamo alla banca e data", "risposta della banca", "importo e oggetto della controversia"],
 )
 
@@ -162,7 +167,7 @@ RESPONSABILITA_AMMINISTRATORI = Scheda(
 
 RECESSO_SOCIO = Scheda(
     regola="soc_recesso_socio", materia="società e impresa", nome="recesso del socio",
-    segnali=(r"recess|reced|uscire dalla societa|uscir\w*|liquidazione della quota|liquida la quota", r"soci|societa|\bsrl\b|\bspa\b|quota|azioni"),
+    segnali=(r"recess|reced|uscire dalla societa|uscir\w*|liquidazione della quota|liquida la quota", r"\bsoci|societa|\bsrl\b|\bspa\b|\bquot[ae]\b|\bazioni\b"),
     esclusi=(r"conduttor|locazion|contratto di (?:lavoro|fornitura)|consumator",), punteggio=7,
     capito="Socio che vuole recedere dalla società e ottenere la liquidazione della partecipazione.",
     rimedio="dichiarazione di recesso nelle forme e nei termini di legge o di statuto",

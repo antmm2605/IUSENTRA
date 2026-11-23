@@ -241,8 +241,11 @@ REVOCA_AMMINISTRATORE = Scheda(
           R("dispattcc:64", "provvede in camera di consiglio, con decreto motivato"),
           R("dispattcc:64", "entro dieci giorni dalla notificazione o dalla comunicazione")),
     ],
-    dubbi=["Il testo vigente dell'art. 64 disp. att. c.c. attribuisce la revoca al giudice di pace: verificare la decorrenza "
-           "dell'attribuzione (riforma della magistratura onoraria) prima di scegliere l'ufficio."],
+    competenza=[p("La competenza passa dal tribunale al giudice di pace con la riforma della magistratura onoraria, le cui "
+                  "modifiche alle disposizioni di attuazione del codice civile entrano in vigore il 31 ottobre 2027: fino al "
+                  "30 ottobre 2027 il ricorso si propone al tribunale.",
+                  R("dlgs116:27", "all'articolo 64, sono apportate le seguenti modificazioni"),
+                  R("dlgs116:32", "le disposizioni dell'articolo 27 entrano in vigore il"))],
     dati=["irregolarità contestate", "rendiconti mancanti", "delibere assembleari sulla revoca"],
 )
 

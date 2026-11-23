@@ -70,6 +70,13 @@ class Scheda:
     bozza: Bozza | None = None
     extra: Callable[[Analisi, Comprensione, Fatti], None] | None = None
 
+    def __post_init__(self) -> None:
+        # Un solo segnale scritto senza virgola finale è una stringa, non una tupla: lo si normalizza.
+        for nome in ("segnali", "alcuni", "esclusi"):
+            valore = getattr(self, nome)
+            if isinstance(valore, str):
+                setattr(self, nome, (valore,))
+
     # ------------------------------------------------------------------ riconoscimento
     def riconosci(self, c: Comprensione, f: Fatti) -> int:
         if c.tipo not in self.tipi:

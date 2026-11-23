@@ -15,7 +15,7 @@ AFFIDAMENTO = Scheda(
     regola="fam_affidamento_figli", materia="famiglia e minori", nome="affidamento e collocamento dei figli (anche nati fuori dal matrimonio)",
     segnali=(r"affid|collocament|vedere (?:il|la|i) figli|impedisce[^.]{0,40}(?:vedere|figli)",),
     alcuni=(r"figli|bambin|minore|padre|madre|genitor|affidamento (?:super )?esclusivo",),
-    esclusi=(r"separazion|divorzi|modific\w* (?:delle )?condizion|modificar\w* (?:il )?collocamento|affidamento in prova|servizi sociali[^.]{0,20}condann|"
+    esclusi=(r"separazion|divorzi|modific\w* (?:delle )?condizion|modific\w* (?:il )?collocamento|affidamento in prova|servizi sociali[^.]{0,20}condann|"
              r"negoziazione assistita|maggiorenn", r"incarico|appalto|banca"), punteggio=6,
     capito="Genitori (sposati o no) in disaccordo sull'affidamento, il collocamento e le visite dei figli minori.",
     rimedio="ricorso al tribunale del luogo di residenza abituale del minore (rito unificato delle persone, dei minorenni e delle famiglie)",
@@ -60,8 +60,9 @@ AGGIORNAMENTO_CANONE = Scheda(
     conclusione=[p("Le parti possono convenire l'aggiornamento annuale del canone su richiesta del locatore; per i contratti "
                    "di durata non superiore a quella legale l'aumento non può superare il 75 per cento della variazione ISTAT.",
                    R("l392:32", "aggiornato annualmente su richiesta del locatore"), R("l392:32", "75 per cento"))],
-    dubbi=["Nei contratti abitativi in cedolare secca l'aggiornamento è sospeso per la durata dell'opzione: la norma "
-           "fiscale non è nella biblioteca, verificarla."],
+    inquadramento=[p("Se il locatore ha optato per la cedolare secca, la facoltà di chiedere l'aggiornamento del canone, anche "
+                     "ISTAT, è sospesa per la durata dell'opzione.",
+                     R("dlgs23_11:3", "per un periodo corrispondente alla durata dell'opzione, la facolta' di chiedere l'aggiornamento del canone"))],
     dati=["clausola di aggiornamento", "data della richiesta scritta", "tipo di contratto e regime fiscale"],
 )
 
@@ -69,7 +70,7 @@ RECESSO_CONSUMATORE = Scheda(
     regola="cons_recesso", materia="consumatori", nome="diritto di recesso del consumatore",
     segnali=(r"recess|recedere|restituire il prodotto|ripensa",),
     alcuni=(r"online|a distanza|porta a porta|fuori dai locali|a domicilio|e-commerce|sito|consumator|ordin|comprat|acquist|abbonament|diritto di recesso|venditor",),
-    esclusi=(r"socio|societa|conduttor|inquilin|locazion|caparra", r"lavor"), punteggio=6,
+    esclusi=(r"socio|societa|conduttor|inquilin|locazion|caparra|abusiv|vessatori|clausol", r"lavor"), punteggio=6,
     capito="Consumatore che vuole recedere da un contratto a distanza o concluso fuori dei locali commerciali.",
     rimedio="dichiarazione esplicita di recesso (anche con il modulo tipo) entro il termine",
     conclusione=[

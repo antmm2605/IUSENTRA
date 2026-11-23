@@ -22,7 +22,7 @@ CITAZIONE = Scheda(
     esclusi=(_NON_CIVILE, r"appell|opposizion|caparra|delibera|sfratt|decreto ingiuntiv|precett|separazion|divorzi|"
              r"revocazion|cassazion|semplificat|281-?decies|comparsa|memori|2932|forma specifica|responsabilit|amministrator|"
              r"incidente|sinistro|risoluzion|nullit|annullament|usucap|divisione|riduzion|petizione|negatori|confessori|confin|"
-             r"diffam|medic|ospedal|usur|anatocism|indebit"), punteggio=3,
+             r"diffam|medic|ospedal|usur|anatocism|indebit|consumator"), punteggio=3,
     capito="Introduzione di una causa civile davanti al tribunale con atto di citazione.",
     rimedio="atto di citazione a udienza fissa notificato al convenuto, con iscrizione a ruolo",
     conclusione=[

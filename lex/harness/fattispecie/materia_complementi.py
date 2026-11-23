@@ -1,6 +1,6 @@
 """Schede complementari: strumenti che hanno già una regola nell'elenco principale (fattispecie/*.py) ma che quella regola
-non riconosce in alcune formulazioni libere. Vengono dopo nell'elenco e, a parità di punteggio, cede la regola principale:
-rispondono solo dove l'altra tace. Dove la regola principale dà una risposta sbagliata sullo strumento (clausole
+non riconosce in alcune formulazioni libere. Hanno punteggio 2 e vengono dopo nell'elenco: cedono sempre alla regola
+principale e rispondono solo dove l'altra tace. Dove la regola principale dà una risposta sbagliata sullo strumento (clausole
 vessatorie, sospensiva al TAR, esecuzione in forma specifica) il punteggio è più alto e lo si dichiara nella scheda.
 
 Base normativa (testo vigente, istantanea dati/norme_vigenti_materie.json): vedi le norme citate in ciascuna scheda.
@@ -16,7 +16,7 @@ _FERIALE_NO = p("La sospensione feriale non si applica alle controversie di lavo
 
 SEQUESTRO = Scheda(
     regola="cau_sequestro", materia="cautelare e urgenza", nome="sequestro conservativo e giudiziario",
-    segnali=(r"sequestr",), esclusi=(r"preventiv|probatori|penal|imputat|reato",), punteggio=4,
+    segnali=(r"sequestr",), esclusi=(r"preventiv|probatori|penal|imputat|reato",), punteggio=2,
     capito="Sequestro conservativo (garanzia del credito) o giudiziario (bene conteso), prima o durante la causa.",
     rimedio="ricorso per sequestro al giudice competente per il merito",
     conclusione=[
@@ -36,7 +36,7 @@ SEQUESTRO = Scheda(
 RICORSO_CREDITO = Scheda(
     regola="mon_ricorso_credito", materia="monitorio", nome="recupero rapido del credito con decreto ingiuntivo",
     segnali=(r"recuper\w* (?:il )?credit|prova scritta|ottenere l ingiunzione|decreto ingiuntivo|ingiunzion",),
-    esclusi=(r"oppo|tardiv|ordinanza.ingiunzione|provvisori|notific\w* (?:il decreto|entro)|precett", r"lavor|stipend"), punteggio=3,
+    esclusi=(r"oppo|tardiv|ordinanza.ingiunzione|provvisori|notific\w* (?:il decreto|entro)|precett|contributo unificato", r"lavor|stipend"), punteggio=2,
     capito="Creditore con prova scritta che vuole un titolo esecutivo in tempi brevi.",
     rimedio="ricorso per decreto ingiuntivo al giudice competente per valore",
     conclusione=[
@@ -50,9 +50,9 @@ RICORSO_CREDITO = Scheda(
 
 OPPOSIZIONE_DI = Scheda(
     regola="mon_opposizione_di", materia="monitorio", nome="opposizione a decreto ingiuntivo",
-    segnali=(r"decreto ingiuntiv|ingiunzion|\bdecreto\b", r"oppo|contest|non (?:dovut|dovev)|mediazione"),
+    segnali=(r"decreto ingiuntiv|ingiunzion|\bdecreto\b", r"oppo|contest|non (?:dovut|dovev)|mediazione|difend|prescritt|gia pagat"),
     esclusi=(r"tardiv|\b650\b|ordinanza.ingiunzione|\(creditore|provvisori|decreto (?:di|del) (?:espulsione|giudizio)|"
-             r"decreto (?:del )?ministero|decreto cautelare"), punteggio=4,
+             r"decreto (?:del )?ministero|decreto cautelare"), punteggio=6,
     capito="Ingiunto che vuole contestare il decreto ingiuntivo notificato.",
     rimedio="atto di citazione in opposizione davanti all'ufficio che ha emesso il decreto, entro quaranta giorni dalla notifica",
     conclusione=[
@@ -70,25 +70,25 @@ OPPOSIZIONE_DI = Scheda(
 
 SEPARAZIONE = Scheda(
     regola="fam_separazione", materia="famiglia e minori", nome="separazione dei coniugi",
-    segnali=(r"separar\w*|separazione", r"marit|moglie|coniug|sposat|matrimoni"),
-    esclusi=(r"divorzi|negoziazione|modific|senza (?:andare in )?tribunale",), punteggio=3,
+    segnali=(r"separar\w*|separazione", r"marit|moglie|coniug|sposat|matrimoni|figli|ricorso"),
+    esclusi=(r"divorzi|negoziazione|modific|senza (?:andare in )?tribunale",), punteggio=2,
     capito="Coniuge che vuole separarsi, anche senza il consenso dell'altro.",
     rimedio="ricorso per separazione giudiziale (o congiunto per la consensuale) al tribunale",
     conclusione=[
         p("La separazione può essere chiesta quando si verificano, anche indipendentemente dalla volontà di uno o di entrambi "
           "i coniugi, fatti tali da rendere intollerabile la prosecuzione della convivenza.",
           R("cc:151", "intollerabile la prosecuzione della convivenza")),
-        p("La domanda si propone con ricorso che indica le parti, i fatti, le domande e i mezzi di prova.",
-          R("cpc:473bis12", "forma del ricorso")),
+        p("La domanda si propone con ricorso al tribunale secondo il rito unificato delle persone, dei minorenni e delle famiglie.",
+          R("cpc:473bis12", "ricorso")),
     ],
     dati=["residenza dei coniugi e dei figli", "figli minori", "redditi e patrimonio", "fatti (anche violenze)"],
 )
 
 MODIFICA_CONDIZIONI = Scheda(
     regola="fam_modifica_condizioni", materia="famiglia e minori", nome="modifica dei provvedimenti su figli e contributi",
-    segnali=(r"assegno|mantenimento|collocamento|contribut", r"ridurr|ridurlo|aumentar|piu alto|piu basso|modific|revision|"
+    segnali=(r"assegno|mantenimento|collocamento|contribut", r"ridurr|ridurlo|aumentar|abbassar|diminuir|piu alto|piu basso|modific|revision|"
              r"perso il lavoro|aumento di stipendio|trasferit"),
-    esclusi=(r"negoziazione|non paga|pagamento diretto|maggiorenn|calcol", r"inps|pension|invalidit"), punteggio=4,
+    esclusi=(r"negoziazione|non paga|pagamento diretto|maggiorenn|calcol", r"inps|pension|invalidit"), punteggio=2,
     capito="Richiesta di rivedere assegno, mantenimento o collocamento per fatti sopravvenuti.",
     rimedio="ricorso per la revisione dei provvedimenti al tribunale",
     conclusione=[p("Se sopravvengono giustificati motivi le parti possono chiedere in ogni tempo la revisione dei provvedimenti "
@@ -99,9 +99,9 @@ MODIFICA_CONDIZIONI = Scheda(
 
 MANTENIMENTO = Scheda(
     regola="fam_mantenimento", materia="famiglia e minori", nome="mantenimento dei figli e del coniuge",
-    segnali=(r"mantenim|assegno (?:per i figli|di mantenimento|periodico)|mantener\w*",),
+    segnali=(r"mantenim|mantenut|assegno (?:per i figli|di mantenimento|periodico)|mantener\w*|pagamento diretto|assegno direttamente",),
     alcuni=(r"figli|coniug|moglie|marit|ex\b|separat|padre|madre",),
-    esclusi=(r"negoziazione|modific|ridurr|aumentar|revision", r"\binps\b|invalidit"), punteggio=4,
+    esclusi=(r"negoziazione|modific|ridurr|aumentar|abbassar|diminuir|revision", r"invalidit|accompagnament"), punteggio=2,
     capito="Diritti e azioni sul mantenimento dei figli (anche maggiorenni) e del coniuge separato.",
     rimedio="domanda di determinazione del contributo; per l'inadempimento, ordine di pagamento diretto al terzo e titolo esecutivo",
     conclusione=[
@@ -122,7 +122,7 @@ MANTENIMENTO = Scheda(
 ORDINI_PROTEZIONE = Scheda(
     regola="fam_ordini_protezione", materia="famiglia e minori", nome="ordini di protezione contro gli abusi familiari",
     segnali=(r"violen|minacc|maltratt|picchia|abus", r"allontan|ordine (?:del giudice|di protezione)|fuori di casa|via di casa"),
-    esclusi=(r"querel|denuncia penale|reato|imputat",), punteggio=4,
+    esclusi=(r"querel|denuncia penale|reato|imputat",), punteggio=2,
     capito="Condotte del coniuge o convivente (o di altro familiare convivente) che pregiudicano integrità o libertà.",
     rimedio="ricorso per ordine di protezione (allontanamento dalla casa familiare e divieto di avvicinamento)",
     conclusione=[
@@ -133,7 +133,8 @@ ORDINI_PROTEZIONE = Scheda(
           "il divieto di avvicinarsi ai luoghi frequentati dalla vittima.",
           R("cpc:473bis70", "dispone l'allontanamento dalla casa familiare")),
     ],
-    avvertenze=["Gli artt. 342-bis e 342-ter c.c. sono abrogati: la disciplina è negli artt. 473-bis.69 ss. c.p.c."],
+    avvertenze=["Le vecchie norme del codice civile sugli ordini di protezione sono abrogate (d.lgs. 164/2024): la disciplina "
+                "vigente è nel codice di procedura civile."],
     dati=["fatti e date", "convivenza", "figli", "procedimenti penali in corso"],
 )
 
@@ -152,7 +153,7 @@ NEGOZIAZIONE_FAMILIARE = Scheda(
 
 DISCONOSCIMENTO = Scheda(
     regola="fam_disconoscimento", materia="famiglia e minori", nome="disconoscimento di paternità",
-    segnali=(r"disconosc|test del dna|non (?:e|sia) (?:suo|il padre)", r"paternit|padre|figli"), punteggio=4,
+    segnali=(r"disconosc|test del dna|non (?:e|sia) (?:suo|il padre)", r"paternit|padre|figli"), punteggio=2,
     capito="Azione per far accertare che il marito non è padre del figlio nato in costanza di matrimonio.",
     rimedio="ricorso per disconoscimento di paternità",
     conclusione=[p("L'azione spetta al marito, alla madre e al figlio; per il figlio è imprescrittibile, per gli altri ci sono "
@@ -163,8 +164,8 @@ DISCONOSCIMENTO = Scheda(
 
 BENEFICIO_INVENTARIO = Scheda(
     regola="suc_beneficio_inventario", materia="successioni", nome="accettazione con beneficio d'inventario",
-    segnali=(r"beneficio d inventario|beneficiat|eredita (?:e )?passiva|fare l inventario|\binventario\b",),
-    punteggio=4,
+    segnali=(r"beneficio d inventario|beneficiat|eredit\w*[^.]{0,30}passiv|fare l inventario|\binventario\b",),
+    punteggio=2,
     capito="Chiamato all'eredità che vuole tenere separati il proprio patrimonio e i debiti del defunto.",
     rimedio="dichiarazione di accettazione con beneficio d'inventario davanti al notaio o al cancelliere e redazione dell'inventario",
     conclusione=[
@@ -182,7 +183,7 @@ BENEFICIO_INVENTARIO = Scheda(
 ESECUZIONE_2932 = Scheda(
     regola="con_esecuzione_2932", materia="contratti", nome="esecuzione in forma specifica dell'obbligo di concludere il contratto",
     segnali=(r"2932|forma specifica|sentenza che (?:trasferisca|produca gli effetti)|trasferimento (?:della casa|dell immobile)|"
-             r"non (?:vuole piu fare|si presenta)[^.]{0,30}(?:rogito|dal notaio)|chiedere il trasferimento",),
+             r"non (?:vuole piu fare|si presenta)[^.]{0,30}(?:rogito|dal notaio)|chiedere il trasferimento|trasferimento coattivo",),
     alcuni=(r"preliminar|rogito|notaio|promittent|venditor|compromesso|trasferiment",),
     esclusi=(r"caparra|obblig\w* di fare|612|demoli",), punteggio=6,
     capito="Promissario acquirente che vuole una sentenza che trasferisca il bene al posto del contratto definitivo.",
@@ -203,7 +204,7 @@ RECESSO_CONTRATTO = Scheda(
     regola="con_recesso", materia="contratti", nome="recesso dal contratto",
     segnali=(r"recess|recedere",), alcuni=(r"contratt|preavviso|unilateral|fornitura|consulenza",),
     esclusi=(r"socio|societa|conduttor|inquilin|locazion|consumator|online|a distanza|caparra|lavor|licenzia|clausola vessatori",),
-    punteggio=4,
+    punteggio=2,
     capito="Esercizio del recesso da un contratto.",
     rimedio="comunicazione scritta di recesso nei modi e termini del contratto",
     conclusione=[p("Se a una parte è attribuita la facoltà di recedere, la può esercitare finché il contratto non ha avuto "
@@ -218,7 +219,7 @@ SINISTRO = Scheda(
     regola="rc_sinistro", materia="responsabilità civile", nome="sinistro stradale",
     segnali=(r"incidente|sinistro|investit|tamponat|risarcimento diretto|scontro tra",),
     alcuni=(r"strad|auto|veicol|moto|strisce|pedon|assicura|risarc|lesion|danni|causa",),
-    esclusi=(r"lavoro\b|infortunio sul lavoro|ospedal|medic",), punteggio=4,
+    esclusi=(r"lavoro\b|infortunio sul lavoro|ospedal|medic",), punteggio=2,
     capito="Danni da circolazione stradale: richiesta all'assicurazione e azione giudiziale.",
     rimedio="richiesta di risarcimento all'assicurazione (diretto o del responsabile), poi negoziazione assistita e causa",
     conclusione=[
@@ -226,7 +227,7 @@ SINISTRO = Scheda(
           "scontro fra veicoli si presume il concorso uguale.", R("cc:2054", "se non prova di aver fatto tutto il possibile per evitare il danno")),
         p("L'azione verso l'assicurazione è proponibile solo dopo la richiesta di risarcimento e il decorso dei termini della "
           "procedura (sessanta giorni per i soli danni a cose, novanta per le lesioni).",
-          R("dlgs209:145", "proponibilita'"), R("dlgs209:148", "per i sinistri con soli danni a cose")),
+          R("dlgs209:145", "proponibilita'"), R("dlgs209:148", "sessanta giorni"), R("dlgs209:148", "novanta giorni")),
         p("Prima della causa per danni da circolazione serve l'invito alla negoziazione assistita.",
           R("dl132:3", "risarcimento del danno da circolazione di veicoli")),
     ],
@@ -238,9 +239,9 @@ SINISTRO = Scheda(
 CREDITI_LAVORO = Scheda(
     regola="lav_crediti", materia="lavoro", nome="crediti di lavoro e differenze retributive",
     segnali=(r"contratto collettivo|\bccnl\b|stipendi|differenze retributiv|livello inferiore|inquadrament|mi devono|"
-             r"non (?:mi )?(?:ha|hanno) pagato|busta paga",),
-    alcuni=(r"datore|lavor|dipendent|azienda|mansion|stipendi",),
-    esclusi=(r"licenzia|minister|scuol|docent|pubblic\w* amministrazion|\binps\b|carta", r"pignor|precett"), punteggio=3,
+             r"non (?:mi )?(?:ha|hanno) pagato|busta paga|buste paga|straordinar",),
+    alcuni=(r"datore|lavor|dipendent|azienda|mansion|stipendi|buste paga|straordinar",),
+    esclusi=(r"licenzia|minister|scuol|docent|pubblic\w* amministrazion|\binps\b|carta", r"pignor|precett"), punteggio=2,
     capito="Lavoratore subordinato privato che chiede retribuzioni o differenze non pagate.",
     rimedio="ricorso ex art. 414 c.p.c. al giudice del lavoro (o decreto ingiuntivo con le buste paga)",
     conclusione=[
@@ -255,7 +256,7 @@ CREDITI_LAVORO = Scheda(
 TFR = Scheda(
     regola="lav_tfr", materia="lavoro", nome="trattamento di fine rapporto",
     segnali=(r"\btfr\b|trattamento di fine rapporto",), esclusi=(r"licenzia\w*[^.]{0,30}impugn", r"pubblic\w* amministrazion|\btfs\b"),
-    punteggio=4,
+    punteggio=2,
     capito="TFR non pagato alla cessazione del rapporto di lavoro.",
     rimedio="diffida, poi decreto ingiuntivo o ricorso al giudice del lavoro; con datore insolvente domanda al Fondo di garanzia INPS",
     conclusione=[
@@ -271,7 +272,7 @@ RICORSO_414 = Scheda(
     regola="lav_ricorso_414", materia="lavoro", nome="ricorso nel rito del lavoro",
     segnali=(r"\b414\b|ricorso (?:di|nel rito del) lavoro|cause di lavoro|controversi\w* di lavoro|giudice del lavoro|"
              r"azienda ha sede|dove facciamo causa",),
-    alcuni=(r"lavor|dipendent|azienda|datore",), esclusi=(r"minister|pubblic\w* amministrazion|\binps\b|appell|licenzia",), punteggio=3,
+    alcuni=(r"lavor|dipendent|azienda|datore|\b414\b",), esclusi=(r"minister|pubblic\w* amministrazion|\binps\b|appell|licenzia",), punteggio=3,
     capito="Introduzione della causa di lavoro: forma, contenuto e giudice competente.",
     rimedio="ricorso al tribunale in funzione di giudice del lavoro",
     conclusione=[
@@ -280,7 +281,7 @@ RICORSO_414 = Scheda(
         p("È competente il giudice del luogo in cui è sorto il rapporto o si trova l'azienda o la dipendenza cui è addetto il "
           "lavoratore.", R("cpc:413", "e sorto il rapporto ovvero si trova l'azienda")),
         p("Il ricorso deve contenere, fra l'altro, l'esposizione dei fatti e degli elementi di diritto e l'indicazione specifica "
-          "dei mezzi di prova e dei documenti, a pena di decadenza.", R("cpc:414", "si propone con ricorso")),
+          "dei mezzi di prova e dei documenti, a pena di decadenza.", R("cpc:414", "mezzi di prova")),
     ],
     termini=[_FERIALE_NO],
     dati=["luogo del rapporto e sede dell'azienda", "domande", "mezzi di prova e documenti"],
@@ -288,7 +289,8 @@ RICORSO_414 = Scheda(
 
 APPELLO_LAVORO = Scheda(
     regola="lav_appello", materia="lavoro", nome="appello nel rito del lavoro",
-    segnali=(r"appell", r"\blavoro\b|lavorator|licenzia|retribu"), esclusi=(r"penal|imputat|tributar",), punteggio=3,
+    segnali=(r"appell", r"\blavoro\b|lavorator|licenzia|retribu"), esclusi=(r"penal|imputat|tributar",), punteggio=4,
+    tipi=frozenset({"parere", "redazione", "calcolo"}),
     capito="Appello contro la sentenza del giudice del lavoro.",
     rimedio="ricorso in appello alla corte d'appello in funzione di giudice del lavoro",
     conclusione=[
@@ -304,7 +306,7 @@ APPELLO_LAVORO = Scheda(
 DISDETTA = Scheda(
     regola="loc_disdetta", materia="locazioni", nome="disdetta e diniego di rinnovo alla scadenza",
     segnali=(r"disdett|diniego (?:del )?rinnovo|prima scadenza|finita locazione",),
-    alcuni=(r"locazion|conduttor|inquilin|locator|4 ?\+ ?4|commercial|abitativ|contratto",), esclusi=(r"moros|non paga",), punteggio=3,
+    alcuni=(r"locazion|conduttor|inquilin|locator|4 ?\+ ?4|commercial|abitativ|contratto|negozio|appartamento",), esclusi=(r"moros|non paga",), punteggio=2,
     capito="Disdetta del contratto di locazione alla scadenza e diniego di rinnovo alla prima scadenza.",
     rimedio="comunicazione di disdetta (con motivo, alla prima scadenza) e, se il conduttore resta, intimazione di licenza o sfratto per finita locazione",
     conclusione=[
@@ -319,7 +321,7 @@ DISDETTA = Scheda(
 
 MOBILI_RILASCIO = Scheda(
     regola="loc_mobili_rilascio", materia="locazioni", nome="beni lasciati nell'immobile dopo il rilascio",
-    segnali=(r"(?:lasciato|lascia|rimasti)[^.]{0,30}(?:mobili|beni|oggetti)|mobili estranei|preavviso di rilascio",), punteggio=4,
+    segnali=(r"(?:lasciato|lascia|rimast\w*)[^.]{0,60}(?:mobili|beni|oggetti|macchinari|arredi)|mobili estranei|preavviso di rilascio",), punteggio=5,
     capito="Beni mobili rimasti nell'immobile al momento del rilascio.",
     rimedio="intimazione dell'ufficiale giudiziario all'asporto con termine; in mancanza, i beni sono trattati come abbandonati",
     conclusione=[p("Se nell'immobile si trovano beni che non vanno consegnati, l'ufficiale giudiziario intima alla parte tenuta "
@@ -331,7 +333,7 @@ MOBILI_RILASCIO = Scheda(
 CANONE_NERO = Scheda(
     regola="loc_canone_nero", materia="locazioni", nome="restituzione delle somme oltre il canone registrato",
     segnali=(r"in nero|non (?:era |e )?registrat|in contanti|canone piu basso|oltre (?:al )?canone",),
-    alcuni=(r"locazion|canone|inquilin|conduttor|affitt|locator",), punteggio=4,
+    alcuni=(r"locazion|canone|inquilin|conduttor|affitt|locator",), punteggio=2,
     capito="Conduttore che ha pagato somme oltre il canone del contratto registrato.",
     rimedio="azione di restituzione entro sei mesi dalla riconsegna dell'immobile",
     conclusione=[
@@ -348,7 +350,7 @@ GARANZIA = Scheda(
     regola="cons_garanzia", materia="consumatori", nome="garanzia legale di conformità",
     segnali=(r"garanzia|difett\w* di conformita|difett|si (?:e )?rott|non funziona",),
     alcuni=(r"vendit|acquist|comprat|consumator|negozio|auto|prodotto",),
-    esclusi=(r"appalt|impresa edile|falegnam|installator|banca|fideiussion|garanzia del credito|ipotec|garanzia personale"), punteggio=3,
+    esclusi=(r"appalt|impresa edile|falegnam|installator|banca|fideiussion|garanzia del credito|ipotec|garanzia personale"), punteggio=2,
     capito="Consumatore con un bene difettoso: rimedi verso il venditore.",
     rimedio="denuncia del difetto al venditore e richiesta di riparazione o sostituzione; poi riduzione del prezzo o risoluzione",
     conclusione=[
@@ -362,9 +364,9 @@ GARANZIA = Scheda(
 
 CLAUSOLE_VESSATORIE = Scheda(
     regola="cons_clausole_vessatorie", materia="consumatori", nome="clausole vessatorie",
-    segnali=(r"vessatori|abusiv|penale enorme|clausol\w*[^.]{0,40}(?:valid|efficac|nulla)|non (?:firmate|approvate) specificamente",),
-    alcuni=(r"contratt|clausol|consumator|palestra|condizioni generali|penale|foro",),
-    esclusi=(r"edilizi|demoli|occupa",), punteggio=6,
+    segnali=(r"vessatori|clausol\w*[^.]{0,30}abusiv|vieta[^.]{0,40}abusiv|abusiva\?|penale enorme|clausol\w*[^.]{0,80}(?:valid|efficac|nulla)|non (?:firmate|approvate) specificamente",),
+    alcuni=(r"consumator|palestra|condizioni generali|penale|foro|abbonament|vessatori|abusiv|specificamente|venditor|cliente",),
+    esclusi=(r"edilizi|demoli|occupa|recinzion|condomin|costruzion",), punteggio=6,
     capito="Clausole che creano a carico del consumatore un significativo squilibrio dei diritti e degli obblighi.",
     rimedio="eccezione o domanda di nullità della clausola (nullità di protezione), con il contratto che resta valido",
     conclusione=[
@@ -382,13 +384,13 @@ CLAUSOLE_VESSATORIE = Scheda(
 
 FORO_CONSUMATORE = Scheda(
     regola="cons_foro", materia="consumatori", nome="foro del consumatore",
-    segnali=(r"consumator", r"foro|competen|citat\w* fuori|comune di residenza|ci cita|cita a|dove (?:fare|facciamo) causa"),
-    punteggio=3,
+    segnali=(r"consumator", r"foro|competen|citat\w* fuori|comune di residenza|ci cita|cita a|dove (?:fare|facciamo) causa|che giudice|quale giudice|fare causa"),
+    punteggio=2,
     capito="Giudice territorialmente competente nelle cause con il consumatore.",
     rimedio="eccezione di incompetenza per territorio se la causa è proposta fuori dal foro del consumatore",
     conclusione=[p("Si presume vessatoria la clausola che fissa un foro diverso dalla residenza o dal domicilio elettivo del "
                    "consumatore; per i contratti a distanza e fuori dei locali il foro è inderogabilmente quello del consumatore.",
-                   R("dlgs206:33", "sede del foro competente sulle controversie localita' diversa da quella di residenza"),
+                   R("dlgs206:33", "residenza o domicilio elettivo del consumatore"),
                    R("dlgs206:66bis", "residenza o di domicilio del consumatore"))],
     dati=["residenza del consumatore", "clausola sul foro", "tipo di contratto"],
 )
@@ -397,7 +399,7 @@ SOSPENSIVA = Scheda(
     regola="amm_sospensiva", materia="amministrativo", nome="misure cautelari nel processo amministrativo",
     segnali=(r"sospensiv|sospender\w* (?:subito )?(?:l ordinanza|il provvedimento|l atto)|cautelar\w* (?:monocratic|collegial)|"
              r"decreto cautelare|istanza cautelare|urgentissim",),
-    alcuni=(r"\btar\b|amministrativ|ordinanza|comune|provvedimento|demolizion|atto impugnato",),
+    alcuni=(r"\btar\b|amministrativ|ordinanza|comune|provvedimento|demolizion|abbattiment|monocratic|atto impugnato",),
     esclusi=(r"tributar|cartella|penal|reato",), punteggio=6,
     capito="Sospensione o altra misura cautelare contro un provvedimento impugnato al TAR.",
     rimedio="domanda cautelare collegiale nel ricorso o con atto separato; in estrema urgenza istanza di decreto monocratico",
@@ -413,7 +415,7 @@ SOSPENSIVA = Scheda(
 
 QUERELA = Scheda(
     regola="pen_querela", materia="penale", nome="querela",
-    segnali=(r"querel",), esclusi=(r"remission|ritirar|rimetter",), punteggio=3,
+    segnali=(r"querel",), esclusi=(r"remission|ritirar|rimetter",), punteggio=2,
     capito="Persona offesa che vuole proporre querela.",
     rimedio="querela scritta o orale all'autorità giudiziaria o alla polizia giudiziaria entro tre mesi dalla notizia del fatto",
     conclusione=[
@@ -427,7 +429,7 @@ QUERELA = Scheda(
 
 APPELLO_PENALE = Scheda(
     regola="pen_appello", materia="penale", nome="appello penale",
-    segnali=(r"appell", r"penal|condann|imputat|reato"), esclusi=(r"lavor|tributar|\btar\b",), punteggio=4,
+    segnali=(r"appell", r"penal|condann|imputat|reato"), esclusi=(r"lavor|tributar|\btar\b",), punteggio=2,
     capito="Appello contro una sentenza penale.",
     rimedio="atto di appello con motivi specifici",
     conclusione=[
@@ -439,10 +441,30 @@ APPELLO_PENALE = Scheda(
     dati=["sentenza e data di deposito o avviso", "tipo di motivazione", "processo in assenza"],
 )
 
+CASSAZIONE_PENALE = Scheda(
+    regola="pen_cassazione", materia="penale", nome="ricorso per cassazione penale",
+    segnali=(r"cassazion|saltum", r"penal|condann|imputat|reato|saltum|proscioglim"), esclusi=(r"lavor|tributar|\btar\b",), punteggio=2,
+    capito="Ricorso per cassazione contro una sentenza penale.",
+    rimedio="ricorso per cassazione sottoscritto da difensore iscritto nell'albo speciale",
+    conclusione=[
+        p("Il ricorso per cassazione si propone per i motivi tassativi di legge, fra cui la violazione della legge penale o "
+          "processuale e i vizi di motivazione.", R("cpp:606", "inosservanza o erronea applicazione della legge penale")),
+        p("L'imputato può ricorrere contro la sentenza di condanna o di proscioglimento; la parte che può appellare può "
+          "ricorrere direttamente in cassazione (ricorso per saltum).",
+          R("cpp:607", "l'imputato puo' ricorrere per cassazione contro la sentenza di condanna"),
+          R("cpp:569", "puo' proporre direttamente ricorso per cassazione")),
+        p("Il ricorso è sottoscritto, a pena di inammissibilità, da difensori iscritti nell'albo speciale della Corte di cassazione.",
+          R("cpp:613", "da difensori iscritti nell'albo speciale della corte di cassazione")),
+        p("Il termine segue l'art. 585 c.p.p.: quindici, trenta o quarantacinque giorni secondo il deposito della motivazione.",
+          R("cpp:585", "di quindici giorni")),
+    ],
+    dati=["sentenza e data di deposito o avviso", "motivi di ricorso", "difensore cassazionista"],
+)
+
 PREFETTO = Scheda(
     regola="cds_prefetto", materia="violazioni amministrative", nome="ricorso al Prefetto contro il verbale",
     segnali=(r"prefett",), alcuni=(r"verbal|multa|sanzion|contravvenzion|ricors",), esclusi=(r"espulsion|ordinanza.ingiunzione",),
-    punteggio=4,
+    punteggio=2,
     capito="Ricorso amministrativo al Prefetto contro un verbale del codice della strada.",
     rimedio="ricorso al Prefetto entro sessanta giorni (in alternativa al giudice di pace entro trenta)",
     conclusione=[
@@ -459,15 +481,15 @@ PREFETTO = Scheda(
 PERMESSO_ESPULSIONE = Scheda(
     regola="imm_permesso_espulsione", materia="immigrazione", nome="diniego del permesso di soggiorno ed espulsione",
     segnali=(r"permesso di soggiorno|espulsion|questura",), esclusi=(r"commissione territoriale|asilo|protezione internazionale",),
-    punteggio=4,
+    punteggio=2,
     capito="Straniero cui è negato o revocato il permesso di soggiorno o notificata l'espulsione.",
     rimedio="ricorso al TAR contro il diniego del permesso (tribunale ordinario per i motivi familiari); ricorso al giudice di pace contro l'espulsione",
     conclusione=[
         p("Contro i provvedimenti su rilascio e rinnovo del permesso di soggiorno è ammesso ricorso al tribunale amministrativo "
-          "regionale.", R("tui:6", "e' ammesso ricorso al tribunale amministrativo regionale competente")),
+          "regionale.", R("dlgs286:6", "e' ammesso ricorso al tribunale amministrativo regionale competente")),
         p("Contro il decreto di espulsione del prefetto si ricorre al giudice di pace del luogo dell'autorità che l'ha disposta, "
           "entro venti giorni dalla notificazione (quaranta se residente all'estero).",
-          R("tui:13", "avverso il decreto di espulsione puo' essere presentato ricorso all'autorita' giudiziaria ordinaria"),
+          R("dlgs286:13", "avverso il decreto di espulsione puo' essere presentato ricorso all'autorita' giudiziaria ordinaria"),
           R("dlgs150:18", "e' competente il giudice di pace"), R("dlgs150:18", "entro venti giorni dalla notificazione")),
     ],
     avvertenze=["Per il diniego del permesso per motivi familiari è competente il giudice ordinario (art. 30, comma 6, TUI)."],
@@ -477,7 +499,7 @@ PERMESSO_ESPULSIONE = Scheda(
 MEDIAZIONE = Scheda(
     regola="str_mediazione", materia="stragiudiziale", nome="mediazione: durata, effetti e mancata partecipazione",
     segnali=(r"mediazion",), alcuni=(r"dura|prescrizion|non si presenta|non partecip|cosa rischia|primo incontro|domanda di mediazione",),
-    esclusi=(r"tributar|famil|separazion",), punteggio=3,
+    esclusi=(r"tributar|famil|separazion",), punteggio=2,
     capito="Svolgimento della mediazione civile e commerciale.",
     rimedio="domanda di mediazione all'organismo competente",
     conclusione=[
@@ -496,7 +518,7 @@ MEDIAZIONE = Scheda(
 NEGOZIAZIONE = Scheda(
     regola="str_negoziazione", materia="stragiudiziale", nome="negoziazione assistita: invito, risposta e materie",
     segnali=(r"negoziazione",), alcuni=(r"invito|non risponde|rifiut|trenta giorni|30 giorni|lavoro|convenzione",),
-    esclusi=(r"separar|divorzi|coniug|figli|sinistro|incidente",), punteggio=3,
+    esclusi=(r"separar|divorzi|coniug|figli|sinistro|incidente",), punteggio=2,
     capito="Invito alla negoziazione assistita e conseguenze della mancata risposta.",
     rimedio="invito a stipulare la convenzione di negoziazione assistita firmato dall'avvocato",
     conclusione=[
@@ -511,5 +533,5 @@ NEGOZIAZIONE = Scheda(
 SCHEDE = (SEQUESTRO, RICORSO_CREDITO, OPPOSIZIONE_DI, SEPARAZIONE, MODIFICA_CONDIZIONI, MANTENIMENTO, ORDINI_PROTEZIONE,
           NEGOZIAZIONE_FAMILIARE, DISCONOSCIMENTO, BENEFICIO_INVENTARIO, ESECUZIONE_2932, RECESSO_CONTRATTO, SINISTRO,
           CREDITI_LAVORO, TFR, RICORSO_414, APPELLO_LAVORO, DISDETTA, MOBILI_RILASCIO, CANONE_NERO, GARANZIA,
-          CLAUSOLE_VESSATORIE, FORO_CONSUMATORE, SOSPENSIVA, QUERELA, APPELLO_PENALE, PREFETTO, PERMESSO_ESPULSIONE,
+          CLAUSOLE_VESSATORIE, FORO_CONSUMATORE, SOSPENSIVA, QUERELA, APPELLO_PENALE, CASSAZIONE_PENALE, PREFETTO, PERMESSO_ESPULSIONE,
           MEDIAZIONE, NEGOZIAZIONE)

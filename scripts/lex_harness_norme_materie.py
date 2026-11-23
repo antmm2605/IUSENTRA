@@ -35,6 +35,21 @@ def _documento(conn: sqlite3.Connection, urn: str) -> tuple[int, str] | None:
     return migliore[0], migliore[1]
 
 
+_FONTI_NON_NORMATTIVA = {
+    # Disposizioni della Banca d'Italia sull'ABF: testo consolidato pubblicato dalla Banca d'Italia.
+    "banca.italia:provvedimento:2009-06-18;abf": "https://www.bancaditalia.it/compiti/vigilanza/normativa/archivio-norme/"
+                                                 "disposizioni/disposizioni/SMD_Disposizioni_ABF.pdf",
+}
+
+
+def _url(urn: str, numero: str) -> str:
+    if urn in _FONTI_NON_NORMATTIVA:
+        return _FONTI_NON_NORMATTIVA[urn]
+    if urn.startswith("unione"):
+        return ""
+    return f"https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:{urn}~art{numero}"
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
@@ -59,9 +74,7 @@ def main() -> int:
         titolo = conn.execute("SELECT titolo FROM normative_documents WHERE id=?", (doc[0],)).fetchone()[0] or ""
         vig = doc[1][len("VIGENTE_AL:"):] if doc[1].startswith("VIGENTE_AL:") else ""
         agg = date.fromisoformat(vig).strftime("%d/%m/%Y") if vig else ""
-        norme[chiave] = {"citazione": citazione, "testo": testo,
-                         "url": f"https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:{urn}~art{numero}"
-                         if not urn.startswith("unione") else "",
+        norme[chiave] = {"citazione": citazione, "testo": testo, "url": _url(urn, numero),
                          "titolo_atto": titolo, "aggiornamento": agg, "vigente": True, "document_id": str(doc[0]),
                          "article_id": str(r[0]), "origine": "biblioteca di consultazione (testo vigente Normattiva)",
                          "sha256": hashlib.sha256(testo.encode()).hexdigest()}

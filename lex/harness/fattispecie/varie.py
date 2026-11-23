@@ -124,6 +124,16 @@ def analizza_verbale_cds(c: Comprensione, f: Fatti) -> Analisi:
              "Tempestività del ricorso: proposto entro trenta giorni dalla notificazione (art. 7 d.lgs. 150/2011)."],
             "annullare il verbale e dichiarare estinta l'obbligazione di pagamento; con vittoria di spese.",
             "verbale, busta e relata di notifica, visura P.R.A.", "art. 7 d.lgs. 150/2011")
+    a.inquadramento.append(Punto(
+        "In alternativa al giudice di pace, se non si è pagato in misura ridotta, si può proporre ricorso al prefetto del luogo "
+        "della violazione entro sessanta giorni dalla contestazione o dalla notificazione, presentandolo all'organo accertatore "
+        "o inviandolo con raccomandata o PEC. Le due strade sono alternative: scelta l'una, l'altra non è più percorribile per "
+        "lo stesso verbale.",
+        [Rif("dlgs285:203", "nel termine di giorni sessanta dalla contestazione o dalla notificazione"),
+         Rif("dlgs285:203", "possono proporre ricorso al prefetto del luogo della commessa violazione")]))
+    if re.search(r"prefett", t):
+        a.rimedio = ("ricorso al prefetto entro sessanta giorni (art. 203 cod. strada), in alternativa al ricorso al giudice di "
+                     "pace entro trenta giorni (art. 204-bis cod. strada)")
     return a
 
 

@@ -115,7 +115,13 @@ def analizza_appello_lavoro(c: Comprensione, f: Fatti) -> Analisi:
 
 # ---------------------------------------------------------------------------------- esecuzione
 def riconosci_opposizione_atti(c: Comprensione, f: Fatti) -> int:
-    return 3 if re.search(r"opposizione agli atti esecutivi|617", _t(f)) else 0
+    t = _t(f)
+    if re.search(r"opposizione agli atti esecutivi|617", t):
+        return 5
+    # Vizi di forma del titolo, del precetto o di un atto esecutivo: non si contesta il diritto, ma la regolarità.
+    return 5 if re.search(r"precett|pignorament|atto esecutiv|titolo esecutivo", t) and re.search(
+        r"\bnull\w*|irregolar|vizi\w* (?:di )?form|manca (?:l |la |il )?(?:avvertiment|indicazion|sottoscrizion|firma)|"
+        r"notifica\w* (?:nulla|irregolare|viziata)|difett\w* di (?:forma|notifica)", t) else 0
 
 
 def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:

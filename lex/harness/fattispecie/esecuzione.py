@@ -24,9 +24,16 @@ def riconosci_opposizione_precetto(c: Comprensione, f: Fatti) -> int:
     ruolo = piano(f.assistita.ruolo)
     if re.search(r"creditor|procedent|intimant", ruolo):
         return 0
-    return 4 if "precett" in t and re.search(r"opposizion|pagat\w* tutto|gia pagat|quietanz|transazion|transattiv", t) and (
-        c.atto == "opposizione a precetto" or re.search(r"\bopponente\b|\bopposto\b|debitor\w* (?:intimat|esecutat)", t)
-        or re.search(r"debitor|intimat|opponent|esecutat", ruolo)) else 0
+    if "precett" not in t:
+        return 0
+    contesta = re.search(r"opposizion|oppor|saldat|pagat\w* (?:tutto|integralmente)|gia (?:stato )?pagat|quietanz|transazion|transattiv|non (?:e|era) dovut|"
+                         r"prescritt|estint|contest", t)
+    # Il debitore che ha ricevuto il precetto e chiede come reagire («ci hanno notificato», «mi è arrivato»).
+    destinatario = re.search(r"(?:ci|mi|gli|le) (?:hanno|ha) notificat|(?:ci|mi|gli|le) (?:e|sono) arrivat|abbiamo ricevuto|ho ricevuto|"
+                             r"ha ricevuto|ricevuto un precetto", t)
+    return 4 if contesta and (c.atto == "opposizione a precetto" or destinatario
+                              or re.search(r"\bopponente\b|\bopposto\b|debitor\w* (?:intimat|esecutat)", t)
+                              or re.search(r"debitor|intimat|opponent|esecutat", ruolo)) else 0
 
 
 def analizza_opposizione_precetto(c: Comprensione, f: Fatti) -> Analisi:
@@ -187,4 +194,59 @@ def analizza_termini_precetto(c: Comprensione, f: Fatti) -> Analisi:
                                    ["Titolo esecutivo: [da completare].", "Somme dovute: [da completare]."],
                                    "si intima di pagare entro dieci giorni dalla notificazione.", "titolo esecutivo.",
                                    "artt. 479 e 480 c.p.c.")
+    return a
+
+
+
+# ------------------------------------------------------------------- pignoramento presso terzi
+def riconosci_pignoramento_terzi(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    if re.search(r"terzo proprietari|opposizione di terzo|619|tesoreria|dello stato\b|amministrazion", t) or "precett" in t:
+        return 0
+    return 6 if re.search(r"pignor", t) and re.search(r"stipendi|salari|pension|conto corrent|presso terzi|datore di lavoro|"
+                                                     r"\bterzo\b|banca|crediti del debitore|canoni di locazione", t) and not re.search(
+        r"492[- ]bis|ricerca (?:telematica )?(?:dei )?beni|scopr|dove lavora", t) else 0
+
+
+def analizza_pignoramento_terzi(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("pignoramento_terzi", "esecuzione — pignoramento presso terzi", modello="ESE_001", forma=forma(c))
+    a.capito = ["Pignoramento di crediti del debitore verso terzi (stipendio, pensione, conto corrente)."]
+    a.rimedio = "atto di pignoramento presso terzi notificato al terzo e al debitore, dopo titolo e precetto"
+    a.conclusione = [
+        Punto("Il pignoramento di crediti del debitore verso terzi si esegue con atto notificato al terzo e al debitore.",
+              [Rif("cpc:543", "si esegue mediante atto notificato al terzo e al debitore")]),
+        Punto("Stipendi e salari dovuti da privati si pignorano nella misura di un quinto per ogni credito diverso dagli "
+              "alimentari; per il concorso di più cause il pignoramento non può superare la metà.",
+              [Rif("cpc:545", "possono essere pignorate nella misura di un quinto"),
+               Rif("cpc:545", "non puo' estendersi oltre alla meta'")]),
+        Punto("Prima del pignoramento servono la notificazione del titolo esecutivo e il precetto, con termine non minore di "
+              "dieci giorni.", [Rif("cpc:479", "notificazione del titolo esecutivo"), Rif("cpc:480", "non minore di dieci giorni")]),
+    ]
+    a.dati_mancanti.append("datore di lavoro o banca del debitore (terzo pignorato)")
+    return a
+
+
+# ------------------------------------------------------------------- ricerca telematica dei beni
+def riconosci_ricerca_beni(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    return 7 if re.search(r"492[- ]bis|ricerca (?:telematica|con modalita telematiche) (?:dei )?beni|ricerca dei beni|"
+                          r"cerca\w* (?:i |dei )?beni|quali conti|che conti|banche dati|"
+                          r"scopr\w* (?:dove lavora|i beni|i conti|che beni|quali beni)|anagrafe tributaria|banche dati[^?]{0,40}debitor|"
+                          r"archivio dei rapporti finanziari", t) else 0
+
+
+def analizza_ricerca_beni(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("ricerca_beni", "esecuzione — ricerca telematica dei beni", forma=forma(c))
+    a.capito = ["Il creditore vuole individuare beni, conti o datore di lavoro del debitore da pignorare."]
+    a.rimedio = "istanza di ricerca telematica dei beni da pignorare all'ufficiale giudiziario (art. 492-bis c.p.c.)"
+    a.conclusione = [
+        Punto("Su istanza del creditore munito di titolo esecutivo e di precetto, l'ufficiale giudiziario del tribunale del luogo "
+              "di residenza, domicilio, dimora o sede del debitore procede alla ricerca telematica dei beni da pignorare.",
+              [Rif("cpc:492bis", "Su istanza del creditore munito del titolo esecutivo e del precetto"),
+               Rif("cpc:492bis", "procede alla ricerca con modalita' telematiche dei beni da pignorare")]),
+        Punto("L'istanza non può essere proposta prima che sia decorso il termine del precetto, e deve indicare l'indirizzo di "
+              "posta elettronica ordinaria e la PEC del difensore.",
+              [Rif("cpc:492bis", "L'istanza non puo' essere proposta prima che sia decorso il termine di cui all'articolo 482"),
+               Rif("cpc:492bis", "indirizzo di posta elettronica ordinaria del difensore")]),
+    ]
     return a

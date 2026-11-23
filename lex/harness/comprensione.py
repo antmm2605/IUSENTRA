@@ -14,7 +14,8 @@ from .norme import piano
 
 # Atti che l'avvocato chiede di redigere (ordine: dal più specifico).
 ATTI: tuple[tuple[str, str], ...] = (
-    ("opposizione a decreto ingiuntivo", r"opposizion\w*.{0,60}(?:decreto ingiuntivo|ingiunzione)"),
+    ("opposizione a ordinanza-ingiunzione", r"opposizion\w*.{0,60}ordinanza[- ]ingiunzion|ordinanza[- ]ingiunzion"),
+    ("opposizione a decreto ingiuntivo", r"opposizion\w*.{0,60}(?:decreto ingiuntivo|(?<!ordinanza-)(?<!ordinanza )ingiunzione)"),
     ("opposizione a precetto", r"opposizion\w*.{0,60}precett|precett.{0,80}\bopposizion"),
     ("opposizione alla convalida di sfratto", r"opposizion\w*.{0,40}convalida"),
     ("memoria", r"\bmemori[ae]\b"),

@@ -9,7 +9,7 @@ from collections.abc import Callable
 from ..comprensione import Comprensione
 from ..fatti import Fatti
 from ..modello import Analisi
-from . import amministrativo, appalto, civile, consumo, domande, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
+from . import amministrativo, appalto, civile, consumo, domande, pubblico, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
 
 Regola = tuple[str, Callable[[Comprensione, Fatti], int], Callable[[Comprensione, Fatti], Analisi]]
 
@@ -27,19 +27,35 @@ REGOLE: tuple[Regola, ...] = (
     ("disconoscimento_paternita", varie.riconosci_disconoscimento, varie.analizza_disconoscimento),
     ("chiamato_nel_possesso", varie.riconosci_eredita_possesso, varie.analizza_eredita_possesso),
     ("diffida_commerciale", stragiudiziale.riconosci_diffida_commerciale, stragiudiziale.analizza_diffida_commerciale),
+    ("diffida_messa_mora", stragiudiziale.riconosci_diffida_messa_mora, stragiudiziale.analizza_diffida_messa_mora),
+    ("diffida_1454", stragiudiziale.riconosci_diffida_1454, stragiudiziale.analizza_diffida_1454),
     ("sinistro_stradale", stragiudiziale.riconosci_sinistro, stragiudiziale.analizza_sinistro),
     ("vizi_appalto", appalto.riconosci_vizi_appalto, appalto.analizza_vizi_appalto),
     ("termini_precetto", esecuzione.riconosci_termini_precetto, esecuzione.analizza_termini_precetto),
+    ("pignoramento_terzi", esecuzione.riconosci_pignoramento_terzi, esecuzione.analizza_pignoramento_terzi),
+    ("ricerca_beni", esecuzione.riconosci_ricerca_beni, esecuzione.analizza_ricerca_beni),
     ("caparra_confirmatoria", civile.riconosci_caparra, civile.analizza_caparra),
+    ("recesso_contratto", civile.riconosci_recesso_contratto, civile.analizza_recesso_contratto),
     ("impugnazione_licenziamento", lavoro.riconosci_licenziamento, lavoro.analizza_licenziamento),
     ("appello_lavoro", domande.riconosci_appello_lavoro, domande.analizza_appello_lavoro),
+    ("ricorso_dipendente_pubblico", pubblico.riconosci_dipendente_pubblico, pubblico.analizza_dipendente_pubblico),
+    ("ricorso_amministrativo_inps", pubblico.riconosci_previdenza, pubblico.analizza_previdenza),
+    ("ricorso_442", pubblico.riconosci_causa_previdenziale, pubblico.analizza_causa_previdenziale),
+    ("esecuzione_contro_pa", pubblico.riconosci_esecuzione_pa, pubblico.analizza_esecuzione_pa),
+    ("ordinanza_ingiunzione", pubblico.riconosci_ordinanza_ingiunzione, pubblico.analizza_ordinanza_ingiunzione),
     ("crediti_lavoro", lavoro.riconosci_crediti, lavoro.analizza_crediti),
     ("competenza_lavoro", lavoro.riconosci_competenza_lavoro, lavoro.analizza_competenza_lavoro),
     ("divorzio_tempi", famiglia.riconosci_divorzio_tempi, famiglia.analizza_divorzio_tempi),
     ("figlio_maggiorenne", famiglia.riconosci_maggiorenne, famiglia.analizza_maggiorenne),
     ("separazione_giudiziale", famiglia.riconosci_separazione, famiglia.analizza_separazione),
+    ("modifica_condizioni", famiglia.riconosci_modifica_condizioni, famiglia.analizza_modifica_condizioni),
+    ("negoziazione_familiare", famiglia.riconosci_negoziazione_familiare, famiglia.analizza_negoziazione_familiare),
+    ("ordini_protezione", famiglia.riconosci_ordini_protezione, famiglia.analizza_ordini_protezione),
     ("sanatoria_morosita", locazione.riconosci_sanatoria, locazione.analizza_sanatoria),
     ("sfratto_morosita", locazione.riconosci_sfratto, locazione.analizza_sfratto),
+    ("sfratto_finita_locazione", locazione.riconosci_finita, locazione.analizza_finita_locazione),
+    ("rilascio", locazione.riconosci_rilascio, locazione.analizza_rilascio),
+    ("opposizione_convalida", locazione.riconosci_opposizione_convalida, locazione.analizza_opposizione_convalida),
     ("causa_locazione", locazione.riconosci_cause_locazione, locazione.analizza_cause_locazione),
     ("notifica_decreto_ingiuntivo", monitorio.riconosci_notifica_di, monitorio.analizza_notifica_di),
     ("decreto_ingiuntivo", monitorio.riconosci_ricorso_di, monitorio.analizza_ricorso_di),

@@ -26,6 +26,8 @@ def riconosci_garanzia_consumo(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
     if re.search(_NON_CONSUMO, t) or re.search(_PROFESSIONISTA_ACQUIRENTE, t):
         return 0
+    if re.search(r"difett\w* di conformit|garanzia (?:legale )?di conformit", t):
+        return 5
     if not (re.search(_ACQUISTO, t) and re.search(_DIFETTO, t)):
         return 0
     return 5 if f.ha("consumatore") or re.search(r"garanzi|venditor|negozi|rivenditor|concessionari|sostituzion|riparazion|"

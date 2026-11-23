@@ -75,10 +75,10 @@ def analizza_appalti(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- accesso agli atti
 def riconosci_accesso(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    if re.search(r"accesso (?:agli |ai )?(?:atti|documenti)|istanza di accesso|diritto di accesso|accesso documentale", t) and not re.search(_GARA, t):
-        return 5
     if re.search(r"accesso (?:a|al|alla|ad|ai|alle) (?:un |una )?(?:programma|composizione|procedura|servizi|beneficio|misur|credito|fondo)", t):
         return 0
+    if re.search(r"accesso (?:agli |ai )?(?:atti|documenti)|istanza di accesso|diritto di accesso|accesso documentale", t) and not re.search(_GARA, t):
+        return 5
     return 5 if re.search(r"\baccesso\b|copia (?:del fascicolo|degli atti|dei documenti)", t) and re.search(
         r"comune|amministrazion|regione|ministero|prefettur|questur|\bpa\b|provincia|ufficio tecnico|pratica edilizia", t) else 0
 

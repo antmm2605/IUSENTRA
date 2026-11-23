@@ -232,6 +232,61 @@ def analizza_negoziazione_locazione(c: Comprensione, f: Fatti) -> Analisi:
     return a
 
 
+# ------------------------------------------------------------------- morosità: condizioni di procedibilità chieste liberamente
+_PROCEDIBILITA = (r"mediazion|procedibil|tentativo (?:obbligatorio )?di concilia|conciliazion|prima di (?:agire|andare|fare causa|"
+                  r"procedere|intimare|notificare|rivolgerci)|dobbiamo prima|serve prima|occorre prima|bisogna prima|"
+                  r"passaggi? obbligatori|condizion\w* per agire|organismo")
+
+
+def riconosci_procedibilita_locazione(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    if "negoziazione" in t or difesa_del_conduttore(f):
+        return 0
+    return 6 if f.ha("locazione") and f.ha("morosita") and re.search(_PROCEDIBILITA, t) else 0
+
+
+def analizza_procedibilita_locazione(c: Comprensione, f: Fatti) -> Analisi:
+    a = analizza_sfratto(Comprensione(c.tipo, "intimazione di sfratto" if c.tipo == "redazione" else c.atto, c.racconto, True), f)
+    a.regola = "procedibilita_locazione"
+    a.forma = "atto" if c.tipo == "redazione" else "parere (consulenza)"
+    a.rimedio = ("intimazione di sfratto per morosità con citazione per la convalida, senza mediazione preventiva; mediazione "
+                 "da avviare dopo il mutamento del rito, se il giudizio prosegue nel merito")
+    a.procedibilita = [
+        Punto("La locazione è fra le materie di mediazione obbligatoria: per un'azione ordinaria (per esempio la sola "
+              "risoluzione o il pagamento dei canoni con citazione) la mediazione è condizione di procedibilità della domanda.",
+              [Rif("dlgs28:5", "locazione"), Rif("dlgs28:5", "e' tenuto preliminarmente a esperire il procedimento di mediazione"),
+               Rif("dlgs28:5", "condizione di procedibilita' della domanda")]),
+        Punto("La mediazione però non si applica al procedimento per convalida di sfratto fino al mutamento del rito previsto "
+              "dall'art. 667 c.p.c.: l'intimazione di sfratto per morosità si notifica subito, senza mediazione preventiva.",
+              [Rif("dlgs28:5", "nei procedimenti per convalida di licenza o sfratto, fino al mutamento del rito di cui "
+                               "all'articolo 667")]),
+        Punto("Se il conduttore si oppone e il giudice dispone il mutamento del rito, la mediazione diventa condizione di "
+              "procedibilità del giudizio di merito: il giudice che la rileva non esperita fissa l'udienza successiva dopo la "
+              "durata della mediazione, e se la condizione manca la domanda è dichiarata improcedibile.",
+              [Rif("dlgs28:5", "fissa la successiva udienza dopo la scadenza del termine di cui all'articolo 6"),
+               Rif("dlgs28:5", "dichiara l'improcedibilita' della domanda giudiziale")]),
+        Punto("La condizione si considera avverata se il primo incontro davanti al mediatore si chiude senza accordo.",
+              [Rif("dlgs28:5", "si conclude senza l'accordo di conciliazione")]),
+        Punto("Anche il ricorso per decreto ingiuntivo per i soli canoni è escluso dalla mediazione fino alla pronuncia sulla "
+              "provvisoria esecuzione nell'eventuale opposizione.",
+              [Rif("dlgs28:5", "procedimenti per ingiunzione, inclusa l'opposizione, fino alla pronuncia sulle istanze di "
+                               "concessione e sospensione della provvisoria esecuzione")]),
+        Punto("La negoziazione assistita non è condizione di procedibilità: la locazione rientra nei casi di mediazione "
+              "obbligatoria che l'art. 3 d.l. 132/2014 esclude.", [Rif("dl132:3", "articolo 5, comma 1-bis")]),
+    ]
+    a.conclusione = [Punto("Per la morosità non serve alcun passaggio preventivo: si notifica l'intimazione di sfratto con "
+                           f"citazione per la convalida davanti al {a.giudice}, chiedendo anche l'ingiunzione per i canoni. La "
+                           "mediazione andrà avviata solo se, dopo l'opposizione del conduttore, il giudizio prosegue con il "
+                           "mutamento del rito.",
+                           [Rif("cpc:658", "mancato pagamento del canone"),
+                            Rif("dlgs28:5", "convalida di licenza o sfratto, fino al mutamento del rito")])]
+    a.avvertenze = ["Dopo il mutamento del rito conviene che sia il locatore, che ha interesse alla risoluzione, a depositare "
+                    "subito la domanda di mediazione: senza mediazione la domanda di merito diventa improcedibile.",
+                    "Una citazione ordinaria per la sola risoluzione o per i soli canoni richiede invece la mediazione prima "
+                    "della causa."]
+    return a
+
+
 # ------------------------------------------------------------------- restituzione delle somme oltre il canone registrato
 def riconosci_indebito_locazione(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)

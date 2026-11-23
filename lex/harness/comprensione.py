@@ -134,7 +134,20 @@ def comprendi(testo: str) -> Comprensione:
         return Comprensione("parere", atto, racconto, True, motivi)
     if re.search(_OPERATIVA, t) and not oggetto:
         return Comprensione("operativa", "", racconto, False, ["richiesta sui dati dello studio"])
+    # Ingresso dalla fattispecie: una domanda o una richiesta di redazione entra nell'harness quando i fatti descritti
+    # corrispondono a una regola, anche senza le formule di parere o le parole-oggetto degli elenchi.
+    if (domanda or verbo) and not comunicazione:
+        tipo = "redazione" if verbo else ("termine" if termine else "parere")
+        if _fattispecie_riconosciuta(testo, Comprensione(tipo, atto, racconto, True)):
+            return Comprensione(tipo, atto, racconto, True, ["fattispecie riconosciuta dai fatti descritti"])
     return Comprensione("altro", atto, racconto, bool(oggetto), motivi)
+
+
+def _fattispecie_riconosciuta(testo: str, c: Comprensione) -> bool:
+    from .fatti import leggi_fatti
+    from .fattispecie import scegli
+
+    return scegli(c, leggi_fatti(testo)) is not None
 
 
 def e_richiesta_giuridica(testo: str) -> bool:

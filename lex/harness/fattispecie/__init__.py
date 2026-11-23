@@ -9,7 +9,7 @@ from collections.abc import Callable
 from ..comprensione import Comprensione
 from ..fatti import Fatti
 from ..modello import Analisi
-from . import appalto, civile, domande, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
+from . import appalto, civile, consumo, domande, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
 
 Regola = tuple[str, Callable[[Comprensione, Fatti], int], Callable[[Comprensione, Fatti], Analisi]]
 
@@ -18,8 +18,11 @@ REGOLE: tuple[Regola, ...] = (
     ("opposizione_decreto_ingiuntivo", monitorio.riconosci_opposizione_di, monitorio.analizza_opposizione_di),
     ("opposizione_sfratto_commerciale", locazione.riconosci_sfratto_commerciale, locazione.analizza_sfratto_commerciale),
     ("negoziazione_locazione_inadatta", locazione.riconosci_negoziazione_locazione, locazione.analizza_negoziazione_locazione),
+    ("procedibilita_locazione", locazione.riconosci_procedibilita_locazione, locazione.analizza_procedibilita_locazione),
     ("restituzione_canone_non_registrato", locazione.riconosci_indebito_locazione, locazione.analizza_indebito_locazione),
     ("sequestro_conservativo", varie.riconosci_sequestro, varie.analizza_sequestro),
+    ("sequestro_ante_causam", varie.riconosci_sequestro_ante_causam, varie.analizza_sequestro_ante_causam),
+    ("garanzia_conformita", consumo.riconosci_garanzia_consumo, consumo.analizza_garanzia_consumo),
     ("opposizione_verbale_cds", varie.riconosci_verbale_cds, varie.analizza_verbale_cds),
     ("disconoscimento_paternita", varie.riconosci_disconoscimento, varie.analizza_disconoscimento),
     ("chiamato_nel_possesso", varie.riconosci_eredita_possesso, varie.analizza_eredita_possesso),

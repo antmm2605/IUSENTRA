@@ -1,0 +1,2040 @@
+{
+ "formato": "regola, materia, nome, lato, sinonimi, situazioni",
+ "regole": [
+  {
+   "regola": "pi_carta_docente",
+   "materia": "pubblico impiego",
+   "nome": "carta del docente",
+   "lato": "attivo",
+   "sinonimi": [
+    "carta del docente",
+    "bonus 500 euro formazione",
+    "carta elettronica docenti",
+    "bonus aggiornamento insegnanti"
+   ],
+   "situazioni": [
+    "ho fatto supplenze per anni e la carta da 500 euro non me l'hanno mai data",
+    "sono un insegnante precario e voglio i soldi del bonus formazione",
+    "ora sono di ruolo ma per gli anni da supplente la carta non c'era"
+   ]
+  },
+  {
+   "regola": "pi_abuso_termine",
+   "materia": "pubblico impiego",
+   "nome": "abuso dei contratti a termine nella PA",
+   "lato": "attivo",
+   "sinonimi": [
+    "precariato",
+    "contratti a termine nella scuola",
+    "reiterazione dei contratti",
+    "danno da precariato",
+    "stabilizzazione"
+   ],
+   "situazioni": [
+    "lavoro da dieci anni per il ministero sempre con contratti a tempo",
+    "mi rinnovano il contratto ogni anno ma non mi assumono mai",
+    "sono stato precario all'asl per tantissimi anni, mi spetta qualcosa?"
+   ]
+  },
+  {
+   "regola": "pi_ricostruzione_carriera",
+   "materia": "pubblico impiego",
+   "nome": "ricostruzione di carriera del docente",
+   "lato": "attivo",
+   "sinonimi": [
+    "ricostruzione di carriera",
+    "servizio pre-ruolo",
+    "anzianità di servizio",
+    "scatti per gli anni di supplenza"
+   ],
+   "situazioni": [
+    "sono entrato di ruolo e non mi hanno contato gli anni di supplenza",
+    "lo stipendio è basso perché non riconoscono il servizio di prima",
+    "il decreto della scuola mi conta solo una parte degli anni"
+   ]
+  },
+  {
+   "regola": "pi_esecuzione_pa",
+   "materia": "pubblico impiego",
+   "nome": "esecuzione contro la PA e ottemperanza",
+   "lato": "attivo",
+   "sinonimi": [
+    "esecuzione contro la pubblica amministrazione",
+    "ottemperanza",
+    "precetto al ministero",
+    "120 giorni"
+   ],
+   "situazioni": [
+    "ho vinto la causa contro il ministero ma non mi pagano",
+    "il comune non esegue la sentenza",
+    "quando posso pignorare la pubblica amministrazione"
+   ]
+  },
+  {
+   "regola": "pi_differenze_retributive",
+   "materia": "pubblico impiego",
+   "nome": "differenze retributive del dipendente pubblico",
+   "lato": "attivo",
+   "sinonimi": [
+    "differenze stipendiali",
+    "arretrati",
+    "indennità non pagate",
+    "ferie non godute",
+    "progressione economica"
+   ],
+   "situazioni": [
+    "la scuola mi paga meno di quanto dovuto",
+    "l'asl non mi ha dato l'indennità per anni",
+    "il comune non mi ha pagato gli arretrati del contratto"
+   ]
+  },
+  {
+   "regola": "pi_competenza",
+   "materia": "pubblico impiego",
+   "nome": "giudice e foro del dipendente pubblico",
+   "lato": "entrambi",
+   "sinonimi": [
+    "foro del dipendente pubblico",
+    "giudice del lavoro o TAR",
+    "tribunale competente pubblico impiego"
+   ],
+   "situazioni": [
+    "sono dipendente statale e non so a quale tribunale rivolgermi",
+    "lavoro in una provincia ma abito in un'altra, dove faccio causa",
+    "per il mio lavoro nel pubblico devo andare al TAR?"
+   ]
+  },
+  {
+   "regola": "lav_conciliazione_rinunce",
+   "materia": "lavoro",
+   "nome": "conciliazione, rinunce e transazioni del lavoratore",
+   "lato": "entrambi",
+   "sinonimi": [
+    "conciliazione sindacale",
+    "transazione col datore",
+    "rinuncia firmata",
+    "verbale di conciliazione"
+   ],
+   "situazioni": [
+    "mi hanno fatto firmare una rinuncia per avere la liquidazione",
+    "vogliamo chiudere la vertenza con un accordo",
+    "posso ancora contestare quello che ho firmato in azienda?"
+   ]
+  },
+  {
+   "regola": "lav_mobbing_demansionamento",
+   "materia": "lavoro",
+   "nome": "mobbing, straining e demansionamento",
+   "lato": "attivo",
+   "sinonimi": [
+    "mobbing",
+    "demansionamento",
+    "straining",
+    "vessazioni sul lavoro",
+    "mansioni inferiori"
+   ],
+   "situazioni": [
+    "il capo mi umilia davanti a tutti",
+    "mi hanno tolto tutte le mansioni e mi lasciano senza fare niente",
+    "da quando sono tornata dalla maternità mi hanno messo a fare fotocopie"
+   ]
+  },
+  {
+   "regola": "prev_atp_obbligatorio",
+   "materia": "previdenza",
+   "nome": "accertamento tecnico preventivo obbligatorio (art. 445-bis c.p.c.)",
+   "lato": "attivo",
+   "sinonimi": [
+    "accertamento tecnico preventivo",
+    "invalidità civile",
+    "accompagnamento",
+    "legge 104",
+    "445-bis"
+   ],
+   "situazioni": [
+    "l'inps mi ha negato l'invalidità",
+    "la commissione medica non mi ha dato l'accompagnamento",
+    "mi hanno respinto la 104 e voglio fare ricorso"
+   ]
+  },
+  {
+   "regola": "prev_ricorso_amministrativo",
+   "materia": "previdenza",
+   "nome": "ricorso amministrativo INPS",
+   "lato": "attivo",
+   "sinonimi": [
+    "ricorso al comitato INPS",
+    "ricorso amministrativo",
+    "indebito INPS",
+    "naspi respinta"
+   ],
+   "situazioni": [
+    "l'inps mi ha rifiutato la disoccupazione",
+    "mi chiedono indietro soldi della pensione",
+    "mi hanno tolto l'assegno sociale"
+   ]
+  },
+  {
+   "regola": "prev_ricorso_giudiziale",
+   "materia": "previdenza",
+   "nome": "causa previdenziale e assistenziale (artt. 442-444 c.p.c.)",
+   "lato": "attivo",
+   "sinonimi": [
+    "causa contro l'INPS",
+    "causa previdenziale",
+    "decadenza previdenziale",
+    "ricorso al giudice del lavoro INPS"
+   ],
+   "situazioni": [
+    "voglio fare causa all'inps per la pensione",
+    "l'inail non mi riconosce la malattia professionale",
+    "il ricorso amministrativo è andato male, ora che faccio?"
+   ]
+  },
+  {
+   "regola": "es_opposizione_terzo",
+   "materia": "esecuzione",
+   "nome": "opposizione di terzo all'esecuzione (art. 619)",
+   "lato": "passivo",
+   "sinonimi": [
+    "opposizione di terzo",
+    "beni pignorati di un altro",
+    "pignoramento di cose mie"
+   ],
+   "situazioni": [
+    "hanno pignorato a mio figlio la mia macchina",
+    "nel pignoramento hanno preso mobili che sono miei",
+    "i beni pignorati sono intestati alla società di mia moglie"
+   ]
+  },
+  {
+   "regola": "es_opposizione_esecuzione",
+   "materia": "esecuzione",
+   "nome": "opposizione all'esecuzione già iniziata (art. 615, secondo comma)",
+   "lato": "passivo",
+   "sinonimi": [
+    "opposizione all'esecuzione",
+    "sospensione dell'esecuzione",
+    "pignoramento ingiusto"
+   ],
+   "situazioni": [
+    "mi hanno pignorato il conto per un debito già pagato",
+    "il titolo è stato annullato ma il pignoramento va avanti",
+    "hanno pignorato beni che non si possono pignorare"
+   ]
+  },
+  {
+   "regola": "es_conversione_pignoramento",
+   "materia": "esecuzione",
+   "nome": "conversione del pignoramento (art. 495)",
+   "lato": "passivo",
+   "sinonimi": [
+    "conversione del pignoramento",
+    "pagare a rate per fermare l'asta",
+    "salvare la casa pignorata"
+   ],
+   "situazioni": [
+    "vogliono vendere la casa all'asta, posso pagare a rate?",
+    "ho dei soldi da parte per bloccare il pignoramento",
+    "voglio sostituire la casa pignorata con una somma"
+   ]
+  },
+  {
+   "regola": "es_ricerca_beni",
+   "materia": "esecuzione",
+   "nome": "ricerca telematica dei beni da pignorare (art. 492-bis)",
+   "lato": "attivo",
+   "sinonimi": [
+    "ricerca telematica dei beni",
+    "492-bis",
+    "trovare i conti del debitore",
+    "anagrafe dei rapporti"
+   ],
+   "situazioni": [
+    "non so che beni ha il debitore",
+    "voglio sapere dove lavora per pignorargli lo stipendio",
+    "come scopro i conti correnti di chi mi deve soldi"
+   ]
+  },
+  {
+   "regola": "es_obblighi_fare",
+   "materia": "esecuzione",
+   "nome": "esecuzione degli obblighi di fare e non fare; misure coercitive",
+   "lato": "attivo",
+   "sinonimi": [
+    "esecuzione obblighi di fare",
+    "demolizione ordinata dal giudice",
+    "penale per ogni giorno di ritardo",
+    "614-bis"
+   ],
+   "situazioni": [
+    "il giudice ha ordinato al vicino di togliere la tettoia ma non lo fa",
+    "devono consegnarmi dei documenti e non lo fanno",
+    "voglio una multa giornaliera finché non esegue"
+   ]
+  },
+  {
+   "regola": "es_pignoramento_terzi",
+   "materia": "esecuzione",
+   "nome": "pignoramento presso terzi",
+   "lato": "attivo",
+   "sinonimi": [
+    "pignoramento presso terzi",
+    "pignoramento dello stipendio",
+    "pignoramento del conto",
+    "pignoramento della pensione"
+   ],
+   "situazioni": [
+    "il debitore lavora, posso prendergli un quinto dello stipendio?",
+    "voglio bloccare il conto in banca di chi mi deve soldi",
+    "quanto si può pignorare della pensione"
+   ]
+  },
+  {
+   "regola": "es_pignoramento_immobiliare",
+   "materia": "esecuzione",
+   "nome": "pignoramento immobiliare",
+   "lato": "attivo",
+   "sinonimi": [
+    "pignoramento della casa",
+    "asta immobiliare",
+    "esecuzione immobiliare"
+   ],
+   "situazioni": [
+    "il debitore ha una casa, gliela posso pignorare?",
+    "come si mette all'asta l'appartamento del debitore",
+    "che documenti servono per vendere la casa pignorata"
+   ]
+  },
+  {
+   "regola": "es_pignoramento_mobiliare",
+   "materia": "esecuzione",
+   "nome": "pignoramento mobiliare presso il debitore",
+   "lato": "attivo",
+   "sinonimi": [
+    "pignoramento mobiliare",
+    "pignoramento in casa",
+    "ufficiale giudiziario a casa"
+   ],
+   "situazioni": [
+    "l'ufficiale giudiziario può entrare a casa del debitore?",
+    "voglio pignorare la merce del negozio",
+    "cosa non si può pignorare in casa"
+   ]
+  },
+  {
+   "regola": "mon_opposizione_tardiva",
+   "materia": "monitorio",
+   "nome": "opposizione tardiva a decreto ingiuntivo (art. 650)",
+   "lato": "passivo",
+   "sinonimi": [
+    "opposizione tardiva",
+    "decreto ingiuntivo mai ricevuto",
+    "notifica sbagliata del decreto"
+   ],
+   "situazioni": [
+    "ho scoperto il decreto ingiuntivo quando mi hanno pignorato",
+    "il decreto è arrivato a un vecchio indirizzo",
+    "ero in ospedale quando hanno notificato l'ingiunzione"
+   ]
+  },
+  {
+   "regola": "mon_provvisoria_esecuzione",
+   "materia": "monitorio",
+   "nome": "provvisoria esecuzione del decreto ingiuntivo (artt. 642 e 648)",
+   "lato": "entrambi",
+   "sinonimi": [
+    "provvisoria esecuzione",
+    "decreto subito esecutivo",
+    "esecutorietà del decreto"
+   ],
+   "situazioni": [
+    "possiamo avere il decreto ingiuntivo subito esecutivo?",
+    "il debitore si è opposto, come incasso intanto?",
+    "voglio bloccare l'esecuzione del decreto mentre faccio opposizione"
+   ]
+  },
+  {
+   "regola": "civ_memorie_171ter",
+   "materia": "civile ordinario",
+   "nome": "memorie integrative (art. 171-ter c.p.c.)",
+   "lato": "entrambi",
+   "sinonimi": [
+    "memorie integrative",
+    "171-ter",
+    "prima seconda terza memoria"
+   ],
+   "situazioni": [
+    "quando scadono le memorie dopo la prima udienza fissata?",
+    "nella memoria posso ancora indicare testimoni?",
+    "devo modificare le domande dopo la comparsa avversaria"
+   ]
+  },
+  {
+   "regola": "civ_revocazione",
+   "materia": "civile ordinario",
+   "nome": "revocazione della sentenza",
+   "lato": "entrambi",
+   "sinonimi": [
+    "revocazione",
+    "errore di fatto del giudice",
+    "documenti falsi",
+    "documento decisivo ritrovato"
+   ],
+   "situazioni": [
+    "la sentenza si basa su documenti falsi",
+    "abbiamo trovato un documento che cambia tutto",
+    "il giudice ha letto male un atto"
+   ]
+  },
+  {
+   "regola": "civ_opposizione_terzo",
+   "materia": "civile ordinario",
+   "nome": "opposizione di terzo alla sentenza (art. 404)",
+   "lato": "attivo",
+   "sinonimi": [
+    "opposizione di terzo alla sentenza",
+    "sentenza tra altri che mi danneggia",
+    "collusione"
+   ],
+   "situazioni": [
+    "una sentenza tra altri riguarda la mia casa",
+    "non ero nella causa ma la sentenza mi toglie un diritto",
+    "il debitore e un altro si sono accordati in causa per fregarmi"
+   ]
+  },
+  {
+   "regola": "civ_regolamento_competenza",
+   "materia": "civile ordinario",
+   "nome": "regolamento di competenza",
+   "lato": "entrambi",
+   "sinonimi": [
+    "regolamento di competenza",
+    "giudice incompetente",
+    "sospensione per pregiudizialità"
+   ],
+   "situazioni": [
+    "il tribunale ha detto che non è competente",
+    "il giudice ha sospeso la causa in attesa di un'altra",
+    "dobbiamo andare in cassazione per la competenza?"
+   ]
+  },
+  {
+   "regola": "cau_reclamo",
+   "materia": "cautelare e urgenza",
+   "nome": "reclamo cautelare (art. 669-terdecies)",
+   "lato": "entrambi",
+   "sinonimi": [
+    "reclamo cautelare",
+    "669-terdecies",
+    "impugnare l'ordinanza cautelare"
+   ],
+   "situazioni": [
+    "il giudice ha respinto il nostro ricorso d'urgenza",
+    "l'altra parte ha ottenuto un sequestro contro di noi",
+    "entro quanto si reclama l'ordinanza"
+   ]
+  },
+  {
+   "regola": "cau_atp",
+   "materia": "cautelare e urgenza",
+   "nome": "accertamento tecnico preventivo e consulenza tecnica preventiva",
+   "lato": "attivo",
+   "sinonimi": [
+    "accertamento tecnico preventivo",
+    "ATP",
+    "consulenza tecnica preventiva",
+    "696-bis"
+   ],
+   "situazioni": [
+    "prima della causa voglio far vedere le crepe a un perito del tribunale",
+    "il vicino sta per riparare e perdo le prove",
+    "vogliamo una perizia del giudice per trovare un accordo"
+   ]
+  },
+  {
+   "regola": "cau_istruzione_preventiva",
+   "materia": "cautelare e urgenza",
+   "nome": "istruzione preventiva: testimoni a futura memoria",
+   "lato": "attivo",
+   "sinonimi": [
+    "testimoni a futura memoria",
+    "istruzione preventiva",
+    "prova urgente"
+   ],
+   "situazioni": [
+    "il testimone è molto malato",
+    "il testimone sta per trasferirsi all'estero",
+    "voglio sentire subito un testimone"
+   ]
+  },
+  {
+   "regola": "cau_700",
+   "materia": "cautelare e urgenza",
+   "nome": "provvedimento d'urgenza (art. 700 c.p.c.)",
+   "lato": "attivo",
+   "sinonimi": [
+    "provvedimento d'urgenza",
+    "ricorso d'urgenza",
+    "articolo 700",
+    "tutela urgente"
+   ],
+   "situazioni": [
+    "mi hanno staccato la luce e ho bisogno subito di un giudice",
+    "rischio un danno grave prima della causa",
+    "serve un ordine urgente del tribunale"
+   ]
+  },
+  {
+   "regola": "pos_reintegrazione",
+   "materia": "possessorio",
+   "nome": "azione di reintegrazione (spoglio)",
+   "lato": "attivo",
+   "sinonimi": [
+    "spoglio",
+    "reintegrazione nel possesso",
+    "azione possessoria"
+   ],
+   "situazioni": [
+    "ha cambiato la serratura e non posso entrare",
+    "mi hanno chiuso il passaggio",
+    "il padrone di casa mi ha staccato l'acqua"
+   ]
+  },
+  {
+   "regola": "pos_manutenzione",
+   "materia": "possessorio",
+   "nome": "azione di manutenzione",
+   "lato": "attivo",
+   "sinonimi": [
+    "manutenzione nel possesso",
+    "molestia nel possesso",
+    "turbativa"
+   ],
+   "situazioni": [
+    "il vicino mi mette ostacoli sulla stradina",
+    "continuano a disturbarmi nell'uso del terreno",
+    "non mi lasciano usare il passaggio come sempre"
+   ]
+  },
+  {
+   "regola": "pos_nuova_opera_danno_temuto",
+   "materia": "possessorio",
+   "nome": "denuncia di nuova opera e di danno temuto",
+   "lato": "attivo",
+   "sinonimi": [
+    "denuncia di nuova opera",
+    "danno temuto",
+    "lavori del vicino"
+   ],
+   "situazioni": [
+    "il vicino costruisce un muro che mi toglie la luce",
+    "l'albero del vicino sta per cadere sulla casa",
+    "il palazzo accanto è pericolante"
+   ]
+  },
+  {
+   "regola": "civ_cassazione",
+   "materia": "civile ordinario",
+   "nome": "ricorso per cassazione civile",
+   "lato": "entrambi",
+   "sinonimi": [
+    "ricorso in cassazione civile",
+    "violazione di legge",
+    "cassazionista"
+   ],
+   "situazioni": [
+    "la corte d'appello ci ha dato torto, si va in cassazione?",
+    "entro quando si ricorre in cassazione",
+    "la sentenza d'appello non ha considerato un fatto decisivo"
+   ]
+  },
+  {
+   "regola": "civ_appello",
+   "materia": "civile ordinario",
+   "nome": "appello civile",
+   "lato": "entrambi",
+   "sinonimi": [
+    "appello civile",
+    "impugnare la sentenza",
+    "motivi d'appello"
+   ],
+   "situazioni": [
+    "abbiamo perso la causa in tribunale",
+    "la sentenza del giudice di pace è sbagliata",
+    "entro quando posso fare appello?"
+   ]
+  },
+  {
+   "regola": "civ_citazione",
+   "materia": "civile ordinario",
+   "nome": "atto di citazione (rito ordinario di cognizione)",
+   "lato": "attivo",
+   "sinonimi": [
+    "atto di citazione",
+    "fare causa",
+    "citare in giudizio",
+    "termini a comparire"
+   ],
+   "situazioni": [
+    "voglio fare causa al fornitore",
+    "come si comincia una causa civile",
+    "quanti giorni tra notifica e udienza"
+   ]
+  },
+  {
+   "regola": "pen_remissione_querela",
+   "materia": "penale",
+   "nome": "remissione della querela",
+   "lato": "entrambi",
+   "sinonimi": [
+    "ritiro della querela",
+    "remissione",
+    "pace con il querelato"
+   ],
+   "situazioni": [
+    "voglio ritirare la denuncia",
+    "abbiamo fatto pace e non voglio più andare avanti",
+    "se non vado all'udienza la querela cade?"
+   ]
+  },
+  {
+   "regola": "pen_giustizia_riparativa",
+   "materia": "penale",
+   "nome": "giustizia riparativa",
+   "lato": "entrambi",
+   "sinonimi": [
+    "giustizia riparativa",
+    "mediazione penale",
+    "incontro con la vittima"
+   ],
+   "situazioni": [
+    "voglio chiedere scusa alla vittima",
+    "c'è un percorso per riparare il danno del reato",
+    "la vittima e l'imputato vogliono parlarsi"
+   ]
+  },
+  {
+   "regola": "pen_messa_alla_prova",
+   "materia": "penale",
+   "nome": "sospensione del procedimento con messa alla prova",
+   "lato": "passivo",
+   "sinonimi": [
+    "messa alla prova",
+    "MAP",
+    "lavori socialmente utili",
+    "estinzione del reato"
+   ],
+   "situazioni": [
+    "mio figlio è incensurato e rischia il processo",
+    "posso evitare il processo facendo volontariato?",
+    "il pm propone la messa alla prova"
+   ]
+  },
+  {
+   "regola": "pen_patteggiamento",
+   "materia": "penale",
+   "nome": "applicazione della pena su richiesta (patteggiamento)",
+   "lato": "passivo",
+   "sinonimi": [
+    "patteggiamento",
+    "applicazione della pena",
+    "accordo con il pm"
+   ],
+   "situazioni": [
+    "conviene patteggiare?",
+    "voglio chiudere il processo con uno sconto di pena",
+    "si può patteggiare evitando la confisca?"
+   ]
+  },
+  {
+   "regola": "pen_abbreviato",
+   "materia": "penale",
+   "nome": "giudizio abbreviato",
+   "lato": "passivo",
+   "sinonimi": [
+    "rito abbreviato",
+    "sconto di un terzo",
+    "giudizio abbreviato"
+   ],
+   "situazioni": [
+    "con l'abbreviato quanto si riduce la pena?",
+    "mi è arrivato il giudizio immediato",
+    "chiudere il processo allo stato degli atti"
+   ]
+  },
+  {
+   "regola": "pen_opposizione_archiviazione",
+   "materia": "penale",
+   "nome": "opposizione alla richiesta di archiviazione",
+   "lato": "attivo",
+   "sinonimi": [
+    "opposizione all'archiviazione",
+    "archiviazione della denuncia",
+    "persona offesa"
+   ],
+   "situazioni": [
+    "il pm vuole archiviare la mia denuncia",
+    "mi è arrivato l'avviso di archiviazione",
+    "voglio che indaghino ancora"
+   ]
+  },
+  {
+   "regola": "pen_riesame",
+   "materia": "penale",
+   "nome": "riesame e appello cautelare",
+   "lato": "passivo",
+   "sinonimi": [
+    "riesame",
+    "custodia cautelare",
+    "arresti domiciliari",
+    "sequestro penale"
+   ],
+   "situazioni": [
+    "hanno arrestato mio figlio",
+    "gli hanno dato i domiciliari",
+    "la polizia ha sequestrato il telefono"
+   ]
+  },
+  {
+   "regola": "pen_parte_civile",
+   "materia": "penale",
+   "nome": "costituzione di parte civile",
+   "lato": "attivo",
+   "sinonimi": [
+    "costituzione di parte civile",
+    "risarcimento nel processo penale",
+    "vittima del reato"
+   ],
+   "situazioni": [
+    "sono la vittima e voglio i danni nel processo",
+    "mio padre è morto nell'incidente, possiamo stare nel processo?",
+    "posso chiamare l'assicurazione nel processo penale?"
+   ]
+  },
+  {
+   "regola": "pen_esecuzione",
+   "materia": "penale",
+   "nome": "esecuzione penale e incidente di esecuzione",
+   "lato": "passivo",
+   "sinonimi": [
+    "ordine di carcerazione",
+    "misure alternative",
+    "affidamento in prova",
+    "incidente di esecuzione"
+   ],
+   "situazioni": [
+    "è arrivato l'ordine di esecuzione della pena",
+    "posso evitare il carcere dopo la condanna definitiva?",
+    "ho due condanne e voglio unirle"
+   ]
+  },
+  {
+   "regola": "ban_usura",
+   "materia": "bancario e finanziario",
+   "nome": "usura bancaria",
+   "lato": "attivo",
+   "sinonimi": [
+    "usura bancaria",
+    "tasso soglia",
+    "interessi troppo alti"
+   ],
+   "situazioni": [
+    "il mutuo ha interessi altissimi",
+    "il finanziamento dell'auto costa troppo",
+    "la mora del prestito è usuraria?"
+   ]
+  },
+  {
+   "regola": "ban_anatocismo",
+   "materia": "bancario e finanziario",
+   "nome": "anatocismo e ripetizione dell'indebito bancario",
+   "lato": "attivo",
+   "sinonimi": [
+    "anatocismo",
+    "interessi sugli interessi",
+    "ricalcolo del conto corrente"
+   ],
+   "situazioni": [
+    "la banca mi ha caricato interessi sugli interessi",
+    "voglio ricalcolare il conto dell'azienda",
+    "la banca mi deve restituire soldi del fido"
+   ]
+  },
+  {
+   "regola": "ban_documenti_estratti",
+   "materia": "bancario e finanziario",
+   "nome": "estratti conto e documentazione bancaria (art. 119 TUB)",
+   "lato": "attivo",
+   "sinonimi": [
+    "estratti conto",
+    "art. 119 TUB",
+    "documenti bancari"
+   ],
+   "situazioni": [
+    "la banca non mi dà gli estratti conto",
+    "c'è un errore nell'estratto conto",
+    "voglio il contratto firmato con la banca"
+   ]
+  },
+  {
+   "regola": "ban_abf",
+   "materia": "bancario e finanziario",
+   "nome": "Arbitro Bancario Finanziario",
+   "lato": "attivo",
+   "sinonimi": [
+    "arbitro bancario finanziario",
+    "ABF",
+    "reclamo alla banca"
+   ],
+   "situazioni": [
+    "voglio contestare una commissione della banca senza fare causa",
+    "la finanziaria non risponde al reclamo",
+    "posso andare all'arbitro bancario da solo?"
+   ]
+  },
+  {
+   "regola": "ban_acf",
+   "materia": "bancario e finanziario",
+   "nome": "Arbitro per le Controversie Finanziarie",
+   "lato": "attivo",
+   "sinonimi": [
+    "arbitro controversie finanziarie",
+    "ACF",
+    "investimenti sbagliati"
+   ],
+   "situazioni": [
+    "la banca mi ha fatto comprare titoli rischiosi",
+    "ho perso soldi in obbligazioni consigliate dalla banca",
+    "il consulente non mi ha spiegato i rischi"
+   ]
+  },
+  {
+   "regola": "ban_segnalazione_centrale_rischi",
+   "materia": "bancario e finanziario",
+   "nome": "segnalazione illegittima in Centrale rischi o nei sistemi di informazione creditizia",
+   "lato": "passivo",
+   "sinonimi": [
+    "centrale rischi",
+    "CRIF",
+    "cattivo pagatore",
+    "segnalazione a sofferenza"
+   ],
+   "situazioni": [
+    "mi hanno segnalato come cattivo pagatore",
+    "non mi danno il mutuo per una segnalazione",
+    "la banca mi ha segnalato senza avvisarmi"
+   ]
+  },
+  {
+   "regola": "soc_impugnazione_delibere",
+   "materia": "società e impresa",
+   "nome": "impugnazione delle delibere societarie",
+   "lato": "attivo",
+   "sinonimi": [
+    "impugnazione delibera societaria",
+    "delibera assembleare",
+    "socio di minoranza"
+   ],
+   "situazioni": [
+    "l'assemblea dei soci ha approvato un bilancio falso",
+    "non mi hanno convocato all'assemblea",
+    "la maggioranza ha deciso un aumento di capitale contro di me"
+   ]
+  },
+  {
+   "regola": "soc_responsabilita_amministratori",
+   "materia": "società e impresa",
+   "nome": "azione di responsabilità contro gli amministratori",
+   "lato": "attivo",
+   "sinonimi": [
+    "azione di responsabilità",
+    "amministratore infedele",
+    "mala gestio"
+   ],
+   "situazioni": [
+    "l'amministratore ha portato via i soldi della società",
+    "la società è fallita per colpa degli amministratori",
+    "come socio posso agire contro l'amministratore?"
+   ]
+  },
+  {
+   "regola": "soc_recesso_socio",
+   "materia": "società e impresa",
+   "nome": "recesso del socio",
+   "lato": "attivo",
+   "sinonimi": [
+    "recesso del socio",
+    "uscire dalla società",
+    "liquidazione della quota"
+   ],
+   "situazioni": [
+    "voglio uscire dalla srl",
+    "non sono d'accordo con il cambio di attività della società",
+    "quanto mi spetta se esco dalla società?"
+   ]
+  },
+  {
+   "regola": "crisi_composizione_negoziata",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "composizione negoziata della crisi",
+   "lato": "attivo",
+   "sinonimi": [
+    "composizione negoziata",
+    "esperto della crisi",
+    "misure protettive"
+   ],
+   "situazioni": [
+    "la mia azienda è in difficoltà ma si può salvare",
+    "voglio bloccare i creditori mentre tratto",
+    "come chiedo l'esperto alla camera di commercio"
+   ]
+  },
+  {
+   "regola": "crisi_concordato_preventivo",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "concordato preventivo",
+   "lato": "attivo",
+   "sinonimi": [
+    "concordato preventivo",
+    "concordato in continuità",
+    "concordato in bianco"
+   ],
+   "situazioni": [
+    "la società non riesce a pagare i fornitori",
+    "vogliamo proporre un accordo ai creditori tramite tribunale",
+    "serve tempo per preparare il piano"
+   ]
+  },
+  {
+   "regola": "crisi_liquidazione_controllata",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "liquidazione controllata",
+   "lato": "attivo",
+   "sinonimi": [
+    "liquidazione controllata",
+    "sovraindebitamento",
+    "fallimento del privato"
+   ],
+   "situazioni": [
+    "ho troppi debiti e non posso pagarli",
+    "voglio liquidare tutto e ripartire",
+    "i creditori mi stanno addosso"
+   ]
+  },
+  {
+   "regola": "crisi_ristrutturazione_consumatore",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "ristrutturazione dei debiti del consumatore",
+   "lato": "attivo",
+   "sinonimi": [
+    "piano del consumatore",
+    "ristrutturazione dei debiti",
+    "legge salva suicidi",
+    "OCC"
+   ],
+   "situazioni": [
+    "ho tanti finanziamenti e non ce la faccio",
+    "voglio pagare una parte dei debiti a rate",
+    "la cessione del quinto mi mangia lo stipendio"
+   ]
+  },
+  {
+   "regola": "crisi_esdebitazione",
+   "materia": "crisi d'impresa e sovraindebitamento",
+   "nome": "esdebitazione (anche dell'incapiente)",
+   "lato": "attivo",
+   "sinonimi": [
+    "esdebitazione",
+    "incapiente",
+    "cancellazione dei debiti"
+   ],
+   "situazioni": [
+    "non ho niente e voglio che i debiti siano cancellati",
+    "dopo la liquidazione i debiti restano?",
+    "sono nullatenente pieno di debiti"
+   ]
+  },
+  {
+   "regola": "priv_reclamo_garante",
+   "materia": "privacy",
+   "nome": "reclamo al Garante per la protezione dei dati personali",
+   "lato": "attivo",
+   "sinonimi": [
+    "reclamo al garante privacy",
+    "telemarketing",
+    "telecamere",
+    "dati personali"
+   ],
+   "situazioni": [
+    "mi chiamano continuamente per pubblicità",
+    "il datore mi riprende con le telecamere",
+    "non mi danno i miei dati"
+   ]
+  },
+  {
+   "regola": "priv_ricorso_giudice",
+   "materia": "privacy",
+   "nome": "ricorso al giudice per violazione dei dati personali e opposizione ai provvedimenti del Garante",
+   "lato": "attivo",
+   "sinonimi": [
+    "risarcimento privacy",
+    "ricorso contro il garante",
+    "trattamento illecito dei dati"
+   ],
+   "situazioni": [
+    "hanno pubblicato i miei dati sanitari",
+    "il garante ha respinto il mio reclamo",
+    "voglio i danni per i miei dati diffusi"
+   ]
+  },
+  {
+   "regola": "con_rescissione",
+   "materia": "contratti",
+   "nome": "rescissione del contratto",
+   "lato": "attivo",
+   "sinonimi": [
+    "rescissione",
+    "lesione oltre la metà",
+    "stato di bisogno"
+   ],
+   "situazioni": [
+    "ho venduto la casa a metà prezzo perché avevo bisogno",
+    "mi hanno approfittato della mia difficoltà",
+    "ho firmato un contratto in stato di pericolo"
+   ]
+  },
+  {
+   "regola": "con_annullamento",
+   "materia": "contratti",
+   "nome": "annullamento del contratto",
+   "lato": "attivo",
+   "sinonimi": [
+    "annullamento del contratto",
+    "errore",
+    "dolo",
+    "raggiro",
+    "incapacità"
+   ],
+   "situazioni": [
+    "mi hanno raggirato per farmi firmare",
+    "mia madre non era lucida quando ha firmato",
+    "ho firmato per errore"
+   ]
+  },
+  {
+   "regola": "con_nullita",
+   "materia": "contratti",
+   "nome": "nullità del contratto",
+   "lato": "entrambi",
+   "sinonimi": [
+    "nullità del contratto",
+    "contratto nullo",
+    "clausola nulla"
+   ],
+   "situazioni": [
+    "il contratto non è scritto come prevede la legge",
+    "questo contratto è contro la legge",
+    "voglio indietro i soldi di un contratto nullo"
+   ]
+  },
+  {
+   "regola": "con_risoluzione",
+   "materia": "contratti",
+   "nome": "risoluzione del contratto per inadempimento",
+   "lato": "entrambi",
+   "sinonimi": [
+    "risoluzione del contratto",
+    "inadempimento",
+    "sciogliere il contratto"
+   ],
+   "situazioni": [
+    "il fornitore non consegna mai",
+    "voglio liberarmi del contratto perché l'altro non lo rispetta",
+    "l'impresa non finisce i lavori pagati"
+   ]
+  },
+  {
+   "regola": "con_risarcimento_inadempimento",
+   "materia": "contratti",
+   "nome": "risarcimento del danno da inadempimento",
+   "lato": "attivo",
+   "sinonimi": [
+    "risarcimento contrattuale",
+    "danno da ritardo",
+    "mancato guadagno"
+   ],
+   "situazioni": [
+    "il corriere ha perso la merce",
+    "il ritardo della consegna mi ha fatto perdere clienti",
+    "voglio i danni per il contratto non rispettato"
+   ]
+  },
+  {
+   "regola": "rc_responsabilita_sanitaria",
+   "materia": "responsabilità civile",
+   "nome": "responsabilità sanitaria (l. 24/2017)",
+   "lato": "attivo",
+   "sinonimi": [
+    "malasanità",
+    "errore medico",
+    "responsabilità sanitaria"
+   ],
+   "situazioni": [
+    "mio padre è morto dopo l'operazione",
+    "il medico ha sbagliato la diagnosi",
+    "ho preso un'infezione in ospedale"
+   ]
+  },
+  {
+   "regola": "rc_cose_in_custodia",
+   "materia": "responsabilità civile",
+   "nome": "danno da cose in custodia e insidia",
+   "lato": "attivo",
+   "sinonimi": [
+    "caduta in una buca",
+    "danno da cose in custodia",
+    "insidia stradale"
+   ],
+   "situazioni": [
+    "sono caduta per una buca del marciapiede",
+    "sono scivolato al supermercato",
+    "un ramo mi ha rotto la macchina"
+   ]
+  },
+  {
+   "regola": "rc_diffamazione",
+   "materia": "responsabilità civile",
+   "nome": "diffamazione: risarcimento civile",
+   "lato": "attivo",
+   "sinonimi": [
+    "diffamazione",
+    "danno all'immagine",
+    "recensioni false"
+   ],
+   "situazioni": [
+    "su facebook hanno scritto che sono un truffatore",
+    "un giornale ha scritto falsità su di me",
+    "recensioni false stanno rovinando il mio locale"
+   ]
+  },
+  {
+   "regola": "suc_petizione_eredita",
+   "materia": "successioni",
+   "nome": "petizione di eredità",
+   "lato": "attivo",
+   "sinonimi": [
+    "petizione di eredità",
+    "beni dell'eredità presi da altri",
+    "erede apparente"
+   ],
+   "situazioni": [
+    "mio zio si è preso tutti i beni del nonno",
+    "mio fratello si dichiara unico erede",
+    "la casa del papà la occupa un parente"
+   ]
+  },
+  {
+   "regola": "suc_riduzione",
+   "materia": "successioni",
+   "nome": "azione di riduzione (lesione di legittima)",
+   "lato": "attivo",
+   "sinonimi": [
+    "lesione di legittima",
+    "azione di riduzione",
+    "diseredato"
+   ],
+   "situazioni": [
+    "papà ha lasciato tutto alla nuova compagna",
+    "le donazioni a mio fratello mi hanno lasciato senza niente",
+    "sono stato escluso dal testamento"
+   ]
+  },
+  {
+   "regola": "suc_divisione",
+   "materia": "successioni",
+   "nome": "divisione ereditaria e scioglimento della comunione",
+   "lato": "entrambi",
+   "sinonimi": [
+    "divisione ereditaria",
+    "scioglimento della comunione",
+    "comproprietà"
+   ],
+   "situazioni": [
+    "con i miei fratelli non ci accordiamo sulla casa dei genitori",
+    "voglio vendere la mia parte",
+    "uno dei coeredi blocca tutto"
+   ]
+  },
+  {
+   "regola": "dr_revoca_amministratore",
+   "materia": "diritti reali e condominio",
+   "nome": "revoca giudiziale dell'amministratore di condominio",
+   "lato": "attivo",
+   "sinonimi": [
+    "revoca dell'amministratore",
+    "amministratore di condominio",
+    "rendiconto"
+   ],
+   "situazioni": [
+    "l'amministratore non presenta i conti",
+    "voglio cacciare l'amministratore del condominio",
+    "l'amministratore non ha il conto corrente del condominio"
+   ]
+  },
+  {
+   "regola": "dr_negatoria",
+   "materia": "diritti reali e condominio",
+   "nome": "azione negatoria",
+   "lato": "attivo",
+   "sinonimi": [
+    "azione negatoria",
+    "servitù inesistente",
+    "difesa della proprietà"
+   ],
+   "situazioni": [
+    "il vicino dice di avere il diritto di passare nel mio cortile",
+    "pretendono un passaggio che non esiste",
+    "usano il mio terreno come se fosse loro"
+   ]
+  },
+  {
+   "regola": "dr_confessoria",
+   "materia": "diritti reali e condominio",
+   "nome": "azione confessoria della servitù",
+   "lato": "attivo",
+   "sinonimi": [
+    "servitù di passaggio",
+    "azione confessoria",
+    "accertamento della servitù"
+   ],
+   "situazioni": [
+    "il vicino ha messo un cancello e non posso più passare",
+    "il nuovo proprietario contesta il mio passaggio",
+    "voglio far riconoscere il mio diritto di passaggio"
+   ]
+  },
+  {
+   "regola": "dr_usucapione",
+   "materia": "diritti reali e condominio",
+   "nome": "usucapione",
+   "lato": "attivo",
+   "sinonimi": [
+    "usucapione",
+    "possesso ventennale",
+    "diventare proprietario col tempo"
+   ],
+   "situazioni": [
+    "coltivo quel terreno da trent'anni",
+    "uso quel box da sempre",
+    "il vicino usa da anni una parte del mio giardino"
+   ]
+  },
+  {
+   "regola": "dr_regolamento_confini",
+   "materia": "diritti reali e condominio",
+   "nome": "regolamento di confini e apposizione di termini",
+   "lato": "entrambi",
+   "sinonimi": [
+    "regolamento di confini",
+    "confine incerto",
+    "termini di confine"
+   ],
+   "situazioni": [
+    "non si capisce dove finisce il mio terreno",
+    "il vicino ha spostato i paletti",
+    "il confine catastale è diverso da quello reale"
+   ]
+  },
+  {
+   "regola": "fam_affidamento_figli",
+   "materia": "famiglia e minori",
+   "nome": "affidamento e collocamento dei figli (anche nati fuori dal matrimonio)",
+   "lato": "entrambi",
+   "sinonimi": [
+    "affidamento dei figli",
+    "collocamento",
+    "affido esclusivo",
+    "visite"
+   ],
+   "situazioni": [
+    "non eravamo sposati, chi tiene il bambino?",
+    "la madre non mi fa vedere mio figlio",
+    "vuole trasferirsi in un'altra città con i figli"
+   ]
+  },
+  {
+   "regola": "loc_recesso_conduttore",
+   "materia": "locazioni",
+   "nome": "recesso del conduttore",
+   "lato": "attivo",
+   "sinonimi": [
+    "recesso dell'inquilino",
+    "disdetta dell'inquilino",
+    "gravi motivi"
+   ],
+   "situazioni": [
+    "devo trasferirmi per lavoro e lasciare la casa in affitto",
+    "voglio andarmene prima della scadenza",
+    "l'inquilino se ne va senza preavviso"
+   ]
+  },
+  {
+   "regola": "loc_aggiornamento_istat",
+   "materia": "locazioni",
+   "nome": "aggiornamento ISTAT del canone",
+   "lato": "entrambi",
+   "sinonimi": [
+    "aggiornamento ISTAT",
+    "aumento dell'affitto",
+    "rivalutazione del canone"
+   ],
+   "situazioni": [
+    "il padrone di casa vuole gli aumenti ISTAT degli anni passati",
+    "posso aumentare l'affitto ogni anno?",
+    "con la cedolare secca si può aumentare il canone?"
+   ]
+  },
+  {
+   "regola": "cons_recesso",
+   "materia": "consumatori",
+   "nome": "diritto di recesso del consumatore",
+   "lato": "attivo",
+   "sinonimi": [
+    "diritto di ripensamento",
+    "recesso consumatore",
+    "acquisto online",
+    "porta a porta"
+   ],
+   "situazioni": [
+    "ho comprato online e voglio restituire",
+    "un venditore a domicilio mi ha fatto firmare",
+    "voglio disdire l'abbonamento appena firmato"
+   ]
+  },
+  {
+   "regola": "cons_pratiche_scorrette",
+   "materia": "consumatori",
+   "nome": "pratiche commerciali scorrette",
+   "lato": "attivo",
+   "sinonimi": [
+    "pratica commerciale scorretta",
+    "pubblicità ingannevole",
+    "servizi non richiesti"
+   ],
+   "situazioni": [
+    "mi hanno attivato servizi che non ho chiesto",
+    "la pubblicità diceva un prezzo diverso",
+    "mi hanno messo fretta per firmare"
+   ]
+  },
+  {
+   "regola": "cons_adr",
+   "materia": "consumatori",
+   "nome": "risoluzione alternativa delle controversie di consumo (ADR, Corecom, ARERA)",
+   "lato": "attivo",
+   "sinonimi": [
+    "conciliazione",
+    "Corecom",
+    "ARERA",
+    "bolletta contestata"
+   ],
+   "situazioni": [
+    "la bolletta della luce è sbagliata",
+    "il gestore telefonico mi addebita costi non dovuti",
+    "devo fare la conciliazione prima del giudice?"
+   ]
+  },
+  {
+   "regola": "trib_autotutela",
+   "materia": "tributario",
+   "nome": "autotutela tributaria",
+   "lato": "attivo",
+   "sinonimi": [
+    "autotutela",
+    "annullamento dell'atto da parte dell'ufficio",
+    "errore dell'agenzia"
+   ],
+   "situazioni": [
+    "l'agenzia delle entrate ha sbagliato il calcolo",
+    "mi chiedono tasse già pagate",
+    "voglio che l'ufficio annulli l'avviso"
+   ]
+  },
+  {
+   "regola": "trib_adesione",
+   "materia": "tributario",
+   "nome": "accertamento con adesione",
+   "lato": "attivo",
+   "sinonimi": [
+    "accertamento con adesione",
+    "trattare con l'agenzia",
+    "riduzione delle sanzioni"
+   ],
+   "situazioni": [
+    "vorrei trattare con il fisco per pagare meno",
+    "ho ricevuto un accertamento e voglio accordarmi",
+    "l'adesione sospende il ricorso?"
+   ]
+  },
+  {
+   "regola": "trib_rateizzazione",
+   "materia": "tributario",
+   "nome": "rateizzazione delle somme iscritte a ruolo",
+   "lato": "attivo",
+   "sinonimi": [
+    "rateizzazione",
+    "dilazione delle cartelle",
+    "rate con l'agenzia riscossione"
+   ],
+   "situazioni": [
+    "ho tante cartelle e non posso pagarle tutte insieme",
+    "se salto una rata cosa succede?",
+    "quante rate posso chiedere?"
+   ]
+  },
+  {
+   "regola": "imm_protezione_internazionale",
+   "materia": "immigrazione",
+   "nome": "ricorso contro le decisioni della Commissione territoriale",
+   "lato": "attivo",
+   "sinonimi": [
+    "asilo",
+    "protezione internazionale",
+    "commissione territoriale"
+   ],
+   "situazioni": [
+    "la commissione mi ha negato l'asilo",
+    "mi hanno dato solo la protezione sussidiaria",
+    "la domanda è stata dichiarata infondata"
+   ]
+  },
+  {
+   "regola": "str_transazione",
+   "materia": "stragiudiziale",
+   "nome": "transazione",
+   "lato": "entrambi",
+   "sinonimi": [
+    "transazione",
+    "accordo transattivo",
+    "chiudere la lite"
+   ],
+   "situazioni": [
+    "vogliamo chiudere la causa con un accordo",
+    "ci mettiamo d'accordo per pagare a rate",
+    "ho firmato un accordo e ora scopro altre cose"
+   ]
+  },
+  {
+   "regola": "str_parere",
+   "materia": "stragiudiziale",
+   "nome": "parere legale scritto",
+   "lato": "attivo",
+   "sinonimi": [
+    "parere legale",
+    "parere pro veritate",
+    "consulenza scritta"
+   ],
+   "situazioni": [
+    "il cliente vuole un parere scritto",
+    "mi serve una consulenza su questa clausola",
+    "conviene fare causa?"
+   ]
+  },
+  {
+   "regola": "suc_rinuncia_eredita",
+   "materia": "successioni",
+   "nome": "rinuncia all'eredità",
+   "lato": "attivo",
+   "sinonimi": [
+    "rinuncia all'eredità",
+    "non accettare l'eredità",
+    "eredità con debiti"
+   ],
+   "situazioni": [
+    "mio padre è morto pieno di debiti, non voglio ereditare",
+    "come si rinuncia all'eredità",
+    "se rinuncio i debiti passano ai miei figli?"
+   ]
+  },
+  {
+   "regola": "rc_negoziazione_sinistri",
+   "materia": "responsabilità civile",
+   "nome": "negoziazione assistita obbligatoria nei sinistri stradali",
+   "lato": "attivo",
+   "sinonimi": [
+    "negoziazione assistita sinistri",
+    "invito all'assicurazione",
+    "prima della causa per incidente"
+   ],
+   "situazioni": [
+    "l'assicurazione non paga l'incidente, posso fare causa subito?",
+    "quanto devo aspettare prima di fare causa all'assicurazione",
+    "serve l'avvocato per l'invito alla compagnia?"
+   ]
+  },
+  {
+   "regola": "lav_decreto_ingiuntivo",
+   "materia": "lavoro",
+   "nome": "decreto ingiuntivo per retribuzioni non pagate",
+   "lato": "attivo",
+   "sinonimi": [
+    "decreto ingiuntivo per stipendi",
+    "ingiunzione per le buste paga",
+    "monitorio del lavoratore"
+   ],
+   "situazioni": [
+    "il datore non mi paga gli ultimi tre stipendi ma ho le buste paga",
+    "ho le buste firmate e voglio i soldi subito",
+    "l'azienda mi deve la tredicesima e il tfr"
+   ]
+  },
+  {
+   "regola": "trib_definizione_agevolata",
+   "materia": "tributario",
+   "nome": "definizione agevolata dei carichi (rottamazione)",
+   "lato": "attivo",
+   "sinonimi": [
+    "rottamazione",
+    "definizione agevolata",
+    "pace fiscale",
+    "stralcio cartelle"
+   ],
+   "situazioni": [
+    "posso pagare le cartelle senza sanzioni?",
+    "c'è la rottamazione per i miei debiti col fisco?",
+    "ho cartelle vecchie dell'INPS, si possono definire?"
+   ]
+  },
+  {
+   "regola": "civ_rimessione_termini",
+   "materia": "civile ordinario",
+   "nome": "rimessione in termini",
+   "lato": "entrambi",
+   "sinonimi": [
+    "rimessione in termini",
+    "termine scaduto non per colpa mia",
+    "decadenza incolpevole"
+   ],
+   "situazioni": [
+    "non ho potuto depositare perché ero in ospedale",
+    "la pec della cancelleria non è mai arrivata e il termine è scaduto",
+    "abbiamo perso un termine per un problema del sistema"
+   ]
+  },
+  {
+   "regola": "fam_divorzio_immediato",
+   "materia": "famiglia e minori",
+   "nome": "divorzio senza separazione per condanne penali e altri casi dell'art. 3 l. 898/1970",
+   "lato": "attivo",
+   "sinonimi": [
+    "divorzio immediato",
+    "divorzio senza separazione",
+    "coniuge condannato"
+   ],
+   "situazioni": [
+    "mio marito è in carcere per una condanna lunga, posso divorziare subito?",
+    "è stato condannato per maltrattamenti contro di me",
+    "ha tentato di uccidermi"
+   ]
+  },
+  {
+   "regola": "cau_sequestro",
+   "materia": "cautelare e urgenza",
+   "nome": "sequestro conservativo e giudiziario",
+   "lato": "attivo",
+   "sinonimi": [
+    "sequestro conservativo",
+    "sequestro giudiziario",
+    "bloccare i beni del debitore"
+   ],
+   "situazioni": [
+    "il debitore sta vendendo tutto",
+    "litighiamo sulla casa e voglio che la custodisca qualcuno",
+    "voglio bloccare i conti di chi mi deve soldi"
+   ]
+  },
+  {
+   "regola": "mon_ricorso_credito",
+   "materia": "monitorio",
+   "nome": "recupero rapido del credito con decreto ingiuntivo",
+   "lato": "attivo",
+   "sinonimi": [
+    "decreto ingiuntivo",
+    "ingiunzione di pagamento",
+    "recupero crediti veloce",
+    "prova scritta"
+   ],
+   "situazioni": [
+    "un cliente non mi paga e ho le fatture",
+    "ho un riconoscimento di debito firmato, come recupero i soldi?",
+    "voglio recuperare in fretta quello che mi devono"
+   ]
+  },
+  {
+   "regola": "mon_opposizione_di",
+   "materia": "monitorio",
+   "nome": "opposizione a decreto ingiuntivo",
+   "lato": "passivo",
+   "sinonimi": [
+    "opposizione a decreto ingiuntivo",
+    "contestare l'ingiunzione",
+    "40 giorni"
+   ],
+   "situazioni": [
+    "mi è arrivato un decreto ingiuntivo ma non devo quei soldi",
+    "il decreto chiede somme già pagate",
+    "come mi difendo dall'ingiunzione di pagamento"
+   ]
+  },
+  {
+   "regola": "fam_separazione",
+   "materia": "famiglia e minori",
+   "nome": "separazione dei coniugi",
+   "lato": "entrambi",
+   "sinonimi": [
+    "separazione",
+    "separazione giudiziale",
+    "separazione consensuale"
+   ],
+   "situazioni": [
+    "voglio separarmi da mio marito",
+    "mia moglie se n'è andata di casa",
+    "non ce la faccio più a vivere con lui"
+   ]
+  },
+  {
+   "regola": "fam_modifica_condizioni",
+   "materia": "famiglia e minori",
+   "nome": "modifica dei provvedimenti su figli e contributi",
+   "lato": "entrambi",
+   "sinonimi": [
+    "modifica delle condizioni",
+    "revisione dell'assegno",
+    "cambio di collocamento"
+   ],
+   "situazioni": [
+    "ho perso il lavoro e non riesco a pagare l'assegno",
+    "l'ex guadagna molto di più adesso",
+    "mio figlio è andato a vivere dall'altro genitore"
+   ]
+  },
+  {
+   "regola": "fam_mantenimento",
+   "materia": "famiglia e minori",
+   "nome": "mantenimento dei figli e del coniuge",
+   "lato": "entrambi",
+   "sinonimi": [
+    "mantenimento dei figli",
+    "assegno di mantenimento",
+    "pagamento diretto dal datore"
+   ],
+   "situazioni": [
+    "l'ex non paga il mantenimento",
+    "mio figlio ha 28 anni e non lavora, devo ancora mantenerlo?",
+    "quanto devo dare per i figli"
+   ]
+  },
+  {
+   "regola": "fam_ordini_protezione",
+   "materia": "famiglia e minori",
+   "nome": "ordini di protezione contro gli abusi familiari",
+   "lato": "attivo",
+   "sinonimi": [
+    "ordine di protezione",
+    "allontanamento dalla casa",
+    "violenza domestica"
+   ],
+   "situazioni": [
+    "il mio compagno mi picchia",
+    "mio marito mi minaccia e voglio che vada via di casa",
+    "il figlio violento deve stare lontano"
+   ]
+  },
+  {
+   "regola": "fam_negoziazione",
+   "materia": "famiglia e minori",
+   "nome": "negoziazione assistita familiare",
+   "lato": "entrambi",
+   "sinonimi": [
+    "negoziazione assistita familiare",
+    "separazione con gli avvocati",
+    "divorzio senza tribunale"
+   ],
+   "situazioni": [
+    "vogliamo separarci d'accordo senza andare dal giudice",
+    "possiamo divorziare in studio dagli avvocati?",
+    "vogliamo cambiare l'assegno di comune accordo"
+   ]
+  },
+  {
+   "regola": "fam_disconoscimento",
+   "materia": "famiglia e minori",
+   "nome": "disconoscimento di paternità",
+   "lato": "entrambi",
+   "sinonimi": [
+    "disconoscimento di paternità",
+    "test del DNA",
+    "figlio non mio"
+   ],
+   "situazioni": [
+    "ho scoperto che il bambino non è mio",
+    "il DNA dice che non sono il padre",
+    "voglio togliere il cognome di quell'uomo"
+   ]
+  },
+  {
+   "regola": "suc_beneficio_inventario",
+   "materia": "successioni",
+   "nome": "accettazione con beneficio d'inventario",
+   "lato": "attivo",
+   "sinonimi": [
+    "beneficio d'inventario",
+    "accettazione con inventario",
+    "eredità con debiti"
+   ],
+   "situazioni": [
+    "non sappiamo se l'eredità ha più debiti che beni",
+    "vivo nella casa del defunto, cosa devo fare?",
+    "i bambini ereditano dal nonno"
+   ]
+  },
+  {
+   "regola": "con_esecuzione_2932",
+   "materia": "contratti",
+   "nome": "esecuzione in forma specifica dell'obbligo di concludere il contratto",
+   "lato": "attivo",
+   "sinonimi": [
+    "esecuzione in forma specifica",
+    "2932",
+    "sentenza che trasferisce la casa"
+   ],
+   "situazioni": [
+    "il venditore non vuole più fare il rogito",
+    "ho firmato il compromesso e lui si è tirato indietro",
+    "voglio la casa anche se il venditore non va dal notaio"
+   ]
+  },
+  {
+   "regola": "con_recesso",
+   "materia": "contratti",
+   "nome": "recesso dal contratto",
+   "lato": "entrambi",
+   "sinonimi": [
+    "recesso dal contratto",
+    "disdetta del contratto",
+    "preavviso"
+   ],
+   "situazioni": [
+    "voglio chiudere il contratto prima della scadenza",
+    "posso uscire dal contratto di fornitura?",
+    "il contratto prevede il preavviso"
+   ]
+  },
+  {
+   "regola": "rc_sinistro",
+   "materia": "responsabilità civile",
+   "nome": "sinistro stradale",
+   "lato": "attivo",
+   "sinonimi": [
+    "incidente stradale",
+    "sinistro",
+    "tamponamento",
+    "risarcimento diretto"
+   ],
+   "situazioni": [
+    "mi hanno tamponato",
+    "sono stato investito sulle strisce",
+    "l'assicurazione non risponde dopo l'incidente"
+   ]
+  },
+  {
+   "regola": "lav_crediti",
+   "materia": "lavoro",
+   "nome": "crediti di lavoro e differenze retributive",
+   "lato": "attivo",
+   "sinonimi": [
+    "differenze retributive",
+    "stipendi non pagati",
+    "straordinari non pagati",
+    "livello sbagliato"
+   ],
+   "situazioni": [
+    "mi devono tre mesi di stipendio",
+    "faccio straordinari che non mi pagano",
+    "mi pagano meno del contratto collettivo"
+   ]
+  },
+  {
+   "regola": "lav_tfr",
+   "materia": "lavoro",
+   "nome": "trattamento di fine rapporto",
+   "lato": "attivo",
+   "sinonimi": [
+    "tfr",
+    "liquidazione",
+    "trattamento di fine rapporto",
+    "fondo di garanzia"
+   ],
+   "situazioni": [
+    "ho lasciato il lavoro e non mi hanno dato la liquidazione",
+    "la ditta è fallita e il tfr chi me lo paga?",
+    "mi hanno pagato il tfr solo in parte"
+   ]
+  },
+  {
+   "regola": "lav_ricorso_414",
+   "materia": "lavoro",
+   "nome": "ricorso nel rito del lavoro",
+   "lato": "attivo",
+   "sinonimi": [
+    "ricorso al giudice del lavoro",
+    "causa di lavoro",
+    "rito del lavoro",
+    "foro del lavoro"
+   ],
+   "situazioni": [
+    "voglio fare causa al mio datore",
+    "lavoravo in una sede e l'azienda è altrove, dove faccio causa?",
+    "come si scrive il ricorso per il lavoratore"
+   ]
+  },
+  {
+   "regola": "lav_appello",
+   "materia": "lavoro",
+   "nome": "appello nel rito del lavoro",
+   "lato": "entrambi",
+   "sinonimi": [
+    "appello lavoro",
+    "corte d'appello sezione lavoro",
+    "impugnare la sentenza del giudice del lavoro"
+   ],
+   "situazioni": [
+    "abbiamo perso la causa di lavoro, si può fare appello?",
+    "la sentenza del lavoro mi dà torto, entro quando ricorro?",
+    "il datore ha fatto appello contro la mia vittoria"
+   ]
+  },
+  {
+   "regola": "loc_disdetta",
+   "materia": "locazioni",
+   "nome": "disdetta e diniego di rinnovo alla scadenza",
+   "lato": "entrambi",
+   "sinonimi": [
+    "disdetta",
+    "finita locazione",
+    "diniego di rinnovo"
+   ],
+   "situazioni": [
+    "voglio riprendermi la casa alla scadenza",
+    "il contratto del negozio scade, quando devo mandare la disdetta?",
+    "il proprietario mi ha mandato la disdetta, devo andarmene?"
+   ]
+  },
+  {
+   "regola": "loc_mobili_rilascio",
+   "materia": "locazioni",
+   "nome": "beni lasciati nell'immobile dopo il rilascio",
+   "lato": "entrambi",
+   "sinonimi": [
+    "mobili lasciati",
+    "rilascio dell'immobile",
+    "beni dell'inquilino"
+   ],
+   "situazioni": [
+    "l'inquilino se n'è andato e ha lasciato tutto",
+    "dopo lo sfratto ci sono ancora i suoi mobili",
+    "cosa faccio con le cose lasciate in casa"
+   ]
+  },
+  {
+   "regola": "loc_canone_nero",
+   "materia": "locazioni",
+   "nome": "restituzione delle somme oltre il canone registrato",
+   "lato": "attivo",
+   "sinonimi": [
+    "affitto in nero",
+    "canone non registrato",
+    "restituzione delle somme"
+   ],
+   "situazioni": [
+    "pagavo una parte dell'affitto in nero",
+    "il contratto non era registrato",
+    "voglio indietro quello che ho pagato in più"
+   ]
+  },
+  {
+   "regola": "cons_garanzia",
+   "materia": "consumatori",
+   "nome": "garanzia legale di conformità",
+   "lato": "attivo",
+   "sinonimi": [
+    "garanzia legale",
+    "difetto di conformità",
+    "prodotto rotto"
+   ],
+   "situazioni": [
+    "il telefono si è rotto dopo pochi mesi",
+    "il negozio non vuole ripararmi la lavatrice",
+    "l'auto usata ha un difetto"
+   ]
+  },
+  {
+   "regola": "cons_clausole_vessatorie",
+   "materia": "consumatori",
+   "nome": "clausole vessatorie",
+   "lato": "attivo",
+   "sinonimi": [
+    "clausole vessatorie",
+    "clausole abusive",
+    "penale eccessiva"
+   ],
+   "situazioni": [
+    "il contratto ha una penale enorme",
+    "la palestra non mi fa disdire",
+    "c'è una clausola ingiusta nel contratto"
+   ]
+  },
+  {
+   "regola": "cons_foro",
+   "materia": "consumatori",
+   "nome": "foro del consumatore",
+   "lato": "passivo",
+   "sinonimi": [
+    "foro del consumatore",
+    "competenza territoriale consumatore"
+   ],
+   "situazioni": [
+    "una società mi ha fatto causa in un'altra città",
+    "posso essere citato lontano da casa?",
+    "dove si fa causa a un consumatore"
+   ]
+  },
+  {
+   "regola": "amm_sospensiva",
+   "materia": "amministrativo",
+   "nome": "misure cautelari nel processo amministrativo",
+   "lato": "attivo",
+   "sinonimi": [
+    "sospensiva",
+    "misura cautelare TAR",
+    "decreto monocratico"
+   ],
+   "situazioni": [
+    "il comune mi chiude il locale domani",
+    "la demolizione è tra pochi giorni",
+    "voglio fermare subito l'atto del comune"
+   ]
+  },
+  {
+   "regola": "pen_querela",
+   "materia": "penale",
+   "nome": "querela",
+   "lato": "attivo",
+   "sinonimi": [
+    "querela",
+    "denuncia",
+    "sporgere querela"
+   ],
+   "situazioni": [
+    "mi hanno minacciato, cosa faccio?",
+    "mi hanno rubato in casa",
+    "voglio denunciare chi mi ha diffamato"
+   ]
+  },
+  {
+   "regola": "pen_appello",
+   "materia": "penale",
+   "nome": "appello penale",
+   "lato": "passivo",
+   "sinonimi": [
+    "appello penale",
+    "impugnare la condanna"
+   ],
+   "situazioni": [
+    "mi hanno condannato, posso fare appello?",
+    "entro quanto si appella la condanna",
+    "il processo si è fatto senza di me"
+   ]
+  },
+  {
+   "regola": "pen_cassazione",
+   "materia": "penale",
+   "nome": "ricorso per cassazione penale",
+   "lato": "passivo",
+   "sinonimi": [
+    "ricorso per cassazione penale",
+    "saltum"
+   ],
+   "situazioni": [
+    "la corte d'appello ha confermato la condanna",
+    "andiamo in cassazione dopo la condanna",
+    "ricorso diretto in cassazione"
+   ]
+  },
+  {
+   "regola": "cds_prefetto",
+   "materia": "violazioni amministrative",
+   "nome": "ricorso al Prefetto contro il verbale",
+   "lato": "passivo",
+   "sinonimi": [
+    "ricorso al prefetto",
+    "multa",
+    "verbale del codice della strada"
+   ],
+   "situazioni": [
+    "ho preso una multa ingiusta",
+    "l'autovelox mi ha fotografato ma non ero io",
+    "conviene il prefetto o il giudice di pace?"
+   ]
+  },
+  {
+   "regola": "imm_permesso_espulsione",
+   "materia": "immigrazione",
+   "nome": "diniego del permesso di soggiorno ed espulsione",
+   "lato": "passivo",
+   "sinonimi": [
+    "permesso di soggiorno",
+    "espulsione",
+    "questura"
+   ],
+   "situazioni": [
+    "la questura non mi rinnova il permesso",
+    "mi hanno dato il foglio di via",
+    "il permesso è scaduto, rischio l'espulsione?"
+   ]
+  },
+  {
+   "regola": "str_mediazione",
+   "materia": "stragiudiziale",
+   "nome": "mediazione: durata, effetti e mancata partecipazione",
+   "lato": "entrambi",
+   "sinonimi": [
+    "mediazione civile",
+    "organismo di mediazione",
+    "primo incontro"
+   ],
+   "situazioni": [
+    "l'altra parte non viene in mediazione",
+    "quanto dura la mediazione?",
+    "la mediazione blocca la prescrizione?"
+   ]
+  },
+  {
+   "regola": "str_negoziazione",
+   "materia": "stragiudiziale",
+   "nome": "negoziazione assistita: invito, risposta e materie",
+   "lato": "entrambi",
+   "sinonimi": [
+    "negoziazione assistita",
+    "invito alla negoziazione",
+    "convenzione di negoziazione"
+   ],
+   "situazioni": [
+    "l'altra parte non risponde all'invito",
+    "posso fare la negoziazione per una lite di lavoro?",
+    "cosa scrivo nell'invito alla negoziazione"
+   ]
+  }
+ ]
+}

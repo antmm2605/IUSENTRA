@@ -69,6 +69,10 @@ class Scheda:
     dubbi: list[str] = field(default_factory=list)
     bozza: Bozza | None = None
     extra: Callable[[Analisi, Comprensione, Fatti], None] | None = None
+    # Ricerca per significato (fattispecie/significato_materie.py): lato della parte assistita, sinonimi, situazioni tipiche.
+    lato: str = "entrambi"
+    sinonimi: tuple[str, ...] = ()
+    situazioni: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         # Un solo segnale scritto senza virgola finale è una stringa, non una tupla: lo si normalizza.

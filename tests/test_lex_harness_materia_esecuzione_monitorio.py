@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.lex_materie_casi import controlla, risposta
+from tests.lex_materie_casi import controlla
 
 CASI = [
     ("Abbiamo titolo e precetto: l'ufficiale giudiziario può entrare in casa del debitore e pignorare i mobili?", "es_pignoramento_mobiliare"),

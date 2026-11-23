@@ -83,7 +83,7 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
         return None
     if c.tipo == "norma":
         return risposta_norma(domanda)
-    from .chiarimenti import materia_da_chiarire, testo_chiarimento
+    from .chiarimenti import materia_da_chiarire, testo_chiarimento, testo_chiarimento_lato
 
     scelte = materia_da_chiarire(domanda)
     if scelte:
@@ -95,6 +95,12 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
     regola = scegli(c, f)
     if regola is None:
         return None
+    from .lato import scelte_sul_lato
+
+    scelte_lato = scelte_sul_lato(domanda, regola[0]) if c.tipo in {"parere", "termine"} else None
+    if scelte_lato:
+        return RispostaHarness(testo_chiarimento_lato(scelte_lato), "chiarimento", "chiarimento_lato", 1.0,
+                               registro={"rule": "chiarimento_lato", "scelte": scelte_lato})
     analisi = regola[2](c, f)
     from .coerenza import verifica as _coerenza
 

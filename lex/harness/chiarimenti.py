@@ -50,3 +50,13 @@ def testo_chiarimento(scelte: list[str]) -> str:
             "**Scegli una delle due domande e rimandala**\n"
             f"1. {scelte[0]}\n"
             f"2. {scelte[1]}")
+
+
+def testo_chiarimento_lato(scelte: list[str]) -> str:
+    return ("**Serve una precisazione**\n"
+            "- Lo stesso atto apre strade opposte secondo la parte che assisti: chi agisce ha i suoi passi e i suoi termini, "
+            "chi lo subisce ha le opposizioni con termini diversi e spesso brevi. Per non darti lo strumento dell'altra "
+            "parte, ti chiedo chi assisti.\n\n"
+            "**Scegli una delle due domande e rimandala**\n"
+            f"1. {scelte[0]}\n"
+            f"2. {scelte[1]}")

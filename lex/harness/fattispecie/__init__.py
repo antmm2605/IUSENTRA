@@ -89,9 +89,23 @@ REGOLE = REGOLE + REGOLE_MATERIE
 
 
 def scegli(c: Comprensione, f: Fatti) -> Regola | None:
+    from ..lato import famiglia, lato_della_parte, regole_del_lato
+
+    punteggi = [(regola, regola[1](c, f)) for regola in REGOLE]
     migliore, punteggio = None, 0
-    for regola in REGOLE:
-        p = regola[1](c, f)
+    for regola, p in punteggi:
         if p > punteggio:
             migliore, punteggio = regola, p
+    if migliore is None:
+        return None
+    # Il lato della parte assistita decide lo strumento dentro la stessa famiglia (decreto ingiuntivo o opposizione,
+    # precetto o opposizione, pignoramento o difesa dell'esecutato, sfratto o difesa del conduttore).
+    fam, lato = famiglia(migliore[0]), lato_della_parte(f.testo)
+    if fam and lato and fam[1] != lato:
+        nomi = regole_del_lato(fam[0], lato)
+        candidati = [(r, p) for r, p in punteggi if r[0] in nomi and p > 0]
+        if candidati:
+            return max(candidati, key=lambda rp: rp[1])[0]
+        per_nome = {r[0]: r for r in REGOLE}
+        return per_nome[nomi[0]]
     return migliore

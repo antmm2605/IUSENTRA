@@ -89,7 +89,9 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
     if scelte:
         return RispostaHarness(testo_chiarimento(scelte), "chiarimento", "chiarimento_materia", 1.0,
                                registro={"rule": "chiarimento_materia", "scelte": scelte})
-    f = leggi_fatti(domanda, oggi=oggi)
+    from .normalizzazione import normalizza_richiesta
+
+    f = leggi_fatti(normalizza_richiesta(domanda), oggi=oggi)
     regola = scegli(c, f)
     if regola is None:
         return None

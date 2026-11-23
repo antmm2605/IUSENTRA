@@ -24,6 +24,16 @@ CASI = [
     ("Per conto di Beta Ricambi s.r.l., con sede a Brescia: la cliente Gamma Motori s.r.l. non ha pagato le fatture n. 7 del "
      "05/02/2026 di euro 2.900 e n. 15 del 06/03/2026 di euro 3.100, nonostante la diffida del 10/05/2026. Come ci muoviamo?"
      "\n\nOggi è il 18/11/2026.", "decreto_ingiuntivo"),
+    ("Difendo Caffè Duomo s.r.l., conduttore di un locale ad uso commerciale a Trento, canone 1.800 euro: la locatrice ha "
+     "intimato lo sfratto per morosità, udienza il 10/12/2026; nel locale ci sono infiltrazioni mai riparate. Come ci opponiamo?"
+     "\n\nOggi è il 18/11/2026.", "opposizione_sfratto_commerciale"),
+    ("La mia cliente Anna Ferri pagava per la casa a Rimini 450 euro di affitto registrato e altri 120 euro in nero, oltre al "
+     "canone, dal 01/01/2025 al 30/09/2026. Può riavere le somme in nero?\n\nOggi è il 18/11/2026.",
+     "restituzione_canone_non_registrato"),
+    ("Assisto Marco Leone: il Ministero gli ha notificato il 10/10/2026 un decreto definitivo di esclusione da una graduatoria. "
+     "Possiamo proporre ricorso straordinario al Presidente della Repubblica?\n\nOggi è il 18/11/2026.", "ricorso_straordinario"),
+    ("Assisto Elena Riva, condomina a Udine: il vicino ha chiuso una parte del cortile comune con una recinzione abusiva. "
+     "Come possiamo agire?\n\nOggi è il 18/11/2026.", "lite_condominio"),
 ]
 
 

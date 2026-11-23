@@ -161,7 +161,8 @@ def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
 
 def riconosci_lite_condominio(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    return 2 if "condomin" in t and re.search(r"mediazione|infiltraz|lastrico|danni", t) and not re.search(r"delibera", t) else 0
+    return 2 if "condomin" in t and re.search(r"mediazione|infiltraz|lastrico|danni|parti comuni|cosa comune|facciata|"
+                                              r"canna fumaria|cortile|abusiv", t) and not re.search(r"delibera", t) else 0
 
 
 def analizza_lite_condominio(c: Comprensione, f: Fatti) -> Analisi:

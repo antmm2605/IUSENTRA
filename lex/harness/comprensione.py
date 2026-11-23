@@ -36,7 +36,8 @@ _VERBI_REDAZIONE = (r"\b(?:redig\w*|rediger\w*|scriv\w*|prepar\w*|predispo\w*|st
 # Una questione si pone con una domanda o una richiesta, non con un'etichetta («Organismo di mediazione attivo»).
 _FORMA_DOMANDA = (r"\?|\b(?:qual\w*|quando|quanto|come|cosa|perche|chi|dove|entro|posso|possiamo|puo|devo|dobbiamo|deve|serve|"
                   r"occorre|valuta\w*|indica\w*|dimmi|spiega\w*|calcola\w*|verifica se|e obbligatori|e necessari|vogliamo|vuole)\b")
-_PARERE = (r"\bvaluta\w*|che azion|quale azion|come (?:procedo|posso|devo|agire|recuper\w*|possiamo|dobbiamo|facciamo|procediamo|agiamo|"
+_PARERE = (r"\bvaluta\w*|come ci difendiamo|come ci muoviamo|come procediamo|come (?:difenderci|difenderlo|difenderla|opporci|impugnar\w*|contestar\w*|reagire|muoverci)|"
+           r"cosa (?:dobbiamo|possiamo|devo|posso) fare|cosa facciamo|che fare\b|che azion|quale azion|come (?:procedo|posso|devo|agire|recuper\w*|possiamo|dobbiamo|facciamo|procediamo|agiamo|"
            r"tuteliamo|ci muoviamo)|recuperare il credito|cosa (?:posso|possiamo|devo|deve|rischia)|"
            r"posso (?:chiedere|agire|ottenere|recedere|trattenere|sanare)|ha diritto|spett[ao]|e obbligatori|e necessari|"
            r"serve (?:la|il|una|un)\b|occorre|quale giudice|giudice competente|chi e competente|e competente|competen|\brito\b|"
@@ -46,10 +47,12 @@ _PARERE = (r"\bvaluta\w*|che azion|quale azion|come (?:procedo|posso|devo|agire|
 _TERMINE = r"entro quando|termin[ei] (?:per|di|breve|lungo)|entro quanto|quanto tempo|scadenza (?:per|del)|quando scade|\bentro\b.{0,30}\bdevo\b"
 _OGGETTI_GIURIDICI = (r"appell|cassazione|opposizion|ricors|querel|impugn|licenzia|precett|delibera|accertamento|provvediment|"
                       r"decreto|sentenz|reclamo|esecuzion|divorzi|separazion|sfratt|contratt|caparra|preliminare|risarciment|"
-                      r"locazion|condomin|consumator|lavorator|datore|credito|fattura|tar\b|tributar|penale|reato|"
+                      r"locazion|condomin|consumator|lavorator|datore|credit|fattur|tar\b|tributar|penale|reato|"
                       r"negoziazion|mediazion|procedibil|competen|giudice|tribunale|\bnorma\b|domanda di pagamento|\brito\b|procediment|"
                       r"mantenim|assegno|affidament|\bfigli|coniug|conduttor|locator|moros|lavor|dipendent|"
-                      r"articolo|\bart\.?\s*\d|codice|c\.c\.|c\.p\.c\.|d\.lgs|d\.l\.|legge")
+                      r"articolo|\bart\.?\s*\d|codice|c\.c\.|c\.p\.c\.|d\.lgs|d\.l\.|legge|tamponat|sinistro|incidente|assicura|"
+                      r"\bdanni\b|\bvizi\b|infiltrazion|verbale|multa|diniego|permesso di costruire|eredit|successione|furto|truffa|"
+                      r"appalt|installator")
 # Richieste sui dati dello studio (restano al percorso operativo).
 _OPERATIVA = (r"\b(?:cosa|che cosa|quali|quante|mostra\w*|elenc\w*|dammi|dimmi)\b.{0,40}\b(?:scad\w*|pec|udienz\w*|appuntament\w*|"
               r"agenda|email|messagg\w*|notific\w*|fascicol\w*|client\w*|fattur\w*|preventiv\w*|depositi|ricevut\w*)|"

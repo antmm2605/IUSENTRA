@@ -13,8 +13,20 @@ from ..termini import data_breve
 _NUM = {"una": 1, "due": 2, "tre": 3, "quattro": 4, "cinque": 5, "sei": 6, "sette": 7, "otto": 8, "nove": 9, "dieci": 10}
 
 
+_DIFESA_CONDUTTORE = (r"(?:difendo|assisto|rappresento|il mio cliente(?: e)?|la mia cliente(?: e)?|per conto di) [^,.]{3,60}, "
+                      r"(?:conduttor|conduttric|inquilin)")
+
+
+def difesa_del_conduttore(f: Fatti) -> bool:
+    """La parte assistita è il conduttore intimato: lo sfratto si subisce, non si intima."""
+    return re.search(r"conduttor|conduttric|inquilin|intimat", piano(f.assistita.ruolo)) is not None or re.search(
+        _DIFESA_CONDUTTORE, piano(f.testo)) is not None
+
+
 def riconosci_sfratto(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
+    if difesa_del_conduttore(f):
+        return 0
     if c.atto == "intimazione di sfratto" or (f.ha("locazione") and f.ha("morosita") and not re.search(r"sanar|sanator|termine di grazia", t)):
         return 3
     return 0
@@ -81,7 +93,10 @@ def analizza_sfratto(c: Comprensione, f: Fatti) -> Analisi:
 
 def riconosci_sanatoria(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    return 3 if re.search(r"sanar|sanator|termine di grazia", t) and re.search(r"moros|conduttor|canon", t) else 0
+    if re.search(r"sanar|sanator|termine di grazia", t) and re.search(r"moros|conduttor|canon", t):
+        return 3
+    # Conduttore intimato che chiede come difendersi da uno sfratto per morosità (abitativo).
+    return 3 if difesa_del_conduttore(f) and re.search(r"sfratt", t) and re.search(r"moros|canon", t) else 0
 
 
 def analizza_sanatoria(c: Comprensione, f: Fatti) -> Analisi:

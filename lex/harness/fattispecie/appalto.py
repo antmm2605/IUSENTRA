@@ -14,7 +14,8 @@ from .strumenti import date_in, forma, frase, importi_in
 
 def riconosci_vizi_appalto(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    return 4 if re.search(r"appalt|appaltator|installator|falegnam|commissionat\w*[^.]{0,80}(?:fornitura e posa|realizzazion|lavori)|fornitura e posa", t) and re.search(r"vizi|difett|non ha mai funzionato|rigonfiament|blocco|infiltrazion", t) else 0
+    return 4 if re.search(r"appalt|appaltator|installator|falegnam|commissionat\w*[^?;]{0,80}(?:fornitura e posa|realizzazion|lavori|ristrutturazion|"
+                                      r"rifacimento|costruzion|manutenzion|impianto|posa)|fornitura e posa|impresa edile", t) and re.search(r"vizi|difett|non ha mai funzionato|rigonfiament|blocco|infiltrazion", t) else 0
 
 
 def analizza_vizi_appalto(c: Comprensione, f: Fatti) -> Analisi:

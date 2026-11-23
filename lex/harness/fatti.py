@@ -240,8 +240,11 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
         # Testo libero: la richiesta è la domanda o il comando rivolto a Lex («Cosa facciamo…?», «Prepara l'atto…»);
         # se il testo è su più righe, il primo capoverso prima di «Oggi è il», delle parti e dei «Fatti:».
         primo = f.righe[0] if len(f.righe) > 1 else ""
+        domande_primo = [x for x in re.split(r"(?<=[.?!])\s+(?=[A-ZÀ-Ý])", primo) if "?" in x or re.match(
+            r"(?i)(?:prepar|redig|scriv|predispon|stend|fammi|mi serve|vorrei|valuta|dimmi|indica)", x.strip())]
         if primo and not re.match(r"(?i)(?:oggi|data di oggi|parte assistita|controparte|fatti)\b", primo):
-            f.richiesta = piano(primo)
+            # Il primo capoverso può contenere fatti e domanda insieme: la richiesta è la domanda, se c'è.
+            f.richiesta = piano(" ".join(domande_primo) if domande_primo and re.search(r"\d{1,2}/\d{1,2}/\d{4}", primo) else primo)
         else:
             frasi_testo = re.split(r"(?<=[.?!])\s+(?=[A-ZÀ-Ý])", grezzo)
             chieste = [x for x in frasi_testo if "?" in x or re.match(

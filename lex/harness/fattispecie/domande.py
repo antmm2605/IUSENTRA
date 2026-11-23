@@ -264,7 +264,10 @@ def analizza_appello_penale(c: Comprensione, f: Fatti) -> Analisi:
 # ---------------------------------------------------------------------------------- TAR e tributario
 def riconosci_tar(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    return 3 if re.search(r"\btar\b|tribunale amministrativo", t) and re.search(r"impugn|ricors|termin|entro", t) else 0
+    atto_amministrativo = re.search(r"\btar\b|tribunale amministrativo|diniego|permesso di costruire|ordinanza (?:sindacale|di demolizione)|"
+                                    r"aggiudicazion|esclusione dalla gara|provvedimento (?:amministrativo|del comune|della regione)|"
+                                    r"revoca dell autorizzazione|annullamento d ufficio", t)
+    return 3 if atto_amministrativo and re.search(r"impugn|ricors|termin|entro", t) else 0
 
 
 def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:

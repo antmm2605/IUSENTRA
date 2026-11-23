@@ -68,7 +68,9 @@ def analizza_sequestro(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- verbale del codice della strada non contestato
 def riconosci_verbale_cds(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    return 5 if re.search(r"autovelox|verbale n\.|multa|codice della strada|rilevamento della velocita", t) and re.search(
+    return 5 if re.search(r"autovelox|verbale n\.|multa|codice della strada|rilevamento della velocita|eccesso di velocita|"
+                          r"limite di velocita|semaforo rosso|divieto di sosta|\bztl\b|infrazione stradal|verbale (?:di|per) "
+                          r"(?:contestazione|violazione|eccesso|sosta|accertamento)", t) and re.search(
         r"ricorso|opposizion|giudice di pace", t) else 0
 
 

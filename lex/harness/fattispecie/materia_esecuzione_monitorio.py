@@ -123,7 +123,8 @@ OPPOSIZIONE_ESECUZIONE = Scheda(
     regola="es_opposizione_esecuzione", materia="esecuzione", nome="opposizione all'esecuzione già iniziata (art. 615, secondo comma)",
     segnali=(r"oppo|contest|sospension\w* dell esecuzione|sospendere l esecuzione",
              r"pignorament\w*[^.]{0,30}(?:gia|e stato|avvenut|eseguit|notificat)|esecuzione (?:gia )?iniziat|dopo il pignoramento|"
-             r"beni pignorati|ci hanno pignorato|hanno pignorato|pignorat\w* (?:il|la|lo|i|le) |impignorabil"),
+             r"beni pignorati|ci hanno pignorato|hanno pignorato|pignorat\w* (?:il|la|lo|i|le) |impignorabil|"
+             r"sospension\w* dell esecuzione|titolo prescritto|procede con un titolo|diritto (?:del creditore )?a procedere"),
     esclusi=(r"\b617\b|precett|vizi\w* (?:di forma|formal)|nullit|irregolar|atti esecutivi|di mia proprieta|non (?:e|sono) del debitore|"
              r"proprieta (?:di|del) terz|intestat\w* a|terzo proprietario|619|decreto ingiuntiv|ingiunzion|\b650\b|"
              r"vero proprietario", *_NON_ESEC),
@@ -153,7 +154,7 @@ OPPOSIZIONE_ESECUZIONE = Scheda(
 
 OPPOSIZIONE_TERZO = Scheda(
     regola="es_opposizione_terzo", materia="esecuzione", nome="opposizione di terzo all'esecuzione (art. 619)",
-    segnali=(r"pignor", r"di mia proprieta|non (?:e|sono) del debitore|proprieta (?:di|del|della) (?:terz|madre|padre|moglie|marito|societa)|"
+    segnali=(r"pignor|\b619\b|opposizione di terzo all esecuzione", r"di mia proprieta|esecuzione mobiliare|non (?:e|sono) del debitore|proprieta (?:di|del|della) (?:terz|madre|padre|moglie|marito|societa)|"
              r"intestat\w* a|terzo proprietario|opposizione di terzo|\b619\b|terzo che (?:e|e il) proprietario|appartengono a|"
              r"vero proprietario|il proprietario (?:dei|del|delle) ben"),
     esclusi=(r"intestat\w* a lui|intestat\w* al debitore|\(creditore", *_NON_ESEC), punteggio=8,
@@ -228,7 +229,7 @@ OBBLIGHI_FARE = Scheda(
     regola="es_obblighi_fare", materia="esecuzione", nome="esecuzione degli obblighi di fare e non fare; misure coercitive",
     segnali=(r"obblig\w* di (?:fare|non fare)|\b612\b|614-?bis|demolir|rimozion|rimuover|ripristin|consegnare i documenti|"
              r"penale per ogni giorno|somma per ogni giorno|misur\w* coercitiv|astreinte",
-             r"sentenz|condann|titolo|ordinanza|giudice|esecuzion"),
+             r"sentenz|condann|titolo|ordinanza|giudice|esecuzion|adempiment|ritardo|ricorso|\b612\b"),
     esclusi=(r"ordinanza di demolizione|permesso di costruire|\btar\b|comune ha", *_NON_ESEC), punteggio=6,
     capito="Titolo che condanna a fare o non fare qualcosa (demolire, rimuovere, consegnare) rimasto ineseguito.",
     rimedio="precetto e ricorso al giudice dell'esecuzione per le modalità dell'esecuzione; misura coercitiva per ogni giorno di ritardo",
@@ -278,8 +279,8 @@ OPPOSIZIONE_TARDIVA = Scheda(
 PROVVISORIA_ESECUZIONE = Scheda(
     regola="mon_provvisoria_esecuzione", materia="monitorio", nome="provvisoria esecuzione del decreto ingiuntivo (artt. 642 e 648)",
     segnali=(r"provvisori\w* esecuzion|esecuzione provvisoria|provvisoriamente esecutiv|esecutorieta|subito esecutiv|\b642\b|\b648\b|\b649\b",
-             r"decret|ingiun"),
-    punteggio=6,
+             r"decret|ingiun|\b642\b|\b648\b|opposizion"),
+    esclusi=(r"precett|\(creditore",), punteggio=6,
     capito="Esecutorietà del decreto ingiuntivo: concessione con il decreto o nel giudizio di opposizione, sospensione.",
     conclusione=[
         p("Con il decreto il giudice autorizza l'esecuzione provvisoria se il credito è fondato su cambiale, assegno o atto "

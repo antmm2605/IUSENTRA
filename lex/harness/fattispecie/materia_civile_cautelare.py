@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from .schede import R, Scadenza, Scheda, p
 
-_NON_CIVILE = r"lavorator|\blavoro\b|licenzia|contro la condanna|per saltum|condannat\w* (?:penal|per )|penal|imputat|reato|tributar|\btar\b|amministrativ|cartella|agenzia delle entrate|\binps\b"
+_NON_CIVILE = r"lavorator|\blavoro\b|licenzia|contro la condanna|sentenza di condanna|per saltum|condannat\w* (?:penal|per )|penal|imputat|reato|tributar|\btar\b|amministrativ|cartella|agenzia delle entrate|\binps\b"
 _FERIALE = p("I termini sono sospesi dal 1° al 31 agosto.", R("l742:1", "giurisdizioni ordinarie ed a quelle amministrative"))
 _NOTIFICA = r"(?:sentenza|decisione)[^0-9]{0,40}(?:notificat\w*|comunicat\w*)(?: il)?"
 _PUBBLICAZIONE = r"(?:pubblicat\w*|depositat\w*)(?: il)?"
@@ -22,7 +22,7 @@ CITAZIONE = Scheda(
     esclusi=(_NON_CIVILE, r"appell|opposizion|caparra|delibera|sfratt|decreto ingiuntiv|precett|separazion|divorzi|"
              r"revocazion|cassazion|semplificat|281-?decies|comparsa|memori|2932|forma specifica|responsabilit|amministrator|"
              r"incidente|sinistro|risoluzion|nullit|annullament|usucap|divisione|riduzion|petizione|negatori|confessori|confin|"
-             r"diffam|medic|ospedal|usur|anatocism|indebit"), punteggio=3,
+             r"diffam|medic|ospedal|usur|anatocism|indebit|consumator"), punteggio=3,
     capito="Introduzione di una causa civile davanti al tribunale con atto di citazione.",
     rimedio="atto di citazione a udienza fissa notificato al convenuto, con iscrizione a ruolo",
     conclusione=[
@@ -191,9 +191,10 @@ REGOLAMENTO_COMPETENZA = Scheda(
 
 URGENZA_700 = Scheda(
     regola="cau_700", materia="cautelare e urgenza", nome="provvedimento d'urgenza (art. 700 c.p.c.)",
-    segnali=(r"(?:art\.? ?|ex |articolo |il |un |del |nel )700\b(?!\s*(?:euro|mila|€))|\b700 c\.?p\.?c|provvediment\w* d urgenza|ricorso d urgenza|pregiudizio imminente|irreparabil|tutela (?:cautelare )?urgente|"
-             r"ordine del giudice (?:prima|subito)|subito un ordine",),
-    esclusi=(_NON_CIVILE, r"sequestro|\btar\b|sospensiva"), punteggio=5,
+    segnali=(r"(?:art\.? ?|ex |articolo |il |un |del |nel )700\b(?!\s*(?:euro|mila|€))|\b700 c\.?p\.?c|provvediment\w* d urgenza|"
+             r"provvediment\w* urgent|ricorso d urgenza|pregiudizio imminente|irreparabil|tutela (?:cautelare )?urgente|"
+             r"cautelare d urgenza|rimedio (?:cautelare )?urgent|ordine del giudice (?:prima|subito)|subito un ordine",),
+    esclusi=(r"sequestro|\btar\b|sospensiva|penal|imputat|tributar|cartella|\binps\b|licenzia|sfratt|moros|locazion|precett",), punteggio=6,
     capito="Tutela urgente atipica in attesa del giudizio di merito.",
     rimedio="ricorso ex art. 700 c.p.c. al giudice competente per il merito",
     conclusione=[

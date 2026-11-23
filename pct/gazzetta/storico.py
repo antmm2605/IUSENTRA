@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 PAUSA_GENTILE = 2.0  # secondi fra due richieste al sito istituzionale
 TEMPO_TRATTO = 1200  # secondi per tratto nel lavoro pianificato
 TENTATIVI_TESTO = 3
+QUOTA_SOMMARI = 0.5  # parte del tratto per i sommari; il resto ai testi degli atti
 INTESTAZIONI = {"User-Agent": "IUSENTRA archivio Gazzetta Ufficiale (consultazione professionale)"}
 
 
@@ -148,8 +149,13 @@ def esegui_tratto(
 ) -> dict[str, Any]:
     """Un tratto del recupero storico: sommari mancanti, poi testi, fino al tempo massimo."""
     adesso = adesso or datetime.now(timezone.utc)
-    scadenza = time.monotonic() + tempo_massimo
-    sommari = recupera_sommari(archivio, request_get=request_get, adesso=adesso, scadenza=scadenza, pausa=pausa,
+    inizio = time.monotonic()
+    scadenza = inizio + tempo_massimo
+    # Ai sommari spetta al più una parte del tratto: prima della 2.490.3 li leggeva per tutto il tempo finché non
+    # erano completi (migliaia di fascicoli), e i testi degli atti non arrivavano mai (collaudo 21/11/2026:
+    # «testi_nuovi» sempre 0). Il tempo che i sommari non usano passa ai testi.
+    scadenza_sommari = inizio + tempo_massimo * (QUOTA_SOMMARI if con_testi else 1.0)
+    sommari = recupera_sommari(archivio, request_get=request_get, adesso=adesso, scadenza=scadenza_sommari, pausa=pausa,
                                serie=serie, dormi=dormi)
     testi = recupera_testi(archivio, adesso=adesso, scadenza=scadenza, pausa=pausa, sessione_nuova=sessione_nuova,
                            dormi=dormi) if con_testi else {"testi_nuovi": 0, "errori": 0, "completo": False}

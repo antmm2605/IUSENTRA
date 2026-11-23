@@ -2,6 +2,7 @@ import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { mediazioneWebsite } from '../lib/mediazioneWebsite'
 import { MediazioneOrganismoDetail } from './MediazioneOrganismoDetail'
+import { PrassiETestiAmministrativi } from './legalIntelligence/PrassiETestiAmministrativi'
 import {
   AlertTriangle,
   ArrowRight,
@@ -1525,6 +1526,7 @@ export function LegalIntelligencePage() {
                 onOpen={openRecord}
               />
             ) : null}
+            <PrassiETestiAmministrativi />
             <section id="schede" className="iu-li-results" aria-label="Schede ricerca legale">
               <ResultHeader
                 view={view}

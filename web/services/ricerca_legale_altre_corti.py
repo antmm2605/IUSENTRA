@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 from typing import Any, Callable
+from urllib.parse import urlencode
 
 OPENGA_TIMEOUT = (2.0, 6.0)
 _URL_OPENGA = "https://www.giustizia-amministrativa.it/dcsnprr"
@@ -87,6 +88,9 @@ def decisioni_giustizia_amministrativa(domanda: str, *, limite: int = 6, endpoin
             "published_at": anno,
             "is_official": True,
             "registro": f"{numero_breve}/{anno}",
+            # Il testo integrale si apre nel lettore: dall'archivio o, se manca, scaricato subito dal sito ufficiale.
+            "reader_href": "/api/v1/ui/giustizia-amministrativa/testo/pagina?" + urlencode(
+                {"organo": organo, "anno": anno, "numero": numero, "ricorso": _testo(riga.get("numero_ricorso"))}),
         })
     return risultati
 

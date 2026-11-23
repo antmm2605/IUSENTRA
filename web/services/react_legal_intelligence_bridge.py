@@ -3233,6 +3233,9 @@ def _altre_corti(records: list[dict[str, Any]], warnings: list[dict[str, str]], 
             record = _safe_search_record(riga, len(records) + 1, search_query=search_query)
             record.update(id=riga["id"], approvalLabel=etichetta, approvalTone="info", registryNumber=riga.get("registro", ""),
                           legacyHref="/giurisprudenza")
+            if riga.get("reader_href"):
+                # «Apri» porta al testo integrale (letto subito dal sito ufficiale se l'archivio non lo ha ancora).
+                record.update(sourceHref=riga["reader_href"], approvalLabel="testo integrale su richiesta")
             records.append(record)
 
 

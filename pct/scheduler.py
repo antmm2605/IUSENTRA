@@ -926,6 +926,42 @@ def start_scheduler(app):
                 logger.error("[scheduler] Gazzetta Ufficiale non aggiornata: %s", e)
                 return {"ok": False, "status": "errore", "error": str(e)}
 
+    # Testi della Giustizia amministrativa e prassi AdE/INPS: l'app è l'unico scrittore dei due archivi (come per la
+    # Gazzetta). Ogni giro dura al più PCT_GA_TEMPO_GIRO / PCT_PRASSI_TEMPO_GIRO secondi e riprende la coda.
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", minute=5), id="giustizia_amministrativa_testi", max_instances=1, coalesce=True,
+        misfire_grace_time=3000,
+    )
+    def _giustizia_amministrativa_testi():
+        from pct.fonti_in_sfondo import giro_testi_ga
+
+        with app.app_context():
+            try:
+                esito = giro_testi_ga(app.config)
+                logger.info("[scheduler] Testi Giustizia amministrativa: %d letti, %d non letti, in coda %d",
+                            int(esito.get("letti") or 0), int(esito.get("errori") or 0),
+                            int((esito.get("stati") or {}).get("da_leggere") or 0))
+                return esito
+            except Exception as e:
+                logger.error("[scheduler] Testi Giustizia amministrativa non aggiornati: %s", e)
+                return {"ok": False, "status": "errore", "error": str(e)}
+
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", minute=35), id="prassi_agenzia_entrate_inps", max_instances=1, coalesce=True,
+        misfire_grace_time=3000,
+    )
+    def _prassi_agenzia_entrate_inps():
+        from pct.fonti_in_sfondo import giro_prassi
+
+        with app.app_context():
+            try:
+                esito = giro_prassi(app.config)
+                logger.info("[scheduler] Prassi Agenzia delle Entrate e INPS: %d testi nuovi", int(esito.get("testi_nuovi") or 0))
+                return esito
+            except Exception as e:
+                logger.error("[scheduler] Prassi Agenzia delle Entrate e INPS non aggiornata: %s", e)
+                return {"ok": False, "status": "errore", "error": str(e)}
+
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=6, minute=5), id="legal_sources_daily_check", max_instances=1, coalesce=True)
     def _legal_sources_daily_check():
         # «Controllo giornaliero delle fonti ufficiali» della Ricerca legale: stesso motore del pulsante della

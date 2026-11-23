@@ -535,6 +535,19 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             "cron", "", "25", built_in=True,
         ),
         SchedulerTemplate(
+            "giustizia_amministrativa_testi", "Giustizia amministrativa: testi integrali delle sentenze", "Aggiornamenti legali",
+            "Ogni ora, per al più 20 minuti e con pause gentili, scarica dal sito ufficiale il testo delle sentenze del "
+            "catalogo OpenGA: Consiglio di Stato, CGA, TAR Calabria e Lazio, TAR delle sedi dei fascicoli, altre sedi; "
+            "prima gli ultimi tre anni, le sentenze brevi in fondo. Riprende da dove si era fermato.",
+            "cron", "", "5", built_in=True,
+        ),
+        SchedulerTemplate(
+            "prassi_agenzia_entrate_inps", "Prassi: Agenzia delle Entrate e INPS", "Aggiornamenti legali",
+            "Ogni ora, per al più 20 minuti, archivia circolari e risoluzioni dell'Agenzia delle Entrate e circolari e "
+            "messaggi dell'INPS con il testo integrale, ripartendo da dove si era fermato.",
+            "cron", "", "35", built_in=True,
+        ),
+        SchedulerTemplate(
             "legal_updates_batch",
             "Aggiornamenti legali fonti verdi",
             "Aggiornamenti legali",

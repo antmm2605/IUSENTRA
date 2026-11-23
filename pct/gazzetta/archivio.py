@@ -74,7 +74,8 @@ _SCHEMA = (
         url_testo TEXT NOT NULL,
         articoli INTEGER NOT NULL DEFAULT 0,
         caratteri INTEGER NOT NULL DEFAULT 0,
-        letto_il TEXT NOT NULL
+        letto_il TEXT NOT NULL,
+        fonte TEXT NOT NULL DEFAULT ''
     )
     """,
     """
@@ -235,6 +236,9 @@ class ArchivioGazzetta:
                 for istruzione in _SCHEMA:
                     conn.execute(istruzione)
                 conn.execute(_SCHEMA_FTS)
+                if "fonte" not in {r[1] for r in conn.execute("PRAGMA table_info(testi)")}:
+                    # Da dove viene il testo: la pagina della Gazzetta o la biblioteca Normattiva (2.490.3).
+                    conn.execute("ALTER TABLE testi ADD COLUMN fonte TEXT NOT NULL DEFAULT ''")
                 if not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'atti_indicizzati'").fetchone():
                     # Indice creato senza il registro degli atti indicizzati: si ricostruisce da capo.
                     conn.execute("DELETE FROM atti_fts")
@@ -250,7 +254,7 @@ class ArchivioGazzetta:
         if self.sola_lettura:
             conn = sqlite3.connect(f"file:{self.percorso}?mode=ro", uri=True, timeout=10)
         else:
-            conn = sqlite3.connect(str(self.percorso), timeout=10)
+            conn = sqlite3.connect(str(self.percorso), timeout=120)  # due scrittori: recupero e collegamento
             conn.execute("PRAGMA journal_mode=WAL")
         conn.row_factory = sqlite3.Row
         return conn
@@ -318,12 +322,12 @@ class ArchivioGazzetta:
 
     # --- testi completi ---
     def salva_testo(self, atto_id: str, *, testo: str, intestazione: str, sha256: str, url_testo: str,
-                    articoli: int, letto_il: str) -> None:
+                    articoli: int, letto_il: str, fonte: str = "") -> None:
         with closing(self._connetti()) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO testi (id, testo_z, intestazione, sha256, url_testo, articoli, caratteri, letto_il) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (atto_id, comprimi(testo), intestazione, sha256, url_testo, int(articoli), len(testo), letto_il),
+                "INSERT OR REPLACE INTO testi (id, testo_z, intestazione, sha256, url_testo, articoli, caratteri, letto_il, fonte) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (atto_id, comprimi(testo), intestazione, sha256, url_testo, int(articoli), len(testo), letto_il, fonte),
             )
             conn.execute("DELETE FROM testi_errori WHERE id = ?", (atto_id,))
             self._indicizza(conn, [atto_id])
@@ -356,11 +360,12 @@ class ArchivioGazzetta:
             if not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'testi'").fetchone():
                 return None
             riga = conn.execute(
-                "SELECT a.*, t.testo_z, t.intestazione AS intestazione_testo, t.url_testo, t.articoli, t.letto_il AS testo_letto_il "
+                "SELECT a.*, t.*, t.intestazione AS intestazione_testo, t.letto_il AS testo_letto_il, a.id AS id "
                 "FROM atti a LEFT JOIN testi t ON t.id = a.id WHERE a.id = ?", (atto_id,),
             ).fetchone()
         if riga is None:
             return None
+        # Colonne omonime di atti e testi (id, intestazione): sqlite3.Row restituisce la prima, cioè quella dell'atto.
         dati = {k: riga[k] for k in riga.keys() if k != "testo_z"}
         dati["testo"] = decomprimi(riga["testo_z"]) if riga["testo_z"] else ""
         return dati

@@ -38,6 +38,7 @@ CORSIA_ACQUISIZIONE_PEC = "pec_acquisizione"
 CORSIA_NOTTURNA = "notturna"
 CORSIA_GIURISPRUDENZA = "giurisprudenza"
 CORSIA_POSTA = "posta"
+CORSIA_FONTI_PUBBLICHE = "fonti_pubbliche"
 
 THREAD_PER_CORSIA = {
     CORSIA_LUNGA: 1,
@@ -47,7 +48,15 @@ THREAD_PER_CORSIA = {
     CORSIA_INFRASTRUTTURA: 3,
     CORSIA_GIURISPRUDENZA: 1,
     CORSIA_POSTA: 1,
+    CORSIA_FONTI_PUBBLICHE: 1,
 }
+
+# Testi della Giustizia amministrativa e prassi (23/11/2026): giri da 20 minuti ogni ora; nella corsia lunga
+# fermerebbero il piano del giorno, quindi hanno una corsia propria e si alternano.
+LAVORI_FONTI_PUBBLICHE = frozenset({
+    "giustizia_amministrativa_testi",
+    "prassi_agenzia_entrate_inps",
+})
 
 # Sincronizzazione delle caselle (decisione del 19/11/2026): il 18/11 sera la corsia rapida è rimasta ferma 90 minuti
 # dietro le caselle; agenda, relata ed esiti deposito non devono mai aspettare la posta.
@@ -117,6 +126,8 @@ def corsia_del_lavoro(job_id: str) -> str:
         return CORSIA_GIURISPRUDENZA
     if lavoro in LAVORI_POSTA:
         return CORSIA_POSTA
+    if lavoro in LAVORI_FONTI_PUBBLICHE:
+        return CORSIA_FONTI_PUBBLICHE
     if lavoro in LAVORI_RAPIDI:
         return CORSIA_RAPIDA
     return CORSIA_LUNGA

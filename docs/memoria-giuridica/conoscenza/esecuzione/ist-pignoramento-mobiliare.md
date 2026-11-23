@@ -1,12 +1,12 @@
 # Pignoramento mobiliare presso il debitore
 
-- ID: `ist-pignoramento-mobiliare` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-pignoramento-mobiliare` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta all'ufficiale giudiziario di pignoramento mobiliare, poi iscrizione a ruolo e istanza di vendita.
 
 ## Presupposti
-- Non si possono pignorare i beni indicati dalla legge (fra gli altri: anello nuziale, vestiti, letti, tavoli e sedie per i pasti, frigorifero, lavatrice, utensili di casa). — _art. 514 c.p.c.; art. 514 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Non si possono pignorare i beni indicati dalla legge (fra gli altri: anello nuziale, vestiti, letti, tavoli e sedie per i pasti, frigorifero, lavatrice, utensili di casa). — _art. 514 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -16,7 +16,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Il pignoramento perde efficacia se entro quarantacinque giorni dal compimento non è chiesta l'assegnazione o la vendita. — _art. 497 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- L'ufficiale giudiziario, munito del titolo esecutivo e del precetto, ricerca le cose da pignorare nella casa del debitore e negli altri luoghi a lui appartenenti, anche con l'assistenza della forza pubblica. — _art. 513 c.p.c.; art. 513 c.p.c._ (ancora letterale trovata nel testo vigente)
+- L'ufficiale giudiziario, munito del titolo esecutivo e del precetto, ricerca le cose da pignorare nella casa del debitore e negli altri luoghi a lui appartenenti, anche con l'assistenza della forza pubblica. — _art. 513 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ricevuto il verbale, il creditore iscrive a ruolo il processo entro quindici giorni dalla consegna, a pena di inefficacia del pignoramento. — _art. 518 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -51,4 +51,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 481 c.p.c. (Cessazione dell'efficacia del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `b51670fb94010269` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art481
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

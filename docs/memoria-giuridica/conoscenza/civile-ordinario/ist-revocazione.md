@@ -1,6 +1,6 @@
 # Revocazione della sentenza
 
-- ID: `ist-revocazione` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-revocazione` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per revocazione davanti allo stesso giudice che ha pronunciato la sentenza.
@@ -16,8 +16,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - I termini sono sospesi dal 1° al 31 agosto. — _art. 1 l. 742/1969_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Le sentenze d'appello o in unico grado si impugnano per revocazione nei casi tassativi: dolo di una parte, prove false, documenti decisivi ritrovati, errore di fatto risultante dagli atti, contrasto con precedente giudicato, dolo del giudice. — _art. 395 c.p.c.; art. 395 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Si propone con citazione davanti allo stesso giudice, indicando a pena d'inammissibilità il motivo, le prove e il giorno della scoperta; non sospende il termine per il ricorso per cassazione. — _art. 398 c.p.c.; art. 398 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Le sentenze d'appello o in unico grado si impugnano per revocazione nei casi tassativi: dolo di una parte, prove false, documenti decisivi ritrovati, errore di fatto risultante dagli atti, contrasto con precedente giudicato, dolo del giudice. — _art. 395 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Si propone con citazione davanti allo stesso giudice, indicando a pena d'inammissibilità il motivo, le prove e il giorno della scoperta; non sospende il termine per il ricorso per cassazione. — _art. 398 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -53,4 +53,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

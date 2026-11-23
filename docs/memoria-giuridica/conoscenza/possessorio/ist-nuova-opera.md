@@ -1,6 +1,6 @@
 # Denuncia di nuova opera e di danno temuto
 
-- ID: `ist-nuova-opera` · materia: possessorio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-nuova-opera` · materia: possessorio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per denuncia di nuova opera o di danno temuto al tribunale del luogo.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Il proprietario, il titolare di un diritto reale di godimento o il possessore può denunciare la nuova opera da cui teme danno, purché non sia terminata e non sia trascorso un anno dal suo inizio; il giudice può vietarne la continuazione o permetterla con cautele. — _art. 1171 c.c.; art. 1171 c.c._ (ancora letterale trovata nel testo vigente)
+- Il proprietario, il titolare di un diritto reale di godimento o il possessore può denunciare la nuova opera da cui teme danno, purché non sia terminata e non sia trascorso un anno dal suo inizio; il giudice può vietarne la continuazione o permetterla con cautele. — _art. 1171 c.c._ (ancora letterale trovata nel testo vigente)
 - Contro il pericolo di danno grave e prossimo da edificio, albero o altra cosa si può chiedere che si provveda per ovviare al pericolo. — _art. 1172 c.c._ (ancora letterale trovata nel testo vigente)
 - La denuncia si propone con ricorso al giudice del luogo. — _art. 688 c.p.c._ (ancora letterale trovata nel testo vigente)
 
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 688 c.p.c. (Forma dell'istanza di denuncia) — testo vigente, aggiornamento archivio n.d., versione `319d88992b4f4549` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art688
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

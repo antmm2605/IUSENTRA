@@ -1,13 +1,13 @@
 # Ricorso straordinario al Capo dello Stato
 
-- ID: `ist-ricorso-straordinario` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ricorso-straordinario` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso straordinario al Presidente della Repubblica entro centoventi giorni, in alternativa al TAR.
 
 ## Presupposti
-- Il ricorso straordinario è ammesso contro gli atti amministrativi definitivi, per soli motivi di legittimità, ed è alternativo al ricorso al TAR: se l'atto è già stato impugnato in sede giurisdizionale dallo stesso interessato, il ricorso straordinario non è ammesso. — _art. 8 d.p.r. 1199/1971; art. 8 d.p.r. 1199/1971; art. 8 d.p.r. 1199/1971_ (ancora letterale trovata nel testo vigente)
-- I controinteressati, entro sessanta giorni dalla notificazione del ricorso, possono chiedere che sia deciso in sede giurisdizionale (trasposizione): il ricorrente che vuole insistere deve costituirsi davanti al giudice amministrativo entro sessanta giorni dal ricevimento dell'opposizione. — _art. 10 d.p.r. 1199/1971; art. 10 d.p.r. 1199/1971_ (ancora letterale trovata nel testo vigente)
+- Il ricorso straordinario è ammesso contro gli atti amministrativi definitivi, per soli motivi di legittimità, ed è alternativo al ricorso al TAR: se l'atto è già stato impugnato in sede giurisdizionale dallo stesso interessato, il ricorso straordinario non è ammesso. — _art. 8 d.p.r. 1199/1971_ (ancora letterale trovata nel testo vigente)
+- I controinteressati, entro sessanta giorni dalla notificazione del ricorso, possono chiedere che sia deciso in sede giurisdizionale (trasposizione): il ricorrente che vuole insistere deve costituirsi davanti al giudice amministrativo entro sessanta giorni dal ricevimento dell'opposizione. — _art. 10 d.p.r. 1199/1971_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -45,4 +45,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 10 d.p.r. 1199/1971 (Trasposizione in sede giurisdizionale) — testo vigente, aggiornamento archivio 12/05/2026, versione `70be0001efe28bcc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:1971-11-24;1199~art10
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Rateizzazione delle cartelle
 
-- ID: `ist-rateizzazione` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-rateizzazione` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di dilazione all'Agenzia delle entrate-Riscossione.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Su semplice richiesta, per temporanea difficoltà, le somme fino a 120.000 euro si dilazionano fino a 84 rate per le richieste del 2025-2026, 96 nel 2027-2028 e 108 dal 2029; oltre 120.000 euro, documentando la difficoltà, fino a 120 rate. — _art. 19 d.P.R. 602/1973; art. 19 d.P.R. 602/1973_ (ancora letterale trovata nel testo vigente)
+- Su semplice richiesta, per temporanea difficoltà, le somme fino a 120.000 euro si dilazionano fino a 84 rate per le richieste del 2025-2026, 96 nel 2027-2028 e 108 dal 2029; oltre 120.000 euro, documentando la difficoltà, fino a 120 rate. — _art. 19 d.P.R. 602/1973_ (ancora letterale trovata nel testo vigente)
 - Il mancato pagamento di otto rate, anche non consecutive, fa decadere dalla rateazione e rende l'intero importo riscuotibile; il carico non può essere nuovamente rateizzato. — _art. 19 d.P.R. 602/1973_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -45,4 +45,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 19 d.P.R. 602/1973 (Dilazione del pagamento) — testo vigente, aggiornamento archivio 21/11/2026, versione `dcf1c1eea33ac8d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;602~art19
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

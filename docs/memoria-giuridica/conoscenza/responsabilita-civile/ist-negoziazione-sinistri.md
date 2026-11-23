@@ -1,14 +1,14 @@
 # Negoziazione assistita per sinistri stradali
 
-- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
 
 ## Presupposti
 - Sinistro fra due veicoli identificati e assicurati con danni ai veicoli o ai conducenti: il danneggiato chiede il risarcimento alla propria impresa di assicurazione (risarcimento diretto), anche per le lesioni di lieve entità del conducente. — _art. 149 d.lgs. 209/2005_ (ancora letterale trovata nel testo vigente)
-- La richiesta deve contenere i dati previsti e mettere il veicolo a disposizione per l'ispezione; l'impresa formula l'offerta entro sessanta giorni, ridotti a trenta se il modulo di denuncia è firmato da entrambi i conducenti, ed entro novanta giorni per le lesioni. — _art. 148 d.lgs. 209/2005; art. 148 d.lgs. 209/2005_ (ancora letterale trovata nel testo vigente)
-- L'azione giudiziale è proponibile solo dopo sessanta giorni (novanta per le lesioni) dalla richiesta. — _art. 145 d.lgs. 209/2005; art. 145 d.lgs. 209/2005_ (ancora letterale trovata nel testo vigente)
+- La richiesta deve contenere i dati previsti e mettere il veicolo a disposizione per l'ispezione; l'impresa formula l'offerta entro sessanta giorni, ridotti a trenta se il modulo di denuncia è firmato da entrambi i conducenti, ed entro novanta giorni per le lesioni. — _art. 148 d.lgs. 209/2005_ (ancora letterale trovata nel testo vigente)
+- L'azione giudiziale è proponibile solo dopo sessanta giorni (novanta per le lesioni) dalla richiesta. — _art. 145 d.lgs. 209/2005_ (ancora letterale trovata nel testo vigente)
 - Prima della causa la negoziazione assistita è condizione di procedibilità per il risarcimento del danno da circolazione di veicoli, qualunque sia il valore; la mediazione non è richiesta. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 - L'invito alla negoziazione avverte che la mancata risposta entro trenta giorni dalla ricezione o il rifiuto possono essere valutati dal giudice. — _art. 4 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
@@ -58,4 +58,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

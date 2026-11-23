@@ -1,13 +1,13 @@
 # Vizi e difformità nell'appalto
 
-- ID: `ist-vizi-appalto` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-vizi-appalto` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di garanzia per vizi dell'appalto (artt. 1667-1668 c.c.): diffida interruttiva della prescrizione, accertamento tecnico preventivo e poi giudizio di merito per l'eliminazione dei vizi o la riduzione del prezzo.
 
 ## Presupposti
-- L'appaltatore risponde delle difformità e dei vizi dell'opera; la consegna senza riserve non lo libera per i vizi non riconoscibili. Il committente deve denunciare i vizi entro sessanta giorni dalla scoperta, a pena di decadenza; la denuncia non è necessaria se l'appaltatore ha riconosciuto i vizi o li ha occultati. L'azione si prescrive in due anni dalla consegna dell'opera. — _art. 1667 c.c.; art. 1667 c.c.; art. 1667 c.c._ (ancora letterale trovata nel testo vigente)
-- Il committente può chiedere che i vizi siano eliminati a spese dell'appaltatore o che il prezzo sia diminuito proporzionalmente, salvo il risarcimento del danno in caso di colpa; la risoluzione solo se i vizi rendono l'opera del tutto inadatta alla sua destinazione. — _art. 1668 c.c.; art. 1668 c.c._ (ancora letterale trovata nel testo vigente)
+- L'appaltatore risponde delle difformità e dei vizi dell'opera; la consegna senza riserve non lo libera per i vizi non riconoscibili. Il committente deve denunciare i vizi entro sessanta giorni dalla scoperta, a pena di decadenza; la denuncia non è necessaria se l'appaltatore ha riconosciuto i vizi o li ha occultati. L'azione si prescrive in due anni dalla consegna dell'opera. — _art. 1667 c.c._ (ancora letterale trovata nel testo vigente)
+- Il committente può chiedere che i vizi siano eliminati a spese dell'appaltatore o che il prezzo sia diminuito proporzionalmente, salvo il risarcimento del danno in caso di colpa; la risoluzione solo se i vizi rendono l'opera del tutto inadatta alla sua destinazione. — _art. 1668 c.c._ (ancora letterale trovata nel testo vigente)
 - Chi fa valere un diritto in giudizio deve provarne i fatti costitutivi: la tempestività della denuncia o il riconoscimento dei vizi sono a carico del committente. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 - Per la domanda di riduzione del prezzo o di risarcimento (somme non eccedenti € 50.000) serve prima l'invito alla negoziazione assistita; la domanda di eliminazione dei vizi e l'accertamento tecnico preventivo non ne sono condizionati. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
@@ -54,4 +54,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1655 c.c. (Nozione dell'appalto) — testo vigente, aggiornamento archivio 29/04/2026, versione `db574c2d4aee85ca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1655
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

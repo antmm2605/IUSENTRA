@@ -1,12 +1,12 @@
 # Negoziazione assistita (d.l. 132/2014)
 
-- ID: `ist-negoziazione-assistita` · materia: stragiudiziale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-negoziazione-assistita` · materia: stragiudiziale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 2 d.l. 132/2014, art. 3 d.l. 132/2014.
 
 ## Presupposti
-- Esclusioni: non si applica alle controversie su obbligazioni contrattuali da contratti fra professionisti e consumatori, ai procedimenti per ingiunzione inclusa l'opposizione, alla consulenza tecnica preventiva, alle opposizioni nell'esecuzione forzata, ai procedimenti in camera di consiglio e all'azione civile nel processo penale; né quando la parte può stare in giudizio personalmente; né nei casi di mediazione obbligatoria. — _art. 3 d.l. 132/2014; art. 3 d.l. 132/2014; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
+- Esclusioni: non si applica alle controversie su obbligazioni contrattuali da contratti fra professionisti e consumatori, ai procedimenti per ingiunzione inclusa l'opposizione, alla consulenza tecnica preventiva, alle opposizioni nell'esecuzione forzata, ai procedimenti in camera di consiglio e all'azione civile nel processo penale; né quando la parte può stare in giudizio personalmente; né nei casi di mediazione obbligatoria. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 - Se la condizione di procedibilità manca, l'improcedibilità deve essere eccepita dal convenuto o rilevata d'ufficio non oltre la prima udienza e il giudice assegna il termine per esperirla: non è una decadenza, ma ritarda la causa. — _art. 5 d.lgs. 28/2010; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
@@ -16,7 +16,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Negoziazione assistita obbligatoria: è una domanda di pagamento a qualsiasi titolo di somme non eccedenti € 50.000. Prima della causa va inviato l'invito alla convenzione di negoziazione assistita; la condizione si considera avverata se l'invito non è seguito da adesione o è seguito da rifiuto entro trenta giorni dalla ricezione. — _art. 3 d.l. 132/2014; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
+- Negoziazione assistita obbligatoria: è una domanda di pagamento a qualsiasi titolo di somme non eccedenti € 50.000. Prima della causa va inviato l'invito alla convenzione di negoziazione assistita; la condizione si considera avverata se l'invito non è seguito da adesione o è seguito da rifiuto entro trenta giorni dalla ricezione. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -45,4 +45,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

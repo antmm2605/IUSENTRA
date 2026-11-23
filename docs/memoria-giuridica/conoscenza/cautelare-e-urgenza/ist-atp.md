@@ -1,6 +1,6 @@
 # Accertamento tecnico preventivo e consulenza tecnica preventiva (artt. 696 e 696-bis)
 
-- ID: `ist-atp` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-atp` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per accertamento tecnico preventivo o per consulenza tecnica preventiva ai fini della composizione della lite.
@@ -16,7 +16,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Chi ha urgenza di far verificare prima del giudizio lo stato di luoghi o la qualità o condizione di cose può chiedere un accertamento tecnico o un'ispezione giudiziale. — _art. 696 c.p.c._ (ancora letterale trovata nel testo vigente)
-- La consulenza tecnica preventiva si chiede anche senza urgenza per accertare e determinare i crediti da inadempimento contrattuale o da fatto illecito; il consulente tenta la conciliazione delle parti. — _art. 696-bis c.p.c.; art. 696-bis c.p.c._ (ancora letterale trovata nel testo vigente)
+- La consulenza tecnica preventiva si chiede anche senza urgenza per accertare e determinare i crediti da inadempimento contrattuale o da fatto illecito; il consulente tenta la conciliazione delle parti. — _art. 696-bis c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il ricorso si propone al giudice che sarebbe competente per il merito. — _art. 693 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 693 c.p.c. (Istanza di istruzione preventiva) — testo vigente, aggiornamento archivio n.d., versione `d184d9e3f8204bdd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art693
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

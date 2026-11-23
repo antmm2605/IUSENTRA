@@ -1,6 +1,6 @@
 # Accesso agli atti (l. 241/1990, art. 116 c.p.a.)
 
-- ID: `ist-accesso-atti` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-accesso-atti` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR nel rito dell'accesso, oppure richiesta di riesame al difensore civico o alla Commissione per l'accesso.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Decorsi inutilmente trenta giorni dalla richiesta, l'accesso si intende respinto; contro il diniego espresso o tacito, o il differimento, si può ricorrere al TAR oppure chiedere il riesame al difensore civico (atti di comuni, province e regioni) o alla Commissione per l'accesso (amministrazioni dello Stato). — _art. 25 l. 241/1990; art. 25 l. 241/1990; art. 25 l. 241/1990_ (ancora letterale trovata nel testo vigente)
+- Decorsi inutilmente trenta giorni dalla richiesta, l'accesso si intende respinto; contro il diniego espresso o tacito, o il differimento, si può ricorrere al TAR oppure chiedere il riesame al difensore civico (atti di comuni, province e regioni) o alla Commissione per l'accesso (amministrazioni dello Stato). — _art. 25 l. 241/1990_ (ancora letterale trovata nel testo vigente)
 - Se ci si rivolge al difensore civico o alla Commissione, il termine per il ricorso al TAR decorre dal ricevimento del loro esito. — _art. 25 l. 241/1990_ (ancora letterale trovata nel testo vigente)
 - Le controversie sull'accesso seguono il codice del processo amministrativo, che ha per esse un rito apposito. — _art. 25 l. 241/1990_ (ancora letterale trovata nel testo vigente)
 
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 116 c.p.a. (Rito in materia di accesso ai documenti amministrativi) — testo vigente, aggiornamento archivio 12/12/2025, versione `a6733ca6c05aeb97` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art116
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

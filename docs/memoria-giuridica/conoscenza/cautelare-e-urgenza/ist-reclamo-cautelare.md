@@ -1,6 +1,6 @@
 # Reclamo cautelare (art. 669-terdecies)
 
-- ID: `ist-reclamo-cautelare` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-reclamo-cautelare` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** reclamo al collegio del tribunale (o ad altra sezione della corte d'appello).
@@ -12,10 +12,10 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Reclamo entro 15 giorni dall'evento (con sospensione feriale). — _art. 669-terdecies c.p.c._ (ancora letterale trovata nel testo vigente)
+- Reclamo entro 15 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 669-terdecies c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Contro l'ordinanza che concede o nega il provvedimento cautelare è ammesso reclamo entro quindici giorni dalla pronuncia in udienza o dalla comunicazione o notificazione se anteriore; il reclamo contro il giudice singolo si propone al collegio. — _art. 669-terdecies c.p.c.; art. 669-terdecies c.p.c._ (ancora letterale trovata nel testo vigente)
+- Contro l'ordinanza che concede o nega il provvedimento cautelare è ammesso reclamo entro quindici giorni dalla pronuncia in udienza o dalla comunicazione o notificazione se anteriore; il reclamo contro il giudice singolo si propone al collegio. — _art. 669-terdecies c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 669-terdecies c.p.c. (Reclamo contro i provvedimenti cautelari) — testo vigente, aggiornamento archivio n.d., versione `92eb7670efd7bec7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669terdecies
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

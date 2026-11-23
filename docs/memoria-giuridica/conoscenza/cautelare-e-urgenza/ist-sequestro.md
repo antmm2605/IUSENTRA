@@ -1,13 +1,13 @@
 # Sequestro conservativo e giudiziario
 
-- ID: `ist-sequestro` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-sequestro` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 671 c.p.c., art. 675 c.p.c., art. 669-novies c.p.c..
 
 ## Presupposti
 - Il provvedimento che autorizza il sequestro perde efficacia se non è eseguito entro trenta giorni dalla pronuncia. — _art. 675 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Se il giudice non ha fissato il termine, la causa di merito deve essere iniziata entro il termine perentorio di sessanta giorni, che decorre dalla pronuncia se avvenuta in udienza o altrimenti dalla comunicazione; se il merito non inizia in tempo il provvedimento perde efficacia. — _art. 669-octies c.p.c.; art. 669-octies c.p.c.; art. 669-novies c.p.c._ (ancora letterale trovata nel testo vigente)
+- Se il giudice non ha fissato il termine, la causa di merito deve essere iniziata entro il termine perentorio di sessanta giorni, che decorre dalla pronuncia se avvenuta in udienza o altrimenti dalla comunicazione; se il merito non inizia in tempo il provvedimento perde efficacia. — _art. 669-octies c.p.c.; art. 669-novies c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 669-octies c.p.c. (Provvedimento di accoglimento) — testo vigente, aggiornamento archivio 05/03/2026, versione `ffd546d7e00fe088` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669octies
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

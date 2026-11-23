@@ -1,6 +1,6 @@
 # Riesame e appello cautelare
 
-- ID: `ist-riesame` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-riesame` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di riesame al tribunale distrettuale (o appello cautelare ex art. 310 c.p.p.).
@@ -12,7 +12,7 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Riesame entro 10 giorni dall'evento (senza sospensione feriale). — _art. 309 c.p.p._ (ancora letterale trovata nel testo vigente)
+- Riesame entro 10 giorni, con la decorrenza indicata dalla norma citata (senza sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 309 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - Contro l'ordinanza che dispone una misura coercitiva si propone richiesta di riesame, anche nel merito, entro dieci giorni dall'esecuzione o notificazione. — _art. 309 c.p.p._ (ancora letterale trovata nel testo vigente)
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 324 c.p.p. (Procedimento di riesame) — testo vigente, aggiornamento archivio n.d., versione `811c91160be3c5ca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art324
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

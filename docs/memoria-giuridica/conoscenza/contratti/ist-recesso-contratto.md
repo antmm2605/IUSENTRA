@@ -1,6 +1,6 @@
 # Recesso dal contratto
 
-- ID: `ist-recesso-contratto` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-recesso-contratto` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di recesso alla controparte, nei limiti pattuiti.
@@ -43,4 +43,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1385 c.c. (Caparra confirmatoria) — testo vigente, aggiornamento archivio 29/04/2026, versione `3e763c13b54d075f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1385
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

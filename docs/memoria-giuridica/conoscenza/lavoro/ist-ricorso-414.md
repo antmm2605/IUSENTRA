@@ -1,6 +1,6 @@
 # Ricorso nel rito del lavoro (art. 414)
 
-- ID: `ist-ricorso-414` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ricorso-414` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
@@ -14,12 +14,12 @@
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Il licenziamento va impugnato, a pena di decadenza, entro sessanta giorni dalla ricezione della sua comunicazione in forma scritta, con qualsiasi atto scritto anche extragiudiziale; poi entro centottanta giorni va depositato il ricorso o chiesta la conciliazione o l'arbitrato. La regola vale per tutti i casi di invalidità del licenziamento. — _art. 6 l. 604/1966; art. 6 l. 604/1966; art. 32 l. 183/2010_ (ancora letterale trovata nel testo vigente)
+- Il licenziamento va impugnato, a pena di decadenza, entro sessanta giorni dalla ricezione della sua comunicazione in forma scritta, con qualsiasi atto scritto anche extragiudiziale; poi entro centottanta giorni va depositato il ricorso o chiesta la conciliazione o l'arbitrato. La regola vale per tutti i casi di invalidità del licenziamento. — _art. 6 l. 604/1966; art. 32 l. 183/2010_ (ancora letterale trovata nel testo vigente)
 - La sospensione feriale non si applica comunque alle controversie di lavoro: l'art. 3 l. 742/1969 esclude le cause dell'art. 92 dell'ordinamento giudiziario e le controversie di lavoro e di previdenza, richiamate con la numerazione del codice di rito anteriore alla l. 533/1973 (oggi artt. 409 ss. c.p.c.). — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - Ricorso al Tribunale in funzione di giudice del lavoro nel rito del lavoro per la condanna del datore al pagamento delle differenze retributive, oltre interessi legali e rivalutazione monetaria. — _art. 414 c.p.c.; art. 429 c.p.c._ (ancora letterale trovata nel testo vigente)
-- È competente il Tribunale in funzione di giudice del lavoro. — _art. 413 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
+- È competente il Tribunale in funzione di giudice del lavoro. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ricorso al Tribunale in funzione di giudice del lavoro nel rito del lavoro per l'accertamento dell'illegittimità del licenziamento e la tutela prevista. — _art. 414 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -64,4 +64,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Azione confessoria (servitù)
 
-- ID: `ist-confessoria` · materia: diritti reali e condominio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-confessoria` · materia: diritti reali e condominio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per l'accertamento della servitù, la cessazione degli impedimenti e la rimessione in pristino.
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1170 c.c. (Azione di manutenzione) — testo vigente, aggiornamento archivio n.d., versione `d841c615de364565` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1170
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

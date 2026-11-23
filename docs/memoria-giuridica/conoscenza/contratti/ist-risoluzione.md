@@ -1,6 +1,6 @@
 # Risoluzione per inadempimento
 
-- ID: `ist-risoluzione` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-risoluzione` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda giudiziale di risoluzione per inadempimento con risarcimento del danno (o diffida ad adempiere prima).
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Prescrizione ordinaria decennale. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Nei contratti a prestazioni corrispettive, se una parte non adempie, l'altra può chiedere l'adempimento o la risoluzione, salvo in ogni caso il risarcimento del danno; chiesta la risoluzione non si può più chiedere l'adempimento. — _art. 1453 c.c.; art. 1453 c.c._ (ancora letterale trovata nel testo vigente)
+- Nei contratti a prestazioni corrispettive, se una parte non adempie, l'altra può chiedere l'adempimento o la risoluzione, salvo in ogni caso il risarcimento del danno; chiesta la risoluzione non si può più chiedere l'adempimento. — _art. 1453 c.c._ (ancora letterale trovata nel testo vigente)
 - Il contratto non si risolve se l'inadempimento ha scarsa importanza rispetto all'interesse dell'altra parte. — _art. 1455 c.c._ (ancora letterale trovata nel testo vigente)
 - La risoluzione ha effetto retroattivo (salvo i contratti a esecuzione continuata o periodica per le prestazioni già eseguite) e non pregiudica i diritti acquistati dai terzi. — _art. 1458 c.c._ (ancora letterale trovata nel testo vigente)
 
@@ -51,4 +51,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

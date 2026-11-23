@@ -1,6 +1,6 @@
 # Esecuzione forzata contro la PA e ottemperanza del giudicato
 
-- ID: `ist-esecuzione-contro-pa` · materia: esecuzione contro la PA · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-esecuzione-contro-pa` · materia: esecuzione contro la PA · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** notificare il titolo, attendere 120 giorni, poi precetto e pignoramento presso terzi; in alternativa, passata in giudicato la sentenza, ricorso per ottemperanza al TAR; giudice dell'esecuzione (pignoramento presso terzi: foro dell'Avvocatura dello Stato del distretto del creditore) oppure TAR per l'ottemperanza del giudicato.
@@ -13,12 +13,12 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
 - L'azione di ottemperanza si prescrive in dieci anni dal passaggio in giudicato della sentenza. — _art. 114 c.p.a._ (ancora letterale trovata nel testo vigente)
-- Precetto non prima di 120 giorni dall'evento (senza sospensione feriale). — _art. 14 d.l. 669/1996_ (ancora letterale trovata nel testo vigente)
+- Precetto non prima di 120 giorni, con la decorrenza indicata dalla norma citata (senza sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 14 d.l. 669/1996_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Le amministrazioni dello Stato e gli enti pubblici non economici completano il pagamento entro centoventi giorni dalla notificazione del titolo esecutivo: prima di quel termine il creditore non può procedere a esecuzione forzata né notificare il precetto. — _art. 14 d.l. 669/1996; art. 14 d.l. 669/1996_ (ancora letterale trovata nel testo vigente)
+- Le amministrazioni dello Stato e gli enti pubblici non economici completano il pagamento entro centoventi giorni dalla notificazione del titolo esecutivo: prima di quel termine il creditore non può procedere a esecuzione forzata né notificare il precetto. — _art. 14 d.l. 669/1996_ (ancora letterale trovata nel testo vigente)
 - In alternativa all'esecuzione civile, per le sentenze del giudice ordinario passate in giudicato si propone l'azione di ottemperanza, anche senza previa diffida, al TAR nella cui circoscrizione ha sede il giudice che ha emesso la sentenza. — _art. 112 c.p.a.; art. 113 c.p.a.; art. 114 c.p.a._ (ancora letterale trovata nel testo vigente)
-- Le amministrazioni dello Stato, gli enti pubblici non economici e l'Agenzia delle entrate-Riscossione hanno centoventi giorni dalla notificazione del titolo esecutivo per pagare: prima di tale termine il creditore non può procedere a esecuzione forzata né notificare il precetto. — _art. 14 d.l. 669/1996; art. 14 d.l. 669/1996_ (ancora letterale trovata nel testo vigente)
+- Le amministrazioni dello Stato, gli enti pubblici non economici e l'Agenzia delle entrate-Riscossione hanno centoventi giorni dalla notificazione del titolo esecutivo per pagare: prima di tale termine il creditore non può procedere a esecuzione forzata né notificare il precetto. — _art. 14 d.l. 669/1996_ (ancora letterale trovata nel testo vigente)
 - Per le sentenze del giudice ordinario passate in giudicato, e i provvedimenti equiparati, si può chiedere in alternativa l'ottemperanza al giudice amministrativo; per una sentenza solo esecutiva, non passata in giudicato, resta l'esecuzione forzata ordinaria. — _art. 112 c.p.a._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -59,4 +59,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 26-bis c.p.c. (Foro relativo all'espropriazione forzata di crediti) — testo vigente, aggiornamento archivio n.d., versione `e7c563125f1ba732` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art26bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

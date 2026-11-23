@@ -1,6 +1,6 @@
 # Ricorso amministrativo INPS
 
-- ID: `ist-ricorso-amministrativo-inps` · materia: previdenza · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ricorso-amministrativo-inps` · materia: previdenza · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso amministrativo al comitato provinciale dell'INPS entro novanta giorni dalla comunicazione del provvedimento.
@@ -13,10 +13,10 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
 - La sospensione feriale non si applica alle controversie di lavoro e di previdenza. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
-- Ricorso al comitato provinciale entro 90 giorni dall'evento (senza sospensione feriale). — _art. 46 l. 88/1989_ (ancora letterale trovata nel testo vigente)
+- Ricorso al comitato provinciale entro 90 giorni, con la decorrenza indicata dalla norma citata (senza sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 46 l. 88/1989_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Contro i provvedimenti dell'INPS sulle prestazioni si ricorre al comitato provinciale entro novanta giorni dalla comunicazione; trascorsi inutilmente novanta giorni dalla presentazione senza decisione, il ricorso si intende respinto. — _art. 46 l. 88/1989; art. 46 l. 88/1989_ (ancora letterale trovata nel testo vigente)
+- Contro i provvedimenti dell'INPS sulle prestazioni si ricorre al comitato provinciale entro novanta giorni dalla comunicazione; trascorsi inutilmente novanta giorni dalla presentazione senza decisione, il ricorso si intende respinto. — _art. 46 l. 88/1989_ (ancora letterale trovata nel testo vigente)
 - La domanda giudiziale non è procedibile finché il procedimento amministrativo non è esaurito o non sono decorsi i termini, e comunque 180 giorni dal ricorso amministrativo. — _art. 443 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

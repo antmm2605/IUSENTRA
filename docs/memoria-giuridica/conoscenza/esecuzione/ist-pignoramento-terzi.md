@@ -1,6 +1,6 @@
 # Pignoramento presso terzi
 
-- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di pignoramento presso terzi notificato al terzo e al debitore, con citazione davanti al giudice dell'esecuzione; Tribunale del luogo di residenza, domicilio, dimora o sede del debitore.
@@ -15,11 +15,11 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Il precetto perde efficacia se entro novanta giorni dalla notificazione non è iniziata l'esecuzione. — _art. 481 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Il pignoramento di crediti del debitore verso terzi si esegue con atto notificato al terzo e al debitore, con l'invito al terzo a comunicare la dichiarazione entro dieci giorni. — _art. 543 c.p.c.; art. 543 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il pignoramento di crediti del debitore verso terzi si esegue con atto notificato al terzo e al debitore, con l'invito al terzo a comunicare la dichiarazione entro dieci giorni. — _art. 543 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il creditore iscrive a ruolo il processo entro trenta giorni dalla consegna dell'atto notificato, a pena di inefficacia del pignoramento. — _art. 543 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Stipendi e salari si pignorano nella misura di un quinto; la pensione non è pignorabile per il doppio della misura massima mensile dell'assegno sociale, con un minimo di 1.000 euro. — _art. 545 c.p.c.; art. 545 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Stipendi e salari si pignorano nella misura di un quinto; la pensione non è pignorabile per il doppio della misura massima mensile dell'assegno sociale, con un minimo di 1.000 euro. — _art. 545 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il pignoramento di crediti del debitore verso terzi si esegue con atto notificato al terzo e al debitore. — _art. 543 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Stipendi e salari dovuti da privati si pignorano nella misura di un quinto per ogni credito diverso dagli alimentari; per il concorso di più cause il pignoramento non può superare la metà. — _art. 545 c.p.c.; art. 545 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Stipendi e salari dovuti da privati si pignorano nella misura di un quinto per ogni credito diverso dagli alimentari; per il concorso di più cause il pignoramento non può superare la metà. — _art. 545 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Prima del pignoramento servono la notificazione del titolo esecutivo e il precetto, con termine non minore di dieci giorni. — _art. 479 c.p.c.; art. 480 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -62,4 +62,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 26-bis c.p.c. (Foro relativo all'espropriazione forzata di crediti) — testo vigente, aggiornamento archivio n.d., versione `e7c563125f1ba732` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art26bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

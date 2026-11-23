@@ -1,6 +1,6 @@
 # Diritto di recesso del consumatore
 
-- ID: `ist-recesso-consumatore` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-recesso-consumatore` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione esplicita di recesso (anche con il modulo tipo) entro il termine.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Il consumatore ha quattordici giorni per recedere da un contratto a distanza o negoziato fuori dei locali commerciali, senza motivazione e senza costi diversi da quelli di legge; trenta giorni per le visite non richieste a domicilio. — _art. 52 d.lgs. 206/2005 (codice del consumo); art. 52 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
+- Il consumatore ha quattordici giorni per recedere da un contratto a distanza o negoziato fuori dei locali commerciali, senza motivazione e senza costi diversi da quelli di legge; trenta giorni per le visite non richieste a domicilio. — _art. 52 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 - Se il professionista non informa del diritto di recesso, il periodo termina dodici mesi dopo la fine di quello iniziale. — _art. 53 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 - Il recesso si esercita con il modulo tipo o con qualsiasi dichiarazione esplicita prima della scadenza. — _art. 54 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 
@@ -51,4 +51,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 54 d.lgs. 206/2005 (codice del consumo) (Esercizio del diritto di recesso) — testo vigente, aggiornamento archivio n.d., versione `b9eb896ac7d226f1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art54
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

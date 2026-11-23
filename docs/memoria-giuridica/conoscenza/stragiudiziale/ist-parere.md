@@ -1,6 +1,6 @@
 # Parere legale scritto
 
-- ID: `ist-parere` · materia: stragiudiziale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-parere` · materia: stragiudiziale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** parere scritto: quesito, fatti, norme e giurisprudenza, soluzione, rischi e alternative.
@@ -44,4 +44,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2 l. 247/2012 (Disciplina della professione di avvocato) — testo vigente, aggiornamento archivio n.d., versione `0a136cca59160c0c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2012-12-31;247~art2
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

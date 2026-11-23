@@ -1,12 +1,12 @@
 # Provvisoria esecuzione del decreto (artt. 642 e 648)
 
-- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
 
 ## Presupposti
-- Il decreto ingiuntivo si chiede per un credito di una somma liquida di danaro di cui si dà prova scritta. — _art. 633 c.p.c.; art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il decreto ingiuntivo si chiede per un credito di una somma liquida di danaro di cui si dà prova scritta. — _art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Per i crediti di imprenditori relativi a somministrazioni di merci e di danaro o a prestazioni di servizi sono prova scritta anche gli estratti autentici delle scritture contabili. — _art. 634 c.p.c._ (ancora letterale trovata nel testo vigente)
 - L'esecuzione provvisoria si può chiedere, fra l'altro, se il credito è fondato su cambiale, assegno o atto ricevuto da notaio, o se c'è pericolo di grave pregiudizio nel ritardo. — _art. 642 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Né mediazione né negoziazione assistita sono condizioni di procedibilità del ricorso per decreto ingiuntivo: entrambe le discipline escludono i procedimenti per ingiunzione. — _art. 3 d.l. 132/2014; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
@@ -23,8 +23,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Rimedi e forme
 - Ricorso per decreto ingiuntivo al giudice competente per valore, oltre interessi e spese; richiesta di provvisoria esecuzione solo se ne ricorrono i presupposti. — _art. 633 c.p.c.; art. 637 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Somma ingiunta € 0; non dovuti € 0; somma effettivamente dovuta in linea capitale € 0. Chiedere la revoca del decreto e l'accertamento della minor somma, senza contestare le forniture non contestabili. — _art. 645 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Con il decreto il giudice autorizza l'esecuzione provvisoria se il credito è fondato su cambiale, assegno o atto notarile, se vi è pericolo di grave pregiudizio nel ritardo o se il ricorrente produce documentazione sottoscritta dal debitore comprovante il diritto. — _art. 642 c.p.c.; art. 642 c.p.c.; art. 642 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Nel giudizio di opposizione il giudice può concederla in prima udienza se l'opposizione non è fondata su prova scritta o di pronta soluzione e deve concederla per le somme non contestate. — _art. 648 c.p.c.; art. 648 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Con il decreto il giudice autorizza l'esecuzione provvisoria se il credito è fondato su cambiale, assegno o atto notarile, se vi è pericolo di grave pregiudizio nel ritardo o se il ricorrente produce documentazione sottoscritta dal debitore comprovante il diritto. — _art. 642 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Nel giudizio di opposizione il giudice può concederla in prima udienza se l'opposizione non è fondata su prova scritta o di pronta soluzione e deve concederla per le somme non contestate. — _art. 648 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Su istanza dell'opponente, per gravi motivi, il giudice può sospendere l'esecuzione provvisoria concessa con il decreto. — _art. 649 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -72,4 +72,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 649 c.p.c. (Sospensione dell'esecuzione provvisoria) — testo vigente, aggiornamento archivio n.d., versione `b030b5e8f30a3e16` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art649
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

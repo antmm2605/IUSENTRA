@@ -1,6 +1,6 @@
 # Accertamento tecnico preventivo obbligatorio (art. 445-bis)
 
-- ID: `ist-atpo-445bis` · materia: previdenza · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-atpo-445bis` · materia: previdenza · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per accertamento tecnico preventivo obbligatorio al tribunale (giudice del lavoro) del luogo di residenza.
@@ -13,11 +13,11 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
 - La sospensione feriale non si applica alle controversie di lavoro e di previdenza. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
-- Dichiarazione di dissenso entro 30 giorni dall'evento (senza sospensione feriale). — _art. 445-bis c.p.c._ (ancora letterale trovata nel testo vigente)
+- Dichiarazione di dissenso entro 30 giorni, con la decorrenza indicata dalla norma citata (senza sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 445-bis c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Nelle controversie su invalidità civile, handicap, disabilità, pensione di inabilità e assegno di invalidità chi intende agire presenta prima, con ricorso, istanza di accertamento tecnico preventivo: è condizione di procedibilità della domanda e interrompe la prescrizione. — _art. 445-bis c.p.c.; art. 445-bis c.p.c.; art. 445-bis c.p.c._ (ancora letterale trovata nel testo vigente)
-- Depositata la consulenza, chi la contesta deposita la dichiarazione di dissenso entro trenta giorni dalla comunicazione e poi il ricorso introduttivo entro trenta giorni dalla dichiarazione. — _art. 445-bis c.p.c.; art. 445-bis c.p.c._ (ancora letterale trovata nel testo vigente)
+- Nelle controversie su invalidità civile, handicap, disabilità, pensione di inabilità e assegno di invalidità chi intende agire presenta prima, con ricorso, istanza di accertamento tecnico preventivo: è condizione di procedibilità della domanda e interrompe la prescrizione. — _art. 445-bis c.p.c._ (ancora letterale trovata nel testo vigente)
+- Depositata la consulenza, chi la contesta deposita la dichiarazione di dissenso entro trenta giorni dalla comunicazione e poi il ricorso introduttivo entro trenta giorni dalla dichiarazione. — _art. 445-bis c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

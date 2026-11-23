@@ -1,14 +1,14 @@
 # Disconoscimento di paternità
 
-- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** tribunale della residenza abituale del minore.
 
 ## Presupposti
 - L'azione di disconoscimento della paternità del figlio nato nel matrimonio spetta al marito, che può provare che il figlio non è suo con ogni mezzo. — _art. 243-bis c.c._ (ancora letterale trovata nel testo vigente)
-- Il marito propone l'azione entro un anno dalla nascita; se prova di aver ignorato l'adulterio della moglie al tempo del concepimento, il termine decorre dal giorno in cui ne ha avuto conoscenza; in ogni caso non oltre cinque anni dalla nascita. — _art. 244 c.c.; art. 244 c.c.; art. 244 c.c._ (ancora letterale trovata nel testo vigente)
-- Il presunto padre, la madre e il figlio sono litisconsorti necessari; se una parte è minore, l'azione si propone in contraddittorio con un curatore nominato dal giudice. — _art. 247 c.c.; art. 247 c.c._ (ancora letterale trovata nel testo vigente)
+- Il marito propone l'azione entro un anno dalla nascita; se prova di aver ignorato l'adulterio della moglie al tempo del concepimento, il termine decorre dal giorno in cui ne ha avuto conoscenza; in ogni caso non oltre cinque anni dalla nascita. — _art. 244 c.c._ (ancora letterale trovata nel testo vigente)
+- Il presunto padre, la madre e il figlio sono litisconsorti necessari; se una parte è minore, l'azione si propone in contraddittorio con un curatore nominato dal giudice. — _art. 247 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 - Il figlio minore è litisconsorte necessario: il ricorso va proposto anche nei suoi confronti, con la richiesta di nomina di un curatore speciale (art. 247 c.c.). — _art. 247 c.c._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola)
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

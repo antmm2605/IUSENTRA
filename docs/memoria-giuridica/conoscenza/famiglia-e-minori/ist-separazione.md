@@ -1,6 +1,6 @@
 # Separazione personale (giudiziale e consensuale)
 
-- ID: `ist-separazione` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-separazione` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale.
@@ -57,4 +57,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 473-bis c.p.c. (Ambito di applicazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `d2c209461fe64ceb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

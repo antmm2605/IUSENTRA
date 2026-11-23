@@ -90,6 +90,19 @@ def _apri(percorso: str):
     return c
 
 
+_NUMERI: dict[int, dict] = {}
+
+
+def _indice_numeri(db) -> dict:
+    """(numero, anno) → id, con una sola lettura dell'archivio (la colonna numero non ha indice)."""
+    if id(db) not in _NUMERI:
+        indice: dict = {}
+        for r in db.execute("SELECT id, numero_sentenza, anno_sentenza FROM sentenze"):
+            indice.setdefault((str(r[1] or "").lstrip("0"), int(r[2] or 0)), []).append(r[0])
+        _NUMERI[id(db)] = indice
+    return _NUMERI[id(db)]
+
+
 def leggi(ingresso: Path, uscita: Path) -> None:
     dati = json.loads(ingresso.read_text(encoding="utf-8"))
     cass = _apri(os.environ.get("SENTENZEWEB_DB", "/public-sentenzeweb/giurisprudenza_corpus.db"))
@@ -99,6 +112,8 @@ def leggi(ingresso: Path, uscita: Path) -> None:
         uscite = []
         for p in voce["pronunce"]:
             conteggi["pronunce"] += 1
+            if conteggi["pronunce"] % 50 == 0:
+                print(f"letto {conteggi['pronunce']}", flush=True)
             costituzionale = "costituzional" in p.get("organo", "").lower()
             db = studio if costituzionale else cass
             if db is None:
@@ -110,8 +125,8 @@ def leggi(ingresso: Path, uscita: Path) -> None:
                 righe = db.execute(f"SELECT {colonne} FROM sentenze WHERE uuid_interno=?",
                                    ("sentenzeweb:" + uuid.group(1),)).fetchall()
             else:
-                righe = db.execute(f"SELECT {colonne} FROM sentenze WHERE numero_sentenza IN (?, ?) AND anno_sentenza=?",
-                                   (str(p["numero"]), str(p["numero"]).zfill(5), int(p["anno"]))).fetchall()
+                ids = _indice_numeri(db).get((str(p["numero"]).lstrip("0"), int(p["anno"])), [])
+                righe = [r for i in ids for r in db.execute(f"SELECT {colonne} FROM sentenze WHERE id=?", (i,)).fetchall()]
             ramo = "pen" if "penale" in p.get("organo", "").lower() else ("civ" if "civile" in p.get("organo", "").lower() else "")
             righe = [r for r in righe if not ramo or ramo in str(r["organo_giudicante"] or "").lower()] or righe
             trovato = None

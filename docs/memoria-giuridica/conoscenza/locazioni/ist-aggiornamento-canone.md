@@ -1,6 +1,6 @@
 # Aggiornamento ISTAT del canone
 
-- ID: `ist-aggiornamento-canone` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-aggiornamento-canone` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta del locatore; contestazione delle somme non dovute.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Le parti possono convenire l'aggiornamento annuale del canone su richiesta del locatore; per i contratti di durata non superiore a quella legale l'aumento non può superare il 75 per cento della variazione ISTAT. — _art. 32 l. 392/1978; art. 32 l. 392/1978_ (ancora letterale trovata nel testo vigente)
+- Le parti possono convenire l'aggiornamento annuale del canone su richiesta del locatore; per i contratti di durata non superiore a quella legale l'aumento non può superare il 75 per cento della variazione ISTAT. — _art. 32 l. 392/1978_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -45,4 +45,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 32 l. 392/1978 (Aggiornamento del canone) — testo vigente, aggiornamento archivio 21/11/2026, versione `ab827dc08d8e30f9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art32
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

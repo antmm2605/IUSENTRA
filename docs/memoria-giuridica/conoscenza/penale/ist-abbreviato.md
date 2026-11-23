@@ -1,6 +1,6 @@
 # Giudizio abbreviato
 
-- ID: `ist-abbreviato` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-abbreviato` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di giudizio abbreviato (semplice o condizionato).
@@ -12,11 +12,11 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Richiesta di abbreviato entro 15 giorni dall'evento (con sospensione feriale). — _art. 458 c.p.p._ (ancora letterale trovata nel testo vigente)
+- Richiesta di abbreviato entro 15 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 458 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- L'imputato può chiedere che il processo sia definito all'udienza preliminare allo stato degli atti, fino alle conclusioni; non è ammesso per i delitti puniti con l'ergastolo. — _art. 438 c.p.p.; art. 438 c.p.p._ (ancora letterale trovata nel testo vigente)
-- In caso di condanna la pena è diminuita della metà per le contravvenzioni e di un terzo per i delitti; se non si propone impugnazione, è ridotta di un ulteriore sesto in esecuzione. — _art. 442 c.p.p.; art. 442 c.p.p._ (ancora letterale trovata nel testo vigente)
+- L'imputato può chiedere che il processo sia definito all'udienza preliminare allo stato degli atti, fino alle conclusioni; non è ammesso per i delitti puniti con l'ergastolo. — _art. 438 c.p.p._ (ancora letterale trovata nel testo vigente)
+- In caso di condanna la pena è diminuita della metà per le contravvenzioni e di un terzo per i delitti; se non si propone impugnazione, è ridotta di un ulteriore sesto in esecuzione. — _art. 442 c.p.p._ (ancora letterale trovata nel testo vigente)
 - Dopo il decreto di giudizio immediato la richiesta si deposita, a pena di decadenza, entro quindici giorni dalla notificazione. — _art. 458 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 458 c.p.p. (Richiesta di giudizio abbreviato) — testo vigente, aggiornamento archivio n.d., versione `066b96c1e8dd6643` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art458
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

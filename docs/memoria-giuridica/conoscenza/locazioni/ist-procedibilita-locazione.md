@@ -1,6 +1,6 @@
 # Condizioni di procedibilità nelle cause di locazione
 
-- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con citazione per la convalida, senza mediazione preventiva; mediazione da avviare dopo il mutamento del rito, se il giudizio prosegue nel merito; Tribunale del luogo dell'immobile.
@@ -9,9 +9,9 @@
 - Il locatore può intimare lo sfratto per mancato pagamento del canone alle scadenze e citare il conduttore per la convalida; con lo stesso atto può chiedere l'ingiunzione per i canoni scaduti. — _art. 658 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Nella locazione abitativa il mancato pagamento del canone decorsi venti giorni dalla scadenza è motivo di risoluzione. — _art. 5 l. 392/1978_ (ancora letterale trovata nel testo vigente)
 - Il conduttore abitativo può sanare la morosità in udienza; il giudice può assegnare un termine non superiore a novanta giorni (termine di grazia). — _art. 55 l. 392/1978_ (ancora letterale trovata nel testo vigente)
-- La locazione è fra le materie di mediazione obbligatoria: per un'azione ordinaria (per esempio la sola risoluzione o il pagamento dei canoni con citazione) la mediazione è condizione di procedibilità della domanda. — _art. 5 d.lgs. 28/2010; art. 5 d.lgs. 28/2010; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
+- La locazione è fra le materie di mediazione obbligatoria: per un'azione ordinaria (per esempio la sola risoluzione o il pagamento dei canoni con citazione) la mediazione è condizione di procedibilità della domanda. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - La mediazione però non si applica al procedimento per convalida di sfratto fino al mutamento del rito previsto dall'art. 667 c.p.c.: l'intimazione di sfratto per morosità si notifica subito, senza mediazione preventiva. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
-- Se il conduttore si oppone e il giudice dispone il mutamento del rito, la mediazione diventa condizione di procedibilità del giudizio di merito: il giudice che la rileva non esperita fissa l'udienza successiva dopo la durata della mediazione, e se la condizione manca la domanda è dichiarata improcedibile. — _art. 5 d.lgs. 28/2010; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
+- Se il conduttore si oppone e il giudice dispone il mutamento del rito, la mediazione diventa condizione di procedibilità del giudizio di merito: il giudice che la rileva non esperita fissa l'udienza successiva dopo la durata della mediazione, e se la condizione manca la domanda è dichiarata improcedibile. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - La condizione si considera avverata se il primo incontro davanti al mediatore si chiude senza accordo. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - Anche il ricorso per decreto ingiuntivo per i soli canoni è escluso dalla mediazione fino alla pronuncia sulla provvisoria esecuzione nell'eventuale opposizione. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - La negoziazione assistita non è condizione di procedibilità: la locazione rientra nei casi di mediazione obbligatoria che l'art. 3 d.l. 132/2014 esclude. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
@@ -60,4 +60,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 447-bis c.p.c. (Norme applicabili alle controversie in materia di locazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `9313ab26e5e36132` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art447bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

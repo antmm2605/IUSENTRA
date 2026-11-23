@@ -1,6 +1,6 @@
 # Impugnazione delle delibere societarie
 
-- ID: `ist-impugnazione-delibere-societarie` · materia: società e impresa · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-impugnazione-delibere-societarie` · materia: società e impresa · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione davanti al tribunale delle imprese del luogo della sede, con eventuale istanza di sospensione.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Nella s.p.a. le delibere non conformi a legge o statuto sono impugnate da soci assenti, dissenzienti o astenuti titolari della quota minima, entro novanta giorni dalla data, dall'iscrizione o dal deposito nel registro delle imprese. — _art. 2377 c.c.; art. 2377 c.c._ (ancora letterale trovata nel testo vigente)
+- Nella s.p.a. le delibere non conformi a legge o statuto sono impugnate da soci assenti, dissenzienti o astenuti titolari della quota minima, entro novanta giorni dalla data, dall'iscrizione o dal deposito nel registro delle imprese. — _art. 2377 c.c._ (ancora letterale trovata nel testo vigente)
 - Nei casi di mancata convocazione, mancanza del verbale, oggetto impossibile o illecito la delibera può essere impugnata da chiunque vi abbia interesse entro tre anni. — _art. 2379 c.c._ (ancora letterale trovata nel testo vigente)
 - Nella s.r.l. le decisioni dei soci si impugnano entro novanta giorni dalla trascrizione nel libro delle decisioni. — _art. 2479-ter c.c._ (ancora letterale trovata nel testo vigente)
 - L'impugnazione si propone con citazione davanti al tribunale del luogo della sede della società. — _art. 2378 c.c._ (ancora letterale trovata nel testo vigente)
@@ -51,4 +51,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2379 c.c. (Nullità delle deliberazioni) — testo vigente, aggiornamento archivio n.d., versione `e9d4ed8a4fdfbe3b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2379
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

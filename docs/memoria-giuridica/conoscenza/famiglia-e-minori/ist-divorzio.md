@@ -1,6 +1,6 @@
 # Divorzio (scioglimento e cessazione degli effetti civili)
 
-- ID: `ist-divorzio` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-divorzio` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale.
@@ -20,7 +20,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Ricorso al Tribunale nelle forme degli artt. 473-bis ss. c.p.c. — _art. 473-bis.12 c.p.c.; art. 473-bis.11 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Il divorzio si può chiedere quando la separazione si è protratta ininterrottamente per almeno dodici mesi dalla comparizione dei coniugi davanti al giudice nella separazione giudiziale, e per sei mesi nella separazione consensuale. — _art. 3 l. 898/1970; art. 3 l. 898/1970_ (ancora letterale trovata nel testo vigente)
+- Il divorzio si può chiedere quando la separazione si è protratta ininterrottamente per almeno dodici mesi dalla comparizione dei coniugi davanti al giudice nella separazione giudiziale, e per sei mesi nella separazione consensuale. — _art. 3 l. 898/1970_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Competenza per territorio: se ci sono figli minori, è competente il tribunale del luogo in cui il minore ha la residenza abituale; altrimenti valgono gli altri criteri dello stesso articolo (residenza del convenuto). — _art. 473-bis.11 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -60,4 +60,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 473-bis c.p.c. (Ambito di applicazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `d2c209461fe64ceb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

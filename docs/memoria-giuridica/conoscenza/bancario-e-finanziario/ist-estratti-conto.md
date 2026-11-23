@@ -1,6 +1,6 @@
 # Contestazione degli estratti conto e richiesta documenti (art. 119 TUB)
 
-- ID: `ist-estratti-conto` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-estratti-conto` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta ex art. 119, comma 4, TUB; contestazione scritta degli estratti conto.
@@ -15,8 +15,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Il cliente ha diritto di ottenere, a proprie spese e comunque non oltre novanta giorni, copia della documentazione sulle operazioni degli ultimi dieci anni; gli si possono addebitare solo i costi di produzione. — _art. 119 d.lgs. 385/1993 (TUB); art. 119 d.lgs. 385/1993 (TUB)_ (ancora letterale trovata nel testo vigente)
-- In mancanza di opposizione scritta gli estratti conto si intendono approvati trascorsi sessanta giorni dal ricevimento; l'approvazione non preclude l'impugnazione per errori di scritturazione o di calcolo, omissioni o duplicazioni, entro sei mesi. — _art. 119 d.lgs. 385/1993 (TUB); art. 1832 c.c.; art. 1832 c.c._ (ancora letterale trovata nel testo vigente)
+- Il cliente ha diritto di ottenere, a proprie spese e comunque non oltre novanta giorni, copia della documentazione sulle operazioni degli ultimi dieci anni; gli si possono addebitare solo i costi di produzione. — _art. 119 d.lgs. 385/1993 (TUB)_ (ancora letterale trovata nel testo vigente)
+- In mancanza di opposizione scritta gli estratti conto si intendono approvati trascorsi sessanta giorni dal ricevimento; l'approvazione non preclude l'impugnazione per errori di scritturazione o di calcolo, omissioni o duplicazioni, entro sei mesi. — _art. 119 d.lgs. 385/1993 (TUB); art. 1832 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -45,4 +45,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1832 c.c. (Approvazione del conto) — testo vigente, aggiornamento archivio n.d., versione `d9ea681eada7ba8d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1832
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Anatocismo e ripetizione di indebito bancario
 
-- ID: `ist-anatocismo` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-anatocismo` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** mediazione e poi citazione per accertamento del saldo e ripetizione dell'indebito.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Prescrizione decennale, che per le rimesse solutorie decorre da ciascun pagamento e per le altre dalla chiusura del conto. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Nei conti correnti la periodicità di conteggio degli interessi debitori e creditori è la stessa e comunque non inferiore a un anno; gli interessi debitori non producono ulteriori interessi, salvo quelli di mora, e si calcolano solo sulla sorte capitale. — _art. 120 d.lgs. 385/1993 (TUB); art. 120 d.lgs. 385/1993 (TUB)_ (ancora letterale trovata nel testo vigente)
+- Nei conti correnti la periodicità di conteggio degli interessi debitori e creditori è la stessa e comunque non inferiore a un anno; gli interessi debitori non producono ulteriori interessi, salvo quelli di mora, e si calcolano solo sulla sorte capitale. — _art. 120 d.lgs. 385/1993 (TUB)_ (ancora letterale trovata nel testo vigente)
 - Chi ha eseguito un pagamento non dovuto ha diritto di ripetere ciò che ha pagato. — _art. 2033 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -51,4 +51,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

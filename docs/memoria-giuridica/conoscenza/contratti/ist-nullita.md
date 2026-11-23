@@ -1,6 +1,6 @@
 # Nullità del contratto
 
-- ID: `ist-nullita` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-nullita` · materia: contratti · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di accertamento della nullità e di restituzione delle prestazioni.
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1422 c.c. (Imprescrittibilità dell'azione di nullità) — testo vigente, aggiornamento archivio n.d., versione `e6b17954e760ba77` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1422
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

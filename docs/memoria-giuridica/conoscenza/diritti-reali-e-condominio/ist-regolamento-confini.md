@@ -1,6 +1,6 @@
 # Regolamento di confini
 
-- ID: `ist-regolamento-confini` · materia: diritti reali e condominio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-regolamento-confini` · materia: diritti reali e condominio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per regolamento di confini (o per apposizione di termini).
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Quando il confine è incerto ciascun proprietario può chiedere che sia stabilito giudizialmente; ogni mezzo di prova è ammesso e, in mancanza, il giudice segue le mappe catastali. — _art. 950 c.c.; art. 950 c.c._ (ancora letterale trovata nel testo vigente)
+- Quando il confine è incerto ciascun proprietario può chiedere che sia stabilito giudizialmente; ogni mezzo di prova è ammesso e, in mancanza, il giudice segue le mappe catastali. — _art. 950 c.c._ (ancora letterale trovata nel testo vigente)
 - Se i termini mancano o sono irriconoscibili ciascun proprietario può chiederne l'apposizione a spese comuni. — _art. 951 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

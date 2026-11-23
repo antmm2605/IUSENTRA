@@ -1,6 +1,6 @@
 # Clausole vessatorie
 
-- ID: `ist-clausole-vessatorie` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-clausole-vessatorie` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 0 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Scheda in attesa di fonti.
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Fonti con versione
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

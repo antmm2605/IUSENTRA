@@ -1,6 +1,6 @@
 # Ricorso contro il diniego di protezione internazionale
 
-- ID: `ist-protezione-internazionale` · materia: immigrazione · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-protezione-internazionale` · materia: immigrazione · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso alla sezione specializzata immigrazione del tribunale ordinario.
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 35-bis d.lgs. 25/2008 (Controversie in materia di protezione internazionale) — testo vigente, aggiornamento archivio 23/11/2026, versione `568e1397b0c798ac` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2008-01-28;25~art35bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Sospensione dell'atto impugnato (art. 47)
 
-- ID: `ist-sospensione-tributaria` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-sospensione-tributaria` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza motivata di sospensione dell'atto impugnato alla Corte di giustizia tributaria.
@@ -15,8 +15,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Se dall'atto impugnato può derivare un danno grave e irreparabile, il ricorrente può chiedere la sospensione dell'esecuzione con istanza motivata, proposta nel ricorso o con atto separato notificato alle altre parti e depositato. — _art. 47 d.lgs. 546/1992; art. 47 d.lgs. 546/1992_ (ancora letterale trovata nel testo vigente)
-- Il presidente fissa la trattazione per la prima camera di consiglio utile e comunque non oltre il trentesimo giorno; in caso di eccezionale urgenza può sospendere subito con decreto motivato fino alla decisione. — _art. 47 d.lgs. 546/1992; art. 47 d.lgs. 546/1992_ (ancora letterale trovata nel testo vigente)
+- Se dall'atto impugnato può derivare un danno grave e irreparabile, il ricorrente può chiedere la sospensione dell'esecuzione con istanza motivata, proposta nel ricorso o con atto separato notificato alle altre parti e depositato. — _art. 47 d.lgs. 546/1992_ (ancora letterale trovata nel testo vigente)
+- Il presidente fissa la trattazione per la prima camera di consiglio utile e comunque non oltre il trentesimo giorno; in caso di eccezionale urgenza può sospendere subito con decreto motivato fino alla decisione. — _art. 47 d.lgs. 546/1992_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -44,4 +44,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 47 d.lgs. 546/1992 (Sospensione dell'atto impugnato) — testo vigente, aggiornamento archivio 12/05/2026, versione `0bd64c25c67793ae` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art47
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

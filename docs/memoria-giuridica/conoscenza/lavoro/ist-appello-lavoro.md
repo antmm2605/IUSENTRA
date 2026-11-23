@@ -1,6 +1,6 @@
 # Appello nel rito del lavoro (art. 434)
 
-- ID: `ist-appello-lavoro` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-appello-lavoro` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 434 c.p.c..
@@ -45,4 +45,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

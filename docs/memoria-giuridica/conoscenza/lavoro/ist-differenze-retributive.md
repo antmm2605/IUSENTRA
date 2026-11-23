@@ -1,6 +1,6 @@
 # Differenze retributive e crediti di lavoro
 
-- ID: `ist-differenze-retributive` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-differenze-retributive` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale in funzione di giudice del lavoro.
@@ -53,4 +53,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

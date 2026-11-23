@@ -1,6 +1,6 @@
 # Ricorso al giudice per violazione dei dati personali
 
-- ID: `ist-ricorso-giudice-privacy` · materia: privacy · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ricorso-giudice-privacy` · materia: privacy · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale (rito del lavoro) del luogo del titolare o dell'interessato.
@@ -16,7 +16,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Chi subisce un danno materiale o immateriale da violazione del GDPR ha diritto al risarcimento dal titolare o dal responsabile del trattamento. — _art. 82 Reg. UE 2016/679_ (ancora letterale trovata nel testo vigente)
-- Le controversie sono del giudice ordinario e seguono il rito del lavoro; sono competenti in alternativa il tribunale del luogo del titolare o quello di residenza dell'interessato. — _art. 152 d.lgs. 196/2003; art. 10 d.lgs. 150/2011; art. 10 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
+- Le controversie sono del giudice ordinario e seguono il rito del lavoro; sono competenti in alternativa il tribunale del luogo del titolare o quello di residenza dell'interessato. — _art. 152 d.lgs. 196/2003; art. 10 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
 - Il ricorso contro i provvedimenti del Garante si propone, a pena di inammissibilità, entro trenta giorni dalla comunicazione (sessanta se il ricorrente risiede all'estero). — _art. 10 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 10 d.lgs. 150/2011 (Controversie in materia di protezione dei dati personali) — testo vigente, aggiornamento archivio n.d., versione `8f7b677c2be2c8fd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art10
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

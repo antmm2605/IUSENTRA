@@ -1,6 +1,6 @@
 # Opposizione a decreto ingiuntivo
 
-- ID: `ist-opposizione-di` · materia: monitorio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-opposizione-di` · materia: monitorio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

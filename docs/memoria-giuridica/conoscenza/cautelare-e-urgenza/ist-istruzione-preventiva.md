@@ -1,6 +1,6 @@
 # Istruzione preventiva (testimoni a futura memoria, art. 692)
 
-- ID: `ist-istruzione-preventiva` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-istruzione-preventiva` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per assunzione di testimoni a futura memoria.
@@ -16,7 +16,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Chi teme che manchino uno o più testimoni necessari in una causa da proporre può chiederne l'audizione a futura memoria. — _art. 692 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Il ricorso va al giudice competente per il merito (in caso di eccezionale urgenza, al tribunale del luogo della prova) e indica i motivi dell'urgenza, i fatti e le domande cui la prova è preordinata. — _art. 693 c.p.c.; art. 693 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il ricorso va al giudice competente per il merito (in caso di eccezionale urgenza, al tribunale del luogo della prova) e indica i motivi dell'urgenza, i fatti e le domande cui la prova è preordinata. — _art. 693 c.p.c._ (ancora letterale trovata nel testo vigente)
 - La prova preventiva non pregiudica le questioni di ammissibilità e rilevanza nel merito. — _art. 698 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 698 c.p.c. (Assunzione ed efficacia delle prove preventive) — testo vigente, aggiornamento archivio n.d., versione `d77fb6c07fd432c7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art698
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

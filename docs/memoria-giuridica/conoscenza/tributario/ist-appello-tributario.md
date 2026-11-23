@@ -1,6 +1,6 @@
 # Appello tributario
 
-- ID: `ist-appello-tributario` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-appello-tributario` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** appello alla Corte di giustizia tributaria di secondo grado.
@@ -17,7 +17,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 ## Rimedi e forme
 - La sentenza di primo grado si appella alla Corte di giustizia tributaria di secondo grado. — _art. 52 d.lgs. 546/1992_ (ancora letterale trovata nel testo vigente)
 - Il termine è di sessanta giorni dalla notificazione della sentenza fatta su istanza di parte; se nessuna parte la notifica, si applica il termine lungo dell'art. 327 c.p.c. (sei mesi dalla pubblicazione). — _art. 51 d.lgs. 546/1992; art. 38 d.lgs. 546/1992; art. 327 c.p.c._ (ancora letterale trovata nel testo vigente)
-- L'appello deve indicare la corte, le parti, gli estremi della sentenza, i fatti, l'oggetto della domanda e i motivi specifici, a pena di inammissibilità. — _art. 53 d.lgs. 546/1992; art. 53 d.lgs. 546/1992_ (ancora letterale trovata nel testo vigente)
+- L'appello deve indicare la corte, le parti, gli estremi della sentenza, i fatti, l'oggetto della domanda e i motivi specifici, a pena di inammissibilità. — _art. 53 d.lgs. 546/1992_ (ancora letterale trovata nel testo vigente)
 - In appello si può chiedere di sospendere in tutto o in parte l'esecutività della sentenza se ci sono gravi e fondati motivi. — _art. 52 d.lgs. 546/1992_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 327 c.p.c. (Decadenza dall'impugnazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `3e877539f1fa0e9a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art327
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

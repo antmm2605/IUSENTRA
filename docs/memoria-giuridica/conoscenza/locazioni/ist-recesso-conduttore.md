@@ -1,6 +1,6 @@
 # Recesso del conduttore per gravi motivi
 
-- ID: `ist-recesso-conduttore` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-recesso-conduttore` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** comunicazione di recesso con preavviso di sei mesi (per gravi motivi o se previsto dal contratto).
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Indipendentemente dal contratto, il conduttore può recedere in qualsiasi momento per gravi motivi con preavviso di almeno sei mesi; il contratto può prevedere il recesso libero con lo stesso preavviso. — _art. 27 l. 392/1978; art. 27 l. 392/1978_ (ancora letterale trovata nel testo vigente)
+- Indipendentemente dal contratto, il conduttore può recedere in qualsiasi momento per gravi motivi con preavviso di almeno sei mesi; il contratto può prevedere il recesso libero con lo stesso preavviso. — _art. 27 l. 392/1978_ (ancora letterale trovata nel testo vigente)
 - Nelle locazioni abitative il conduttore può recedere per gravi motivi con preavviso di sei mesi. — _art. 3 l. 431/1998_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 3 l. 431/1998 (Disdetta del contratto da parte del locatore e recesso del conduttore) — testo vigente, aggiornamento archivio n.d., versione `388fb1babc9cbc46` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1998-12-09;431~art3
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

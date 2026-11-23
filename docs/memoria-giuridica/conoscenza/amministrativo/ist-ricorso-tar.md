@@ -1,6 +1,6 @@
 # Ricorso al TAR (art. 29 c.p.a.)
 
-- ID: `ist-ricorso-tar` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ricorso-tar` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 29 c.p.a., art. 41 c.p.a., art. 40 c.p.a..
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

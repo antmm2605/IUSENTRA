@@ -67,6 +67,8 @@ def _voce_punto(p, provenienza: str) -> dict[str, Any] | None:
     fonti = [fonte_norma(r.chiave, comma=r.comma, ancora=r.ancora) for r in p.rif]
     if not fonti or any(f is None for f in fonti):
         return None
+    # Stessa norma citata con più ancore: una sola fonte (la prima ancora porta al passaggio).
+    fonti = [f for i, f in enumerate(fonti) if all((g["chiave"], g["comma"]) != (f["chiave"], f["comma"]) for g in fonti[:i])]
     return {"testo": p.testo, "fonti": fonti, "verifica": "ancora letterale trovata nel testo vigente",
             "provenienza": provenienza}
 
@@ -170,7 +172,8 @@ def _termine_calcolabile(s, regola: str) -> dict[str, Any] | None:
     if any(not contiene(r.chiave, r.ancora) for r in s.rif):
         return None
     feriale = "con sospensione feriale" if s.sospensione_feriale and not s.sostanziale else "senza sospensione feriale"
-    return {"testo": f"{s.descrizione[:1].upper()}{s.descrizione[1:]} {s.quantita} {s.unita} dall'evento ({feriale}).",
+    return {"testo": f"{s.descrizione[:1].upper()}{s.descrizione[1:]} {s.quantita} {s.unita}, con la decorrenza indicata dalla "
+                     f"norma citata ({feriale}); la data si calcola dal fatto del fascicolo con il motore dei termini.",
             "fonti": fonti, "verifica": "ancora letterale trovata nel testo vigente", "provenienza": f"regola {regola}",
             "calcolo": {"quantita": s.quantita, "unita": s.unita, "sospensione_feriale": bool(s.sospensione_feriale),
                         "sostanziale": bool(s.sostanziale), "modello_motore": s.modello,

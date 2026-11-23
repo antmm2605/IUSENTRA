@@ -1,6 +1,6 @@
 # Intimazione di sfratto per morosità e citazione per la convalida
 
-- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.
@@ -10,12 +10,12 @@
 - Nella locazione abitativa il mancato pagamento del canone decorsi venti giorni dalla scadenza è motivo di risoluzione. — _art. 5 l. 392/1978_ (ancora letterale trovata nel testo vigente)
 - Il conduttore abitativo può sanare la morosità in udienza; il giudice può assegnare un termine non superiore a novanta giorni (termine di grazia). — _art. 55 l. 392/1978_ (ancora letterale trovata nel testo vigente)
 - La mediazione obbligatoria in materia di locazione non si applica al procedimento per convalida di sfratto fino al mutamento del rito; si applica dopo, se il giudizio prosegue nel merito. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
-- Lo strumento chiesto è inadatto: la negoziazione assistita non è condizione di procedibilità in materia di locazione, che rientra nei casi di mediazione obbligatoria esclusi dall'art. 3 d.l. 132/2014; e la mediazione non si applica al procedimento di convalida fino al mutamento del rito. — _art. 3 d.l. 132/2014; art. 5 d.lgs. 28/2010; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
+- Lo strumento chiesto è inadatto: la negoziazione assistita non è condizione di procedibilità in materia di locazione, che rientra nei casi di mediazione obbligatoria esclusi dall'art. 3 d.l. 132/2014; e la mediazione non si applica al procedimento di convalida fino al mutamento del rito. — _art. 3 d.l. 132/2014; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - Il termine di grazia dell'art. 55 l. 392/1978 riguarda la morosità «di cui all'articolo 5», cioè la locazione abitativa: per la locazione ad uso diverso non è applicabile (orientamento della Cassazione a Sezioni Unite indicato nella scheda, da leggere nell'archivio prima di citarlo). — _art. 55 l. 392/1978; art. 5 l. 392/1978_ (ancora letterale trovata nel testo vigente)
-- Se l'intimato non compare o non si oppone, il giudice convalida lo sfratto; la convalida per morosità richiede che la morosità persista all'udienza. — _art. 663 c.p.c.; art. 663 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Se l'intimato non compare o non si oppone, il giudice convalida lo sfratto; la convalida per morosità richiede che la morosità persista all'udienza. — _art. 663 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Con l'opposizione fondata su prova scritta e in presenza di gravi motivi il giudice può negare l'ordinanza provvisoria di rilascio; poi il giudizio prosegue con il mutamento del rito. — _art. 665 c.p.c.; art. 667 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il locatore deve mantenere la cosa in buono stato locativo ed eseguire le riparazioni necessarie; per i vizi che diminuiscono il godimento il conduttore può chiedere la riduzione del corrispettivo, ma sospendere del tutto il canone per un vizio parziale è un'autoriduzione rischiosa. — _art. 1575 c.c.; art. 1578 c.c.; art. 1460 c.c.; art. 1587 c.c._ (ancora letterale trovata nel testo vigente)
-- Con l'opposizione e il mutamento del rito scatta la mediazione obbligatoria in materia di locazione. — _art. 5 d.lgs. 28/2010; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
+- Con l'opposizione e il mutamento del rito scatta la mediazione obbligatoria in materia di locazione. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -80,4 +80,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 447-bis c.p.c. (Norme applicabili alle controversie in materia di locazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `9313ab26e5e36132` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art447bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Sospensiva e misure cautelari al TAR
 
-- ID: `ist-sospensiva` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-sospensiva` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Scheda in attesa di fonti.
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 41 c.p.a. (Notificazione del ricorso e suoi destinatari) — testo vigente, aggiornamento archivio 12/12/2025, versione `1f125f48b5d2bf6b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art41
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,12 +1,12 @@
 # Restituzione del canone non registrato o in nero
 
-- ID: `ist-canone-nero` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-canone-nero` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 13 l. 431/1998.
 
 ## Presupposti
-- È nullo il patto che fissa un canone superiore a quello del contratto scritto e registrato; il conduttore può chiederne la restituzione con azione proponibile nel termine di sei mesi dalla riconsegna dell'immobile. — _art. 13 l. 431/1998; art. 13 l. 431/1998_ (ancora letterale trovata nel testo vigente)
+- È nullo il patto che fissa un canone superiore a quello del contratto scritto e registrato; il conduttore può chiederne la restituzione con azione proponibile nel termine di sei mesi dalla riconsegna dell'immobile. — _art. 13 l. 431/1998_ (ancora letterale trovata nel testo vigente)
 - È un termine di decadenza: non si interrompe con una diffida; lo impedisce solo il compimento dell'atto previsto. — _art. 2964 c.c.; art. 2966 c.c._ (ancora letterale trovata nel testo vigente)
 - La materia è a mediazione obbligatoria (locazione); la domanda di mediazione comunicata alle altre parti impedisce la decadenza per una sola volta. — _art. 5 d.lgs. 28/2010; art. 8 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 8 d.lgs. 28/2010 (Procedimento) — testo vigente, aggiornamento archivio 19/06/2025, versione `5e15fd9c44cea6e9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

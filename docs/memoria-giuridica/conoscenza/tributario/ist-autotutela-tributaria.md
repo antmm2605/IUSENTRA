@@ -1,6 +1,6 @@
 # Autotutela tributaria
 
-- ID: `ist-autotutela-tributaria` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-autotutela-tributaria` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di autotutela (obbligatoria nei casi di manifesta illegittimità), senza sospensione del termine per il ricorso.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- L'amministrazione finanziaria annulla l'atto, anche in pendenza di giudizio o se definitivo, nei casi di manifesta illegittimità: errore di persona, di calcolo, sul tributo, sul presupposto, pagamenti non considerati, documenti sanati. — _art. 10-quater l. 212/2000; art. 10-quater l. 212/2000_ (ancora letterale trovata nel testo vigente)
+- L'amministrazione finanziaria annulla l'atto, anche in pendenza di giudizio o se definitivo, nei casi di manifesta illegittimità: errore di persona, di calcolo, sul tributo, sul presupposto, pagamenti non considerati, documenti sanati. — _art. 10-quater l. 212/2000_ (ancora letterale trovata nel testo vigente)
 - Fuori da quei casi l'autotutela è facoltativa, per illegittimità o infondatezza dell'atto. — _art. 10-quinquies l. 212/2000_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 10-quinquies l. 212/2000 (Autotutela facoltativa) — testo vigente, aggiornamento archivio n.d., versione `93f27b6658fa0301` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2000-07-27;212~art10quinquies
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

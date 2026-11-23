@@ -1,6 +1,6 @@
 # Azione di reintegrazione (spoglio)
 
-- ID: `ist-reintegrazione` · materia: possessorio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-reintegrazione` · materia: possessorio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per reintegrazione nel possesso al tribunale del luogo.
@@ -12,11 +12,11 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Reintegrazione entro 1 anni dall'evento (senza sospensione feriale). — _art. 1168 c.c._ (ancora letterale trovata nel testo vigente)
+- Reintegrazione entro 1 anni, con la decorrenza indicata dalla norma citata (senza sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 1168 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Chi è stato violentemente od occultamente spogliato del possesso può chiedere, entro l'anno dallo spoglio, la reintegrazione; l'azione spetta anche al detentore qualificato; se lo spoglio è clandestino l'anno decorre dalla scoperta. — _art. 1168 c.c.; art. 1168 c.c.; art. 1168 c.c._ (ancora letterale trovata nel testo vigente)
-- La domanda si propone con ricorso al giudice del luogo; l'ordinanza è reclamabile e su richiesta prosegue il merito. — _art. 703 c.p.c.; art. 703 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Chi è stato violentemente od occultamente spogliato del possesso può chiedere, entro l'anno dallo spoglio, la reintegrazione; l'azione spetta anche al detentore qualificato; se lo spoglio è clandestino l'anno decorre dalla scoperta. — _art. 1168 c.c._ (ancora letterale trovata nel testo vigente)
+- La domanda si propone con ricorso al giudice del luogo; l'ordinanza è reclamabile e su richiesta prosegue il merito. — _art. 703 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 703 c.p.c. (Domande di reintegrazione e di manutenzione nel possesso) — testo vigente, aggiornamento archivio n.d., versione `378a4a687e8cd9cf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art703
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

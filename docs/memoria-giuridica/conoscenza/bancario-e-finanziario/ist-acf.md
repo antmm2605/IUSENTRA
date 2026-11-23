@@ -1,6 +1,6 @@
 # Arbitro per le Controversie Finanziarie (ACF)
 
-- ID: `ist-acf` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-acf` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** reclamo all'intermediario e ricorso all'ACF presso la Consob.
@@ -45,4 +45,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 32-ter d.lgs. 58/1998 (TUF) (Risoluzione stragiudiziale di controversie) — testo vigente, aggiornamento archivio n.d., versione `6815de87d53be185` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-02-24;58~art32ter
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

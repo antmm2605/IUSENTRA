@@ -1,12 +1,12 @@
 # Competenza per territorio nelle cause di pagamento
 
-- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale.
 
 ## Presupposti
-- Negoziazione assistita obbligatoria: è una domanda di pagamento a qualsiasi titolo di somme non eccedenti € 50.000. Prima della causa va inviato l'invito alla convenzione di negoziazione assistita; la condizione si considera avverata se l'invito non è seguito da adesione o è seguito da rifiuto entro trenta giorni dalla ricezione. — _art. 3 d.l. 132/2014; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
+- Negoziazione assistita obbligatoria: è una domanda di pagamento a qualsiasi titolo di somme non eccedenti € 50.000. Prima della causa va inviato l'invito alla convenzione di negoziazione assistita; la condizione si considera avverata se l'invito non è seguito da adesione o è seguito da rifiuto entro trenta giorni dalla ricezione. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -55,4 +55,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 20 c.p.c. (Foro facoltativo per le cause relative a diritti di obbligazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `a85515452e1b2416` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art20
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

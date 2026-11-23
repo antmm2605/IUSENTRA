@@ -1,6 +1,6 @@
 # Comparsa di costituzione e risposta
 
-- ID: `ist-comparsa` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-comparsa` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 166 c.p.c., art. 167 c.p.c., art. 171-ter c.p.c..
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 171-ter c.p.c. (Memorie integrative) — testo vigente, aggiornamento archivio 05/03/2026, versione `bc58dc903cec8cd7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171ter
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

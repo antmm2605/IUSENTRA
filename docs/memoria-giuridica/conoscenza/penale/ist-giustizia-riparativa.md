@@ -1,6 +1,6 @@
 # Giustizia riparativa
 
-- ID: `ist-giustizia-riparativa` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-giustizia-riparativa` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta all'autorità giudiziaria di invio al Centro per la giustizia riparativa.
@@ -15,8 +15,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- In ogni stato e grado del procedimento l'autorità giudiziaria può disporre, anche d'ufficio, l'invio dell'imputato e della vittima al Centro per la giustizia riparativa; la richiesta è proposta personalmente o con procuratore speciale. — _art. 129-bis c.p.p.; art. 129-bis c.p.p._ (ancora letterale trovata nel testo vigente)
-- I programmi sono accessibili senza preclusioni per tipo o gravità del reato, anche nella fase esecutiva. — _art. 44 d.lgs. 150/2022; art. 44 d.lgs. 150/2022_ (ancora letterale trovata nel testo vigente)
+- In ogni stato e grado del procedimento l'autorità giudiziaria può disporre, anche d'ufficio, l'invio dell'imputato e della vittima al Centro per la giustizia riparativa; la richiesta è proposta personalmente o con procuratore speciale. — _art. 129-bis c.p.p._ (ancora letterale trovata nel testo vigente)
+- I programmi sono accessibili senza preclusioni per tipo o gravità del reato, anche nella fase esecutiva. — _art. 44 d.lgs. 150/2022_ (ancora letterale trovata nel testo vigente)
 - L'esito riparativo nei reati a querela vale come remissione tacita. — _art. 152 c.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 152 c.p. (Remissione della querela) — testo vigente, aggiornamento archivio n.d., versione `e1776bcb6189d67a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398~art152
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

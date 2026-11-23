@@ -1,6 +1,6 @@
 # Ricorso avverso il silenzio della PA
 
-- ID: `ist-silenzio` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-silenzio` · materia: amministrativo · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR avverso il silenzio, per l'accertamento dell'obbligo di provvedere.
@@ -17,7 +17,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 ## Rimedi e forme
 - Scaduti i termini di conclusione del procedimento, chi vi ha interesse può chiedere al TAR l'accertamento dell'obbligo dell'amministrazione di provvedere. — _art. 31 c.p.a._ (ancora letterale trovata nel testo vigente)
 - L'azione si propone finché dura l'inadempimento e comunque non oltre un anno dalla scadenza del termine di conclusione del procedimento; il ricorso non richiede una diffida e va notificato all'amministrazione e ad almeno un controinteressato. — _art. 31 c.p.a.; art. 117 c.p.a._ (ancora letterale trovata nel testo vigente)
-- Il giudice decide con sentenza in forma semplificata e, se accoglie, ordina di provvedere di norma entro trenta giorni, nominando se occorre un commissario ad acta. — _art. 117 c.p.a.; art. 117 c.p.a._ (ancora letterale trovata nel testo vigente)
+- Il giudice decide con sentenza in forma semplificata e, se accoglie, ordina di provvedere di norma entro trenta giorni, nominando se occorre un commissario ad acta. — _art. 117 c.p.a._ (ancora letterale trovata nel testo vigente)
 - Se nel giudizio sopravviene il provvedimento espresso, lo si impugna con motivi aggiunti nei termini e con il rito del nuovo provvedimento. — _art. 117 c.p.a._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 31 c.p.a. (Azione avverso il silenzio e declaratoria di nullità) — testo vigente, aggiornamento archivio 12/12/2025, versione `e524ff92f123c5ec` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art31
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

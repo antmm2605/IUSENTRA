@@ -1,6 +1,6 @@
 # Mediazione civile e commerciale (d.lgs. 28/2010)
 
-- ID: `ist-mediazione` · materia: stragiudiziale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-mediazione` · materia: stragiudiziale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 5 d.lgs. 28/2010, art. 8 d.lgs. 28/2010.
@@ -45,4 +45,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 8 d.lgs. 28/2010 (Procedimento) — testo vigente, aggiornamento archivio 19/06/2025, versione `5e15fd9c44cea6e9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,12 +1,12 @@
 # Opposizione all'ordinanza-ingiunzione (l. 689/1981, art. 6 d.lgs. 150/2011)
 
-- ID: `ist-ordinanza-ingiunzione` · materia: violazioni amministrative · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ordinanza-ingiunzione` · materia: violazioni amministrative · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso in opposizione all'ordinanza-ingiunzione (art. 22 l. 689/1981, art. 6 d.lgs. 150/2011) entro trenta giorni dalla notificazione; non è un'opposizione a decreto ingiuntivo.
 
 ## Presupposti
-- L'efficacia esecutiva dell'ordinanza può essere sospesa su istanza nel ricorso; in primo grado l'opponente può stare in giudizio personalmente. — _art. 6 d.lgs. 150/2011; art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
+- L'efficacia esecutiva dell'ordinanza può essere sospesa su istanza nel ricorso; in primo grado l'opponente può stare in giudizio personalmente. — _art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -15,12 +15,12 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Contro l'ordinanza-ingiunzione si propone opposizione davanti all'autorità giudiziaria ordinaria, regolata dall'art. 6 d.lgs. 150/2011, con il rito del lavoro. — _art. 22 l. 689/1981; art. 22 l. 689/1981; art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
+- Contro l'ordinanza-ingiunzione si propone opposizione davanti all'autorità giudiziaria ordinaria, regolata dall'art. 6 d.lgs. 150/2011, con il rito del lavoro. — _art. 22 l. 689/1981; art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
 - Il ricorso va proposto, a pena di inammissibilità, entro trenta giorni dalla notificazione del provvedimento (sessanta se il ricorrente risiede all'estero). — _art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
-- È competente il giudice del luogo in cui è stata commessa la violazione; di regola il giudice di pace. — _art. 6 d.lgs. 150/2011; art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
-- Va invece al tribunale per le violazioni in materia di lavoro, previdenza, ambiente, alimenti, valutaria e antiriciclaggio, e quando la sanzione prevista supera nel massimo 15.493 euro o non è solo pecuniaria. — _art. 6 d.lgs. 150/2011; art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
+- È competente il giudice del luogo in cui è stata commessa la violazione; di regola il giudice di pace. — _art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
+- Va invece al tribunale per le violazioni in materia di lavoro, previdenza, ambiente, alimenti, valutaria e antiriciclaggio, e quando la sanzione prevista supera nel massimo 15.493 euro o non è solo pecuniaria. — _art. 6 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 6 d.lgs. 150/2011 (Dell'opposizione ad ordinanza-ingiunzione) — testo vigente, aggiornamento archivio 19/06/2025, versione `da9362078772df6e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art6
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

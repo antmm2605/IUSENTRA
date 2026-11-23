@@ -1,6 +1,6 @@
 # Accertamento con adesione
 
-- ID: `ist-adesione` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-adesione` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di accertamento con adesione prima dell'impugnazione.
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 6 d.lgs. 218/1997 (Istanza del contribuente) — testo vigente, aggiornamento archivio n.d., versione `b55ab17f7c5abc36` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1997-06-19;218~art6
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

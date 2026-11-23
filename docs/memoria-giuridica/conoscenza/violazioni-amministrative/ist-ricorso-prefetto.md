@@ -1,14 +1,14 @@
 # Ricorso al Prefetto contro il verbale (art. 203 cod. strada)
 
-- ID: `ist-ricorso-prefetto` · materia: violazioni amministrative · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ricorso-prefetto` · materia: violazioni amministrative · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Scheda in attesa di fonti.
 
 ## Presupposti
 - Se la violazione non è contestata immediatamente, il verbale deve essere notificato entro novanta giorni dall'accertamento al proprietario risultante dal P.R.A.; altrimenti l'obbligo di pagare si estingue per chi non ha ricevuto la notificazione nel termine. — _art. 201 d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
-- L'opposizione si propone davanti al giudice di pace del luogo della violazione, con il rito del lavoro, entro trenta giorni dalla notificazione del verbale, a pena di inammissibilità. — _art. 7 d.lgs. 150/2011; art. 7 d.lgs. 150/2011; art. 7 d.lgs. 150/2011; art. 204-bis d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
-- In alternativa al giudice di pace, se non si è pagato in misura ridotta, si può proporre ricorso al prefetto del luogo della violazione entro sessanta giorni dalla contestazione o dalla notificazione, presentandolo all'organo accertatore o inviandolo con raccomandata o PEC. Le due strade sono alternative: scelta l'una, l'altra non è più percorribile per lo stesso verbale. — _art. 203 d.lgs. 285/1992 (codice della strada); art. 203 d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
+- L'opposizione si propone davanti al giudice di pace del luogo della violazione, con il rito del lavoro, entro trenta giorni dalla notificazione del verbale, a pena di inammissibilità. — _art. 7 d.lgs. 150/2011; art. 204-bis d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
+- In alternativa al giudice di pace, se non si è pagato in misura ridotta, si può proporre ricorso al prefetto del luogo della violazione entro sessanta giorni dalla contestazione o dalla notificazione, presentandolo all'organo accertatore o inviandolo con raccomandata o PEC. Le due strade sono alternative: scelta l'una, l'altra non è più percorribile per lo stesso verbale. — _art. 203 d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -52,4 +52,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 203 d.lgs. 285/1992 (codice della strada) (Ricorso al prefetto) — testo vigente, aggiornamento archivio 16/05/2026, versione `4c6242f8d1b581cf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art203
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

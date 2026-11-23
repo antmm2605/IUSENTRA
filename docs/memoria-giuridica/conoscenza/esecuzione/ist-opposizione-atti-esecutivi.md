@@ -1,12 +1,12 @@
 # Opposizione agli atti esecutivi (art. 617)
 
-- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a precetto (art. 615, comma 1, c.p.c.) con istanza di sospensione dell'efficacia esecutiva del titolo per gravi motivi; giudice del luogo dell'esecuzione.
 
 ## Presupposti
-- Quando si contesta il diritto di procedere a esecuzione forzata e l'esecuzione non è ancora iniziata, si propone opposizione al precetto con citazione davanti al giudice competente per materia o valore e per territorio; concorrendo gravi motivi il giudice sospende su istanza di parte l'efficacia esecutiva del titolo. — _art. 615 c.p.c.; art. 615 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Quando si contesta il diritto di procedere a esecuzione forzata e l'esecuzione non è ancora iniziata, si propone opposizione al precetto con citazione davanti al giudice competente per materia o valore e per territorio; concorrendo gravi motivi il giudice sospende su istanza di parte l'efficacia esecutiva del titolo. — _art. 615 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il diritto di procedere è contestato per fatti estintivi successivi al titolo: la transazione, con cui le parti con reciproche concessioni prevengono o pongono fine a una lite, e il pagamento integrale, provato dalla quietanza rilasciata dal creditore. — _art. 1965 c.c.; art. 1199 c.c._ (ancora letterale trovata nel testo vigente)
 - Se il creditore ha agito senza la normale prudenza si può chiedere la condanna per responsabilità aggravata. — _art. 96 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Né negoziazione assistita né mediazione: la negoziazione obbligatoria non si applica «nei procedimenti di opposizione o incidentali di cognizione relativi all'esecuzione forzata» (art. 3, comma 3, lett. c), d.l. 132/2014) e lo stesso esclude la mediazione obbligatoria (art. 5, comma 6, lett. e), d.lgs. 28/2010). — _art. 3 d.l. 132/2014, comma 3; art. 5 d.lgs. 28/2010, comma 6_ (ancora letterale trovata nel testo vigente)
@@ -61,4 +61,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 163 c.p.c. (Contenuto della citazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `77209d0b61dd6ee9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art163
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

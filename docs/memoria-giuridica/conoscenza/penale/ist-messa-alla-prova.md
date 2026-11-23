@@ -1,6 +1,6 @@
 # Sospensione del procedimento con messa alla prova
 
-- ID: `ist-messa-alla-prova` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-messa-alla-prova` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di sospensione con messa alla prova e programma predisposto con l'UEPE.
@@ -15,8 +15,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- È ammessa per i reati puniti con la sola pena pecuniaria o con pena detentiva non superiore nel massimo a quattro anni e per alcuni delitti a citazione diretta; comporta condotte riparatorie, il risarcimento ove possibile, l'affidamento al servizio sociale e il lavoro di pubblica utilità. — _art. 168-bis c.p.; art. 168-bis c.p._ (ancora letterale trovata nel testo vigente)
-- La richiesta si propone fino alle conclusioni dell'udienza preliminare, o fino all'apertura del dibattimento nel direttissimo, o fino alla conclusione dell'udienza predibattimentale nella citazione diretta. — _art. 464-bis c.p.p.; art. 464-bis c.p.p._ (ancora letterale trovata nel testo vigente)
+- È ammessa per i reati puniti con la sola pena pecuniaria o con pena detentiva non superiore nel massimo a quattro anni e per alcuni delitti a citazione diretta; comporta condotte riparatorie, il risarcimento ove possibile, l'affidamento al servizio sociale e il lavoro di pubblica utilità. — _art. 168-bis c.p._ (ancora letterale trovata nel testo vigente)
+- La richiesta si propone fino alle conclusioni dell'udienza preliminare, o fino all'apertura del dibattimento nel direttissimo, o fino alla conclusione dell'udienza predibattimentale nella citazione diretta. — _art. 464-bis c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 464-bis c.p.p. (Sospensione del procedimento con messa alla prova) — testo vigente, aggiornamento archivio n.d., versione `c012dd78236e9be4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art464bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,12 +1,12 @@
 # Accettazione con beneficio d'inventario
 
-- ID: `ist-beneficio-inventario` · materia: successioni · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-beneficio-inventario` · materia: successioni · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 485 c.c..
 
 ## Presupposti
-- Il chiamato che a qualsiasi titolo è nel possesso di beni ereditari deve fare l'inventario entro tre mesi dall'apertura della successione o dalla notizia; trascorso il termine senza inventario è considerato erede puro e semplice. — _art. 485 c.c.; art. 485 c.c._ (ancora letterale trovata nel testo vigente)
+- Il chiamato che a qualsiasi titolo è nel possesso di beni ereditari deve fare l'inventario entro tre mesi dall'apertura della successione o dalla notizia; trascorso il termine senza inventario è considerato erede puro e semplice. — _art. 485 c.c._ (ancora letterale trovata nel testo vigente)
 - La rinuncia all'eredità si fa con dichiarazione davanti a notaio o al cancelliere, ma non produce effetti per chi è già erede puro e semplice; il termine decennale per accettare non è più rilevante. — _art. 519 c.c.; art. 480 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 480 c.c. (Prescrizione del diritto di accettare l'eredità) — testo vigente, aggiornamento archivio 29/04/2026, versione `1512d31b2d9be96a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art480
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

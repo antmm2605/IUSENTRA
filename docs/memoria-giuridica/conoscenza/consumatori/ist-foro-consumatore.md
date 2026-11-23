@@ -1,13 +1,13 @@
 # Foro del consumatore e competenza
 
-- ID: `ist-foro-consumatore` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-foro-consumatore` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Giudice di pace.
 
 ## Presupposti
 - Negoziazione assistita: non è obbligatoria, perché l'art. 3, comma 1, d.l. 132/2014 non si applica alle controversie su obbligazioni contrattuali derivanti da contratti fra professionisti e consumatori. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
-- Esclusioni: non si applica alle controversie su obbligazioni contrattuali da contratti fra professionisti e consumatori, ai procedimenti per ingiunzione inclusa l'opposizione, alla consulenza tecnica preventiva, alle opposizioni nell'esecuzione forzata, ai procedimenti in camera di consiglio e all'azione civile nel processo penale; né quando la parte può stare in giudizio personalmente; né nei casi di mediazione obbligatoria. — _art. 3 d.l. 132/2014; art. 3 d.l. 132/2014; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
+- Esclusioni: non si applica alle controversie su obbligazioni contrattuali da contratti fra professionisti e consumatori, ai procedimenti per ingiunzione inclusa l'opposizione, alla consulenza tecnica preventiva, alle opposizioni nell'esecuzione forzata, ai procedimenti in camera di consiglio e all'azione civile nel processo penale; né quando la parte può stare in giudizio personalmente; né nei casi di mediazione obbligatoria. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 - Se la condizione di procedibilità manca, l'improcedibilità deve essere eccepita dal convenuto o rilevata d'ufficio non oltre la prima udienza e il giudice assegna il termine per esperirla: non è una decadenza, ma ritarda la causa. — _art. 5 d.lgs. 28/2010; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
@@ -55,4 +55,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

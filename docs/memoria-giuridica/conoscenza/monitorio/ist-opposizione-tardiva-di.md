@@ -1,6 +1,6 @@
 # Opposizione tardiva a decreto ingiuntivo (art. 650)
 
-- ID: `ist-opposizione-tardiva-di` · materia: monitorio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-opposizione-tardiva-di` · materia: monitorio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione tardiva con atto di citazione davanti all'ufficio che ha emesso il decreto, provando l'incolpevole ignoranza.
@@ -12,7 +12,7 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Opposizione tardiva al più tardi entro 10 giorni dall'evento (con sospensione feriale). — _art. 650 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Opposizione tardiva al più tardi entro 10 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 650 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - L'intimato può opporsi anche dopo il termine se prova di non aver avuto tempestiva conoscenza del decreto per irregolarità della notificazione o per caso fortuito o forza maggiore; l'esecutorietà può essere sospesa. — _art. 650 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 650 c.p.c. (Opposizione tardiva) — testo vigente, aggiornamento archivio 05/03/2026, versione `ef6c6dfb4ad047de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art650
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

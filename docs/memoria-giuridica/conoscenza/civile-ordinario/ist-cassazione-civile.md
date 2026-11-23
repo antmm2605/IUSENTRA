@@ -1,6 +1,6 @@
 # Ricorso per cassazione civile
 
-- ID: `ist-cassazione-civile` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-cassazione-civile` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per cassazione sottoscritto da avvocato abilitato con procura speciale.
@@ -14,10 +14,10 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Termini
 - Termine breve: sessanta giorni dalla notificazione della sentenza; senza notificazione, sei mesi dalla pubblicazione. — _art. 325 c.p.c.; art. 327 c.p.c._ (ancora letterale trovata nel testo vigente)
 - I termini sono sospesi dal 1° al 31 agosto. — _art. 1 l. 742/1969_ (ancora letterale trovata nel testo vigente)
-- Ricorso per cassazione entro 60 giorni dall'evento (con sospensione feriale). — _art. 325 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Ricorso per cassazione entro 60 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 325 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Le sentenze d'appello o in unico grado si impugnano per motivi di giurisdizione, competenza, violazione o falsa applicazione di norme di diritto, nullità della sentenza o del procedimento, omesso esame di un fatto decisivo discusso fra le parti. — _art. 360 c.p.c.; art. 360 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Le sentenze d'appello o in unico grado si impugnano per motivi di giurisdizione, competenza, violazione o falsa applicazione di norme di diritto, nullità della sentenza o del procedimento, omesso esame di un fatto decisivo discusso fra le parti. — _art. 360 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il ricorso è sottoscritto, a pena di inammissibilità, da un avvocato iscritto nell'albo speciale munito di procura speciale e deve contenere la chiara esposizione dei fatti e dei motivi con gli atti su cui ciascuno si fonda. — _art. 365 c.p.c.; art. 366 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il ricorso si deposita, a pena di improcedibilità, entro venti giorni dall'ultima notificazione. — _art. 369 c.p.c._ (ancora letterale trovata nel testo vigente)
 
@@ -56,4 +56,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 369 c.p.c. (Deposito del ricorso) — testo vigente, aggiornamento archivio n.d., versione `01d49368ec3683d0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art369
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

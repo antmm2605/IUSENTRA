@@ -1,6 +1,6 @@
 # Opposizione di terzo all'esecuzione (art. 619)
 
-- ID: `ist-opposizione-terzo-esecuzione` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-opposizione-terzo-esecuzione` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso di opposizione di terzo al giudice dell'esecuzione prima della vendita o dell'assegnazione.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Il terzo che pretende la proprietà o altro diritto reale sui beni pignorati propone opposizione con ricorso al giudice dell'esecuzione, prima che sia disposta la vendita o l'assegnazione. — _art. 619 c.p.c.; art. 619 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il terzo che pretende la proprietà o altro diritto reale sui beni pignorati propone opposizione con ricorso al giudice dell'esecuzione, prima che sia disposta la vendita o l'assegnazione. — _art. 619 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Se la vendita dei mobili non è sospesa o l'opposizione è proposta dopo la vendita, i diritti del terzo si fanno valere sulla somma ricavata. — _art. 620 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Con l'opposizione si può chiedere la sospensione del processo esecutivo per gravi motivi. — _art. 624 c.p.c._ (ancora letterale trovata nel testo vigente)
 
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 624 c.p.c. (Sospensione per opposizione all'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `158a7a6ded98357b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art624
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

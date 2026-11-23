@@ -1,6 +1,6 @@
 # Usura bancaria
 
-- ID: `ist-usura` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-usura` · materia: bancario e finanziario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di accertamento della nullità della clausola degli interessi e di ripetizione (mediazione preventiva obbligatoria).
@@ -16,7 +16,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Sono usurari gli interessi oltre il limite di legge e, anche se inferiori, quelli sproporzionati rispetto alla prestazione in relazione al tasso medio per operazioni simili. — _art. 644 c.p._ (ancora letterale trovata nel testo vigente)
-- Il limite è il tasso effettivo globale medio della categoria di operazioni rilevato trimestralmente, aumentato di un quarto e di un margine di ulteriori quattro punti. — _art. 2 l. 108/1996; art. 2 l. 108/1996_ (ancora letterale trovata nel testo vigente)
+- Il limite è il tasso effettivo globale medio della categoria di operazioni rilevato trimestralmente, aumentato di un quarto e di un margine di ulteriori quattro punti. — _art. 2 l. 108/1996_ (ancora letterale trovata nel testo vigente)
 - Se sono convenuti interessi usurari la clausola è nulla e non sono dovuti interessi. — _art. 1815 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -51,4 +51,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

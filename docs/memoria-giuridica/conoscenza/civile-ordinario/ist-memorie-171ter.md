@@ -1,6 +1,6 @@
 # Memorie integrative art. 171-ter c.p.c.
 
-- ID: `ist-memorie-171ter` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-memorie-171ter` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** deposito delle memorie integrative a quaranta, venti e dieci giorni prima dell'udienza di prima comparizione.
@@ -13,12 +13,12 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
 - I termini sono sospesi dal 1° al 31 agosto. — _art. 1 l. 742/1969_ (ancora letterale trovata nel testo vigente)
-- Prima memoria entro 40 giorni dall'evento (con sospensione feriale). — _art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
-- Seconda memoria entro 20 giorni dall'evento (con sospensione feriale). — _art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
-- Terza memoria entro 10 giorni dall'evento (con sospensione feriale). — _art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
+- Prima memoria entro 40 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
+- Seconda memoria entro 20 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
+- Terza memoria entro 10 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Le parti, a pena di decadenza, possono: almeno quaranta giorni prima dell'udienza precisare o modificare domande ed eccezioni e proporre quelle conseguenti alle difese avversarie; almeno venti giorni prima replicare e indicare i mezzi di prova e le produzioni; almeno dieci giorni prima replicare alle eccezioni nuove e indicare la prova contraria. — _art. 171-ter c.p.c.; art. 171-ter c.p.c.; art. 171-ter c.p.c.; art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
+- Le parti, a pena di decadenza, possono: almeno quaranta giorni prima dell'udienza precisare o modificare domande ed eccezioni e proporre quelle conseguenti alle difese avversarie; almeno venti giorni prima replicare e indicare i mezzi di prova e le produzioni; almeno dieci giorni prima replicare alle eccezioni nuove e indicare la prova contraria. — _art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

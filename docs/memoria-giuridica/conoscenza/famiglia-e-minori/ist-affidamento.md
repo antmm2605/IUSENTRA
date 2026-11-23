@@ -1,6 +1,6 @@
 # Affidamento e collocamento dei figli (anche nati fuori dal matrimonio)
 
-- ID: `ist-affidamento` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-affidamento` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale del luogo di residenza abituale del minore (rito unificato delle persone, dei minorenni e delle famiglie).
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Il figlio minore ha diritto a un rapporto equilibrato e continuativo con entrambi i genitori; il giudice valuta prioritariamente l'affidamento a entrambi e fissa tempi di presenza e contributo al mantenimento. — _art. 337-ter c.c.; art. 337-ter c.c._ (ancora letterale trovata nel testo vigente)
+- Il figlio minore ha diritto a un rapporto equilibrato e continuativo con entrambi i genitori; il giudice valuta prioritariamente l'affidamento a entrambi e fissa tempi di presenza e contributo al mantenimento. — _art. 337-ter c.c._ (ancora letterale trovata nel testo vigente)
 - L'affidamento a un solo genitore è disposto con provvedimento motivato quando l'affidamento all'altro è contrario all'interesse del minore; ciascun genitore può chiederlo in qualsiasi momento. — _art. 337-quater c.c._ (ancora letterale trovata nel testo vigente)
 - È competente il tribunale del luogo di residenza abituale del minore (dell'ultima residenza, se il trasferimento non autorizzato risale a meno di un anno). — _art. 473-bis.11 c.p.c._ (ancora letterale trovata nel testo vigente)
 
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

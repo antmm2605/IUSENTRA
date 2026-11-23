@@ -1,6 +1,6 @@
 # Atto di appello civile
 
-- ID: `ist-appello-civile` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-appello-civile` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in appello con motivi specifici per capo.
@@ -14,12 +14,12 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 ## Termini
 - Termine breve: trenta giorni dalla notificazione della sentenza; senza notificazione, sei mesi dalla pubblicazione. — _art. 325 c.p.c.; art. 326 c.p.c.; art. 327 c.p.c._ (ancora letterale trovata nel testo vigente)
 - I termini sono sospesi dal 1° al 31 agosto. — _art. 1 l. 742/1969_ (ancora letterale trovata nel testo vigente)
-- Appello entro 30 giorni dall'evento (con sospensione feriale). — _art. 325 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Appello (termine lungo) entro 6 mesi dall'evento (con sospensione feriale). — _art. 327 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Appello entro 30 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 325 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Appello (termine lungo) entro 6 mesi, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 327 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - L'appello contro le sentenze del giudice di pace e del tribunale si propone rispettivamente al tribunale e alla corte d'appello nella cui circoscrizione ha sede il giudice che ha pronunciato la sentenza. — _art. 341 c.p.c._ (ancora letterale trovata nel testo vigente)
-- L'appello si propone con citazione motivata in modo chiaro, sintetico e specifico: per ciascun motivo, a pena di inammissibilità, va individuato il capo impugnato con le censure in fatto e le violazioni di legge. — _art. 342 c.p.c.; art. 342 c.p.c._ (ancora letterale trovata nel testo vigente)
+- L'appello si propone con citazione motivata in modo chiaro, sintetico e specifico: per ciascun motivo, a pena di inammissibilità, va individuato il capo impugnato con le censure in fatto e le violazioni di legge. — _art. 342 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -57,4 +57,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 341 c.p.c. (Giudice dell'appello) — testo vigente, aggiornamento archivio n.d., versione `d3a70ba21106f7a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art341
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

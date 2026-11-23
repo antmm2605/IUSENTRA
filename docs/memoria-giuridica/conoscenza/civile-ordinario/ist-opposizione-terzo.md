@@ -1,6 +1,6 @@
 # Opposizione di terzo
 
-- ID: `ist-opposizione-terzo` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-opposizione-terzo` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione in opposizione di terzo davanti allo stesso giudice che ha pronunciato la sentenza.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - L'opposizione ordinaria non ha termine; quella revocatoria (dolo o collusione) va proposta entro trenta giorni dalla scoperta. — _art. 325 c.p.c.; art. 326 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Il terzo può opporsi alla sentenza passata in giudicato o esecutiva pronunciata fra altre persone quando pregiudica i suoi diritti; aventi causa e creditori di una parte possono opporsi alla sentenza effetto di dolo o collusione a loro danno. — _art. 404 c.p.c.; art. 404 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il terzo può opporsi alla sentenza passata in giudicato o esecutiva pronunciata fra altre persone quando pregiudica i suoi diritti; aventi causa e creditori di una parte possono opporsi alla sentenza effetto di dolo o collusione a loro danno. — _art. 404 c.p.c._ (ancora letterale trovata nel testo vigente)
 - L'opposizione si propone davanti allo stesso giudice, con l'indicazione della sentenza e, per l'opposizione revocatoria, del giorno della scoperta del dolo o della collusione e della prova. — _art. 405 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 326 c.p.c. (Decorrenza dei termini) — testo vigente, aggiornamento archivio n.d., versione `358eb8a805aa88ab` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

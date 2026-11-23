@@ -1,6 +1,6 @@
 # Costituzione di parte civile
 
-- ID: `ist-parte-civile` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-parte-civile` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di costituzione di parte civile depositata o presentata in udienza, con procura speciale.
@@ -17,7 +17,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 ## Rimedi e forme
 - L'azione civile per restituzioni e risarcimento del danno da reato può essere esercitata nel processo penale dal danneggiato o dai successori universali, contro l'imputato e il responsabile civile. — _art. 74 c.p.p._ (ancora letterale trovata nel testo vigente)
 - La dichiarazione contiene, a pena di inammissibilità, le generalità delle parti, il difensore e la procura e le ragioni della domanda. — _art. 78 c.p.p._ (ancora letterale trovata nel testo vigente)
-- La costituzione è possibile per l'udienza preliminare, prima che siano ultimati gli accertamenti sulla costituzione delle parti, o fino agli adempimenti dell'art. 484 o dell'udienza predibattimentale, a pena di decadenza. — _art. 79 c.p.p.; art. 79 c.p.p._ (ancora letterale trovata nel testo vigente)
+- La costituzione è possibile per l'udienza preliminare, prima che siano ultimati gli accertamenti sulla costituzione delle parti, o fino agli adempimenti dell'art. 484 o dell'udienza predibattimentale, a pena di decadenza. — _art. 79 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 79 c.p.p. (Termine per la costituzione di parte civile) — testo vigente, aggiornamento archivio n.d., versione `1458feb1e7fec86f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art79
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

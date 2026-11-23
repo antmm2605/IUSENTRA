@@ -1,6 +1,6 @@
 # Opposizione alla richiesta di archiviazione
 
-- ID: `ist-opposizione-archiviazione` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-opposizione-archiviazione` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione motivata al GIP con indicazione delle investigazioni suppletive e dei relativi elementi di prova.
@@ -12,10 +12,10 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Opposizione entro 20 giorni dall'evento (con sospensione feriale). — _art. 408 c.p.p._ (ancora letterale trovata nel testo vigente)
+- Opposizione entro 20 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 408 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Nell'avviso è precisato che nel termine di venti giorni la persona offesa può prendere visione degli atti e presentare opposizione con richiesta motivata di prosecuzione delle indagini; per i delitti con violenza alla persona e per il furto in abitazione il termine è di trenta giorni. — _art. 408 c.p.p.; art. 408 c.p.p._ (ancora letterale trovata nel testo vigente)
+- Nell'avviso è precisato che nel termine di venti giorni la persona offesa può prendere visione degli atti e presentare opposizione con richiesta motivata di prosecuzione delle indagini; per i delitti con violenza alla persona e per il furto in abitazione il termine è di trenta giorni. — _art. 408 c.p.p._ (ancora letterale trovata nel testo vigente)
 - L'opposizione indica, a pena di inammissibilità, l'oggetto dell'investigazione suppletiva e i relativi elementi di prova. — _art. 410 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 410 c.p.p. (Opposizione alla richiesta di archiviazione) — testo vigente, aggiornamento archivio n.d., versione `ddfb13faac61b549` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art410
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

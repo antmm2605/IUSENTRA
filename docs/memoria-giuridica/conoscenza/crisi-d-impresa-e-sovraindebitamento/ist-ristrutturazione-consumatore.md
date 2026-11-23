@@ -1,6 +1,6 @@
 # Ristrutturazione dei debiti del consumatore
 
-- ID: `ist-ristrutturazione-consumatore` · materia: crisi d'impresa e sovraindebitamento · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ristrutturazione-consumatore` · materia: crisi d'impresa e sovraindebitamento · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di ristrutturazione dei debiti tramite l'OCC al tribunale.
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 69 d.lgs. 14/2019 (CCII) (Condizioni soggettive ostative) — testo vigente, aggiornamento archivio 21/11/2026, versione `a3c83cd5f851ab2a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art69
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

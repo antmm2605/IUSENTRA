@@ -1,36 +1,36 @@
 # Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
 
-- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
 
 ## Presupposti
-- Accessori: per i crediti retributivi dei dipendenti pubblici non si cumulano interessi e rivalutazione; si riconosce la maggior somma fra i due, perché l'importo degli interessi è portato in detrazione dal maggior danno da svalutazione (regola estesa agli emolumenti dei dipendenti pubblici). — _art. 22 l. 724/1994; art. 22 l. 724/1994; art. 16 l. 412/1991_ (ancora letterale trovata nel testo vigente)
+- Accessori: per i crediti retributivi dei dipendenti pubblici non si cumulano interessi e rivalutazione; si riconosce la maggior somma fra i due, perché l'importo degli interessi è portato in detrazione dal maggior danno da svalutazione (regola estesa agli emolumenti dei dipendenti pubblici). — _art. 22 l. 724/1994; art. 16 l. 412/1991_ (ancora letterale trovata nel testo vigente)
 - Il tentativo di conciliazione è facoltativo: chi agisce «può promuovere» il tentativo dell'art. 410 c.p.c.; mediazione e negoziazione assistita non sono condizioni di procedibilità. — _art. 410 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Restano al giudice amministrativo le controversie sulle procedure concorsuali per l'assunzione e quelle del personale in regime di diritto pubblico (magistrati, avvocati dello Stato, militari, forze di polizia, personale diplomatico, professori universitari e gli altri dell'art. 3). — _art. 63 d.lgs. 165/2001; art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
+- Restano al giudice amministrativo le controversie sulle procedure concorsuali per l'assunzione e quelle del personale in regime di diritto pubblico (magistrati, avvocati dello Stato, militari, forze di polizia, personale diplomatico, professori universitari e gli altri dell'art. 3). — _art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Prescrizione: i crediti retributivi, come tutto ciò che si paga periodicamente ad anno o in termini più brevi, si prescrivono in cinque anni da ciascuna scadenza; nessuna decadenza per il ricorso. — _art. 2948 c.c.; art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- Prescrizione: i crediti retributivi, come tutto ciò che si paga periodicamente ad anno o in termini più brevi, si prescrivono in cinque anni da ciascuna scadenza; nessuna decadenza per il ricorso. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 - La sospensione feriale non si applica alle controversie di lavoro. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Il trattamento economico fondamentale e accessorio è definito dai contratti collettivi e le amministrazioni devono garantire parità di trattamento contrattuale e trattamenti non inferiori a quelli dei contratti collettivi: le differenze non pagate si chiedono con ricorso al giudice del lavoro. — _art. 45 d.lgs. 165/2001; art. 45 d.lgs. 165/2001; art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
-- Al docente delle scuole secondarie immesso in ruolo dall'anno scolastico 2023/2024 e confermato, il servizio non di ruolo prestato nelle scuole statali e pareggiate è riconosciuto come servizio di ruolo, ai fini giuridici ed economici, per intero, purché prestato senza demerito e con il titolo richiesto. — _art. 485 d.lgs. 297/1994; art. 485 d.lgs. 297/1994_ (ancora letterale trovata nel testo vigente)
+- Il trattamento economico fondamentale e accessorio è definito dai contratti collettivi e le amministrazioni devono garantire parità di trattamento contrattuale e trattamenti non inferiori a quelli dei contratti collettivi: le differenze non pagate si chiedono con ricorso al giudice del lavoro. — _art. 45 d.lgs. 165/2001; art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
+- Al docente delle scuole secondarie immesso in ruolo dall'anno scolastico 2023/2024 e confermato, il servizio non di ruolo prestato nelle scuole statali e pareggiate è riconosciuto come servizio di ruolo, ai fini giuridici ed economici, per intero, purché prestato senza demerito e con il titolo richiesto. — _art. 485 d.lgs. 297/1994_ (ancora letterale trovata nel testo vigente)
 - Per i docenti immessi in ruolo prima di quell'anno la richiesta di riconoscimento integrale si fonda sul divieto di discriminazione dei lavoratori a termine e si propone al giudice del lavoro. — _art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
-- Le controversie sui rapporti di lavoro alle dipendenze delle pubbliche amministrazioni sono devolute al giudice ordinario in funzione di giudice del lavoro, anche quando vengono in questione atti amministrativi presupposti. — _art. 63 d.lgs. 165/2001; art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
+- Le controversie sui rapporti di lavoro alle dipendenze delle pubbliche amministrazioni sono devolute al giudice ordinario in funzione di giudice del lavoro, anche quando vengono in questione atti amministrativi presupposti. — _art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
 - È competente per territorio il giudice nella cui circoscrizione ha sede l'ufficio al quale il dipendente è addetto, o era addetto al momento della cessazione del rapporto: non il foro dell'azienda o del luogo in cui è sorto il rapporto, che valgono per il lavoro privato. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Se è parte un'amministrazione dello Stato non si applica il foro erariale dell'Avvocatura dello Stato. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
-- Giurisdizione: le controversie sul rapporto di lavoro alle dipendenze delle pubbliche amministrazioni sono devolute al giudice ordinario in funzione di giudice del lavoro, anche quando vengono in questione atti amministrativi presupposti, che il giudice disapplica se illegittimi: non si ricorre al TAR. — _art. 63 d.lgs. 165/2001; art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
-- Foro (art. 413, quinto comma, c.p.c.): è competente il giudice nella cui circoscrizione ha sede l'ufficio al quale il dipendente è addetto o era addetto al momento della cessazione del rapporto [ufficio di assegnazione da completare]; le clausole che derogano a questa competenza sono nulle. — _art. 413 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Giurisdizione: le controversie sul rapporto di lavoro alle dipendenze delle pubbliche amministrazioni sono devolute al giudice ordinario in funzione di giudice del lavoro, anche quando vengono in questione atti amministrativi presupposti, che il giudice disapplica se illegittimi: non si ricorre al TAR. — _art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
+- Foro (art. 413, quinto comma, c.p.c.): è competente il giudice nella cui circoscrizione ha sede l'ufficio al quale il dipendente è addetto o era addetto al momento della cessazione del rapporto [ufficio di assegnazione da completare]; le clausole che derogano a questa competenza sono nulle. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Rito del lavoro: ricorso depositato nella cancelleria del giudice competente. — _art. 414 c.p.c._ (ancora letterale trovata nel testo vigente)
-- In primo grado l'amministrazione può stare in giudizio avvalendosi direttamente di propri dipendenti; per le amministrazioni statali l'Avvocatura dello Stato può assumere la trattazione nelle questioni di massima o di notevole rilievo economico. — _art. 417-bis c.p.c.; art. 417-bis c.p.c._ (ancora letterale trovata nel testo vigente)
-- Contributo unificato: nelle controversie di pubblico impiego è dovuto (in misura ridotta) solo se il ricorrente ha un reddito imponibile superiore a tre volte il limite del patrocinio a spese dello Stato; altrimenti è esente. — _art. 9 d.P.R. 115/2002; art. 9 d.P.R. 115/2002_ (ancora letterale trovata nel testo vigente)
+- In primo grado l'amministrazione può stare in giudizio avvalendosi direttamente di propri dipendenti; per le amministrazioni statali l'Avvocatura dello Stato può assumere la trattazione nelle questioni di massima o di notevole rilievo economico. — _art. 417-bis c.p.c._ (ancora letterale trovata nel testo vigente)
+- Contributo unificato: nelle controversie di pubblico impiego è dovuto (in misura ridotta) solo se il ricorrente ha un reddito imponibile superiore a tre volte il limite del patrocinio a spese dello Stato; altrimenti è esente. — _art. 9 d.P.R. 115/2002_ (ancora letterale trovata nel testo vigente)
 - Si applica il rito del lavoro, che riguarda anche i rapporti di lavoro dei dipendenti di enti pubblici. — _art. 409 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
@@ -88,4 +88,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

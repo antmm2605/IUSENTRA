@@ -1,6 +1,6 @@
 # Diffamazione: risarcimento civile
 
-- ID: `ist-diffamazione-civile` · materia: responsabilità civile · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-diffamazione-civile` · materia: responsabilità civile · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per risarcimento del danno (mediazione obbligatoria se a mezzo stampa o altro mezzo di pubblicità).
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2947 c.c. (Prescrizione del diritto al risarcimento del danno) — testo vigente, aggiornamento archivio 29/04/2026, versione `f792d4d582c83466` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2947
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

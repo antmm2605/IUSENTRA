@@ -1,6 +1,6 @@
 # TFR (trattamento di fine rapporto)
 
-- ID: `ist-tfr` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-tfr` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale in funzione di giudice del lavoro.
@@ -9,7 +9,7 @@
 - Sui crediti di lavoro il giudice, oltre agli interessi nella misura legale, determina il maggior danno per la diminuzione di valore del credito (rivalutazione). — _art. 429 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Prescrizione: si prescrivono in cinque anni le somme da pagare periodicamente ad anno o in termini più brevi, come le retribuzioni. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 - Il tentativo di conciliazione è facoltativo: chi intende agire «può promuovere» il tentativo previsto dall'art. 410 c.p.c.; mediazione e negoziazione assistita non sono condizioni di procedibilità per queste controversie. — _art. 410 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Il decreto ingiuntivo si chiede per un credito di una somma liquida di danaro di cui si dà prova scritta. — _art. 633 c.p.c.; art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il decreto ingiuntivo si chiede per un credito di una somma liquida di danaro di cui si dà prova scritta. — _art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Per i crediti di imprenditori relativi a somministrazioni di merci e di danaro o a prestazioni di servizi sono prova scritta anche gli estratti autentici delle scritture contabili. — _art. 634 c.p.c._ (ancora letterale trovata nel testo vigente)
 - L'esecuzione provvisoria si può chiedere, fra l'altro, se il credito è fondato su cambiale, assegno o atto ricevuto da notaio, o se c'è pericolo di grave pregiudizio nel ritardo. — _art. 642 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Né mediazione né negoziazione assistita sono condizioni di procedibilità del ricorso per decreto ingiuntivo: entrambe le discipline escludono i procedimenti per ingiunzione. — _art. 3 d.l. 132/2014; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
@@ -71,4 +71,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Provvedimento d'urgenza (art. 700 c.p.c.)
 
-- ID: `ist-ricorso-700` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ricorso-700` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 700 c.p.c. al giudice competente per il merito.
@@ -16,7 +16,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Contro l'ordinanza è ammesso reclamo entro quindici giorni. — _art. 669-terdecies c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Chi teme che, nel tempo occorrente per far valere il diritto in via ordinaria, questo sia minacciato da un pregiudizio imminente e irreparabile può chiedere con ricorso i provvedimenti d'urgenza più idonei, fuori dei casi regolati dalle altre misure cautelari (residualità). — _art. 700 c.p.c.; art. 700 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Chi teme che, nel tempo occorrente per far valere il diritto in via ordinaria, questo sia minacciato da un pregiudizio imminente e irreparabile può chiedere con ricorso i provvedimenti d'urgenza più idonei, fuori dei casi regolati dalle altre misure cautelari (residualità). — _art. 700 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Prima della causa la domanda si propone al giudice competente per il merito. — _art. 669-ter c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -51,4 +51,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 669-ter c.p.c. (Competenza anteriore alla causa) — testo vigente, aggiornamento archivio 05/03/2026, versione `9b0478d3ab076db9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669ter
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Conciliazione in materia di lavoro (artt. 410-412-ter)
 
-- ID: `ist-conciliazione-lavoro` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-conciliazione-lavoro` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** conciliazione in sede protetta (commissione presso l'Ispettorato, sede sindacale o prevista dai contratti collettivi); impugnazione scritta delle rinunce invalide entro sei mesi; Tribunale in funzione di giudice del lavoro.
@@ -13,15 +13,15 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
 - La sospensione feriale non si applica alle controversie di lavoro e di previdenza. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
-- Impugnazione della rinuncia entro 6 mesi dall'evento (senza sospensione feriale). — _art. 2113 c.c._ (ancora letterale trovata nel testo vigente)
+- Impugnazione della rinuncia entro 6 mesi, con la decorrenza indicata dalla norma citata (senza sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 2113 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-- Rinunce e transazioni del lavoratore su diritti derivanti da norme inderogabili di legge o dei contratti collettivi non sono valide e si impugnano, a pena di decadenza, entro sei mesi dalla cessazione del rapporto o dalla rinuncia o transazione se successiva, con qualsiasi atto scritto anche stragiudiziale. — _art. 2113 c.c.; art. 2113 c.c.; art. 2113 c.c._ (ancora letterale trovata nel testo vigente)
+- Rinunce e transazioni del lavoratore su diritti derivanti da norme inderogabili di legge o dei contratti collettivi non sono valide e si impugnano, a pena di decadenza, entro sei mesi dalla cessazione del rapporto o dalla rinuncia o transazione se successiva, con qualsiasi atto scritto anche stragiudiziale. — _art. 2113 c.c._ (ancora letterale trovata nel testo vigente)
 - Le conciliazioni concluse davanti alla commissione di conciliazione, in sede sindacale o nelle sedi previste dai contratti collettivi sono stabili: la regola dell'impugnazione non si applica. — _art. 2113 c.c.; art. 412-ter c.p.c._ (ancora letterale trovata nel testo vigente)
-- Se la conciliazione riesce si redige il verbale, che il giudice dichiara esecutivo con decreto su istanza della parte; se non riesce, la commissione formula una proposta di cui il giudice terrà conto. — _art. 411 c.p.c.; art. 411 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Se la conciliazione riesce si redige il verbale, che il giudice dichiara esecutivo con decreto su istanza della parte; se non riesce, la commissione formula una proposta di cui il giudice terrà conto. — _art. 411 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
-- Foro del lavoro: il giudice nella cui circoscrizione è sorto il rapporto ovvero si trova l'azienda o la dipendenza alla quale è addetto il lavoratore (per i dipendenti pubblici: l'ufficio di assegnazione). — _art. 413 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Foro del lavoro: il giudice nella cui circoscrizione è sorto il rapporto ovvero si trova l'azienda o la dipendenza alla quale è addetto il lavoratore (per i dipendenti pubblici: l'ufficio di assegnazione). — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Rito del lavoro: ricorso al giudice competente. — _art. 414 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
@@ -55,4 +55,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

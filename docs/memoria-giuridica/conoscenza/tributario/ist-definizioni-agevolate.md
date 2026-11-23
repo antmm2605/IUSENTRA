@@ -1,6 +1,6 @@
 # Definizioni agevolate (rottamazione)
 
-- ID: `ist-definizioni-agevolate` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-definizioni-agevolate` · materia: tributario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 19 d.P.R. 602/1973.
@@ -44,4 +44,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 19 d.P.R. 602/1973 (Dilazione del pagamento) — testo vigente, aggiornamento archivio 21/11/2026, versione `dcf1c1eea33ac8d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;602~art19
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

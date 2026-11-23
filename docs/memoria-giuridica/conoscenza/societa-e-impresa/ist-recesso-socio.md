@@ -1,6 +1,6 @@
 # Recesso del socio
 
-- ID: `ist-recesso-socio` · materia: società e impresa · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-recesso-socio` · materia: società e impresa · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di recesso nelle forme e nei termini di legge o di statuto.
@@ -16,7 +16,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Nella s.p.a. recedono i soci che non hanno concorso alle delibere su modifica dell'oggetto sociale, trasformazione, revoca della liquidazione, criteri di valutazione delle azioni e diritti di voto. — _art. 2437 c.c._ (ancora letterale trovata nel testo vigente)
-- Il recesso si esercita con raccomandata spedita entro quindici giorni dall'iscrizione della delibera nel registro delle imprese, o entro trenta giorni dalla conoscenza del fatto diverso da una delibera. — _art. 2437-bis c.c.; art. 2437-bis c.c._ (ancora letterale trovata nel testo vigente)
+- Il recesso si esercita con raccomandata spedita entro quindici giorni dall'iscrizione della delibera nel registro delle imprese, o entro trenta giorni dalla conoscenza del fatto diverso da una delibera. — _art. 2437-bis c.c._ (ancora letterale trovata nel testo vigente)
 - Nella s.r.l. l'atto costitutivo determina quando il socio può recedere; il recesso spetta comunque a chi non ha consentito al cambiamento dell'oggetto o del tipo, a fusione o scissione e alle altre modifiche di legge. — _art. 2473 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2437-bis c.c. (Termini e modalità di esercizio del recesso) — testo vigente, aggiornamento archivio n.d., versione `f33f1877dcf8634d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2437bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

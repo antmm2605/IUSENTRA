@@ -1,6 +1,6 @@
 # Azione di responsabilità contro gli amministratori
 
-- ID: `ist-responsabilita-amministratori` · materia: società e impresa · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-responsabilita-amministratori` · materia: società e impresa · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione sociale di responsabilità (delibera assembleare o, nella s.r.l., anche del singolo socio); azione dei creditori sociali.
@@ -15,8 +15,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Nella s.p.a. l'azione sociale è promossa in seguito a deliberazione dell'assemblea ed è esercitabile entro cinque anni dalla cessazione dell'amministratore dalla carica. — _art. 2393 c.c.; art. 2393 c.c._ (ancora letterale trovata nel testo vigente)
-- Gli amministratori rispondono verso i creditori sociali per l'inosservanza degli obblighi di conservazione dell'integrità del patrimonio; i creditori agiscono quando il patrimonio è insufficiente. — _art. 2394 c.c.; art. 2394 c.c._ (ancora letterale trovata nel testo vigente)
+- Nella s.p.a. l'azione sociale è promossa in seguito a deliberazione dell'assemblea ed è esercitabile entro cinque anni dalla cessazione dell'amministratore dalla carica. — _art. 2393 c.c._ (ancora letterale trovata nel testo vigente)
+- Gli amministratori rispondono verso i creditori sociali per l'inosservanza degli obblighi di conservazione dell'integrità del patrimonio; i creditori agiscono quando il patrimonio è insufficiente. — _art. 2394 c.c._ (ancora letterale trovata nel testo vigente)
 - Nella s.r.l. gli amministratori sono solidalmente responsabili verso la società e l'azione può essere promossa anche da ciascun socio. — _art. 2476 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -49,4 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2476 c.c. (Responsabilità degli amministratori e controllo dei soci) — testo vigente, aggiornamento archivio n.d., versione `ac86fb9f8dbb3711` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2476
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

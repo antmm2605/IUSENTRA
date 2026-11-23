@@ -1,6 +1,6 @@
 # Risoluzione alternativa delle controversie di consumo (ADR, Corecom)
 
-- ID: `ist-adr-consumo` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-adr-consumo` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda all'organismo ADR del settore (Corecom/ConciliaWeb per le comunicazioni, Servizio conciliazione ARERA per energia).
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 141 d.lgs. 206/2005 (codice del consumo) (Risoluzione extragiudiziale delle controversie) — testo vigente, aggiornamento archivio n.d., versione `dd16a321402a92c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art141
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Applicazione della pena su richiesta (patteggiamento)
 
-- ID: `ist-patteggiamento` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-patteggiamento` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di applicazione della pena con il consenso del pubblico ministero.
@@ -15,8 +15,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Imputato e pubblico ministero possono chiedere l'applicazione di una pena sostitutiva o pecuniaria diminuita fino a un terzo, o di una pena detentiva che, diminuita fino a un terzo, non superi cinque anni; possono chiedere di non applicare le pene accessorie e la confisca facoltativa. — _art. 444 c.p.p.; art. 444 c.p.p._ (ancora letterale trovata nel testo vigente)
-- La richiesta si formula fino alle conclusioni dell'udienza preliminare o, nel direttissimo, fino all'apertura del dibattimento; dopo il decreto di giudizio immediato, nei termini dell'art. 458; la volontà dell'imputato è espressa personalmente o con procuratore speciale. — _art. 446 c.p.p.; art. 446 c.p.p._ (ancora letterale trovata nel testo vigente)
+- Imputato e pubblico ministero possono chiedere l'applicazione di una pena sostitutiva o pecuniaria diminuita fino a un terzo, o di una pena detentiva che, diminuita fino a un terzo, non superi cinque anni; possono chiedere di non applicare le pene accessorie e la confisca facoltativa. — _art. 444 c.p.p._ (ancora letterale trovata nel testo vigente)
+- La richiesta si formula fino alle conclusioni dell'udienza preliminare o, nel direttissimo, fino all'apertura del dibattimento; dopo il decreto di giudizio immediato, nei termini dell'art. 458; la volontà dell'imputato è espressa personalmente o con procuratore speciale. — _art. 446 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 446 c.p.p. (Richiesta di applicazione della pena e consenso) — testo vigente, aggiornamento archivio n.d., versione `57cd16259fcea2b1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art446
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Concordato preventivo
 
-- ID: `ist-concordato` · materia: crisi d'impresa e sovraindebitamento · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-concordato` · materia: crisi d'impresa e sovraindebitamento · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per concordato preventivo (anche con riserva) al tribunale del centro degli interessi principali.
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 44 d.lgs. 14/2019 (CCII) (Accesso con riserva) — testo vigente, aggiornamento archivio 21/11/2026, versione `727a5775e0c8bc8b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art44
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

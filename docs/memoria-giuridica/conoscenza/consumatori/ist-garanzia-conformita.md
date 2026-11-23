@@ -1,6 +1,6 @@
 # Garanzia legale di conformità
 
-- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta al venditore di riparazione o sostituzione gratuita; in subordine riduzione del prezzo o risoluzione del contratto.
@@ -16,12 +16,12 @@
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-- Responsabilità del venditore per i difetti che si manifestano entro due anni dalla consegna; prescrizione dell'azione in ventisei mesi dalla consegna. — _art. 133 d.lgs. 206/2005 (codice del consumo); art. 133 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
+- Responsabilità del venditore per i difetti che si manifestano entro due anni dalla consegna; prescrizione dell'azione in ventisei mesi dalla consegna. — _art. 133 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - Il consumatore sceglie fra riparazione e sostituzione, salvo che il rimedio scelto sia impossibile o sproporzionato; sono gratuite, entro un tempo ragionevole e senza notevoli inconvenienti. — _art. 135-bis d.lgs. 206/2005 (codice del consumo); art. 135-ter d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
-- Può chiedere la riduzione proporzionale del prezzo o la risoluzione se il venditore non ripara né sostituisce, se il difetto ricompare, se è così grave da giustificarle subito o se il venditore ha dichiarato che non rimedierà; la risoluzione non spetta per un difetto di lieve entità. — _art. 135-bis d.lgs. 206/2005 (codice del consumo); art. 135-bis d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
-- La risoluzione si esercita con una dichiarazione al venditore; il bene si restituisce a spese del venditore, che rimborsa il prezzo. — _art. 135-quater d.lgs. 206/2005 (codice del consumo); art. 135-quater d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
+- Può chiedere la riduzione proporzionale del prezzo o la risoluzione se il venditore non ripara né sostituisce, se il difetto ricompare, se è così grave da giustificarle subito o se il venditore ha dichiarato che non rimedierà; la risoluzione non spetta per un difetto di lieve entità. — _art. 135-bis d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
+- La risoluzione si esercita con una dichiarazione al venditore; il bene si restituisce a spese del venditore, che rimborsa il prezzo. — _art. 135-quater d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Foro del consumatore: per la causa resta competente il giudice del luogo di residenza o domicilio elettivo del consumatore; è vessatoria la clausola che fissa un foro diverso. — _art. 33 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
@@ -63,4 +63,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 33 d.lgs. 206/2005 (codice del consumo) (Clausole vessatorie nel contratto tra professionista e consumatore) — testo vigente, aggiornamento archivio 11/11/2026, versione `24dbfba1db5d9c63` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art33
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

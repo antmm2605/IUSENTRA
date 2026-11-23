@@ -2,5 +2,5 @@
 
 | ID | Istituto | Sintesi | Fonti dirette | Stato | Sezioni | Revisione | Ultimo controllo |
 |---|---|---|---:|---|---:|---:|---|
-| `ist-permesso-soggiorno` | [Diniego o revoca del permesso di soggiorno ed espulsione](ist-permesso-soggiorno.md) | opposizione al tribunale ordinario (sezione specializzata immigrazione), non ricorso al TAR. | 2 | lacune | 1/9 | r1 | 23/11/2026 23:38 |
-| `ist-protezione-internazionale` | [Ricorso contro il diniego di protezione internazionale](ist-protezione-internazionale.md) | ricorso alla sezione specializzata immigrazione del tribunale ordinario. | 2 | lacune | 2/9 | r1 | 23/11/2026 23:38 |
+| `ist-permesso-soggiorno` | [Diniego o revoca del permesso di soggiorno ed espulsione](ist-permesso-soggiorno.md) | opposizione al tribunale ordinario (sezione specializzata immigrazione), non ricorso al TAR. | 2 | lacune | 1/9 | r1 | 23/11/2026 23:42 |
+| `ist-protezione-internazionale` | [Ricorso contro il diniego di protezione internazionale](ist-protezione-internazionale.md) | ricorso alla sezione specializzata immigrazione del tribunale ordinario. | 2 | lacune | 2/9 | r1 | 23/11/2026 23:42 |

@@ -1,6 +1,6 @@
 # Pratiche commerciali scorrette
 
-- ID: `ist-pratiche-scorrette` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-pratiche-scorrette` · materia: consumatori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** segnalazione all'Autorità garante della concorrenza e del mercato; azione civile per i danni.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Le pratiche commerciali scorrette sono vietate: è scorretta la pratica contraria alla diligenza professionale e idonea a falsare in misura apprezzabile il comportamento economico del consumatore medio. — _art. 20 d.lgs. 206/2005 (codice del consumo); art. 20 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
+- Le pratiche commerciali scorrette sono vietate: è scorretta la pratica contraria alla diligenza professionale e idonea a falsare in misura apprezzabile il comportamento economico del consumatore medio. — _art. 20 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 - È ingannevole la pratica che contiene informazioni non vere o induce in errore il consumatore medio facendogli prendere una decisione che non avrebbe preso. — _art. 21 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 - L'Autorità garante della concorrenza e del mercato interviene sulle pratiche scorrette, anche nei settori regolati. — _art. 27 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 
@@ -50,4 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 27 d.lgs. 206/2005 (codice del consumo) (Tutela amministrativa e giurisdizionale) — testo vigente, aggiornamento archivio n.d., versione `357e3f1ed91e7f65` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art27
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

@@ -1,6 +1,6 @@
 # Giudizio di ottemperanza
 
-- ID: `ist-ottemperanza` · materia: esecuzione contro la PA · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-ottemperanza` · materia: esecuzione contro la PA · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per l'ottemperanza al giudice amministrativo, con nomina eventuale di un commissario ad acta.
@@ -15,13 +15,13 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- L'ottemperanza si può chiedere per le sentenze del giudice amministrativo passate in giudicato o esecutive e per le sentenze del giudice ordinario passate in giudicato e i provvedimenti equiparati, per ottenere che l'amministrazione si conformi. — _art. 112 c.p.a.; art. 112 c.p.a._ (ancora letterale trovata nel testo vigente)
+- L'ottemperanza si può chiedere per le sentenze del giudice amministrativo passate in giudicato o esecutive e per le sentenze del giudice ordinario passate in giudicato e i provvedimenti equiparati, per ottenere che l'amministrazione si conformi. — _art. 112 c.p.a._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-- Il ricorso si notifica all'amministrazione e alle altre parti del giudizio, anche senza diffida; con esso si deposita il provvedimento con la prova del passaggio in giudicato. L'azione si prescrive in dieci anni dal giudicato. — _art. 114 c.p.a.; art. 114 c.p.a.; art. 114 c.p.a._ (ancora letterale trovata nel testo vigente)
+- Il ricorso si notifica all'amministrazione e alle altre parti del giudizio, anche senza diffida; con esso si deposita il provvedimento con la prova del passaggio in giudicato. L'azione si prescrive in dieci anni dal giudicato. — _art. 114 c.p.a._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
@@ -43,4 +43,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 114 c.p.a. (Procedimento) — testo vigente, aggiornamento archivio 12/12/2025, versione `8a4a21dd906b837b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art114
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

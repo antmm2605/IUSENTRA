@@ -1,6 +1,6 @@
 # Diffida e messa in mora
 
-- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** lettera di diffida e messa in mora via PEC o raccomandata, con termine per adempiere.
@@ -20,7 +20,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - L'intimazione o richiesta fatta per iscritto costituisce in mora il debitore e fa decorrere gli effetti della mora. — _art. 1219 c.c._ (ancora letterale trovata nel testo vigente)
-- Se si vuole anche la risoluzione del contratto, la diffida ad adempiere deve dare un termine non inferiore a quindici giorni, decorso il quale il contratto è risolto di diritto. — _art. 1454 c.c.; art. 1454 c.c._ (ancora letterale trovata nel testo vigente)
+- Se si vuole anche la risoluzione del contratto, la diffida ad adempiere deve dare un termine non inferiore a quindici giorni, decorso il quale il contratto è risolto di diritto. — _art. 1454 c.c._ (ancora letterale trovata nel testo vigente)
 - Il ricorso per decreto ingiuntivo non richiede la negoziazione assistita: la diffida è utile, ma non è una condizione per chiedere l'ingiunzione. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -60,4 +60,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 6 d.lgs. 231/2002 (Risarcimento delle spese di recupero) — testo vigente, aggiornamento archivio 01/01/2020, versione `960757015f4d4785` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2002-10-09;231~art6
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

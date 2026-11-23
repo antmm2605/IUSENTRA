@@ -1,12 +1,12 @@
 # Sequestro ante causam: efficacia e inizio del giudizio di merito
 
-- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per sequestro conservativo ante causam al giudice competente per il merito; poi esecuzione entro trenta giorni e inizio del merito nel termine perentorio; Tribunale competente per territorio sul merito.
 
 ## Presupposti
-- Il sequestro conservativo può essere autorizzato su istanza del creditore che ha fondato timore di perdere la garanzia del proprio credito, su beni mobili o immobili del debitore o su somme e cose a lui dovute, nei limiti in cui la legge ne permette il pignoramento. — _art. 671 c.p.c.; art. 671 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il sequestro conservativo può essere autorizzato su istanza del creditore che ha fondato timore di perdere la garanzia del proprio credito, su beni mobili o immobili del debitore o su somme e cose a lui dovute, nei limiti in cui la legge ne permette il pignoramento. — _art. 671 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Occorrono quindi due requisiti da provare nel ricorso: la probabile esistenza del credito (fumus boni iuris) e il fondato timore di perderne la garanzia (periculum in mora), da dimostrare con fatti concreti come vendite, donazioni o svuotamento dei conti, non con il solo inadempimento. — _art. 671 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Mediazione e negoziazione assistita, anche dove sono condizioni di procedibilità del merito, non impediscono di chiedere e ottenere subito i provvedimenti cautelari. — _art. 5 d.lgs. 28/2010; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
 - Il provvedimento che autorizza il sequestro perde efficacia se non è eseguito entro trenta giorni dalla pronuncia. — _art. 675 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Se il sequestro è concesso prima della causa, l'ordinanza fissa un termine perentorio non superiore a sessanta giorni per iniziare il merito; se non lo fissa, il merito va iniziato entro sessanta giorni, che decorrono dalla pronuncia in udienza o altrimenti dalla comunicazione. Se il merito non inizia in tempo il sequestro perde efficacia. — _art. 669-octies c.p.c.; art. 669-octies c.p.c.; art. 669-novies c.p.c._ (ancora letterale trovata nel testo vigente)
+- Se il sequestro è concesso prima della causa, l'ordinanza fissa un termine perentorio non superiore a sessanta giorni per iniziare il merito; se non lo fissa, il merito va iniziato entro sessanta giorni, che decorrono dalla pronuncia in udienza o altrimenti dalla comunicazione. Se il merito non inizia in tempo il sequestro perde efficacia. — _art. 669-octies c.p.c.; art. 669-novies c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 _Sezione mancante: nessuna conclusione verificata nelle regole dell'istituto._
@@ -60,4 +60,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 669-bis c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `3a6217845747074c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

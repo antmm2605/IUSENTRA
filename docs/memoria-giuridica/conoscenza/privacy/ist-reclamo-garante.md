@@ -1,6 +1,6 @@
 # Reclamo al Garante privacy
 
-- ID: `ist-reclamo-garante` · materia: privacy · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-reclamo-garante` · materia: privacy · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** reclamo al Garante (in alternativa al ricorso al giudice per lo stesso oggetto).
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- L'interessato che ritenga violati i propri diritti può proporre reclamo al Garante o ricorso all'autorità giudiziaria: il reclamo non si propone se per lo stesso oggetto e fra le stesse parti è già adito il giudice, e lo rende poi improponibile. — _art. 140-bis d.lgs. 196/2003; art. 140-bis d.lgs. 196/2003_ (ancora letterale trovata nel testo vigente)
+- L'interessato che ritenga violati i propri diritti può proporre reclamo al Garante o ricorso all'autorità giudiziaria: il reclamo non si propone se per lo stesso oggetto e fra le stesse parti è già adito il giudice, e lo rende poi improponibile. — _art. 140-bis d.lgs. 196/2003_ (ancora letterale trovata nel testo vigente)
 - Il reclamo indica in modo dettagliato fatti, disposizioni violate, misure richieste e titolare del trattamento, ed è sottoscritto dall'interessato o da un ente del terzo settore su suo mandato. — _art. 142 d.lgs. 196/2003; art. 141 d.lgs. 196/2003_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 142 d.lgs. 196/2003 (Proposizione del reclamo) — testo vigente, aggiornamento archivio 21/11/2026, versione `4d5254e2a4f7f810` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2003-06-30;196~art142
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

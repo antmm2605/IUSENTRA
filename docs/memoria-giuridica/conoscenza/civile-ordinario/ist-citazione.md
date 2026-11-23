@@ -1,6 +1,6 @@
 # Atto di citazione (rito ordinario di cognizione)
 
-- ID: `ist-citazione` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-citazione` · materia: civile ordinario · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione a udienza fissa notificato al convenuto, con iscrizione a ruolo.
@@ -53,4 +53,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 171-bis c.p.c. (Verifiche preliminari) — testo vigente, aggiornamento archivio n.d., versione `56e2865b2097b93a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171bis
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

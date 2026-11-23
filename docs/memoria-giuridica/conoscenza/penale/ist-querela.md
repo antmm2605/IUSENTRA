@@ -1,6 +1,6 @@
 # Querela
 
-- ID: `ist-querela` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-querela` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 124 c.p., art. 336 c.p.p..
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 336 c.p.p. (Querela) — testo vigente, aggiornamento archivio 11/11/2026, versione `6077f31820720cd1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:1988-09-22;447~art336
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

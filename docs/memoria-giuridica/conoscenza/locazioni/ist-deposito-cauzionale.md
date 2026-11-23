@@ -1,6 +1,6 @@
 # Restituzione del deposito cauzionale e cause di locazione
 
-- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 447-bis c.p.c..
@@ -19,8 +19,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 - Mediazione obbligatoria: la controversia in materia di locazione rientra nell'elenco dell'art. 5, comma 1, d.lgs. 28/2010; l'esperimento del procedimento di mediazione è condizione di procedibilità della domanda. — _art. 5 d.lgs. 28/2010, comma 1; art. 5 d.lgs. 28/2010, comma 2_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
-- Per le cause in materia di locazione di immobili è competente il giudice del luogo dove è posto l'immobile; il giudice è il tribunale, perché il giudice di pace è competente solo per le cause su beni mobili e per le materie elencate dall'art. 7 c.p.c. — _art. 21 c.p.c.; art. 21 c.p.c.; art. 7 c.p.c.; art. 9 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Rito delle locazioni: le controversie in materia di locazione di immobili urbani seguono le norme del rito del lavoro in quanto applicabili; sono nulle le clausole di deroga alla competenza. — _art. 447-bis c.p.c.; art. 447-bis c.p.c._ (ancora letterale trovata nel testo vigente)
+- Per le cause in materia di locazione di immobili è competente il giudice del luogo dove è posto l'immobile; il giudice è il tribunale, perché il giudice di pace è competente solo per le cause su beni mobili e per le materie elencate dall'art. 7 c.p.c. — _art. 21 c.p.c.; art. 7 c.p.c.; art. 9 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito delle locazioni: le controversie in materia di locazione di immobili urbani seguono le norme del rito del lavoro in quanto applicabili; sono nulle le clausole di deroga alla competenza. — _art. 447-bis c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
@@ -52,4 +52,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 9 c.p.c. (Competenza del tribunale) — testo vigente, aggiornamento archivio 05/03/2026, versione `3513c78f4e954cde` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art9
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

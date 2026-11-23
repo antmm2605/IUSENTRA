@@ -1,6 +1,6 @@
 # Remissione della querela
 
-- ID: `ist-remissione-querela` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-remissione-querela` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di remissione all'autorità procedente (o a un ufficiale di polizia giudiziaria) e accettazione del querelato.
@@ -16,8 +16,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Nei reati punibili a querela la remissione estingue il reato; può essere processuale o extraprocessuale, espressa o tacita. — _art. 152 c.p._ (ancora letterale trovata nel testo vigente)
-- È remissione tacita anche la mancata comparizione senza giustificato motivo del querelante citato come testimone e la partecipazione a un programma di giustizia riparativa concluso con esito riparativo. — _art. 152 c.p.; art. 152 c.p._ (ancora letterale trovata nel testo vigente)
-- La remissione e l'accettazione si fanno personalmente o con procuratore speciale, con dichiarazione all'autorità procedente o a un ufficiale di polizia giudiziaria; le spese del procedimento sono del querelato, salvo diverso accordo. — _art. 340 c.p.p.; art. 340 c.p.p._ (ancora letterale trovata nel testo vigente)
+- È remissione tacita anche la mancata comparizione senza giustificato motivo del querelante citato come testimone e la partecipazione a un programma di giustizia riparativa concluso con esito riparativo. — _art. 152 c.p._ (ancora letterale trovata nel testo vigente)
+- La remissione e l'accettazione si fanno personalmente o con procuratore speciale, con dichiarazione all'autorità procedente o a un ufficiale di polizia giudiziaria; le spese del procedimento sono del querelato, salvo diverso accordo. — _art. 340 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 340 c.p.p. (Remissione della querela) — testo vigente, aggiornamento archivio n.d., versione `8fab400a9a65dd68` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art340
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

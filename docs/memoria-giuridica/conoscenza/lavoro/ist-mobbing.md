@@ -1,6 +1,6 @@
 # Mobbing, straining e demansionamento
 
-- ID: `ist-mobbing` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-mobbing` · materia: lavoro · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. per la reintegra nelle mansioni e il risarcimento del danno alla salute e alla professionalità; Tribunale in funzione di giudice del lavoro.
@@ -17,10 +17,10 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Rimedi e forme
 - Il datore deve adottare le misure necessarie a tutelare l'integrità fisica e la personalità morale del lavoratore: le condotte vessatorie o la loro tolleranza sono inadempimento contrattuale e obbligano al risarcimento. — _art. 2087 c.c._ (ancora letterale trovata nel testo vigente)
-- Il lavoratore va adibito alle mansioni per cui è stato assunto o riconducibili allo stesso livello e categoria; le mansioni del livello inferiore sono ammesse solo per modifica degli assetti organizzativi, nella stessa categoria legale, con comunicazione scritta a pena di nullità e conservazione del livello e del trattamento. — _art. 2103 c.c.; art. 2103 c.c._ (ancora letterale trovata nel testo vigente)
+- Il lavoratore va adibito alle mansioni per cui è stato assunto o riconducibili allo stesso livello e categoria; le mansioni del livello inferiore sono ammesse solo per modifica degli assetti organizzativi, nella stessa categoria legale, con comunicazione scritta a pena di nullità e conservazione del livello e del trattamento. — _art. 2103 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
-- Foro del lavoro: il giudice nella cui circoscrizione è sorto il rapporto ovvero si trova l'azienda o la dipendenza alla quale è addetto il lavoratore (per i dipendenti pubblici: l'ufficio di assegnazione). — _art. 413 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Foro del lavoro: il giudice nella cui circoscrizione è sorto il rapporto ovvero si trova l'azienda o la dipendenza alla quale è addetto il lavoratore (per i dipendenti pubblici: l'ufficio di assegnazione). — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Rito del lavoro: ricorso al giudice competente. — _art. 414 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
@@ -56,4 +56,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

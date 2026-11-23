@@ -1,6 +1,6 @@
 # Azione di manutenzione
 
-- ID: `ist-manutenzione` · materia: possessorio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-manutenzione` · materia: possessorio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per manutenzione nel possesso al tribunale del luogo.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Chi è molestato nel possesso di un immobile o di un diritto reale su un immobile può chiedere, entro l'anno dalla turbativa, la manutenzione; l'azione spetta se il possesso dura da oltre un anno, continuo e non interrotto. — _art. 1170 c.c.; art. 1170 c.c._ (ancora letterale trovata nel testo vigente)
+- Chi è molestato nel possesso di un immobile o di un diritto reale su un immobile può chiedere, entro l'anno dalla turbativa, la manutenzione; l'azione spetta se il possesso dura da oltre un anno, continuo e non interrotto. — _art. 1170 c.c._ (ancora letterale trovata nel testo vigente)
 - La domanda si propone con ricorso al giudice del luogo. — _art. 703 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -46,4 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 703 c.p.c. (Domande di reintegrazione e di manutenzione nel possesso) — testo vigente, aggiornamento archivio n.d., versione `378a4a687e8cd9cf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art703
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

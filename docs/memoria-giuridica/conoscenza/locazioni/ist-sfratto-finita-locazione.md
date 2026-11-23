@@ -1,6 +1,6 @@
 # Licenza e sfratto per finita locazione
 
-- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di licenza (prima della scadenza) o di sfratto (dopo la scadenza) per finita locazione, con citazione per la convalida; Tribunale del luogo dell'immobile.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Il locatore può intimare licenza per finita locazione prima della scadenza del contratto, con contestuale citazione per la convalida, rispettando i termini del contratto, della legge o degli usi; dopo la scadenza può intimare lo sfratto con la stessa citazione. — _art. 657 c.p.c.; art. 657 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il locatore può intimare licenza per finita locazione prima della scadenza del contratto, con contestuale citazione per la convalida, rispettando i termini del contratto, della legge o degli usi; dopo la scadenza può intimare lo sfratto con la stessa citazione. — _art. 657 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - È competente il tribunale del luogo in cui si trova la cosa locata. — _art. 661 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -48,4 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 661 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `bed85335f84f3c14` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art661
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

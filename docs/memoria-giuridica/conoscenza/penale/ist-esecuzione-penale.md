@@ -1,6 +1,6 @@
 # Esecuzione penale e incidente di esecuzione
 
-- ID: `ist-esecuzione-penale` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-esecuzione-penale` · materia: penale · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza al giudice dell'esecuzione (art. 666 c.p.p.) o al tribunale di sorveglianza per le misure alternative.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Per pene detentive (anche residue) non superiori a tre anni, o quattro nei casi dell'art. 47-ter ord. pen., il pubblico ministero sospende l'esecuzione e notifica ordine e decreto di sospensione per consentire l'istanza di misure alternative. — _art. 656 c.p.p.; art. 656 c.p.p._ (ancora letterale trovata nel testo vigente)
+- Per pene detentive (anche residue) non superiori a tre anni, o quattro nei casi dell'art. 47-ter ord. pen., il pubblico ministero sospende l'esecuzione e notifica ordine e decreto di sospensione per consentire l'istanza di misure alternative. — _art. 656 c.p.p._ (ancora letterale trovata nel testo vigente)
 - È competente per l'esecuzione il giudice che ha deliberato il provvedimento (salve le regole per i giudizi di impugnazione); procede a richiesta del pubblico ministero, dell'interessato o del difensore. — _art. 665 c.p.p.; art. 666 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 656 c.p.p. (Esecuzione delle pene detentive) — testo vigente, aggiornamento archivio n.d., versione `9e9a4738926f8beb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art656
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

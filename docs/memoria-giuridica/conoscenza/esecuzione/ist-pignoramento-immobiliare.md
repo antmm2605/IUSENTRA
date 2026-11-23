@@ -1,6 +1,6 @@
 # Pignoramento immobiliare
 
-- ID: `ist-pignoramento-immobiliare` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-pignoramento-immobiliare` · materia: esecuzione · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di pignoramento immobiliare notificato e trascritto, iscrizione a ruolo, istanza di vendita con la documentazione.
@@ -18,7 +18,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Rimedi e forme
 - Il pignoramento immobiliare si esegue con la notificazione al debitore e la successiva trascrizione di un atto che indica esattamente i beni e i diritti immobiliari. — _art. 555 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il creditore iscrive a ruolo il processo depositando titolo, precetto, atto di pignoramento e nota di trascrizione entro quindici giorni dalla consegna dell'atto, a pena di inefficacia. — _art. 557 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Con l'istanza di vendita il creditore deposita, entro il termine di efficacia del pignoramento, l'estratto del catasto e i certificati delle iscrizioni e trascrizioni dei venti anni anteriori, o il certificato notarile. — _art. 567 c.p.c.; art. 567 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Con l'istanza di vendita il creditore deposita, entro il termine di efficacia del pignoramento, l'estratto del catasto e i certificati delle iscrizioni e trascrizioni dei venti anni anteriori, o il certificato notarile. — _art. 567 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -53,4 +53,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 497 c.p.c. (Cessazione dell'efficacia del pignoramento) — testo vigente, aggiornamento archivio n.d., versione `0243d50b16d61f1d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art497
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

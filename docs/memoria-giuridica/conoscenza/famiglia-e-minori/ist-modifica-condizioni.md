@@ -1,6 +1,6 @@
 # Modifica delle condizioni di separazione o divorzio
 
-- ID: `ist-modifica-condizioni` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-modifica-condizioni` · materia: famiglia e minori · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per la revisione dei provvedimenti con le forme del rito unitario della famiglia, oppure accordo con negoziazione assistita.
@@ -15,7 +15,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-- Se sopravvengono giustificati motivi, le parti possono in ogni tempo chiedere la revisione dei provvedimenti a tutela dei minori e in materia di contributi economici, con le forme del procedimento in materia di famiglia. — _art. 473-bis.29 c.p.c.; art. 473-bis.29 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Se sopravvengono giustificati motivi, le parti possono in ogni tempo chiedere la revisione dei provvedimenti a tutela dei minori e in materia di contributi economici, con le forme del procedimento in materia di famiglia. — _art. 473-bis.29 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Se c'è accordo, la modifica delle condizioni di separazione o di divorzio si può fare anche con la negoziazione assistita da almeno un avvocato per parte. — _art. 6 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
@@ -47,4 +47,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 6 d.l. 132/2014 (Convenzione di negoziazione assistita per la separazione e il divorzio) — testo vigente, aggiornamento archivio n.d., versione `f93d860729b2dafa` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art6
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

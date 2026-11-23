@@ -1,12 +1,12 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 1 · ultimo controllo 23/11/2026 23:38
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 1 · ultimo controllo 23/11/2026 23:42
 - Stato: verificata · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 633 c.p.c., art. 634 c.p.c., art. 641 c.p.c., art. 644 c.p.c..
 
 ## Presupposti
-- Il decreto ingiuntivo si chiede per un credito di una somma liquida di danaro di cui si dà prova scritta. — _art. 633 c.p.c.; art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il decreto ingiuntivo si chiede per un credito di una somma liquida di danaro di cui si dà prova scritta. — _art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Per i crediti di imprenditori relativi a somministrazioni di merci e di danaro o a prestazioni di servizi sono prova scritta anche gli estratti autentici delle scritture contabili. — _art. 634 c.p.c._ (ancora letterale trovata nel testo vigente)
 - L'esecuzione provvisoria si può chiedere, fra l'altro, se il credito è fondato su cambiale, assegno o atto ricevuto da notaio, o se c'è pericolo di grave pregiudizio nel ritardo. — _art. 642 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Né mediazione né negoziazione assistita sono condizioni di procedibilità del ricorso per decreto ingiuntivo: entrambe le discipline escludono i procedimenti per ingiunzione. — _art. 3 d.l. 132/2014; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
@@ -57,4 +57,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 637 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `3798af16206abf88` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art637
 
 ## Cronologia delle revisioni
-- r1 · 23/11/2026 23:38 · prima generazione
+- r1 · 23/11/2026 23:42 · prima generazione

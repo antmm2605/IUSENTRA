@@ -23,6 +23,12 @@ def _prima_data(f: Fatti):
 # ---------------------------------------------------------------------------------- negoziazione / mediazione puntuali
 def riconosci_negoziazione(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
+    if f.importi and not c.racconto and not f.ha("caparra_confirmatoria") and re.search(
+            r"serve (?:qualcosa|altro|un passaggio|un tentativo) prima|prima (?:della causa|di fare causa|di agire|di andare dal giudice)|"
+            r"condizion\w* di procedibil|passaggi? (?:obbligatori|preliminari)|tentativo obbligatorio", t) and not f.ha("locazione") and re.search(
+            r"prestit|prestat|fattur|credit|soldi|somm|pagament|restitu", t) and not re.search(
+            r"sequestr|cautel|urgenz|blocc|congel|svuot|quale giudice|competen|sinistr|incident|circolazion|lavor|condomin|eredit|medic", t):
+        return 7
     return 3 if "negoziazione" in t and f.importi and not c.racconto and not f.ha("caparra_confirmatoria") else 0
 
 

@@ -189,3 +189,24 @@ def test_sentenza_assente_o_organo_diverso():
     assert trova_sentenza(_sentenze(), riconosci_sentenza("Cass. n. 75/2019")) is None
     esito = risposta_certa("Cass. n. 999/2020 cosa ha deciso?", sentenze=_sentenze)
     assert esito.tipo == "sentenza_assente" and "non ne riporto" in esito.testo
+
+
+def test_sentenza_amministrativa_letta_subito_dal_sito_ufficiale():
+    from lex.testi_ufficiali import risposta_sentenza
+
+    richieste = []
+
+    def testo_amministrativo(domanda, richiesta):
+        richieste.append((domanda, richiesta))
+        return {"ok": True, "testo": "REPUBBLICA ITALIANA\nIl Tribunale Amministrativo Regionale per il Lazio ...",
+                "url": "https://mdp.giustizia-amministrativa.it/visualizza/?schema=tar_rm", "pubblicato_il": "03/02/2025"}
+
+    esito = risposta_sentenza("mi dai il testo della sentenza TAR Lazio n. 1731/2025?", lambda: [],
+                              testo_amministrativo=testo_amministrativo)
+    assert richieste[0][1].organo == "tar" and (richieste[0][1].numero, richieste[0][1].anno) == ("1731", "2025")
+    assert esito["tipo"] == "sentenza" and "> REPUBBLICA ITALIANA" in esito["testo"] and "03/02/2025" in esito["testo"]
+    assert esito["testo"].startswith("**T.A.R. n. 1731/2025**")
+    assente = risposta_sentenza("Cons. Stato n. 7168/2026", lambda: [], testo_amministrativo=lambda _d, _r: {
+        "ok": False, "messaggio": "Il testo di questa sentenza non è pubblicato sul sito della Giustizia amministrativa.", "url": ""})
+    assert assente["tipo"] == "sentenza_assente" and "non è pubblicato" in assente["testo"]
+    assert riconosci_sentenza("CGA n. 659/2026").organo == "cga"

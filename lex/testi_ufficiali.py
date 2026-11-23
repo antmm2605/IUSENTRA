@@ -134,13 +134,14 @@ class RichiestaArticolo:
 
 @dataclass(frozen=True)
 class RichiestaSentenza:
-    organo: str   # «cassazione», «costituzionale», «consiglio di stato», ""
+    organo: str   # «cassazione», «costituzionale», «consiglio di stato», «cga», «tar», ""
     numero: str
     anno: str
 
     @property
     def citazione(self) -> str:
-        nomi = {"cassazione": "Cass.", "costituzionale": "Corte cost.", "consiglio di stato": "Cons. Stato"}
+        nomi = {"cassazione": "Cass.", "costituzionale": "Corte cost.", "consiglio di stato": "Cons. Stato", "cga": "C.G.A.R.S.",
+                "tar": "T.A.R."}
         prefisso = nomi.get(self.organo, "Sentenza")
         return f"{prefisso} n. {self.numero}/{self.anno}"
 
@@ -286,16 +287,18 @@ _ORGANI = (
     (r"\bcass(?:azione|\.)?\b|suprema corte|\bs\.?u\.?\b|sezioni unite", "cassazione"),
     (r"corte cost(?:ituzionale|\.)?|\bc\.?\s?cost\.?", "costituzionale"),
     (r"consiglio di stato|cons\.?\s?stato|\bcds\b", "consiglio di stato"),
+    (r"consiglio di giustizia amministrativa|\bc\.?g\.?a\.?(?=\s|$|,)", "cga"),
+    (r"\btar\b|tribunale amministrativo", "tar"),
 )
 _NUMERO_ANNO = re.compile(r"\b(?:n\.?|nr\.?|numero|sent(?:enza|\.)?|ord(?:inanza|\.)?)\s*(\d{1,6})\s*(?:/\s*|del\s+(?:\d{1,2}[./-]\d{1,2}[./-])?|dell'anno\s+)(\d{4})\b")
 
 
-_ORGANO_NUMERO = re.compile(r"\b(?:cass(?:azione|\.)?|corte cost(?:ituzionale|\.)?|cons\.?\s?stato|consiglio di stato)[^0-9]{0,40}?(\d{1,6})\s*/\s*(\d{4})\b")
+_ORGANO_NUMERO = re.compile(r"\b(?:cass(?:azione|\.)?|corte cost(?:ituzionale|\.)?|cons\.?\s?stato|consiglio di stato|tar|cga)[^0-9]{0,40}?(\d{1,6})\s*/\s*(\d{4})\b")
 
 
 def riconosci_sentenza(domanda: str) -> RichiestaSentenza | None:
     testo = _norm(domanda)
-    if not re.search(r"sentenz|ordinanz|pronuncia|decision|cass|corte|consiglio di stato|\bcds\b", testo):
+    if not re.search(r"sentenz|ordinanz|pronuncia|decision|cass|corte|consiglio di stato|cons\.?\s?stato|\bcds\b|\btar\b|\bcga\b", testo):
         return None
     m = _NUMERO_ANNO.search(testo) or _ORGANO_NUMERO.search(testo)
     if not m:
@@ -322,6 +325,8 @@ def _organo_coincide(riga: dict[str, Any], richiesta: RichiestaSentenza) -> bool
         "cassazione": ("cassazione", "cass"),
         "costituzionale": ("costituzional",),
         "consiglio di stato": ("consiglio di stato", "giustizia_amministrativa", "cds"),
+        "cga": ("giustizia amministrativa per la regione siciliana", "cga"),
+        "tar": ("tribunale amministrativo", "tar "),
     }[richiesta.organo]
     return any(c in testo for c in chiavi)
 
@@ -424,7 +429,43 @@ def risposta_articolo(domanda: str, percorso_db: str | Path, *, runtime_catalog:
     }
 
 
-def risposta_sentenza(domanda: str, sentenze: Callable[[], Iterable[dict[str, Any]]] | None) -> dict[str, Any] | None:
+_ORGANI_AMMINISTRATIVI = {"consiglio di stato", "cga", "tar"}
+_TESTO_MASSIMO = 12000
+
+
+def testo_amministrativo_ufficiale(domanda: str, richiesta: RichiestaSentenza) -> dict[str, Any] | None:
+    """Il testo integrale dall'archivio dei testi amministrativi o, se manca, letto subito dal sito ufficiale."""
+    import os
+
+    from pct.giustizia_amministrativa_testi import ArchivioTestiGA, testo_su_richiesta
+
+    percorso = os.environ.get("PCT_GA_TESTI_DB", "").strip()
+    if not percorso and os.environ.get("PCT_LEGAL_INTELLIGENCE_DB", "").strip():
+        percorso = str(Path(os.environ["PCT_LEGAL_INTELLIGENCE_DB"]).resolve().parent / "ga_testi.sqlite")
+    if not percorso or not Path(percorso).is_file():
+        return None
+    organo = {"consiglio di stato": "Consiglio di Stato", "cga": "CGA"}.get(richiesta.organo, domanda)
+    return testo_su_richiesta(ArchivioTestiGA(percorso), anno=richiesta.anno, numero=richiesta.numero, organo=organo)
+
+
+def _risposta_testo_amministrativo(richiesta: RichiestaSentenza, esito: dict[str, Any]) -> dict[str, Any]:
+    url = str(esito.get("url") or "https://www.giustizia-amministrativa.it/")
+    if not esito.get("ok"):
+        return {"testo": f"{esito.get('messaggio') or 'Testo non disponibile.'} Pagina ufficiale: {url}",
+                "fonti": [{"title": "Giustizia amministrativa", "url": url}], "tipo": "sentenza_assente"}
+    testo = str(esito["testo"])
+    righe = [f"**{richiesta.citazione}** — testo integrale dal sito della Giustizia amministrativa"
+             + (f", pubblicato il {esito['pubblicato_il']}" if esito.get("pubblicato_il") else "") + ":", "",
+             _blocco_citato(testo[:_TESTO_MASSIMO])]
+    if len(testo) > _TESTO_MASSIMO:
+        righe += ["", f"(Riportati i primi {_TESTO_MASSIMO} caratteri su {len(testo)}: il testo completo è sulla pagina ufficiale.)"]
+    righe += ["", f"Pagina ufficiale: {url}"]
+    return {"testo": "\n".join(righe), "fonti": [{"title": richiesta.citazione, "url": url}], "tipo": "sentenza"}
+
+
+def risposta_sentenza(domanda: str, sentenze: Callable[[], Iterable[dict[str, Any]]] | None, *,
+                      testo_amministrativo: Callable[[str, RichiestaSentenza], dict[str, Any] | None] | None = None
+                      ) -> dict[str, Any] | None:
     richiesta = riconosci_sentenza(domanda)
     if richiesta is None:
         return None
@@ -434,11 +475,20 @@ def risposta_sentenza(domanda: str, sentenze: Callable[[], Iterable[dict[str, An
             riga = trova_sentenza(sentenze(), richiesta)
         except Exception:
             riga = None
+    if riga is None and richiesta.organo in _ORGANI_AMMINISTRATIVI:
+        try:
+            esito = (testo_amministrativo or testo_amministrativo_ufficiale)(domanda, richiesta)
+        except Exception:
+            esito = None
+        if esito is not None:
+            return _risposta_testo_amministrativo(richiesta, esito)
     if riga is None:
         fonte = {
             "cassazione": ("SentenzeWeb (Corte di cassazione)", SENTENZEWEB),
             "costituzionale": ("Corte costituzionale", "https://www.cortecostituzionale.it/actionPronuncia.do"),
             "consiglio di stato": ("Giustizia amministrativa", "https://www.giustizia-amministrativa.it/"),
+            "cga": ("Giustizia amministrativa", "https://www.giustizia-amministrativa.it/"),
+            "tar": ("Giustizia amministrativa", "https://www.giustizia-amministrativa.it/"),
         }.get(richiesta.organo, ("Portale della giurisprudenza ufficiale", SENTENZEWEB))
         return {
             "testo": (

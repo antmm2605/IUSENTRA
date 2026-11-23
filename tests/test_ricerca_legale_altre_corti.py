@@ -39,3 +39,12 @@ def test_openga_solo_estremi_ed_esito_dal_catalogo():
 def test_openga_spento_o_risposta_fuori_perimetro_non_produce_righe():
     assert decisioni_giustizia_amministrativa("x", endpoint="") == []
     assert decisioni_giustizia_amministrativa("x", endpoint="http://openga", richiesta=lambda _e, _q: {"risultati": [{}]}) == []
+
+
+def test_openga_apre_il_testo_integrale_su_richiesta():
+    risposta = {"evidence_scope": "metadata_only", "risultati": [{
+        "organo_giudicante": "TAR CALABRIA - REGGIO CALABRIA", "numero_sentenza": "202500412", "anno_sentenza": 2025,
+        "numero_ricorso": "202400310", "oggetto": "EDILIZIA", "esito": "ACCOGLIE", "decisione_id": "009|SENTENZA|2025|202500412"}]}
+    riga = decisioni_giustizia_amministrativa("edilizia", endpoint="http://openga", richiesta=lambda _e, _q: risposta)[0]
+    assert riga["reader_href"] == ("/api/v1/ui/giustizia-amministrativa/testo/pagina?organo=TAR+CALABRIA+-+REGGIO+CALABRIA"
+                                   "&anno=2025&numero=202500412&ricorso=202400310")

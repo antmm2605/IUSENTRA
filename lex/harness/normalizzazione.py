@@ -30,6 +30,7 @@ SINONIMI: tuple[tuple[str, str], ...] = (
     (r"\bcapo\b(?= (?:mi|ci|lo|la|gli|le|ha|non))", "datore di lavoro"),
     (r"\bex moglie\b|\bex marito\b", "ex coniuge"),
     (r"\bmantenimento dei (?:figli|bambini|ragazzi)\b", "mantenimento figli"),
+    (r"non (?:mi |ci |le |gli )?passa (?:piu )?(?:i soldi|il mantenimento|l assegno|niente)", "mantenimento non versato"),
     (r"\bcondominio\b|\bamministratore di condominio\b", "condominio"),
     (r"\bvicino di casa\b", "vicino condomino"),
     (r"\bcomprat\w* (?:in|su internet|online|al negozio|dal negozio)", "acquistato consumatore"),

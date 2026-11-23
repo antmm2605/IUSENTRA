@@ -60,3 +60,11 @@ def testo_chiarimento_lato(scelte: list[str]) -> str:
             "**Scegli una delle due domande e rimandala**\n"
             f"1. {scelte[0]}\n"
             f"2. {scelte[1]}")
+
+
+def testo_chiarimento_strumento(scelte: list[str], nomi: list[str]) -> str:
+    righe = "\n".join(f"{k}. {s}" for k, s in enumerate(scelte, 1))
+    return ("**Serve una precisazione**\n"
+            "- Dai fatti descritti non riconosco con certezza lo strumento. I più vicini sono: " + "; ".join(nomi) + ". "
+            "Scegli quello che ti serve: rispondo con le norme vigenti di quello strumento.\n\n"
+            "**Scegli una delle domande e rimandala**\n" + righe)

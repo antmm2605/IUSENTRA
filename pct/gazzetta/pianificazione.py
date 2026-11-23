@@ -25,11 +25,30 @@ def percorso_archivio(config: Mapping[str, Any]) -> Path:
     return Path(ancora).resolve().parent / "gazzetta_ufficiale.sqlite"
 
 
+TEMPO_STORICO_MASSIMO = 3300.0  # il giro orario (cron al minuto 25, una istanza) non si somma al successivo
+
+
+def tempo_storico(config: Mapping[str, Any]) -> float:
+    """Secondi del recupero storico in ogni giro orario: ``GAZZETTA_TEMPO_STORICO`` nella configurazione oppure
+    ``PCT_GAZZETTA_TEMPO_STORICO`` / ``GAZZETTA_TEMPO_STORICO`` nell'ambiente; 1200 di base, fra 30 e 3300."""
+    import os
+
+    from pct.gazzetta.storico import TEMPO_TRATTO
+
+    valore = str(config.get("GAZZETTA_TEMPO_STORICO") or os.environ.get("PCT_GAZZETTA_TEMPO_STORICO")
+                 or os.environ.get("GAZZETTA_TEMPO_STORICO") or "").strip()
+    try:
+        secondi = float(valore) if valore else float(TEMPO_TRATTO)
+    except ValueError:
+        secondi = float(TEMPO_TRATTO)
+    return max(30.0, min(TEMPO_STORICO_MASSIMO, secondi))
+
+
 def esegui_da_pianificazione(config: Mapping[str, Any], *, con_storico: bool = False, **opzioni: Any) -> dict[str, Any]:
     archivio = ArchivioGazzetta(percorso_archivio(config))
     esito = esegui_giro(archivio, **opzioni)
     if con_storico and str(config.get("GAZZETTA_RECUPERO_STORICO", "1")).lower() not in {"0", "false", "no", "off"}:
-        from pct.gazzetta.storico import TEMPO_TRATTO, esegui_tratto
+        from pct.gazzetta.storico import esegui_tratto
 
         # Prima gli atti normativi già nella biblioteca Normattiva: non si riscaricano dal sito.
         import os
@@ -45,10 +64,10 @@ def esegui_da_pianificazione(config: Mapping[str, Any], *, con_storico: bool = F
                 esito["da_normattiva"] = {"errore": str(exc)}
 
         try:
-            esito["storico"] = esegui_tratto(archivio, tempo_massimo=float(config.get("GAZZETTA_TEMPO_STORICO") or TEMPO_TRATTO))
+            esito["storico"] = esegui_tratto(archivio, tempo_massimo=tempo_storico(config))
         except Exception as exc:  # il giro dei 30 giorni resta valido
             esito["storico"] = {"ok": False, "errore": str(exc)}
     return esito
 
 
-__all__ = ["ID_LAVORO", "esegui_da_pianificazione", "percorso_archivio"]
+__all__ = ["ID_LAVORO", "esegui_da_pianificazione", "percorso_archivio", "tempo_storico"]

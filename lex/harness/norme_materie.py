@@ -29,6 +29,8 @@ ATTI = {
     "l742": ("l. 742/1969", "l. 742/1969", "legge:1969-10-07;742"),
     "dlgs28": ("d.lgs. 28/2010", "d.lgs. 28/2010", "decreto.legislativo:2010-03-04;28"),
     "dl132": ("d.l. 132/2014", "d.l. 132/2014", "decreto.legge:2014-09-12;132"),
+    "dlgs150g": ("d.lgs. 150/2022", "d.lgs. 150/2022", "decreto.legislativo:2022-10-10;150"),
+    "dlgs25": ("d.lgs. 25/2008", "d.lgs. 25/2008", "decreto.legislativo:2008-01-28;25"),
 }
 
 
@@ -147,4 +149,28 @@ NORME_MATERIE: tuple[tuple[str, str, str, str, str, str], ...] = (
     _v("l742", "1", "Sospensione dei termini nel periodo feriale"),
     _v("dlgs28", "5", "Condizione di procedibilità"),
     _v("dl132", "3", "Improcedibilità"),
+    # ------------------------------------------------------------ penale
+    _v("cp", "152", "Remissione della querela"),
+    _v("cp", "168-bis", "Sospensione del procedimento con messa alla prova dell'imputato"),
+    _v("cpp", "74", "Legittimazione all'azione civile"),
+    _v("cpp", "78", "Formalità della costituzione di parte civile"),
+    _v("cpp", "79", "Termine per la costituzione di parte civile"),
+    _v("cpp", "129-bis", "Accesso ai programmi di giustizia riparativa"),
+    _v("cpp", "309", "Riesame delle ordinanze che dispongono una misura coercitiva"),
+    _v("cpp", "310", "Appello"),
+    _v("cpp", "324", "Procedimento di riesame"),
+    _v("cpp", "340", "Remissione della querela"),
+    _v("cpp", "408", "Richiesta di archiviazione per infondatezza della notizia di reato"),
+    _v("cpp", "410", "Opposizione alla richiesta di archiviazione"),
+    _v("cpp", "438", "Presupposti del giudizio abbreviato"),
+    _v("cpp", "442", "Decisione nel giudizio abbreviato"),
+    _v("cpp", "444", "Applicazione della pena su richiesta"),
+    _v("cpp", "446", "Richiesta di applicazione della pena e consenso"),
+    _v("cpp", "458", "Richiesta di giudizio abbreviato"),
+    _v("cpp", "464-bis", "Sospensione del procedimento con messa alla prova"),
+    _v("cpp", "656", "Esecuzione delle pene detentive"),
+    _v("cpp", "665", "Giudice competente"),
+    _v("cpp", "666", "Procedimento di esecuzione"),
+    _v("dlgs150g", "42", "Definizioni"),
+    _v("dlgs150g", "44", "Principi sull'accesso"),
 )

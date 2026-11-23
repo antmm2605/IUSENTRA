@@ -444,8 +444,11 @@ def testo_amministrativo_ufficiale(domanda: str, richiesta: RichiestaSentenza) -
         percorso = str(Path(os.environ["PCT_LEGAL_INTELLIGENCE_DB"]).resolve().parent / "ga_testi.sqlite")
     if not percorso or not Path(percorso).is_file():
         return None
+    from pct.fonti_in_sfondo import catalogo_openga
+
     organo = {"consiglio di stato": "Consiglio di Stato", "cga": "CGA"}.get(richiesta.organo, domanda)
-    return testo_su_richiesta(ArchivioTestiGA(percorso), anno=richiesta.anno, numero=richiesta.numero, organo=organo)
+    return testo_su_richiesta(ArchivioTestiGA(percorso), anno=richiesta.anno, numero=richiesta.numero, organo=organo,
+                              catalogo=catalogo_openga(dict(os.environ)))
 
 
 def _risposta_testo_amministrativo(richiesta: RichiestaSentenza, esito: dict[str, Any]) -> dict[str, Any]:

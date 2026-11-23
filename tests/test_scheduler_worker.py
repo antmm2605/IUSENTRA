@@ -41,6 +41,9 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         lotto = scheduler.get_job("legal_updates_batch")
         assert lotto is not None
         assert scheduler.get_job("gazzetta_ufficiale_sommari") is not None
+        for lavoro in ("giustizia_amministrativa_testi", "prassi_agenzia_entrate_inps"):
+            job = scheduler.get_job(lavoro)
+            assert job is not None and job.max_instances == 1 and job.executor == "fonti_pubbliche"
         configurazioni = []
 
         with monkeypatch.context() as patch:

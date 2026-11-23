@@ -61,7 +61,7 @@ def main() -> int:
         inizio = time.monotonic()
         esito = leggi(archivio, scarica=lambda url: sessione.get(url, timeout=60), tempo_massimo=args.tratto, pausa=args.pausa)
         print(json.dumps({**esito, "durata_s": round(time.monotonic() - inizio), "stati": archivio.conteggi()}), flush=True)
-        if not esito["letti"] and not esito["errori"]:
+        if not esito["letti"] and not esito["errori"] and not esito.get("da_ritentare"):
             return 0
 
 

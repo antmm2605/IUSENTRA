@@ -8,8 +8,8 @@
   il testo di una sentenza chiesta ora; se l'archivio non lo ha, si scarica subito dal sito ufficiale (al più 15
   secondi), si salva nell'archivio e, se non è disponibile, lo si dice chiaramente.
 
-Archivi scritti in sfondo (``scripts/prassi_recupero.py``, ``scripts/ga_testi_recupero.py``); la lettura su richiesta
-aggiunge all'archivio dei testi amministrativi soltanto la sentenza chiesta.
+Archivi scritti dai lavori pianificati orari dell'app (``pct/fonti_in_sfondo.py``), unico scrittore; la lettura su
+richiesta aggiunge soltanto la sentenza chiesta, se è nel catalogo OpenGA o se il testo ufficiale ne riporta gli estremi.
 Dati pubblici, uguali per tutti gli studi: basta l'autenticazione.
 """
 from __future__ import annotations
@@ -26,12 +26,10 @@ api_v1_prassi = Blueprint("api_v1_prassi", __name__, url_prefix="/api/v1/ui")
 
 
 def percorso(nome: str, variabile: str) -> Path:
-    esplicito = str(current_app.config.get(variabile) or os.environ.get(variabile) or "").strip()
-    if esplicito:
-        return Path(esplicito)
-    ancora = str(current_app.config.get("LEGAL_INTELLIGENCE_DB") or os.environ.get("PCT_LEGAL_INTELLIGENCE_DB")
-                 or "./intelligence/motori.json")
-    return Path(ancora).resolve().parent / nome
+    from pct.fonti_in_sfondo import percorso_ga, percorso_prassi
+
+    config = {**os.environ, **current_app.config}
+    return percorso_ga(config) if nome == "ga_testi.sqlite" else percorso_prassi(config)
 
 
 @api_v1_prassi.get("/prassi")
@@ -87,9 +85,13 @@ def _testo_su_richiesta() -> dict:
         return {"ok": False, "testo": "", "url": "", "messaggio": "Indica numero e anno della sentenza."}
     try:
         archivio = ArchivioTestiGA(percorso("ga_testi.sqlite", "PCT_GA_TESTI_DB"))
+        from pct.fonti_in_sfondo import catalogo_openga
+
+        # L'app è l'unico scrittore dell'archivio (lo stesso del lavoro pianificato orario).
         return testo_su_richiesta(archivio, anno=a.get("anno", "")[:4], numero=a.get("numero", "")[:12],
-                                  organo=a.get("organo", "")[:120], sede=a.get("sede", "")[:3], tipo=a.get("tipo", "SENTENZA")[:20],
-                                  ricorso=a.get("ricorso", "")[:12])
+                                  organo=a.get("organo", "")[:120], sede=a.get("sede", "")[:3],
+                                  ricorso=a.get("ricorso", "")[:12],
+                                  catalogo=catalogo_openga({**os.environ, **current_app.config}))
     except Exception:
         current_app.logger.exception("Lettura su richiesta non riuscita")
         return {"ok": False, "testo": "", "url": "", "messaggio": "Lettura non riuscita: riprova fra poco o apri il sito ufficiale."}

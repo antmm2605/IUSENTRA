@@ -25,6 +25,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+from pct.riprove_rete import ReteNonDisponibile, scarica_con_riprove
+
 URL_PROVVEDIMENTO = ("https://mdp.giustizia-amministrativa.it/visualizza/?nodeRef=&schema={schema}&nrg={ricorso}"
                      "&nomeFile={numero}_{codice}.html&subDir=Provvedimenti")
 # Codice del tipo di provvedimento nel nome del file ufficiale.
@@ -44,6 +46,7 @@ _SCHEMA = (
         testo_z BLOB, sha256 TEXT NOT NULL DEFAULT '', pubblicato_il TEXT NOT NULL DEFAULT '', letto_il TEXT NOT NULL DEFAULT '')""",
     "CREATE INDEX IF NOT EXISTS provvedimenti_coda ON provvedimenti (stato, priorita, anno DESC, numero DESC)",
     "CREATE TABLE IF NOT EXISTS sedi_studio (sede TEXT PRIMARY KEY, da TEXT NOT NULL DEFAULT '')",
+    "CREATE TABLE IF NOT EXISTS meta (chiave TEXT PRIMARY KEY, valore TEXT NOT NULL DEFAULT '')",
     "CREATE VIRTUAL TABLE IF NOT EXISTS provvedimenti_fts USING fts5(id UNINDEXED, oggetto, testo, "
     "tokenize = 'unicode61 remove_diacritics 2')",
 )
@@ -56,6 +59,23 @@ SIGLE_TAR = {"001": "lt", "003": "rm", "004": "aq", "005": "pe", "006": "bz", "0
              "010": "na", "011": "sa", "012": "bo", "013": "pr", "014": "ts", "015": "ge", "016": "mi", "017": "bs",
              "018": "an", "019": "cb", "020": "to", "021": "ba", "022": "le", "023": "ca", "024": "pa", "025": "ct",
              "026": "fi", "027": "tn", "028": "pg", "029": "ao", "030": "ve"}
+
+
+# Nome della sede come nel catalogo OpenGA: lato server, mai dal testo scritto dall'utente.
+NOMI_SEDE = {
+    "001": "TAR LAZIO - LATINA", "002": "CdS GIURISDIZIONALE - ROMA", "003": "TAR LAZIO - ROMA",
+    "004": "TAR ABRUZZO - L'AQUILA", "005": "TAR ABRUZZO - PESCARA", "006": "TAR TRENTINO ALTO ADIGE - BOLZANO",
+    "007": "TAR BASILICATA - POTENZA", "008": "TAR CALABRIA - CATANZARO", "009": "TAR CALABRIA - REGGIO CALABRIA",
+    "010": "TAR CAMPANIA - NAPOLI", "011": "TAR CAMPANIA - SALERNO", "012": "TAR EMILIA-ROMAGNA - BOLOGNA",
+    "013": "TAR EMILIA-ROMAGNA - PARMA", "014": "TAR FRIULI VENEZIA GIULIA - TRIESTE", "015": "TAR LIGURIA - GENOVA",
+    "016": "TAR LOMBARDIA - MILANO", "017": "TAR LOMBARDIA - BRESCIA", "018": "TAR MARCHE - ANCONA",
+    "019": "TAR MOLISE - CAMPOBASSO", "020": "TAR PIEMONTE - TORINO", "021": "TAR PUGLIA - BARI",
+    "022": "TAR PUGLIA - LECCE", "023": "TAR SARDEGNA - CAGLIARI", "024": "TAR SICILIA - PALERMO",
+    "025": "TAR SICILIA - CATANIA", "026": "TAR TOSCANA - FIRENZE", "027": "TAR TRENTINO ALTO ADIGE - TRENTO",
+    "028": "TAR UMBRIA - PERUGIA", "029": "TAR VALLE D'AOSTA - AOSTA", "030": "TAR VENETO - VENEZIA",
+    "032": "CGA GIURISDIZIONALE - PALERMO",
+}
+SEDI_VALIDE = frozenset({"002", "032"} | set(SIGLE_TAR))
 
 
 def schema_sede(sede: str, nome_sede: str) -> str:
@@ -160,8 +180,12 @@ class ArchivioTestiGA:
             with closing(self._connetti()) as conn:
                 for istruzione in _SCHEMA:
                     conn.execute(istruzione)
-                if "ordine" not in {r[1] for r in conn.execute("PRAGMA table_info(provvedimenti)")}:
+                colonne = {r[1] for r in conn.execute("PRAGMA table_info(provvedimenti)")}
+                if "ordine" not in colonne:
                     conn.execute("ALTER TABLE provvedimenti ADD COLUMN ordine INTEGER NOT NULL DEFAULT 99")
+                # 1 = voce aggiunta su richiesta (estremi verificati sul testo ufficiale), in attesa del catalogo.
+                if "provvisoria" not in colonne:
+                    conn.execute("ALTER TABLE provvedimenti ADD COLUMN provvisoria INTEGER NOT NULL DEFAULT 0")
                 conn.execute("CREATE INDEX IF NOT EXISTS provvedimenti_ordine ON provvedimenti "
                              "(stato, ordine, anno DESC, numero DESC)")
                 conn.execute("CREATE INDEX IF NOT EXISTS provvedimenti_estremi ON provvedimenti (anno, numero)")
@@ -180,6 +204,17 @@ class ArchivioTestiGA:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.row_factory = sqlite3.Row
         return conn
+
+    def valore(self, chiave: str) -> str:
+        with closing(self._connetti()) as conn:
+            riga = conn.execute("SELECT valore FROM meta WHERE chiave=?", (chiave,)).fetchone()
+        return str(riga[0]) if riga else ""
+
+    def imposta_valore(self, chiave: str, valore: str) -> None:
+        with closing(self._connetti()) as conn:
+            conn.execute("INSERT INTO meta (chiave, valore) VALUES (?, ?) ON CONFLICT(chiave) DO UPDATE SET valore=excluded.valore",
+                         (chiave, valore))
+            conn.commit()
 
     def sedi_studio(self) -> set[str]:
         with closing(self._connetti()) as conn:
@@ -214,22 +249,56 @@ class ArchivioTestiGA:
                     continue
                 ident = f"{r['sede']}|{r['tipo']}|{r['anno']}|{r['numero']}"
                 url = URL_PROVVEDIMENTO.format(schema=schema, ricorso=r["ricorso"], numero=r["numero"], codice=codice)
+                # Il catalogo prevale sulle voci provvisorie aggiunte su richiesta: ne sostituisce gli estremi.
                 cur = conn.execute(
-                    "INSERT OR IGNORE INTO provvedimenti (id, sede, nome_sede, schema, tipo, numero, anno, ricorso, oggetto, "
-                    "esito, priorita, url, ordine) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO provvedimenti (id, sede, nome_sede, schema, tipo, numero, anno, ricorso, oggetto, "
+                    "esito, priorita, url, ordine) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                    "ON CONFLICT(id) DO UPDATE SET nome_sede=excluded.nome_sede, schema=excluded.schema, "
+                    "ricorso=excluded.ricorso, oggetto=excluded.oggetto, esito=excluded.esito, priorita=excluded.priorita, "
+                    "url=excluded.url, ordine=excluded.ordine, provvisoria=0 WHERE provvedimenti.provvisoria=1",
                     (ident, r["sede"], r["nome_sede"], schema, r["tipo"], r["numero"], int(r["anno"]), r["ricorso"],
                      r.get("oggetto") or "", r.get("esito") or "", priorita(str(r["nome_sede"]), str(r["sede"]), sedi), url,
                      ordine(str(r["nome_sede"]), str(r["sede"]), str(r["tipo"]), int(r["anno"]), sedi_studio=sedi,
                             anno_corrente=anno_corrente)))
                 nuovi += cur.rowcount
             conn.commit()
+            self._assorbi_provvisorie(conn)
         return nuovi
 
-    def da_leggere(self, limite: int = 50) -> list[dict[str, Any]]:
+    @staticmethod
+    def _assorbi_provvisorie(conn: sqlite3.Connection) -> None:
+        """Voci provvisorie con un'altra chiave (per esempio sentenza breve nel catalogo): il testo passa alla voce del
+        catalogo e la provvisoria si elimina."""
+        for prov in conn.execute("SELECT * FROM provvedimenti WHERE provvisoria=1").fetchall():
+            voce = conn.execute("SELECT id, stato, oggetto FROM provvedimenti WHERE provvisoria=0 AND sede=? AND anno=? "
+                                "AND numero=?", (prov["sede"], prov["anno"], prov["numero"])).fetchone()
+            if voce is None:
+                continue
+            if voce["stato"] != "letto" and prov["stato"] == "letto" and prov["testo_z"]:
+                conn.execute("UPDATE provvedimenti SET stato='letto', testo_z=?, sha256=?, pubblicato_il=?, letto_il=?, "
+                             "messaggio='' WHERE id=?", (prov["testo_z"], prov["sha256"], prov["pubblicato_il"],
+                                                         prov["letto_il"], voce["id"]))
+                conn.execute("DELETE FROM provvedimenti_fts WHERE id=?", (voce["id"],))
+                conn.execute("INSERT INTO provvedimenti_fts (id, oggetto, testo) VALUES (?,?,?)",
+                             (voce["id"], voce["oggetto"], zlib.decompress(prov["testo_z"]).decode("utf-8")))
+            conn.execute("DELETE FROM provvedimenti_fts WHERE id=?", (prov["id"],))
+            conn.execute("DELETE FROM provvedimenti WHERE id=?", (prov["id"],))
+        conn.commit()
+
+    def da_leggere(self, limite: int = 50, *, esclusi: Iterable[str] = ()) -> list[dict[str, Any]]:
+        esclusi = list(esclusi)
+        segnaposto = ",".join("?" * len(esclusi)) or "''"
         with closing(self._connetti()) as conn:
             return [dict(r) for r in conn.execute(
                 "SELECT id, url, oggetto FROM provvedimenti WHERE stato='da_leggere' AND tentativi < ? "
-                "ORDER BY ordine, anno DESC, numero DESC LIMIT ?", (TENTATIVI, limite))]
+                f"AND id NOT IN ({segnaposto}) ORDER BY ordine, anno DESC, numero DESC LIMIT ?",
+                (TENTATIVI, *esclusi, limite))]
+
+    def rinvia(self, ident: str, messaggio: str) -> None:
+        """Rete non disponibile: la voce resta da leggere senza consumare tentativi (si ritenta al giro dopo)."""
+        with closing(self._connetti()) as conn:
+            conn.execute("UPDATE provvedimenti SET messaggio=? WHERE id=?", (f"da ritentare: {messaggio}"[:300], ident))
+            conn.commit()
 
     def salva(self, ident: str, testo: str, pubblicato_il: str, oggetto: str) -> None:
         quando = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -264,13 +333,24 @@ class ArchivioTestiGA:
         # Una sentenza e la sua forma «breve» non hanno lo stesso numero: in ogni sede il numero è unico.
         return [r["id"] for r in righe]
 
-    def aggiungi_estremi(self, sede: str, tipo: str, anno: int, numero: str, ricorso: str, nome_sede: str = "") -> str:
-        """Un provvedimento chiesto dall'avvocato che non è ancora in archivio (da una ricerca, un fascicolo, Lex)."""
-        nome = nome_sede or ("CdS GIURISDIZIONALE - ROMA" if sede == "002" else "CGA GIURISDIZIONALE - PALERMO"
-                             if sede == "032" else f"TAR {sede}")
-        self.carica_estremi([{"sede": sede, "nome_sede": nome, "tipo": tipo, "numero": numero, "anno": anno,
-                              "ricorso": ricorso, "oggetto": "", "esito": ""}])
-        return f"{sede}|{tipo}|{anno}|{numero}"
+    def salva_provvisoria(self, sede: str, anno: int, numero: str, ricorso: str, testo: str, pubblicato_il: str) -> str:
+        """Una sentenza non ancora nel catalogo importato, letta dal sito ufficiale con estremi riscontrati nel testo.
+
+        La voce resta «provvisoria» finché l'importazione del catalogo non la sostituisce."""
+        schema = schema_sede(sede, NOMI_SEDE[sede])
+        codice = CODICI_TIPO_TAR["SENTENZA"] if schema.startswith("tar_") else CODICI_TIPO["SENTENZA"]
+        ident = f"{sede}|SENTENZA|{anno}|{numero}"
+        url = URL_PROVVEDIMENTO.format(schema=schema, ricorso=ricorso, numero=numero, codice=codice)
+        sedi = self.sedi_studio()
+        with closing(self._connetti()) as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO provvedimenti (id, sede, nome_sede, schema, tipo, numero, anno, ricorso, priorita, url, "
+                "ordine, provvisoria) VALUES (?,?,?,?,?,?,?,?,?,?,?,1)",
+                (ident, sede, NOMI_SEDE[sede], schema, "SENTENZA", numero, int(anno), ricorso,
+                 priorita(NOMI_SEDE[sede], sede, sedi), url, ordine(NOMI_SEDE[sede], sede, "SENTENZA", int(anno), sedi_studio=sedi)))
+            conn.commit()
+        self.salva(ident, testo, pubblicato_il, "")
+        return ident
 
     def errore(self, ident: str, messaggio: str, *, definitivo: bool = False) -> None:
         with closing(self._connetti()) as conn:
@@ -354,46 +434,119 @@ def sedi_dell_organo(organo: str) -> set[str] | None:
     return set(SIGLE_TAR) if re.search(r"\bTAR\b|AMMINISTRATIV", nome) else None
 
 
+def estremi_nel_testo(testo: str, numero: str, ricorso: str) -> bool:
+    """Il testo ufficiale riporta il numero della sentenza («N. 01731/2025 REG.PROV.COLL.») e del ricorso (« REG.RIC.»)."""
+    def presente(valore: str, registro: str) -> bool:
+        return bool(re.search(rf"N\.\s*0*{int(valore[4:])}/{valore[:4]}\s*{registro}", testo))
+    return (len(numero) == 9 and len(ricorso) == 9 and ricorso.isdigit()
+            and presente(numero, r"REG\.?\s*PROV\.?\s*COLL") and presente(ricorso, r"REG\.?\s*RIC"))
+
+
+def estremi_dal_catalogo(catalogo: str | Path | None, anno: int, numero: str, sedi: set[str] | None) -> list[dict[str, Any]]:
+    """Le sentenze con quell'anno e numero nel catalogo OpenGA (sola lettura); vuoto se il catalogo non c'è."""
+    if not catalogo or not Path(catalogo).is_file():
+        return []
+    conn = sqlite3.connect(f"file:{catalogo}?mode=ro", uri=True, timeout=30)
+    conn.row_factory = sqlite3.Row
+    try:
+        righe = [dict(r) for r in conn.execute(
+            "SELECT sede, nome_sede, tipo, numero, anno, ricorso, oggetto, esito_originale AS esito FROM righe "
+            "WHERE anno=? AND numero=? AND tipo LIKE 'SENTENZA%'", (int(anno), numero))]
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
+    return [r for r in righe if sedi is None or str(r["sede"]) in sedi]
+
+
+def _esito(messaggio: str, **altro: Any) -> dict[str, Any]:
+    return {"ok": False, "testo": "", "url": "", "messaggio": messaggio, **altro}
+
+
 def testo_su_richiesta(archivio: ArchivioTestiGA, *, anno: int | str, numero: str, organo: str = "", sede: str = "",
-                       tipo: str = "SENTENZA", ricorso: str = "", scarica: Callable[..., Any] | None = None,
-                       tempo_massimo: float = TEMPO_SU_RICHIESTA) -> dict[str, Any]:
-    """Il testo di una sentenza amministrativa chiesta ora (ricerca, fascicolo, Lex), letta subito se manca."""
+                       ricorso: str = "", scarica: Callable[..., Any] | None = None, catalogo: str | Path | None = None,
+                       tempo_massimo: float = TEMPO_SU_RICHIESTA, **_ignorati: Any) -> dict[str, Any]:
+    """Il testo di una sentenza amministrativa chiesta ora (ricerca, fascicolo, Lex), letta subito se manca.
+
+    Sede, nome della sede e schema si ricavano lato server. Una sentenza assente dall'archivio entra solo se è nel
+    catalogo OpenGA o se il testo scaricato dal sito ufficiale riporta gli stessi numeri di sentenza e di ricorso;
+    altrimenti non si scrive nulla."""
     try:
         anno = int(str(anno).strip())
     except ValueError:
-        return {"ok": False, "testo": "", "url": "", "messaggio": "Anno della sentenza non valido."}
-    sedi = {sede} if sede else sedi_dell_organo(organo)
-    trovati = archivio.trova(anno, numero, sedi)
-    if not trovati and sedi and len(sedi) == 1 and str(ricorso).isdigit():
-        # Estremi completi (dalla ricerca OpenGA o dal fascicolo) ma non ancora in archivio: si aggiungono ora.
-        ident = archivio.aggiungi_estremi(next(iter(sedi)), tipo.upper(), anno, numero_catalogo(anno, numero), str(ricorso),
-                                          nome_sede=organo if organo.upper().startswith(("TAR", "CDS", "CGA")) else "")
-        trovati = [ident] if archivio.provvedimento(ident) else []
+        return _esito("Anno della sentenza non valido.")
+    numero9 = numero_catalogo(anno, numero)
+    if not numero9 or not 1990 <= anno <= 2100:
+        return _esito("Numero o anno della sentenza non validi.")
+    sede = str(sede or "").strip()
+    sedi_organo = sedi_dell_organo(organo)
+    if sede:
+        if sede not in SEDI_VALIDE:
+            return _esito("Sede non riconosciuta: indica il Consiglio di Stato, il CGA o un TAR.")
+        if sedi_organo is not None and sede not in sedi_organo:
+            return _esito(f"L'organo indicato non corrisponde alla sede {NOMI_SEDE[sede]}: controlla gli estremi.")
+        sedi: set[str] | None = {sede}
+    else:
+        sedi = sedi_organo
+    scarica = scarica or scarica_ufficiale
+    trovati = archivio.trova(anno, numero9, sedi)
     if not trovati:
-        return {"ok": False, "testo": "", "url": "",
-                "messaggio": f"La sentenza n. {numero}/{anno} non è nel catalogo della Giustizia amministrativa importato: "
-                             "controlla numero, anno e sede, oppure cercala sul sito ufficiale."}
+        dal_catalogo = estremi_dal_catalogo(catalogo, anno, numero9, sedi)
+        if ricorso:
+            dal_catalogo = [r for r in dal_catalogo if str(r["ricorso"]) == str(ricorso)] or dal_catalogo
+        if dal_catalogo:
+            archivio.carica_estremi(dal_catalogo)
+            trovati = archivio.trova(anno, numero9, sedi)
+    if not trovati and sedi and len(sedi) == 1 and str(ricorso).isdigit() and len(str(ricorso)) == 9:
+        return _leggi_provvisoria(archivio, next(iter(sedi)), anno, numero9, str(ricorso), scarica, tempo_massimo)
+    if not trovati:
+        return _esito(f"La sentenza n. {numero}/{anno} non è nel catalogo della Giustizia amministrativa importato: "
+                      "controlla numero, anno e sede, oppure cercala sul sito ufficiale.")
     if len(trovati) > 1:
-        return {"ok": False, "testo": "", "url": "", "candidati": trovati,
-                "messaggio": f"Il n. {numero}/{anno} esiste in {len(trovati)} sedi: indica il TAR (per esempio «TAR Lazio»)."}
-    return {"id": trovati[0], **leggi_subito(archivio, trovati[0], scarica=scarica or scarica_ufficiale,
-                                             tempo_massimo=tempo_massimo)}
+        return _esito(f"Il n. {numero}/{anno} esiste in {len(trovati)} sedi: indica il TAR (per esempio «TAR Lazio»).",
+                      candidati=trovati)
+    return {"id": trovati[0], **leggi_subito(archivio, trovati[0], scarica=scarica, tempo_massimo=tempo_massimo)}
+
+
+def _leggi_provvisoria(archivio: ArchivioTestiGA, sede: str, anno: int, numero: str, ricorso: str,
+                       scarica: Callable[..., Any], tempo_massimo: float) -> dict[str, Any]:
+    """Estremi non ancora nel catalogo: si scarica dal sito e si salva solo se il testo riporta gli stessi numeri."""
+    schema = schema_sede(sede, NOMI_SEDE[sede])
+    codice = CODICI_TIPO_TAR["SENTENZA"] if schema.startswith("tar_") else CODICI_TIPO["SENTENZA"]
+    url = URL_PROVVEDIMENTO.format(schema=schema, ricorso=ricorso, numero=numero, codice=codice)
+    try:
+        risposta = scarica(url, timeout=tempo_massimo)
+    except Exception:  # rete o tempo scaduto: nessuna scrittura
+        return _esito(f"Il sito della Giustizia amministrativa non ha risposto entro {tempo_massimo:.0f} secondi: "
+                      "riprova fra poco o apri il testo sul sito ufficiale.", url=url)
+    if int(getattr(risposta, "status_code", 200)) != 200 or "/404" in str(getattr(risposta, "url", "") or ""):
+        return _esito("Il testo di questa sentenza non è pubblicato sul sito della Giustizia amministrativa con questi "
+                      "estremi: controlla numero, anno, sede e numero di ricorso.", url=url)
+    testo, pubblicato = testo_della_pagina(risposta.content or b"")
+    if "REPUBBLICA ITALIANA" not in testo.upper() or not estremi_nel_testo(testo, numero, ricorso):
+        return _esito("La pagina del sito non riporta gli estremi indicati (numero di sentenza e di ricorso): "
+                      "non è stata salvata.", url=url)
+    ident = archivio.salva_provvisoria(sede, anno, numero, ricorso, testo, pubblicato)
+    return {"ok": True, "id": ident, "testo": testo, "url": url, "fonte": "sito ufficiale, letto ora",
+            "pubblicato_il": pubblicato, "messaggio": ""}
 
 
 def leggi(archivio: ArchivioTestiGA, *, scarica: Callable[[str], Any], tempo_massimo: float, pausa: float = PAUSA,
           dormi: Callable[[float], None] = time.sleep) -> dict[str, int]:
     """Legge i testi in coda per al più ``tempo_massimo`` secondi."""
     fine = time.monotonic() + tempo_massimo
-    esito = {"letti": 0, "errori": 0}
+    esito = {"letti": 0, "errori": 0, "da_ritentare": 0}
+    rinviati: set[str] = set()
     while time.monotonic() < fine:
-        coda = archivio.da_leggere(limite=20)
+        coda = archivio.da_leggere(limite=20, esclusi=rinviati)
         if not coda:
             break
         for voce in coda:
             if time.monotonic() >= fine:
                 break
             try:
-                risposta = scarica(voce["url"])
+                # Timeout ed errori di rete: due riprove con attesa crescente, poi la voce resta da ritentare.
+                risposta = scarica_con_riprove(scarica, voce["url"], dormi=dormi)
                 codice = int(getattr(risposta, "status_code", 200))
                 # Il sito risponde a un provvedimento inesistente con un rinvio a «/visualizza/404.html».
                 if codice == 404 or "/404" in str(getattr(risposta, "url", "") or ""):
@@ -410,7 +563,12 @@ def leggi(archivio: ArchivioTestiGA, *, scarica: Callable[[str], Any], tempo_mas
                     else:
                         archivio.salva(voce["id"], testo, pubblicato, voce["oggetto"])
                         esito["letti"] += 1
-            except Exception as exc:  # rete: si riprova al giro dopo
+            except ReteNonDisponibile as exc:
+                # Sito lento o irraggiungibile anche dopo le riprove: da ritentare, si passa alla successiva.
+                archivio.rinvia(voce["id"], str(exc))
+                rinviati.add(voce["id"])
+                esito["da_ritentare"] += 1
+            except Exception as exc:
                 archivio.errore(voce["id"], f"{type(exc).__name__}: {exc}")
                 esito["errori"] += 1
             if pausa:
@@ -418,5 +576,5 @@ def leggi(archivio: ArchivioTestiGA, *, scarica: Callable[[str], Any], tempo_mas
     return esito
 
 
-__all__ = ["URL_PROVVEDIMENTO", "ArchivioTestiGA", "leggi", "leggi_subito", "numero_catalogo", "ordine", "scarica_ufficiale",
+__all__ = ["NOMI_SEDE", "SEDI_VALIDE", "URL_PROVVEDIMENTO", "ArchivioTestiGA", "estremi_dal_catalogo", "estremi_nel_testo", "leggi", "leggi_subito", "numero_catalogo", "ordine", "scarica_ufficiale",
            "sedi_dai_fascicoli", "sedi_dell_organo", "testo_della_pagina", "testo_su_richiesta"]

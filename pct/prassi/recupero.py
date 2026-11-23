@@ -13,6 +13,7 @@ from typing import Any, Callable
 
 from pct.prassi import fonti
 from pct.prassi.archivio import ArchivioPrassi
+from pct.riprove_rete import ReteNonDisponibile, scarica_con_riprove
 
 PAUSA = 2.0
 
@@ -37,9 +38,13 @@ def elenchi_ade(archivio: ArchivioPrassi, scarica: Callable[[str], Any], *, fine
         visti.add(url)
         if archivio.elenco_letto(url) and not _da_rileggere(url):
             continue
-        risposta = scarica(url)
-        if pausa:
-            dormi(pausa)
+        try:
+            risposta = scarica_con_riprove(scarica, url, dormi=dormi)
+        except ReteNonDisponibile:
+            continue  # pagina non registrata: si rilegge al giro successivo
+        finally:
+            if pausa:
+                dormi(pausa)
         if int(getattr(risposta, "status_code", 200)) != 200:
             continue
         pagina = risposta.content.decode("utf-8", errors="replace")
@@ -55,10 +60,14 @@ def elenchi_inps(archivio: ArchivioPrassi, scarica: Callable[[str], Any], *, fin
     completo = archivio.elenco_letto("inps:completo")
     pagina = 0 if completo else int(_stato(archivio, "inps:pagina") or 0)
     while time.monotonic() < fine:
-        risposta = scarica(fonti.inps_url_elenco(pagina))
-        if pausa:
-            dormi(pausa)
-        voci = fonti.inps_documenti(json.loads(risposta.content))
+        try:
+            risposta = scarica_con_riprove(scarica, fonti.inps_url_elenco(pagina), dormi=dormi)
+            voci = fonti.inps_documenti(json.loads(risposta.content))
+        except (ReteNonDisponibile, ValueError):
+            break  # la pagina resta da leggere: il giro passa ai testi, l'elenco riprende da qui al giro dopo
+        finally:
+            if pausa:
+                dormi(pausa)
         if not voci:
             archivio.registra_elenco("inps:completo", pagina)
             break
@@ -82,16 +91,18 @@ def _stato(archivio: ArchivioPrassi, prefisso: str) -> str:
 
 
 def testi(archivio: ArchivioPrassi, scarica: Callable[[str], Any], *, fine: float, pausa: float, dormi=time.sleep) -> dict[str, int]:
-    esito = {"testi_nuovi": 0, "errori": 0}
+    esito = {"testi_nuovi": 0, "errori": 0, "da_ritentare": 0}
+    rinviati: set[str] = set()
     while time.monotonic() < fine:
-        coda = archivio.da_leggere("Agenzia delle Entrate", 5) + archivio.da_leggere("INPS", 5)
+        coda = (archivio.da_leggere("Agenzia delle Entrate", 5, esclusi=rinviati)
+                + archivio.da_leggere("INPS", 5, esclusi=rinviati))
         if not coda:
             break
         for doc in coda:
             if time.monotonic() >= fine:
                 break
             try:
-                risposta = scarica(doc["url_testo"])
+                risposta = scarica_con_riprove(scarica, doc["url_testo"], dormi=dormi)
                 codice = int(getattr(risposta, "status_code", 200))
                 if codice == 404:
                     archivio.errore(doc["id"], "documento non trovato (404)", definitivo=True)
@@ -100,7 +111,8 @@ def testi(archivio: ArchivioPrassi, scarica: Callable[[str], Any], *, fine: floa
                 if codice != 200:
                     raise ValueError(f"risposta {codice}")
                 if doc["ente"] == "INPS":
-                    testo = fonti.inps_testo(json.loads(risposta.content), scarica)
+                    testo = fonti.inps_testo(json.loads(risposta.content),
+                                             lambda url: scarica_con_riprove(scarica, url, dormi=dormi))
                 else:
                     testo = fonti.testo_pdf(risposta.content)
                 if len(testo) < 100:
@@ -109,6 +121,11 @@ def testi(archivio: ArchivioPrassi, scarica: Callable[[str], Any], *, fine: floa
                 else:
                     archivio.salva_testo(doc["id"], testo)
                     esito["testi_nuovi"] += 1
+            except ReteNonDisponibile as exc:
+                # Fonte lenta o irraggiungibile: la voce resta da ritentare, il giro passa alla successiva.
+                archivio.rinvia(doc["id"], str(exc))
+                rinviati.add(doc["id"])
+                esito["da_ritentare"] += 1
             except Exception as exc:
                 archivio.errore(doc["id"], f"{type(exc).__name__}: {exc}")
                 esito["errori"] += 1

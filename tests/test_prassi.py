@@ -73,3 +73,39 @@ def test_api_di_ricerca(tmp_path, monkeypatch):
     testo = client.get("/api/v1/ui/prassi/testo?id=inps|messaggio|2026|3801").get_json()
     assert "piattaforma SEND" in testo["text"]
     assert client.get("/api/v1/ui/giustizia-amministrativa/testi?q=appalti").get_json()["items"] == []
+
+
+def test_timeout_per_documento_e_per_elenco_non_ferma_il_giro(tmp_path, monkeypatch):
+    """Un «read operation timed out» si riprova 2 volte con attesa crescente, poi la voce resta da ritentare."""
+    archivio = ArchivioPrassi(tmp_path / "prassi.sqlite")
+    monkeypatch.setattr(fonti, "ADE_PARTENZE", ("https://www.agenziaentrate.gov.it/portale/normativa-e-prassi/circolari",
+                                                "https://www.agenziaentrate.gov.it/portale/elenco-lento"))
+    monkeypatch.setattr(fonti, "testo_pdf", lambda contenuto: "CIRCOLARE N. 16/E. Compensazione dei crediti d'imposta: " + "chiarimenti " * 20)
+    chiamate: dict[str, int] = {}
+    attese: list[float] = []
+
+    def scarica(url):
+        chiamate[url] = chiamate.get(url, 0) + 1
+        if "elenco-lento" in url or "Circolare.pdf" in url:
+            raise TimeoutError("The read operation timed out")
+        if "search" in url:
+            if chiamate[url] == 1:
+                raise TimeoutError("The read operation timed out")  # primo tentativo: la riprova riesce
+            pagina = 0 if ".30." in url else 1
+            return SimpleNamespace(status_code=200, content=json.dumps(ELENCO_INPS if pagina == 0 else {"data": {"results": []}}).encode())
+        if url.endswith("master.json"):
+            return SimpleNamespace(status_code=503, content=b"")
+        if url.endswith(".pdf") or ".pdf/" in url:
+            return SimpleNamespace(status_code=200, content=b"%PDF")
+        return SimpleNamespace(status_code=200, content=PAGINA_ADE.encode())
+
+    esito = esegui_tratto(archivio, scarica, tempo_massimo=600, pausa=0, dormi=attese.append)
+    # Elenco lento: tre tentativi, poi si passa oltre senza registrarlo; l'elenco INPS si legge alla riprova.
+    assert chiamate["https://www.agenziaentrate.gov.it/portale/elenco-lento"] == 3
+    assert not archivio.elenco_letto("https://www.agenziaentrate.gov.it/portale/elenco-lento")
+    assert esito["elenchi"] == {"agenzia_entrate": 2, "inps": 1}
+    # Documenti: la risoluzione si legge; circolare (timeout) e messaggio INPS (503) restano da ritentare.
+    assert esito["testi_nuovi"] == 1 and esito["da_ritentare"] == 2 and esito["errori"] == 0
+    assert attese.count(5.0) >= 3 and attese.count(15.0) >= 3
+    rimasti = archivio.da_leggere()
+    assert len(rimasti) == 2 and all(r["tentativi"] == 0 and r["messaggio"].startswith("da ritentare") for r in rimasti)

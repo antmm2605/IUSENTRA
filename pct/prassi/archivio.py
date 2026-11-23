@@ -75,11 +75,13 @@ class ArchivioPrassi:
         with closing(self._connetti()) as conn:
             return conn.execute("SELECT 1 FROM elenchi WHERE chiave=?", (chiave,)).fetchone() is not None
 
-    def da_leggere(self, ente: str = "", limite: int = 20) -> list[dict[str, Any]]:
+    def da_leggere(self, ente: str = "", limite: int = 20, *, esclusi: Iterable[str] = ()) -> list[dict[str, Any]]:
+        esclusi = list(esclusi)
+        segnaposto = ",".join("?" * len(esclusi)) or "''"
         with closing(self._connetti()) as conn:
             return [dict(r) for r in conn.execute(
                 "SELECT * FROM documenti WHERE stato='da_leggere' AND tentativi < ? AND (?='' OR ente=?) "
-                "ORDER BY data DESC LIMIT ?", (TENTATIVI, ente, ente, limite))]
+                f"AND id NOT IN ({segnaposto}) ORDER BY data DESC LIMIT ?", (TENTATIVI, ente, ente, *esclusi, limite))]
 
     def salva_testo(self, ident: str, testo: str) -> None:
         with closing(self._connetti()) as conn:
@@ -89,6 +91,12 @@ class ArchivioPrassi:
                           datetime.now(timezone.utc).replace(microsecond=0).isoformat(), ident))
             conn.execute("DELETE FROM documenti_fts WHERE id=?", (ident,))
             conn.execute("INSERT INTO documenti_fts (id, oggetto, testo) VALUES (?,?,?)", (ident, riga[0] if riga else "", testo))
+            conn.commit()
+
+    def rinvia(self, ident: str, messaggio: str) -> None:
+        """Rete non disponibile: la voce resta da leggere senza consumare tentativi (si ritenta al giro dopo)."""
+        with closing(self._connetti()) as conn:
+            conn.execute("UPDATE documenti SET messaggio=? WHERE id=?", (f"da ritentare: {messaggio}"[:300], ident))
             conn.commit()
 
     def errore(self, ident: str, messaggio: str, *, definitivo: bool = False) -> None:

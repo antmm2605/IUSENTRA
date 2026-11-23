@@ -420,6 +420,9 @@ CORE_TARGETS: tuple[Path, ...] = (
     REPO_ROOT / "tests" / "test_auth.py",
     REPO_ROOT / "tests" / "test_scheduler.py",
     REPO_ROOT / "tests" / "test_scheduler_worker.py",
+    #  Console Pianificazioni e agenti delegati: restava solo nella suite complementare (mai eseguita da CI e gate)
+    #  e due test fallivano in silenzio per il rapporto scritto fuori dalla cartella del test (23/11/2026).
+    REPO_ROOT / "tests" / "test_scheduler_registry.py",
     REPO_ROOT / "tests" / "test_storage_strategy.py",
     REPO_ROOT / "tests" / "test_observability_runtime.py",
     REPO_ROOT / "tests" / "test_ocr_worker.py",

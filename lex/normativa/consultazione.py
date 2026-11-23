@@ -402,7 +402,12 @@ def catalogo(db: Path) -> list[dict]:
     if not db.is_file():
         raise FileNotFoundError('Archivio normativo non disponibile')
     stato = db.resolve().stat()
-    chiave = (str(db.resolve()), stato.st_size, stato.st_mtime_ns)
+    # In WAL le scritture restano nel file «-wal» fino al checkpoint: il file principale non cambia e il catalogo
+    # resterebbe quello di prima dell'importazione (nuova edizione non mostrata).
+    wal = Path(str(db.resolve()) + '-wal')
+    stato_wal = wal.stat() if wal.is_file() else None
+    chiave = (str(db.resolve()), stato.st_size, stato.st_mtime_ns,
+              stato_wal.st_size if stato_wal else 0, stato_wal.st_mtime_ns if stato_wal else 0)
     with _CATALOGHI_LOCK:
         salvato = _CATALOGHI.get(chiave)
     if salvato is None:

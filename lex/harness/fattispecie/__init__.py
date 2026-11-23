@@ -98,6 +98,23 @@ def scegli(c: Comprensione, f: Fatti) -> Regola | None:
             migliore, punteggio = regola, p
     if migliore is None:
         return None
+    # Parità fra regole di strumenti diversi: decide la vicinanza di significato fra i fatti e lo strumento, non l'ordine
+    # dell'elenco. A parità anche di significato resta la prima dell'elenco (le regole più specifiche vengono prima).
+    # Le schede complementari cedono sempre alla regola principale (materia_complementi.py): non entrano nello spareggio.
+    from .materia_complementi import SCHEDE as _COMPLEMENTARI
+
+    complementari = {sc.regola for sc in _COMPLEMENTARI}
+    pari = [r for r, p in punteggi if p == punteggio and r[0] not in complementari]
+    if migliore[0] in complementari and pari:
+        migliore = pari[0]
+    if len(pari) > 1:
+        from ..significato import cerca
+
+        vicini = {v.regola: s for v, s in cerca(f.testo, k=len(REGOLE))}
+        primo = max(pari, key=lambda r: (round(vicini.get(r[0], 0.0), 2), -pari.index(r)))
+        # Si cambia solo se la prima dell'elenco è lontana dai fatti e l'altra è chiaramente vicina.
+        if vicini.get(migliore[0], 0.0) < 0.22 and vicini.get(primo[0], 0.0) >= 0.30:
+            migliore = primo
     # Il lato della parte assistita decide lo strumento dentro la stessa famiglia (decreto ingiuntivo o opposizione,
     # precetto o opposizione, pignoramento o difesa dell'esecutato, sfratto o difesa del conduttore).
     fam, lato = famiglia(migliore[0]), lato_della_parte(f.testo)

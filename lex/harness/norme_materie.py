@@ -64,4 +64,16 @@ NORME_MATERIE: tuple[tuple[str, str, str, str, str, str], ...] = (
     _v("cpc", "480", "Forma del precetto"),
     _v("cpc", "543", "Forma del pignoramento presso terzi"),
     _v("dpr115", "9", "Contributo unificato"),
+    # ------------------------------------------------------------ lavoro e previdenza
+    _v("cc", "2113", "Rinunzie e transazioni"),
+    _v("cc", "2087", "Tutela delle condizioni di lavoro"),
+    _v("cc", "2103", "Prestazione del lavoro"),
+    _v("cpc", "411", "Processo verbale di conciliazione"),
+    _v("cpc", "412-ter", "Altre modalità di conciliazione e arbitrato previste dalla contrattazione collettiva"),
+    _v("cpc", "442", "Controversie in materia di previdenza e di assistenza obbligatorie"),
+    _v("cpc", "443", "Rilevanza del procedimento amministrativo"),
+    _v("cpc", "444", "Giudice competente"),
+    _v("cpc", "445-bis", "Accertamento tecnico preventivo obbligatorio"),
+    _v("dpr639", "47", "Azione giudiziaria e decadenza"),
+    _v("l88", "46", "Contenzioso in materia di prestazioni"),
 )

@@ -81,6 +81,21 @@ def _certa(domanda: str) -> str:
     return esito.testo if esito else ""
 
 
+def attiva_registro_grezzi() -> None:
+    """Solo nel banco: con LEX_BANCO_GREZZI impostata, le risposte grezze dello scrittore vanno in quel file (0600)."""
+    percorso = os.environ.get("LEX_BANCO_GREZZI")
+    if not percorso:
+        return
+    import lex.harness.scrittura_segnaposto as segnaposto
+
+    def registra(scrittore: str, schema: str, grezza: str) -> None:
+        fd = os.open(percorso, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        with os.fdopen(fd, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"scrittore": scrittore, "schema": schema, "grezza": grezza}, ensure_ascii=False) + "\n")
+
+    segnaposto.registra_grezza = registra
+
+
 def misura(scrittore: str, *, solo_casi: bool = False, massimo: int | None = None, modalita: str = "libera") -> dict:
     os.environ["LEX_HARNESS_SCRITTORE"] = ""  # lo schema si calcola sempre deterministico; la stesura si applica dopo
     carico_max = float(os.environ.get("LEX_BANCO_CARICO_MAX", "16"))
@@ -132,6 +147,7 @@ def misura(scrittore: str, *, solo_casi: bool = False, massimo: int | None = Non
 
 
 def main(argv: list[str]) -> int:
+    attiva_registro_grezzi()
     solo = "--solo-casi" in argv
     massimo = int(argv[argv.index("--max") + 1]) if "--max" in argv else None
     scrittori = [a for i, a in enumerate(argv) if not a.startswith("--") and (i == 0 or argv[i - 1] != "--max")]

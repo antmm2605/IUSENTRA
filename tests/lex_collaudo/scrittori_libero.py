@@ -9,7 +9,7 @@ from pathlib import Path
 from lex.harness.http import payload_harness
 from lex.harness.scrittura import scrivi
 from tests.lex_collaudo.punteggio import carica_casi, valuta_caso
-from tests.lex_collaudo.scrittori import _attendi_carico, _carico, _gpu_mb, _ram_libera_mb
+from tests.lex_collaudo.scrittori import _attendi_carico, _carico, _gpu_mb, _ram_libera_mb, attiva_registro_grezzi
 
 LIBERO = Path(__file__).with_name("casi_avvocato_testo_libero.json")
 
@@ -45,6 +45,7 @@ def main(scrittore: str, uscita: str) -> int:
 
 
 if __name__ == "__main__":
+    attiva_registro_grezzi()
     # Entrambe le modalità, una dopo l'altra: stesura libera e stesura con segnaposto.
     for modo in (os.environ.get("LEX_BANCO_MODALITA_LIBERO") or "libera,segnaposto").split(","):
         os.environ["LEX_BANCO_MODALITA_LIBERO"] = "" if modo == "libera" else modo

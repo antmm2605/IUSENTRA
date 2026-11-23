@@ -45,3 +45,23 @@ def test_per_punto_frase_con_dato_inventato_resta_deterministica(monkeypatch):
         "[1] La separazione giudiziale si chiede entro 30 giorni.\n[2] Non servono mediazione né negoziazione assistita."))
     r = SP.scrivi_per_punto(SCHEMA, "openai:x|prova")
     assert "entro 30 giorni" not in r.testo and "intollerabile la convivenza. (art. 151 c.c.)" in r.testo
+
+
+def test_senza_variabile_nessuna_risposta_grezza_su_disco(tmp_path, monkeypatch):
+    import os
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("LEX_BANCO_GREZZI", raising=False)
+    monkeypatch.setattr(SP, "registra_grezza", None)
+    monkeypatch.setattr(SP, "_chiama", lambda *a, **k: "[1] Frase riscritta in modo corretto e scorrevole.\n[2] Altra frase.")
+    SP.scrivi_per_punto(SCHEMA, "openai:x|prova")
+    assert list(tmp_path.iterdir()) == []
+    from tests.lex_collaudo.scrittori import attiva_registro_grezzi
+
+    attiva_registro_grezzi()                      # senza variabile non attiva nulla
+    assert SP.registra_grezza is None
+    file = tmp_path / "grezzi.jsonl"
+    monkeypatch.setenv("LEX_BANCO_GREZZI", str(file))
+    attiva_registro_grezzi()
+    SP.scrivi_per_punto(SCHEMA, "openai:x|prova")
+    assert file.exists() and oct(os.stat(file).st_mode & 0o777) == "0o600"

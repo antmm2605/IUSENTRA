@@ -101,14 +101,14 @@ def sostituisci(stesura: str, mappa: dict[str, str]) -> str:
     return __import__("re").sub(r"(?i)(?:\beuro|€)\s+(?=€)", "", testo)
 
 
-def _registra(scrittore: str, schema: str, grezza: str) -> None:
-    import json
-    import os
+# Registrazione delle risposte grezze dello scrittore: solo il banco di prova la attiva (tests/lex_collaudo), mai la
+# produzione. Lo schema contiene i fatti del cliente: nessun percorso predefinito, nessuna scrittura su disco qui.
+registra_grezza = None
 
-    percorso = os.environ.get("LEX_BANCO_GREZZI") or "/home/antmm2605/iusentra-controlli/lex/confronto-scrittori/grezzi_segnaposto.jsonl"
-    if percorso:
-        with open(percorso, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"scrittore": scrittore, "schema": schema, "grezza": grezza}, ensure_ascii=False) + "\n")
+
+def _registra(scrittore: str, schema: str, grezza: str) -> None:
+    if callable(registra_grezza):
+        registra_grezza(scrittore, schema, grezza)
 
 
 def scrivi_con_segnaposto(testo_deterministico: str, scrittore: str, timeout: float = 300.0) -> Stesura:

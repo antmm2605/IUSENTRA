@@ -24,10 +24,13 @@ def _righe():
 
 def test_coda_testo_ricerca_e_404(tmp_path):
     archivio = ArchivioTestiGA(tmp_path / "ga.sqlite")
-    assert archivio.carica_estremi(_righe()) == 3  # il TAR resta fuori finché lo schema della sede non è verificato
+    assert archivio.carica_estremi(_righe()) == 4
     assert archivio.carica_estremi(_righe()) == 0
     coda = archivio.da_leggere()
-    assert [c["id"].split("|")[-1] for c in coda] == ["202607168", "202001731", "202600659"]  # CdS prima, dai più recenti
+    # Consiglio di Stato prima, poi CGA, poi TAR; dai più recenti.
+    assert [c["id"].split("|")[-1] for c in coda] == ["202607168", "202001731", "202600659", "202400191"]
+    assert coda[3]["url"] == ("https://mdp.giustizia-amministrativa.it/visualizza/?nodeRef=&schema=tar_tn&nrg=202400095"
+                              "&nomeFile=202400191_01.html&subDir=Provvedimenti")
     assert coda[1]["url"] == ("https://mdp.giustizia-amministrativa.it/visualizza/?nodeRef=&schema=cds&nrg=201904232"
                               "&nomeFile=202001731_11.html&subDir=Provvedimenti")
 
@@ -37,8 +40,8 @@ def test_coda_testo_ricerca_e_404(tmp_path):
         return SimpleNamespace(status_code=200, url="https://mdp.giustizia-amministrativa.it/visualizza/404.html", content=b"")
 
     esito = leggi(archivio, scarica=scarica, tempo_massimo=60, pausa=0)
-    assert esito == {"letti": 2, "errori": 1}
-    assert archivio.conteggi() == {"letto": 2, "non_disponibile": 1}
+    assert esito == {"letti": 2, "errori": 2}
+    assert archivio.conteggi() == {"letto": 2, "non_disponibile": 2}
     trovati = archivio.cerca("assenso paesistico")
     assert [t["numero"] for t in trovati] and trovati[0]["pubblicato_il"] == "11/03/2020"
     assert archivio.da_leggere() == []

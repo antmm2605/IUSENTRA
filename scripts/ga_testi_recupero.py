@@ -1,4 +1,4 @@
-"""Testo integrale delle sentenze del Consiglio di Stato e del CGA dal sito ufficiale, in sfondo e con ripresa.
+"""Testo integrale delle sentenze del Consiglio di Stato, del CGA e dei TAR dal sito ufficiale, in sfondo e con ripresa.
 
 Uso: nice -n 19 python scripts/ga_testi_recupero.py --catalogo catalogo.db --archivio ga_testi.sqlite [--tratto 1800]
 Gli estremi vengono dal catalogo OpenGA (pct/giustizia_amministrativa_testi.py); ogni tratto legge i testi in coda.
@@ -22,8 +22,9 @@ from pct.giustizia_amministrativa_testi import ArchivioTestiGA, leggi  # noqa: E
 def estremi(catalogo: str):
     conn = sqlite3.connect(f"file:{catalogo}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
+    # Tutte le sentenze: la coda le legge per priorità (Consiglio di Stato, CGA, poi TAR), dalle più recenti.
     for riga in conn.execute("SELECT sede, nome_sede, tipo, numero, anno, ricorso, oggetto, esito_originale AS esito FROM righe "
-                             "WHERE nome_sede LIKE 'CdS%' OR nome_sede LIKE 'CGA%'"):
+                             "WHERE tipo LIKE 'SENTENZA%'"):
         yield dict(riga)
 
 

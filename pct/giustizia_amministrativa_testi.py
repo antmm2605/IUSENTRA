@@ -28,8 +28,10 @@ from typing import Any, Callable, Iterable
 URL_PROVVEDIMENTO = ("https://mdp.giustizia-amministrativa.it/visualizza/?nodeRef=&schema={schema}&nrg={ricorso}"
                      "&nomeFile={numero}_{codice}.html&subDir=Provvedimenti")
 # Codice del tipo di provvedimento nel nome del file ufficiale.
-# Verificato per le sentenze (anche brevi) di Consiglio di Stato e CGA; il catalogo OpenGA elenca solo sentenze.
+# Codice della sentenza nel nome del file: «11» per Consiglio di Stato e CGA, «01» per i TAR (verificati); il catalogo
+# OpenGA elenca solo sentenze.
 CODICI_TIPO = {"SENTENZA": "11", "SENTENZA BREVE": "11"}
+CODICI_TIPO_TAR = {"SENTENZA": "01", "SENTENZA BREVE": "01"}
 PAUSA = 2.0
 TENTATIVI = 3
 
@@ -46,14 +48,24 @@ _SCHEMA = (
 )
 
 
+# Sigla del TAR nel parametro «schema» (``tar_<sigla>``), per codice di sede del catalogo OpenGA. Verificata il
+# 23/11/2026 sul sito con due sentenze del 2025 per ogni sede (57 testi su 58 aperti; l'altro non pubblicato) e
+# sui collegamenti della pagina pubblica (``schema=tar_rm``, ``schema=tar_bs``).
+SIGLE_TAR = {"001": "lt", "003": "rm", "004": "aq", "005": "pe", "006": "bz", "007": "pz", "008": "cz", "009": "rc",
+             "010": "na", "011": "sa", "012": "bo", "013": "pr", "014": "ts", "015": "ge", "016": "mi", "017": "bs",
+             "018": "an", "019": "cb", "020": "to", "021": "ba", "022": "le", "023": "ca", "024": "pa", "025": "ct",
+             "026": "fi", "027": "tn", "028": "pg", "029": "ao", "030": "ve"}
+
+
 def schema_sede(sede: str, nome_sede: str) -> str:
-    """Il parametro «schema» del sito: «cds» per il Consiglio di Stato, «cga» per il CGA Sicilia, altrimenti il TAR."""
+    """Il parametro «schema» del sito: «cds» per il Consiglio di Stato, «cga» per il CGA Sicilia, «tar_<sigla>» per i TAR."""
     nome = nome_sede.upper()
     if "CONSIGLIO DI STATO" in nome or nome.startswith("CDS"):
         return "cds"
     if "CGA" in nome or "GIUSTIZIA AMMINISTRATIVA PER LA REGIONE SICILIANA" in nome:
         return "cga"
-    return ""  # TAR: lo schema per sede si aggiunge quando verificato sul sito
+    sigla = SIGLE_TAR.get(str(sede))
+    return f"tar_{sigla}" if sigla and nome.startswith("TAR") else ""
 
 
 def priorita(nome_sede: str) -> int:
@@ -106,7 +118,7 @@ class ArchivioTestiGA:
         with closing(self._connetti()) as conn:
             for r in righe:
                 schema = schema_sede(str(r["sede"]), str(r["nome_sede"]))
-                codice = CODICI_TIPO.get(str(r["tipo"]).upper())
+                codice = (CODICI_TIPO_TAR if schema.startswith("tar_") else CODICI_TIPO).get(str(r["tipo"]).upper())
                 if not schema or not codice or not str(r.get("ricorso") or "").isdigit():
                     continue
                 ident = f"{r['sede']}|{r['tipo']}|{r['anno']}|{r['numero']}"

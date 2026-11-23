@@ -1,16 +1,16 @@
 """Significato delle regole per materia, per la ricerca per significato dell'harness.
 
 Per ogni regola: LATO della parte assistita («attivo» = chi agisce o pretende, «passivo» = chi subisce l'atto o si
-difende, «entrambi»), SINONIMI (parole comuni e tecniche con cui l'avvocato o il cliente nomina lo strumento) e
+difende, None se vale per entrambi), SINONIMI (parole comuni e tecniche con cui l'avvocato o il cliente nomina lo strumento) e
 SITUAZIONI tipiche scritte con le parole del cliente. Formato esportato da ``materie.indice_significato()`` e da
 ``scripts/lex_harness_significato_materie.py`` in ``dati/significato_regole_materie.json``:
-{"regola", "materia", "nome", "lato", "sinonimi": [...], "situazioni": [...]}.
+{"regola", "materia", "nome", "lato": "attivo"|"passivo"|null, "sinonimi": [...], "situazioni": [...]}.
 """
 from __future__ import annotations
 
-A, P, E = "attivo", "passivo", "entrambi"
+A, P, E = "attivo", "passivo", None
 
-SIGNIFICATO: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
+SIGNIFICATO: dict[str, tuple[str | None, tuple[str, ...], tuple[str, ...]]] = {
     # ---------------------------------------------------------------- pubblico impiego
     "pi_carta_docente": (A, ("carta del docente", "bonus 500 euro formazione", "carta elettronica docenti", "bonus aggiornamento insegnanti"),
                          ("ho fatto supplenze per anni e la carta da 500 euro non me l'hanno mai data",

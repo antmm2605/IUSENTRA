@@ -14,7 +14,7 @@ from .schede import R, Scheda, p
 
 RINUNCIA_EREDITA = Scheda(
     regola="suc_rinuncia_eredita", materia="successioni", nome="rinuncia all'eredità",
-    segnali=(r"rinunc\w*[^.]{0,40}eredit|eredit\w*[^.]{0,40}rinunc|non (?:voglio|vogliamo|vuole) (?:accettare )?l eredita|"
+    segnali=(r"rinun[cz]\w*[^.]{0,40}eredit|eredit\w*[^.]{0,40}rinun[cz]|non (?:voglio|vogliamo|vuole) (?:accettare )?l eredita|"
              r"rifiutare l eredita|non accettare l eredita",),
     esclusi=(r"vive nella casa|abita nella casa|continua ad abitar|conviveva|ne detiene le chiavi|nel possesso|ha (?:gia )?usato|ha preso|"
              r"ha venduto|ha incassato|paga le utenze",), punteggio=6,
@@ -68,7 +68,7 @@ NEGOZIAZIONE_SINISTRI = Scheda(
 
 DI_RETRIBUZIONI = Scheda(
     regola="lav_decreto_ingiuntivo", materia="lavoro", nome="decreto ingiuntivo per retribuzioni non pagate",
-    segnali=(r"decreto ingiuntiv|ingiunzion|monitori|ingiunger", r"stipend|retribu|buste? paga|busta paga|mensilit|tredicesim|"
+    segnali=(r"ingiuntiv|ingiunzion|monitori|ingiunger", r"stipend|retribu|buste? paga|busta paga|mensilit|tredicesim|"
              r"quattordicesim|\btfr\b|ferie|lavorator|dipendent|datore"),
     esclusi=(r"oppo|tardiv|ordinanza.ingiunzione|minister|pubblic\w* amministrazion|scuola",), punteggio=6,
     capito="Lavoratore con retribuzioni documentate e non pagate che vuole un titolo esecutivo rapido.",

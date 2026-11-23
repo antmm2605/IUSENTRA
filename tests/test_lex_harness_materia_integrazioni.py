@@ -36,6 +36,10 @@ CASI = [
     ("Lui ha tentato di uccidermi ed è stato condannato: devo prima separarmi per divorziare?", "fam_divorzio_immediato"),
     ("Mia moglie è in carcere con l'ergastolo, come chiedo il divorzio?", "fam_divorzio_immediato"),
     ("Divorzio diretto per condanna penale del coniuge: quali reati contano?", "fam_divorzio_immediato"),
+    # refusi (corretti da lex/harness/normalizzazione.py)
+    ("mio padre e morto con debbiti, voglio fare la rinunzia all'eredita dal notaio", "suc_rinuncia_eredita"),
+    ("il datore non mi paga lo stipendo da due mesi, ho le buste paga: decretto ingiuntivo?", "lav_decreto_ingiuntivo"),
+    ("rottamazione delle cartelle: posso ancora aderire? ho debbiti col fisco dal 2018", "trib_definizione_agevolata"),
 ]
 
 
@@ -72,5 +76,5 @@ def test_ogni_regola_ha_lato_sinonimi_situazioni():
     from lex.harness.fattispecie.materie import SCHEDE
 
     for s in SCHEDE:
-        assert s.lato in {"attivo", "passivo", "entrambi"}, s.regola
+        assert s.lato in {"attivo", "passivo", None}, s.regola
         assert len(s.sinonimi) >= 2 and len(s.situazioni) >= 3, s.regola

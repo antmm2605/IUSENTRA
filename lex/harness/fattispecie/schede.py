@@ -70,7 +70,7 @@ class Scheda:
     bozza: Bozza | None = None
     extra: Callable[[Analisi, Comprensione, Fatti], None] | None = None
     # Ricerca per significato (fattispecie/significato_materie.py): lato della parte assistita, sinonimi, situazioni tipiche.
-    lato: str = "entrambi"
+    lato: str | None = None                       # «attivo», «passivo»; None se vale per entrambi
     sinonimi: tuple[str, ...] = ()
     situazioni: tuple[str, ...] = ()
 

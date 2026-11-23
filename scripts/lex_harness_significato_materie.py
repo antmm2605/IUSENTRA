@@ -1,7 +1,7 @@
 """Esporta l'indice per la ricerca per significato delle regole per materia in lex/harness/dati/significato_regole_materie.json.
 
 Uso: python scripts/lex_harness_significato_materie.py
-Formato: [{"regola", "materia", "nome", "lato": "attivo|passivo|entrambi", "sinonimi": [...], "situazioni": [...]}].
+Formato: [{"regola", "materia", "nome", "lato": "attivo"|"passivo"|null (vale per entrambi), "sinonimi": [...], "situazioni": [...]}].
 """
 from __future__ import annotations
 

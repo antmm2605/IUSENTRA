@@ -92,7 +92,7 @@
    "regola": "pi_competenza",
    "materia": "pubblico impiego",
    "nome": "giudice e foro del dipendente pubblico",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "foro del dipendente pubblico",
     "giudice del lavoro o TAR",
@@ -108,7 +108,7 @@
    "regola": "lav_conciliazione_rinunce",
    "materia": "lavoro",
    "nome": "conciliazione, rinunce e transazioni del lavoratore",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "conciliazione sindacale",
     "transazione col datore",
@@ -342,7 +342,7 @@
    "regola": "mon_provvisoria_esecuzione",
    "materia": "monitorio",
    "nome": "provvisoria esecuzione del decreto ingiuntivo (artt. 642 e 648)",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "provvisoria esecuzione",
     "decreto subito esecutivo",
@@ -358,7 +358,7 @@
    "regola": "civ_memorie_171ter",
    "materia": "civile ordinario",
    "nome": "memorie integrative (art. 171-ter c.p.c.)",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "memorie integrative",
     "171-ter",
@@ -374,7 +374,7 @@
    "regola": "civ_revocazione",
    "materia": "civile ordinario",
    "nome": "revocazione della sentenza",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "revocazione",
     "errore di fatto del giudice",
@@ -407,7 +407,7 @@
    "regola": "civ_regolamento_competenza",
    "materia": "civile ordinario",
    "nome": "regolamento di competenza",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "regolamento di competenza",
     "giudice incompetente",
@@ -423,7 +423,7 @@
    "regola": "cau_reclamo",
    "materia": "cautelare e urgenza",
    "nome": "reclamo cautelare (art. 669-terdecies)",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "reclamo cautelare",
     "669-terdecies",
@@ -537,7 +537,7 @@
    "regola": "civ_cassazione",
    "materia": "civile ordinario",
    "nome": "ricorso per cassazione civile",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "ricorso in cassazione civile",
     "violazione di legge",
@@ -553,7 +553,7 @@
    "regola": "civ_appello",
    "materia": "civile ordinario",
    "nome": "appello civile",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "appello civile",
     "impugnare la sentenza",
@@ -586,7 +586,7 @@
    "regola": "pen_remissione_querela",
    "materia": "penale",
    "nome": "remissione della querela",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "ritiro della querela",
     "remissione",
@@ -602,7 +602,7 @@
    "regola": "pen_giustizia_riparativa",
    "materia": "penale",
    "nome": "giustizia riparativa",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "giustizia riparativa",
     "mediazione penale",
@@ -1026,7 +1026,7 @@
    "regola": "con_nullita",
    "materia": "contratti",
    "nome": "nullità del contratto",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "nullità del contratto",
     "contratto nullo",
@@ -1042,7 +1042,7 @@
    "regola": "con_risoluzione",
    "materia": "contratti",
    "nome": "risoluzione del contratto per inadempimento",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "risoluzione del contratto",
     "inadempimento",
@@ -1154,7 +1154,7 @@
    "regola": "suc_divisione",
    "materia": "successioni",
    "nome": "divisione ereditaria e scioglimento della comunione",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "divisione ereditaria",
     "scioglimento della comunione",
@@ -1234,7 +1234,7 @@
    "regola": "dr_regolamento_confini",
    "materia": "diritti reali e condominio",
    "nome": "regolamento di confini e apposizione di termini",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "regolamento di confini",
     "confine incerto",
@@ -1250,7 +1250,7 @@
    "regola": "fam_affidamento_figli",
    "materia": "famiglia e minori",
    "nome": "affidamento e collocamento dei figli (anche nati fuori dal matrimonio)",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "affidamento dei figli",
     "collocamento",
@@ -1283,7 +1283,7 @@
    "regola": "loc_aggiornamento_istat",
    "materia": "locazioni",
    "nome": "aggiornamento ISTAT del canone",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "aggiornamento ISTAT",
     "aumento dell'affitto",
@@ -1413,7 +1413,7 @@
    "regola": "str_transazione",
    "materia": "stragiudiziale",
    "nome": "transazione",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "transazione",
     "accordo transattivo",
@@ -1510,7 +1510,7 @@
    "regola": "civ_rimessione_termini",
    "materia": "civile ordinario",
    "nome": "rimessione in termini",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "rimessione in termini",
     "termine scaduto non per colpa mia",
@@ -1591,7 +1591,7 @@
    "regola": "fam_separazione",
    "materia": "famiglia e minori",
    "nome": "separazione dei coniugi",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "separazione",
     "separazione giudiziale",
@@ -1607,7 +1607,7 @@
    "regola": "fam_modifica_condizioni",
    "materia": "famiglia e minori",
    "nome": "modifica dei provvedimenti su figli e contributi",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "modifica delle condizioni",
     "revisione dell'assegno",
@@ -1623,7 +1623,7 @@
    "regola": "fam_mantenimento",
    "materia": "famiglia e minori",
    "nome": "mantenimento dei figli e del coniuge",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "mantenimento dei figli",
     "assegno di mantenimento",
@@ -1655,7 +1655,7 @@
    "regola": "fam_negoziazione",
    "materia": "famiglia e minori",
    "nome": "negoziazione assistita familiare",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "negoziazione assistita familiare",
     "separazione con gli avvocati",
@@ -1671,7 +1671,7 @@
    "regola": "fam_disconoscimento",
    "materia": "famiglia e minori",
    "nome": "disconoscimento di paternità",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "disconoscimento di paternità",
     "test del DNA",
@@ -1719,7 +1719,7 @@
    "regola": "con_recesso",
    "materia": "contratti",
    "nome": "recesso dal contratto",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "recesso dal contratto",
     "disdetta del contratto",
@@ -1803,7 +1803,7 @@
    "regola": "lav_appello",
    "materia": "lavoro",
    "nome": "appello nel rito del lavoro",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "appello lavoro",
     "corte d'appello sezione lavoro",
@@ -1819,7 +1819,7 @@
    "regola": "loc_disdetta",
    "materia": "locazioni",
    "nome": "disdetta e diniego di rinnovo alla scadenza",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "disdetta",
     "finita locazione",
@@ -1835,7 +1835,7 @@
    "regola": "loc_mobili_rilascio",
    "materia": "locazioni",
    "nome": "beni lasciati nell'immobile dopo il rilascio",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "mobili lasciati",
     "rilascio dell'immobile",
@@ -2008,7 +2008,7 @@
    "regola": "str_mediazione",
    "materia": "stragiudiziale",
    "nome": "mediazione: durata, effetti e mancata partecipazione",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "mediazione civile",
     "organismo di mediazione",
@@ -2024,7 +2024,7 @@
    "regola": "str_negoziazione",
    "materia": "stragiudiziale",
    "nome": "negoziazione assistita: invito, risposta e materie",
-   "lato": "entrambi",
+   "lato": null,
    "sinonimi": [
     "negoziazione assistita",
     "invito alla negoziazione",

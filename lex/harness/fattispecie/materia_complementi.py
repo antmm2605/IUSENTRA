@@ -429,7 +429,7 @@ QUERELA = Scheda(
 
 APPELLO_PENALE = Scheda(
     regola="pen_appello", materia="penale", nome="appello penale",
-    segnali=(r"appell", r"penal|condann|imputat|reato"), esclusi=(r"lavor|tributar|\btar\b",), punteggio=2,
+    segnali=(r"appell", r"penal|condann|imputat|reato"), esclusi=(r"lavor|tributar|\btar\b|cassazion",), punteggio=2,
     capito="Appello contro una sentenza penale.",
     rimedio="atto di appello con motivi specifici",
     conclusione=[
@@ -517,7 +517,7 @@ MEDIAZIONE = Scheda(
 
 NEGOZIAZIONE = Scheda(
     regola="str_negoziazione", materia="stragiudiziale", nome="negoziazione assistita: invito, risposta e materie",
-    segnali=(r"negoziazione",), alcuni=(r"invito|non risponde|rifiut|trenta giorni|30 giorni|lavoro|convenzione",),
+    segnali=(r"negoziazione",), alcuni=(r"invit|non risponde|rifiut|trenta giorni|30 giorni|lavoro|convenzione|aspett",),
     esclusi=(r"separar|divorzi|coniug|figli|sinistro|incidente",), punteggio=2,
     capito="Invito alla negoziazione assistita e conseguenze della mancata risposta.",
     rimedio="invito a stipulare la convenzione di negoziazione assistita firmato dall'avvocato",

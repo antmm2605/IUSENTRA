@@ -217,12 +217,28 @@ class ConversioneEditorScaduta(RuntimeError):
     """La conversione locale ha superato il tempo consentito."""
 
 
+# Tempo massimo della conversione locale (LibreOffice) per l'export dell'editor. Con il PC carico la
+# prima conversione legge a freddo le librerie del convertitore e superava i 45 s di prima (collaudo
+# 21/11/2026: 45,1 s e 503 sull'export PDF); 120 s di base, regolabile per installazione.
+VARIABILE_TEMPO_CONVERSIONE = "IUSENTRA_EDITOR_CONVERSIONE_SECONDI"
+TEMPO_CONVERSIONE_PREDEFINITO = 120.0
+
+
+def tempo_conversione() -> float:
+    valore = os.environ.get(VARIABILE_TEMPO_CONVERSIONE, "").strip()
+    try:
+        secondi = float(valore) if valore else TEMPO_CONVERSIONE_PREDEFINITO
+    except ValueError:
+        return TEMPO_CONVERSIONE_PREDEFINITO
+    return secondi if secondi > 0 else TEMPO_CONVERSIONE_PREDEFINITO
+
+
 def _converti_editor(comando: list[str], environment: dict[str, str]) -> None:
     gruppo_posix = os.name == "posix"
     with subprocess.Popen(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                           env=environment, start_new_session=gruppo_posix) as processo:
         try:
-            stdout, stderr = processo.communicate(timeout=45)
+            stdout, stderr = processo.communicate(timeout=tempo_conversione())
         except subprocess.TimeoutExpired:
             try:
                 if gruppo_posix:
@@ -282,3 +298,44 @@ def esporta_documento_editor(html: str, *, formato: str, titolo: str = "Document
             raise RuntimeError("Il convertitore locale non ha prodotto il documento richiesto.")
         dati = prodotto.read_bytes()
         return _verifica_font_elenchi_rtf(_regioni_rtf(dati, sorgente), sorgente) if formato == "rtf" else dati
+
+
+# --- Preriscaldamento del convertitore -------------------------------------------------------------
+# All'avvio di ogni worker una conversione di prova di un documento minimo, in sfondo: la prima
+# esportazione dell'avvocato non parte a freddo. Non blocca l'avvio e non solleva mai eccezioni.
+_PRERISCALDAMENTO: dict[str, object] = {"avviato": False, "esito": None}
+
+
+def preriscalda_convertitore() -> dict:
+    """Conversione di prova (DOCX minimo -> PDF). Restituisce l'esito, senza sollevare eccezioni."""
+    import time
+
+    inizio = time.monotonic()
+    try:
+        dati = esporta_documento_editor("<p>Preriscaldamento del convertitore.</p>", formato="pdf",
+                                        titolo="Preriscaldamento")
+        esito = {"ok": bool(dati) and dati[:4] == b"%PDF", "secondi": round(time.monotonic() - inizio, 1)}
+    except Exception as exc:  # il preriscaldamento non deve mai fermare l'app
+        esito = {"ok": False, "secondi": round(time.monotonic() - inizio, 1), "errore": str(exc)[:200]}
+    _PRERISCALDAMENTO["esito"] = esito
+    return esito
+
+
+def avvia_preriscaldamento_in_sfondo():
+    """Avvia una sola volta per processo il preriscaldamento in un thread demone; None se disattivato."""
+    import logging
+    import threading
+
+    if str(os.environ.get("IUSENTRA_EDITOR_PRERISCALDAMENTO", "1")).strip().lower() in {"0", "false", "no", "off"}:
+        return None
+    if _PRERISCALDAMENTO["avviato"] or not (shutil.which("libreoffice") or shutil.which("soffice")):
+        return None
+    _PRERISCALDAMENTO["avviato"] = True
+
+    def _lavoro():
+        esito = preriscalda_convertitore()
+        logging.getLogger(__name__).info("Preriscaldamento del convertitore dell'editor: %s", esito)
+
+    filo = threading.Thread(target=_lavoro, name="iusentra-preriscaldamento-editor", daemon=True)
+    filo.start()
+    return filo

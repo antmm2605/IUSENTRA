@@ -41,6 +41,13 @@ def post_worker_init(worker):
     from core.gunicorn_diagnosi import avvia_sorveglianza
 
     avvia_sorveglianza(worker)
+    # Prima esportazione PDF/RTF dell'editor non a freddo: conversione di prova in sfondo.
+    try:
+        from pct.editor_export import avvia_preriscaldamento_in_sfondo
+
+        avvia_preriscaldamento_in_sfondo()
+    except Exception as exc:  # l'avvio del worker non dipende dal convertitore
+        worker.log.warning("IUSENTRA: preriscaldamento del convertitore non avviato: %s", exc)
 
 
 def pre_request(worker, req):  # noqa: ARG001

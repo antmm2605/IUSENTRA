@@ -8,6 +8,7 @@
 - Modelli d'atto e procedure guidate ricontrollati sul testo vigente: norme dall'atto specifico, 13 modelli «Da associare» collegati alle norme verificate, monitorio, decreto esecutivo e pignoramento presso terzi corretti.
 - Letture del fascicolo: esito dell'indice della sentenza salvato sul solo fascicolo, sentenza esclusa per un ufficio letto tagliato; avviso «dati non aggiornati» solo dopo tre tentativi falliti.
 - Bundle React ricompilato da zero.
+- Export dell'editor (PDF, RTF, DOCX con fonti): tempo massimo della conversione locale da 45 a 120 s, regolabile con `IUSENTRA_EDITOR_CONVERSIONE_SECONDI`, e conversione di prova all'avvio di ogni worker, in sfondo, perché la prima esportazione non parta a freddo (con il PC carico l'export PDF rispondeva 503).
 - Bozze del software sempre in PDF, anche nell'elenco, senza doppioni né rigenerazione a ogni giro; Controllo della catena sempre visibile sotto il quadro del fascicolo.
 - Biblioteca: testo vigente verificato con Normattiva su 37 atti, vigenza nel tempo (articoli vigenti fino al 31/12/2026 e abrogati), commi numerati per 13 atti in più, sentenze per norma verificate per altri articoli.
 - Gazzetta Ufficiale completa dal 01/01/2022: sommari storici e testi degli atti.

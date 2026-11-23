@@ -51,7 +51,7 @@ class Scheda:
     alcuni: tuple[str, ...] = ()                # almeno una (se indicate)
     esclusi: tuple[str, ...] = ()               # nessuna deve comparire
     punteggio: int = 6
-    tipi: frozenset[str] = frozenset({"parere", "redazione", "termine"})
+    tipi: frozenset[str] = frozenset({"parere", "redazione", "termine", "calcolo"})
     rimedio: str = ""
     giudice: str = ""
     modello: str = ""

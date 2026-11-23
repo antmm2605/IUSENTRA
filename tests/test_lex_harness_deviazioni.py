@@ -96,7 +96,7 @@ PUBBLICO = [
      "pagato gli scatti di anzianità. Quale tribunale è competente?", "ricorso_dipendente_pubblico"),
     ("Un dipendente del Comune di Enna lamenta il demansionamento: TAR o giudice del lavoro?", "ricorso_dipendente_pubblico"),
     ("All'assistito l'INPS ha respinto la domanda di NASpI con provvedimento del 03/11/2026: come la contestiamo?",
-     "ricorso_amministrativo_inps"),
+     "prev_ricorso_amministrativo"),
     ("L'ASL non paga le somme liquidate dalla sentenza del tribunale notificata il 10/09/2026: quando possiamo notificare il "
      "precetto?", "esecuzione_contro_pa"),
     ("La Direzione territoriale del lavoro ha notificato il 04/11/2026 un'ordinanza-ingiunzione da 3.000 euro alla ditta del "
@@ -115,9 +115,10 @@ def test_foro_del_dipendente_pubblico_e_quello_dell_ufficio():
     assert "cpc:413" in r.norme_verificate and "dlgs165:63" in r.norme_verificate and not r.affermazioni_tolte
 
 
-def test_previdenza_non_al_tar_e_improcedibilita():
+def test_previdenza_al_giudice_del_lavoro_dopo_il_ricorso_amministrativo():
     r = rispondi(PUBBLICO[2][0], oggi=OGGI)
-    assert "non è il TAR" in r.testo and "centottanta giorni" in r.testo
+    assert r.regola == "prev_ricorso_amministrativo" and "novanta giorni" in r.testo
+    assert "l88:46" in r.norme_verificate and not r.affermazioni_tolte
 
 
 def test_esecuzione_contro_la_pa_centoventi_giorni():

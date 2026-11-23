@@ -39,8 +39,6 @@ REGOLE: tuple[Regola, ...] = (
     ("impugnazione_licenziamento", lavoro.riconosci_licenziamento, lavoro.analizza_licenziamento),
     ("appello_lavoro", domande.riconosci_appello_lavoro, domande.analizza_appello_lavoro),
     ("ricorso_dipendente_pubblico", pubblico.riconosci_dipendente_pubblico, pubblico.analizza_dipendente_pubblico),
-    ("ricorso_amministrativo_inps", pubblico.riconosci_previdenza, pubblico.analizza_previdenza),
-    ("ricorso_442", pubblico.riconosci_causa_previdenziale, pubblico.analizza_causa_previdenziale),
     ("esecuzione_contro_pa", pubblico.riconosci_esecuzione_pa, pubblico.analizza_esecuzione_pa),
     ("ordinanza_ingiunzione", pubblico.riconosci_ordinanza_ingiunzione, pubblico.analizza_ordinanza_ingiunzione),
     ("crediti_lavoro", lavoro.riconosci_crediti, lavoro.analizza_crediti),

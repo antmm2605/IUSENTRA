@@ -132,8 +132,7 @@ def analizza_verbale_cds(c: Comprensione, f: Fatti) -> Analisi:
         [Rif("dlgs285:203", "nel termine di giorni sessanta dalla contestazione o dalla notificazione"),
          Rif("dlgs285:203", "possono proporre ricorso al prefetto del luogo della commessa violazione")]))
     if re.search(r"prefett", t):
-        a.rimedio = ("ricorso al prefetto entro sessanta giorni (art. 203 cod. strada), in alternativa al ricorso al giudice di "
-                     "pace entro trenta giorni (art. 204-bis cod. strada)")
+        a.rimedio += "; in alternativa, ricorso al prefetto entro sessanta giorni (art. 203 cod. strada)"
     return a
 
 

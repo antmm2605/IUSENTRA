@@ -14,8 +14,8 @@ from .schede import R, Scheda, p
 AFFIDAMENTO = Scheda(
     regola="fam_affidamento_figli", materia="famiglia e minori", nome="affidamento e collocamento dei figli (anche nati fuori dal matrimonio)",
     segnali=(r"affid|collocament|vedere (?:il|la|i) figli|impedisce[^.]{0,40}(?:vedere|figli)",),
-    alcuni=(r"figli|bambin|minore|padre|madre|genitor",),
-    esclusi=(r"separazion|divorzi|modific\w* (?:delle )?condizion|affidamento in prova|servizi sociali[^.]{0,20}condann|"
+    alcuni=(r"figli|bambin|minore|padre|madre|genitor|affidamento (?:super )?esclusivo",),
+    esclusi=(r"separazion|divorzi|modific\w* (?:delle )?condizion|modificar\w* (?:il )?collocamento|affidamento in prova|servizi sociali[^.]{0,20}condann|"
              r"negoziazione assistita|maggiorenn", r"incarico|appalto|banca"), punteggio=6,
     capito="Genitori (sposati o no) in disaccordo sull'affidamento, il collocamento e le visite dei figli minori.",
     rimedio="ricorso al tribunale del luogo di residenza abituale del minore (rito unificato delle persone, dei minorenni e delle famiglie)",
@@ -36,8 +36,8 @@ AFFIDAMENTO = Scheda(
 
 RECESSO_CONDUTTORE = Scheda(
     regola="loc_recesso_conduttore", materia="locazioni", nome="recesso del conduttore",
-    segnali=(r"recess|recedere|lasciare (?:la casa|l immobile|il locale)|andar(?:e|sene) via prima|disdett\w* (?:del|dell) inquilin",),
-    alcuni=(r"conduttor|inquilin|locazion|affitto|locatore|contratto 4\+4|4 ?\+ ?4",),
+    segnali=(r"recess|recedere|lasciare (?:la casa|l immobile|il locale)|andar(?:e|sene) via prima|se ne va|senza preavviso|disdett\w* (?:del|dell) inquilin",),
+    alcuni=(r"conduttor|inquilin|locazion|affitto|locatore|contratto 4\+4|4 ?\+ ?4|gravi motivi|contratto commerciale|deposito",),
     esclusi=(r"socio|societa|consumator|caparra|sfratt|morosit|in nero|non registrat|indebit|extra canone",), punteggio=6,
     capito="Conduttore che vuole lasciare l'immobile prima della scadenza.",
     rimedio="comunicazione di recesso con preavviso di sei mesi (per gravi motivi o se previsto dal contratto)",
@@ -68,7 +68,7 @@ AGGIORNAMENTO_CANONE = Scheda(
 RECESSO_CONSUMATORE = Scheda(
     regola="cons_recesso", materia="consumatori", nome="diritto di recesso del consumatore",
     segnali=(r"recess|recedere|restituire il prodotto|ripensa",),
-    alcuni=(r"online|a distanza|porta a porta|fuori dai locali|a domicilio|e-commerce|sito|consumator|ordin|comprat|acquist|abbonament",),
+    alcuni=(r"online|a distanza|porta a porta|fuori dai locali|a domicilio|e-commerce|sito|consumator|ordin|comprat|acquist|abbonament|diritto di recesso|venditor",),
     esclusi=(r"socio|societa|conduttor|inquilin|locazion|caparra", r"lavor"), punteggio=6,
     capito="Consumatore che vuole recedere da un contratto a distanza o concluso fuori dei locali commerciali.",
     rimedio="dichiarazione esplicita di recesso (anche con il modulo tipo) entro il termine",
@@ -86,7 +86,7 @@ RECESSO_CONSUMATORE = Scheda(
 
 PRATICHE_SCORRETTE = Scheda(
     regola="cons_pratiche_scorrette", materia="consumatori", nome="pratiche commerciali scorrette",
-    segnali=(r"pratic\w* commercial\w* (?:scorrett|aggressiv|ingannevol)|pubblicita ingannevol|servizi non richiest|pratica aggressiv|antitrust|\bagcm\b|ingannevol",),
+    segnali=(r"pratic\w* commercial\w* (?:scorrett|aggressiv|ingannevol)|pubblicita ingannevol|servizi non richiest|pratica aggressiv|pressione aggressiv|ingannat\w*[^.]{0,30}pubblicita|pubblicita[^.]{0,30}ingann|antitrust|\bagcm\b|ingannevol",),
     punteggio=6,
     capito="Pratica commerciale ingannevole o aggressiva verso i consumatori.",
     rimedio="segnalazione all'Autorità garante della concorrenza e del mercato; azione civile per i danni",
@@ -120,7 +120,7 @@ ADR_CONSUMO = Scheda(
 
 AUTOTUTELA = Scheda(
     regola="trib_autotutela", materia="tributario", nome="autotutela tributaria",
-    segnali=(r"autotutela",), alcuni=(r"tribut|agenzia|entrate|imposta|cartella|avviso|accertament|fisco|imu|tari|ufficio|annullar",), punteggio=7,
+    segnali=(r"autotutela",), alcuni=(r"tribut|agenzia|entrate|imposta|imposizion|cartella|avviso|accertament|fisco|imu|tari|ufficio|annullar|istanza|rifiuto|ricorso",), punteggio=7,
     capito="Richiesta all'amministrazione finanziaria di annullare in autotutela un atto illegittimo.",
     rimedio="istanza di autotutela (obbligatoria nei casi di manifesta illegittimità), senza sospensione del termine per il ricorso",
     conclusione=[
@@ -153,7 +153,7 @@ ADESIONE = Scheda(
 
 RATEIZZAZIONE = Scheda(
     regola="trib_rateizzazione", materia="tributario", nome="rateizzazione delle somme iscritte a ruolo",
-    segnali=(r"rateizz|dilazion|a rate|rateazion|\brate\b",), alcuni=(r"cartell|ruol|riscossione|agenzia delle entrate|tribut|fisc",),
+    segnali=(r"rateizz|dilazion|a rate|rateazion|\brate\b",), alcuni=(r"cartell|ruol|riscossione|agenzia delle entrate|tribut|fisc|salto|ipotech|fermi|decad",),
     esclusi=(r"pignor\w*[^.]{0,40}convers|conversione del pignoramento",), punteggio=6,
     capito="Dilazione del pagamento delle cartelle con l'Agenzia delle entrate-Riscossione.",
     rimedio="richiesta di dilazione all'Agenzia delle entrate-Riscossione",
@@ -170,7 +170,7 @@ RATEIZZAZIONE = Scheda(
 
 PROTEZIONE_INTERNAZIONALE = Scheda(
     regola="imm_protezione_internazionale", materia="immigrazione", nome="ricorso contro le decisioni della Commissione territoriale",
-    segnali=(r"commissione territoriale|asilo|protezione (?:internazionale|sussidiaria|speciale)|rifugiat",), punteggio=7,
+    segnali=(r"commissione territoriale|asilo|protezione (?:internazionale|sussidiaria|speciale)|rifugiat|sezione immigrazione|decisione della commissione|manifestamente infondata",), punteggio=7,
     capito="Richiedente protezione internazionale che impugna il diniego della Commissione territoriale.",
     rimedio="ricorso alla sezione specializzata immigrazione del tribunale ordinario",
     conclusione=[

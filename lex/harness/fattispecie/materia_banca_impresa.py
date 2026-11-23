@@ -35,7 +35,7 @@ USURA = Scheda(
 
 ANATOCISMO = Scheda(
     regola="ban_anatocismo", materia="bancario e finanziario", nome="anatocismo e ripetizione dell'indebito bancario",
-    segnali=(r"anatocism|capitalizz|interessi (?:sugli|su) interessi|ripetizione d\w* ?indebit|rimesse solutori|ricalcolo del conto",),
+    segnali=(r"anatocism|\bcicr\b|capitalizz|interessi (?:sugli|su) interessi|ripetizione d\w* ?indebit|rimesse solutori|ricalcolo del conto",),
     alcuni=(_BANCA, r"interess"), punteggio=6,
     capito="Correntista che contesta la capitalizzazione degli interessi e chiede la restituzione di quanto addebitato.",
     rimedio="mediazione e poi citazione per accertamento del saldo e ripetizione dell'indebito",
@@ -115,7 +115,7 @@ CENTRALE_RISCHI = Scheda(
     dati=["data e contenuto della segnalazione", "preavviso ricevuto o no", "stato del credito (contestato, pagato)", "danno"],
 )
 
-_SOCIETA = r"azione sociale|mala gestio|societa|\bsrl\b|s\.r\.l|\bspa\b|s\.p\.a|socio|soci\b|assemblea dei soci|amministrator\w* (?:unico|della societa)"
+_SOCIETA = r"azione sociale|mala gestio|creditori sociali|curatore|societa|\bsrl\b|s\.r\.l|\bspa\b|s\.p\.a|socio|soci\b|assemblea dei soci|amministrator\w* (?:unico|della societa)"
 
 DELIBERE_SOCIETARIE = Scheda(
     regola="soc_impugnazione_delibere", materia="società e impresa", nome="impugnazione delle delibere societarie",
@@ -141,7 +141,7 @@ DELIBERE_SOCIETARIE = Scheda(
 
 RESPONSABILITA_AMMINISTRATORI = Scheda(
     regola="soc_responsabilita_amministratori", materia="società e impresa", nome="azione di responsabilità contro gli amministratori",
-    segnali=(r"amministrator", r"responsabilit|distratt|distrazion|mala gestio|danni alla societa|azione sociale|creditori sociali"),
+    segnali=(r"amministrator|azione (?:sociale )?di responsabilita", r"responsabilit|distratt|distrazion|mala gestio|danni alla societa|azione sociale|creditori sociali"),
     alcuni=(_SOCIETA,), esclusi=(r"condomin|amministratore di sostegno",), punteggio=6,
     capito="Azione della società, dei soci o dei creditori contro gli amministratori per i danni da mala gestione.",
     rimedio="azione sociale di responsabilità (delibera assembleare o, nella s.r.l., anche del singolo socio); azione dei creditori sociali",

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from .schede import R, Scadenza, Scheda, p
 
-_NON_CIVILE = r"lavorator|\blavoro\b|licenzia|contro la condanna|per saltum|condannat\w* (?:penal|per )|penal|imputat|reato|tributar|\btar\b|amministrativ|cartella|agenzia delle entrate|\binps\b"
+_NON_CIVILE = r"lavorator|\blavoro\b|licenzia|contro la condanna|sentenza di condanna|per saltum|condannat\w* (?:penal|per )|penal|imputat|reato|tributar|\btar\b|amministrativ|cartella|agenzia delle entrate|\binps\b"
 _FERIALE = p("I termini sono sospesi dal 1° al 31 agosto.", R("l742:1", "giurisdizioni ordinarie ed a quelle amministrative"))
 _NOTIFICA = r"(?:sentenza|decisione)[^0-9]{0,40}(?:notificat\w*|comunicat\w*)(?: il)?"
 _PUBBLICAZIONE = r"(?:pubblicat\w*|depositat\w*)(?: il)?"
@@ -189,9 +189,9 @@ REGOLAMENTO_COMPETENZA = Scheda(
 
 URGENZA_700 = Scheda(
     regola="cau_700", materia="cautelare e urgenza", nome="provvedimento d'urgenza (art. 700 c.p.c.)",
-    segnali=(r"\b700\b|provvediment\w* d urgenza|ricorso d urgenza|pregiudizio imminente|irreparabil|tutela (?:cautelare )?urgente|"
-             r"ordine del giudice (?:prima|subito)|subito un ordine",),
-    esclusi=(_NON_CIVILE, r"sequestro|\btar\b|sospensiva"), punteggio=5,
+    segnali=(r"\b700\b|provvediment\w* d urgenza|provvediment\w* urgent|ricorso d urgenza|pregiudizio imminente|irreparabil|"
+             r"tutela (?:cautelare )?urgente|cautelare d urgenza|rimedio (?:cautelare )?urgent|ordine del giudice (?:prima|subito)|subito un ordine",),
+    esclusi=(r"sequestro|\btar\b|sospensiva|penal|imputat|tributar|cartella|\binps\b|licenzia|sfratt|moros|locazion|precett",), punteggio=6,
     capito="Tutela urgente atipica in attesa del giudizio di merito.",
     rimedio="ricorso ex art. 700 c.p.c. al giudice competente per il merito",
     conclusione=[

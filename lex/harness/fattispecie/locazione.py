@@ -383,7 +383,7 @@ def analizza_finita_locazione(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- esecuzione del rilascio
 def riconosci_rilascio(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    if not (f.ha("locazione") or re.search(r"immobil|sfratt|sloggio|rilascio|appartament|casa|locale", t)):
+    if not (f.ha("locazione") or re.search(r"immobil|sfratt|sloggio|sgombero|rilascio|appartament|casa|locale", t)):
         return 0
     # Il titolo per il rilascio da solo non basta: la domanda deve riguardare la liberazione dell'immobile.
     if not re.search(r"uscir|non esce|non se ne va|lascia\w* (?:l immobile|la casa|il locale|l appartamento)|liberar|rilascio dell|"

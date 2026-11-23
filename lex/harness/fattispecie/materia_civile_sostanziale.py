@@ -188,7 +188,7 @@ PETIZIONE = Scheda(
 
 DIVISIONE = Scheda(
     regola="suc_divisione", materia="successioni", nome="divisione ereditaria e scioglimento della comunione",
-    segnali=(r"divisione|divid|scioglimento della comunione|uscire dalla comproprieta|comproprieta",),
+    segnali=(r"divisione|\bdivid|scioglimento della comunione|uscire dalla comproprieta|comproprieta",),
     alcuni=(r"eredit|coered|fratell|comproprie|comunione|success|cugin|in natura|vendere la casa",),
     esclusi=(r"condomin|separazion|divorzi|societ",), punteggio=5,
     capito="Coeredi o comproprietari che non si accordano sulla divisione dei beni.",

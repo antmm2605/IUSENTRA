@@ -12,7 +12,7 @@ from ..modello import Analisi
 from .schede import Bozza, R, Scadenza, Scheda, p
 
 LAV = r"rapporto (?:di lavoro|cessat)|lavor|dipendent|datore|azienda|impiegat|operai|\bcapo\b|superior|colleg|mansion|vertenza|sindacal|ispettorato"
-ENTE = (r"\binps\b|\binail\b|pension|naspi|disoccupazion|assegno (?:sociale|unico|di invalidita|ordinario)|indennita di "
+ENTE = (r"\binps\b|\binail\b|\bpension|naspi|disoccupazion|assegno (?:sociale|unico|di invalidita|ordinario)|indennita di "
         r"(?:malattia|maternita|accompagnamento)|reversibilita|prestazion\w* (?:previdenz|assistenz)|invalidita civile|"
         r"inabilita|contribut\w* previdenz|\b104\b|handicap|indebito (?:pensionistico|previdenziale)|accompagnamento")
 _INVALIDITA = r"invalidita|inabilita|accompagnament|handicap|\b104\b|cecita|sordita|disabilita|445-?bis|assegno ordinario"
@@ -39,7 +39,7 @@ def _extra_lavoro(a: Analisi, c: Comprensione, f: Fatti) -> None:
 CONCILIAZIONE = Scheda(
     regola="lav_conciliazione_rinunce", materia="lavoro", nome="conciliazione, rinunce e transazioni del lavoratore",
     segnali=(r"conciliazion|rinunc|transazion|transatt|chiudere (?:la vertenza|la lite)|accordo con il datore", LAV),
-    esclusi=(r"licenzia|precett|pignor|sfratt", r"\binps\b|pension"), punteggio=6,
+    esclusi=(r"licenzia|precett|pignor|sfratt", r"\binps\b|\bpension"), punteggio=6,
     capito="Conciliazione della vertenza di lavoro o validità di rinunce e transazioni firmate dal lavoratore.",
     rimedio="conciliazione in sede protetta (commissione presso l'Ispettorato, sede sindacale o prevista dai contratti "
             "collettivi); impugnazione scritta delle rinunce invalide entro sei mesi",

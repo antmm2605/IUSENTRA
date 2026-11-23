@@ -29,7 +29,7 @@ PIGNORAMENTO_MOBILIARE = Scheda(
     regola="es_pignoramento_mobiliare", materia="esecuzione", nome="pignoramento mobiliare presso il debitore",
     segnali=(r"pignoramento mobiliare|pignor\w*[^.]{0,50}(?:beni mobili|\bmobili\b|in casa|cose del debitore|arredi|merce)|"
              r"impignorabil[^.]{0,40}(?:mobil|cose|beni)|ufficiale giudiziario[^.]{0,60}(?:casa|mobili)",),
-    esclusi=(r"presso terzi|stipendi|pension|conto corrente|immobil|opposizion|proprieta (?:di|del) terz|di mia proprieta", *_NON_ESEC),
+    esclusi=(r"presso terzi|stipendi|\bpension|conto corrente|immobil|opposizion|proprieta (?:di|del) terz|di mia proprieta", *_NON_ESEC),
     punteggio=6,
     capito="Creditore con titolo e precetto che vuole pignorare beni mobili del debitore.",
     rimedio="richiesta all'ufficiale giudiziario di pignoramento mobiliare, poi iscrizione a ruolo e istanza di vendita",
@@ -58,7 +58,7 @@ PIGNORAMENTO_IMMOBILIARE = Scheda(
     segnali=(r"pignoramento immobiliare|pignor\w*[^.?]{0,50}(?:\bcasa\b|immobil|appartamento|terreno|villa|fabbricat)|"
              r"(?:\bcasa\b|immobil|appartamento|terreno|villa)[^.?]{0,60}pignor|"
              r"documentazione ipocatastale|certificato notarile|ventennale|nota di trascrizione",),
-    esclusi=(r"opposizion|conversion|a rate|\bmobili\b|merce|impignorabil|presso terzi|stipendi|pension|usucap", *_NON_ESEC), punteggio=7,
+    esclusi=(r"opposizion|conversion|a rate|\bmobili\b|merce|impignorabil|presso terzi|stipendi|\bpension|usucap", *_NON_ESEC), punteggio=7,
     capito="Creditore che vuole pignorare un immobile del debitore.",
     rimedio="atto di pignoramento immobiliare notificato e trascritto, iscrizione a ruolo, istanza di vendita con la documentazione",
     conclusione=[
@@ -89,8 +89,8 @@ def _extra_terzi(a: Analisi, c: Comprensione, f: Fatti) -> None:
 
 PIGNORAMENTO_TERZI = Scheda(
     regola="es_pignoramento_terzi", materia="esecuzione", nome="pignoramento presso terzi",
-    segnali=(r"presso terzi|terzo pignorat|dichiarazione del terzo|pignor\w*[^.]{0,50}(?:stipendi|salari|pension|conto|banca|"
-             r"crediti|quinto|fitti|canoni)|(?:stipendi|pension|conto)[^.]{0,50}pignor",),
+    segnali=(r"presso terzi|terzo pignorat|dichiarazione del terzo|pignor\w*[^.]{0,50}(?:stipendi|salari|\bpension|conto|banca|"
+             r"crediti|quinto|fitti|canoni)|(?:stipendi|\bpension|conto)[^.]{0,50}pignor",),
     esclusi=(r"opposizion", *_NON_ESEC), punteggio=6,
     capito="Creditore che vuole pignorare crediti del debitore verso terzi (stipendio, pensione, conto corrente).",
     rimedio="atto di pignoramento presso terzi notificato al terzo e al debitore, con citazione davanti al giudice dell'esecuzione",

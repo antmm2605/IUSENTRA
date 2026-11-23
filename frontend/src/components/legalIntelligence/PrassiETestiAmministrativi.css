@@ -1,0 +1,11 @@
+.iu-prassi{display:grid;gap:10px}
+.iu-prassi h2{margin:0;font-size:16px}
+.iu-prassi p{margin:0;font-size:13px;color:var(--iu-slate-600,#475569)}
+.iu-prassi__form{display:flex;flex-wrap:wrap;gap:8px}
+.iu-prassi__form input{flex:1 1 260px;min-width:0;padding:6px 10px;border:1px solid var(--iu-slate-300,#cbd5e1);border-radius:8px;font:inherit}
+.iu-prassi__form select,.iu-prassi__form button{padding:6px 10px;border:1px solid var(--iu-slate-300,#cbd5e1);border-radius:8px;background:var(--iu-surface,#fff);font:inherit}
+.iu-prassi__form button{display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.iu-prassi__elenco{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.iu-prassi__elenco li{display:grid;gap:3px;padding:8px 10px;border:1px solid var(--iu-slate-200,#e2e8f0);border-radius:8px}
+.iu-prassi__elenco small{color:var(--iu-slate-600,#475569)}
+.iu-prassi__elenco a{display:inline-flex;align-items:center;gap:4px;font-size:12px}

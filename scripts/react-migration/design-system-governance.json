@@ -68,7 +68,8 @@
     "frontend/src/features/documenti/SchedaCompilazionePanel.css": "Scheda di compilazione condivisa tra redazione guidata e catalogo richiesta dalla patch utente: riuso delle regole esistenti, token del design system, provenienza espandibile e impaginazione responsive; nessun tema alternativo o stile inline.",
     "frontend/src/features/passaggi/passaggi.css": "Passaggi spiegabili del software e regole dello studio richiesti dall'avvocato il 02/11/2026: card compatte dei passaggi con regola, norma, prove e correzioni, dialogo «Correggi la regola» ed elenco delle regole; token condivisi, nessun tema alternativo, nessuno stile inline.",
     "frontend/src/features/fascicoli/normativa/fascicoloNormativa.css": "Icona «Normativa» del fascicolo richiesta dall'avvocato (02/11/2026): pannello laterale su computer e foglio a tutto schermo sul telefono con le norme del rito, dei termini aperti e dei documenti, testo dall'archivio Normattiva e ricerca per materia; token condivisi, controlli touch da 44px, nessuno stile inline.",
-    "frontend/src/components/fascicoli/controlloCatena.css": "Avviso «Controllo della catena» nel fascicolo: anelli interrotti (termine senza scadenza, udienza fuori agenda) con lo stato del controllo; token condivisi, nessuno stile inline, nessuna superficie modale."
+    "frontend/src/components/fascicoli/controlloCatena.css": "Avviso «Controllo della catena» nel fascicolo: anelli interrotti (termine senza scadenza, udienza fuori agenda) con lo stato del controllo; token condivisi, nessuno stile inline, nessuna superficie modale.",
+    "frontend/src/components/legalIntelligence/PrassiETestiAmministrativi.css": "Ricerca nel testo della prassi (Agenzia delle Entrate, INPS) e delle sentenze di Consiglio di Stato e CGA nella Ricerca legale (2.490.3): modulo e risultati compatti, token condivisi, nessuno stile inline."
   },
   "approvedCssFiles": [
     "frontend/src/components/fascicoli/riscontriProcessuali.css",
@@ -227,7 +228,8 @@
     "frontend/src/components/fascicoli/AgendaFascicolo.css",
     "frontend/src/components/fascicoli/QuadroFascicolo.css",
     "frontend/src/features/passaggi/passaggi.css",
-    "frontend/src/components/fascicoli/controlloCatena.css"
+    "frontend/src/components/fascicoli/controlloCatena.css",
+    "frontend/src/components/legalIntelligence/PrassiETestiAmministrativi.css"
   ],
   "allowedInlineStyles": [
     {

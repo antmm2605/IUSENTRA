@@ -73,6 +73,10 @@ class ReceiptArchiveQuery:
         self.conn, self.tenant = conn, tenant
 
     def project_case(self, registry, case_id):
+        self.write_case(case_id, self.read_case(registry, case_id))
+
+    def read_case(self, registry, case_id):
+        """Solo letture: si esegue fuori dalla transazione di scrittura della consegna."""
         recovered = [row[0] for row in self.conn.execute('SELECT id FROM transactional_outbox WHERE tenant_id=? '
             "AND aggregate_type=? AND event_type=? AND aggregate_id=? AND status='FAILED'",
             (self.tenant, AGGREGATE, EVENT, case_id)).fetchall()]
@@ -86,7 +90,11 @@ class ReceiptArchiveQuery:
             cursor = page['cursor']
         else:
             raise RuntimeError('Budget delle prove del fascicolo superato: nessun catalogo parziale confermato.')
-        groups = group_exact_receipt_copies(sources)
+        return dict(groups=group_exact_receipt_copies(sources), recovered=recovered)
+
+    def write_case(self, case_id, letto):
+        """Solo scritture brevi, con i dati preparati da ``read_case``."""
+        groups, recovered = letto['groups'], letto['recovered']
         self.conn.execute('DELETE FROM receipt_archive_query_rows WHERE tenant_id=? AND case_id=?', (self.tenant, case_id))
         for group in groups:
             evidence = group['sources']

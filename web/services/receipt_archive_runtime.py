@@ -6,6 +6,9 @@ from pct.registro_letture.ricevute_query import AGGREGATE, EVENT, ReceiptArchive
 from web.services.fascicoli_list_events_runtime import registry_outbox_writer
 from web.services.registro_letture_runtime import connessione_registro
 
+# Il giro parte ogni 3 secondi: dopo 20 secondi non prenota altre consegne, il resto va al giro dopo.
+TEMPO_GIRO_SECONDI = 20.0
+
 
 def resume_archive_owner(registry, tenant, *, limit=50):
     with connessione_registro(registry) as read:
@@ -20,8 +23,10 @@ def resume_archive_owner(registry, tenant, *, limit=50):
     with registry_outbox_writer(registry) as writer:
         def finish(connection, *, rollback=False):
             connection.rollback() if rollback else connection.commit()
-        result = deliver_pending(conn=writer, finish=finish, tenant=tenant, aggregate=AGGREGATE,
-            event_type=EVENT, project=lambda connection, key: ReceiptArchiveQuery(connection, tenant).project_case(registry, key), limit=limit)
+        result = deliver_pending(conn=writer, finish=finish, tenant=tenant, aggregate=AGGREGATE, event_type=EVENT,
+            prepare=lambda connection, key: ReceiptArchiveQuery(connection, tenant).read_case(registry, key),
+            project=lambda connection, key, letto: ReceiptArchiveQuery(connection, tenant).write_case(key, letto),
+            limit=limit, tempo_massimo=TEMPO_GIRO_SECONDI)
         return dict(result, not_migrated=0)
 
 

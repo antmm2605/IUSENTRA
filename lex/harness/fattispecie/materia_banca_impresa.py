@@ -30,7 +30,15 @@ USURA = Scheda(
     ],
     procedibilita=[_MEDIAZIONE_BANCARIA],
     dati=["contratto e data di stipula", "TEG pattuito e TEGM del trimestre di riferimento", "piano di ammortamento", "perizia econometrica"],
-    dubbi=["Consiglio operativo: usura sopravvenuta e rilevanza degli interessi di mora: verificare l'orientamento della Cassazione nell'archivio."],
+    avvertenze=[
+        "Usura sopravvenuta — Cass. SU n. 24675/2017, come riportata da Cass., sez. I, n. 404/2025 (dep. 08/01/2025): non "
+        "rileva l'usura sopravvenuta; non è illecito pretendere interessi a un tasso non superiore alla soglia alla data "
+        "della pattuizione che la superi al momento della maturazione o del pagamento. https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025100404O&rows=1&wt=json",
+        "Interessi di mora — Cass., sez. III, n. 23433/2026 (dep. 17/07/2026), con Cass. n. 23424/2023 e n. 18540/2024: la "
+        "disciplina antiusura si applica anche agli interessi moratori; il confronto si fa con un parametro omogeneo, senza "
+        "sommare corrispettivi e moratori; la clausola di mora usuraria è nulla ma il rapporto non diventa gratuito: si "
+        "applicano gli interessi corrispettivi lecitamente pattuiti o, in mancanza, il tasso legale. "
+        "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026323433O&rows=1&wt=json"],
 )
 
 ANATOCISMO = Scheda(

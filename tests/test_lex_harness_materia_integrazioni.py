@@ -36,6 +36,10 @@ CASI = [
     ("Lui ha tentato di uccidermi ed è stato condannato: devo prima separarmi per divorziare?", "fam_divorzio_immediato"),
     ("Mia moglie è in carcere con l'ergastolo, come chiedo il divorzio?", "fam_divorzio_immediato"),
     ("Divorzio diretto per condanna penale del coniuge: quali reati contano?", "fam_divorzio_immediato"),
+    ("La ditta che rifà la strada ha usato una ruspa e mi ha crepato il muro di casa: chi mi risarcisce?", "rc_attivita_pericolose"),
+    ("Durante lo spettacolo pirotecnico del paese un razzo mi ha bruciato la macchina: posso chiedere i danni al comitato?", "rc_attivita_pericolose"),
+    ("Il distributore di gas ha avuto una fuga e l'esplosione ha distrutto la vetrina del cliente: responsabilità?", "rc_attivita_pericolose"),
+    ("mi sono ferito al poligono di tiro per un colpo partito a un altro: cosa posso chiedere?", "rc_attivita_pericolose"),
     # refusi (corretti da lex/harness/normalizzazione.py)
     ("mio padre e morto con debbiti, voglio fare la rinunzia all'eredita dal notaio", "suc_rinuncia_eredita"),
     ("il datore non mi paga lo stipendo da due mesi, ho le buste paga: decretto ingiuntivo?", "lav_decreto_ingiuntivo"),
@@ -50,6 +54,13 @@ def test_regole_integrate(frase, regola):
     # La regola principale del sinistro (lex-regole) tratta anche la negoziazione obbligatoria: risposta equivalente.
     EQUIVALENTI.setdefault("rc_negoziazione_sinistri", set()).add("sinistro_stradale")
     controlla(frase, regola)
+
+
+def test_attivita_pericolose_prova_liberatoria_e_prescrizione():
+    r = risposta("Lo scavo del cantiere vicino ha fatto crollare il mio garage: possono dire che non è colpa loro?")
+    assert r.regola == "rc_attivita_pericolose"
+    for frase in ("tutte le misure idonee a evitarlo", "cinque anni", "caso fortuito", "dolo o la colpa"):
+        assert frase in r.testo, frase
 
 
 def test_appello_lavoro_anche_termine_lungo():
@@ -78,3 +89,25 @@ def test_ogni_regola_ha_lato_sinonimi_situazioni():
     for s in SCHEDE:
         assert s.lato in {"attivo", "passivo", None}, s.regola
         assert len(s.sinonimi) >= 2 and len(s.situazioni) >= 3, s.regola
+
+
+def test_protezione_internazionale_termini_per_comma():
+    r = risposta("Il mio cliente ha ricevuto il rigetto della Commissione territoriale: entro quando va fatto il ricorso?")
+    assert r.regola == "imm_protezione_internazionale"
+    for frase in ("art. 35-bis, comma 2,", "comma 2-bis", "art. 35-ter, comma 1", "comma 3", "sessanta giorni",
+                  "sette giorni", "cinque giorni", "12/06/2026"):
+        assert frase in r.testo, frase
+
+
+def test_verifiche_di_giurisprudenza_chiuse_con_pronunce_lette():
+    casi = {
+        "Supplente annuale fino al 31 agosto senza carta del docente per quattro anni: cosa posso recuperare?": ("29961/2023", "C-450/21"),
+        "Gli interessi di mora del finanziamento superano il tasso soglia: il prestito diventa gratuito?": ("23433/2026", "24675/2017"),
+        "Docente precaria della scuola con supplenze annuali ripetute su posto vacante: quanto vale il danno da abuso dei contratti a termine?": ("26352/2026",),
+        "Docente immessa in ruolo nel 2015: la ricostruzione di carriera non conta tutto il preruolo, ho diritto?": ("31149/2019", "15840/2024"),
+    }
+    for frase, estremi in casi.items():
+        r = risposta(frase)
+        for e in estremi:
+            assert e in r.testo, (frase, e)
+        assert "verificare l'orientamento" not in r.testo

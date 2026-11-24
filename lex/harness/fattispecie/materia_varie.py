@@ -183,12 +183,35 @@ PROTEZIONE_INTERNAZIONALE = Scheda(
         p("Il ricorso è proposto, a pena di inammissibilità, entro trenta giorni dalla notificazione (sessanta se il "
           "ricorrente è in un Paese terzo).", R("dlgs25:35bis", "entro trenta giorni dalla notificazione del provvedimento")),
     ],
-    termini=[p("Nei casi di procedura accelerata indicati dalla legge il ricorso si propone entro sette giorni; nella procedura "
-               "di frontiera entro cinque giorni.", R("dlgs25:35bis", "entro sette giorni dalla notificazione del provvedimento"),
-               R("dlgs25:35ter", "e' ammesso ricorso entro cinque giorni decorrenti dalla notificazione")),
-             p("Il ricorso sospende l'efficacia esecutiva del provvedimento, salvo i casi di legge.",
-               R("dlgs25:35bis", "la proposizione del ricorso sospende l'efficacia esecutiva del provvedimento impugnato"))],
-    dubbi=["Consiglio operativo: verificare nel provvedimento quale procedura è stata applicata (ordinaria, accelerata, di frontiera)."],
+    termini=[
+        p("Termine ordinario (art. 35-bis, comma 2, d.lgs. 25/2008): trenta giorni dalla notificazione, a pena di "
+          "inammissibilità; sessanta giorni se il ricorrente si trova in un Paese terzo quando propone il ricorso.",
+          R("dlgs25:35bis", "entro sessanta giorni se il ricorrente si trova in un Paese terzo al momento della proposizione del ricorso")),
+        p("Termine ridotto (art. 35-bis, comma 2-bis): sette giorni dalla notificazione, a pena di inammissibilità, nei casi "
+          "dell'art. 67, paragrafo 7, lettera a), del Reg. UE 2024/1348, cioè rigetto per inammissibilità, per ritiro "
+          "implicito, per infondatezza o manifesta infondatezza quando la domanda è esaminata con procedura accelerata "
+          "(art. 42, paragrafi 1 o 3, del regolamento).",
+          R("dlgs25:35bis", "entro sette giorni dalla notificazione del provvedimento"),
+          R("reg1348:67", "per ritiro implicito, per infondatezza o per manifesta infondatezza")),
+        p("Procedura di frontiera (art. 35-ter, comma 1): cinque giorni dalla notificazione contro la decisione adottata nel "
+          "caso dell'art. 68, paragrafo 3, lettera a), ii), del Reg. UE 2024/1348; il ricorso non sospende da solo la decisione.",
+          R("dlgs25:35ter", "e' ammesso ricorso entro cinque giorni decorrenti dalla notificazione"),
+          R("reg1348:68", "il richiedente è soggetto alla procedura di frontiera")),
+        p("Effetto sospensivo (art. 35-bis, comma 3): il ricorso sospende l'efficacia esecutiva del provvedimento, salvo i casi "
+          "dell'art. 68, paragrafo 3, del Reg. UE 2024/1348; in quei casi l'istanza per essere autorizzati a rimanere va "
+          "proposta con il ricorso introduttivo, a pena di inammissibilità (comma 4).",
+          R("dlgs25:35bis", "la proposizione del ricorso sospende l'efficacia esecutiva del provvedimento impugnato"),
+          R("dlgs25:35bis", "con istanza da proporsi a pena di inammissibilita' con il ricorso introduttivo")),
+        p("Regime transitorio: ai procedimenti avviati dopo una domanda di protezione presentata prima del 12/06/2026 continua "
+          "ad applicarsi la disciplina previgente (art. 17, comma 4, d.l. 100/2026).",
+          R("dl100_2026:17", "continua ad applicarsi la disciplina previgente fino alla conclusione dei procedimenti medesimi")),
+    ],
+    dubbi=["Consiglio operativo: verificare nel provvedimento quale procedura è stata applicata (ordinaria, accelerata, di "
+           "frontiera) e la data della domanda di protezione.",
+           "Consiglio operativo: per le domande presentate prima del 12/06/2026 vale il testo dell'art. 35-bis in vigore "
+           "all'11/06/2026 (Normattiva): commi 2-bis (termini del comma 2 ridotti della metà nei casi dell'art. 28-bis, "
+           "commi 1 e 2, lettere a), d) ed e), e per il ricorrente trattenuto) e 2-ter (sette giorni nei casi dell'art. 28-bis, "
+           "comma 2-bis)."],
     dati=["provvedimento e data di notifica", "tipo di procedura (ordinaria, accelerata, di frontiera)", "paese di origine"],
 )
 

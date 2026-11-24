@@ -157,4 +157,32 @@ DIVORZIO_IMMEDIATO = Scheda(
     dati=["sentenze di condanna e passaggio in giudicato", "reati e pene", "figli minori", "residenza dei coniugi"],
 )
 
-SCHEDE = (RINUNCIA_EREDITA, NEGOZIAZIONE_SINISTRI, DI_RETRIBUZIONI, DEFINIZIONE_AGEVOLATA, RIMESSIONE_TERMINI, DIVORZIO_IMMEDIATO)
+ATTIVITA_PERICOLOSE = Scheda(
+    regola="rc_attivita_pericolose", materia="responsabilità civile", nome="danno da attività pericolose (art. 2050 c.c.)",
+    segnali=(r"attivita pericolos|2050|esplosion|fuochi d artificio|pirotecnic|petard|cantiere|lavori stradali|scavo|gas|impianto (?:elettrico|a gas)|"
+             r"armi|caccia|poligono|centrale|cava\b|ruspa|gru\b|macchinari pesanti|sostanze (?:tossiche|chimiche)|incendio",),
+    alcuni=(r"dann|risarc|ferit|lesion|morto|responsabil|chi paga|colpa",),
+    esclusi=(r"sinistro stradale|tamponat|incidente (?:stradale|con l auto)|medic|ospedal|lavorator\w* (?:infortunat|dipendent)|"
+             r"infortunio sul lavoro|inail|condomin",), punteggio=6,
+    capito="Danno causato a terzi da un'attività pericolosa per sua natura o per i mezzi usati.",
+    rimedio="domanda di risarcimento contro chi esercita l'attività, con la presunzione di responsabilità dell'art. 2050 c.c.",
+    conclusione=[
+        p("Chi cagiona danno nello svolgimento di un'attività pericolosa, per sua natura o per la natura dei mezzi adoperati, "
+          "risarcisce il danno se non prova di avere adottato tutte le misure idonee a evitarlo: il danneggiato prova l'attività, "
+          "il danno e il nesso; spetta a chi la esercita la prova liberatoria.",
+          R("cc:2050", "svolgimento di un'attivita' pericolosa, per sua natura o per la natura dei mezzi adoperati"),
+          R("cc:2050", "se non prova di avere adottato tutte le misure idonee a evitare il danno")),
+    ],
+    inquadramento=[
+        p("È diversa dalla responsabilità per le cose in custodia, che riguarda il danno causato dalla cosa e si supera "
+          "provando il caso fortuito.", R("cc:2051", "salvo che provi il caso fortuito")),
+        p("Ed è diversa dalla regola generale del fatto illecito, dove il danneggiato deve provare il dolo o la colpa di chi "
+          "ha causato il danno.", R("cc:2043", "qualunque fatto doloso o colposo")),
+    ],
+    termini=[p("Il diritto al risarcimento si prescrive in cinque anni dal giorno del fatto (più a lungo se il fatto è reato).",
+               R("cc:2947", "si prescrive in cinque anni dal giorno in cui il fatto si e' verificato"))],
+    dati=["attività svolta e chi la esercitava", "data e dinamica del danno", "danni e prove (foto, testimoni, certificati)",
+          "misure di sicurezza adottate o mancanti"],
+)
+
+SCHEDE = (ATTIVITA_PERICOLOSE, RINUNCIA_EREDITA, NEGOZIAZIONE_SINISTRI, DI_RETRIBUZIONI, DEFINIZIONE_AGEVOLATA, RIMESSIONE_TERMINI, DIVORZIO_IMMEDIATO)

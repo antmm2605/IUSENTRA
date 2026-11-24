@@ -37,6 +37,8 @@ ATTI = {
     "l108": ("l. 108/1996", "l. 108/1996", "legge:1996-03-07;108"),
     "ccii": ("d.lgs. 14/2019", "d.lgs. 14/2019 (CCII)", "decreto.legislativo:2019-01-12;14"),
     "privacy": ("d.lgs. 196/2003", "d.lgs. 196/2003", "decreto.legislativo:2003-06-30;196"),
+    "reg1348": ("Reg. UE 2024/1348", "Reg. UE 2024/1348", "unione.europea:regolamento:2024-05-14;1348"),
+    "dl100_2026": ("d.l. 100/2026", "d.l. 100/2026", "decreto.legge:2026-06-12;100"),
     "gdpr": ("Reg. UE 2016/679", "Reg. UE 2016/679", "unione.europea:regolamento:2016-04-27;679"),
     "dlgs150": ("d.lgs. 150/2011", "d.lgs. 150/2011", "decreto.legislativo:2011-09-01;150"),
     "l24": ("l. 24/2017", "l. 24/2017", "legge:2017-03-08;24"),
@@ -480,4 +482,7 @@ NORME_MATERIE: tuple[tuple[str, str, str, str, str, str], ...] = (
     _v("cpc", "437", "Udienza di discussione"),
     _v("l742", "2", "Sospensione dei termini in materia penale"),
     _v("dlgs25", "35-ter", "Controversie nella procedura di frontiera"),
+    _v("reg1348", "67", "Diritto a un ricorso effettivo"),
+    _v("reg1348", "68", "Effetto sospensivo dell'impugnazione"),
+    _v("dl100_2026", "17", "Disposizioni transitorie e applicazione"),
 )

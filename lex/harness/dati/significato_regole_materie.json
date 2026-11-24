@@ -1442,6 +1442,24 @@
    ]
   },
   {
+   "regola": "rc_attivita_pericolose",
+   "materia": "responsabilità civile",
+   "nome": "danno da attività pericolose (art. 2050 c.c.)",
+   "lato": null,
+   "sinonimi": [
+    "attività pericolosa",
+    "art. 2050",
+    "danno da cantiere",
+    "esplosione",
+    "fuochi d'artificio"
+   ],
+   "situazioni": [
+    "i lavori del cantiere accanto mi hanno danneggiato la casa",
+    "durante i fuochi d'artificio della festa mi sono ferito",
+    "è esplosa la bombola del ristorante e ha rovinato il mio negozio"
+   ]
+  },
+  {
    "regola": "suc_rinuncia_eredita",
    "materia": "successioni",
    "nome": "rinuncia all'eredità",

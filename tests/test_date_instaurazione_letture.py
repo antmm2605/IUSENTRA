@@ -184,6 +184,9 @@ def test_deposit_index_is_a_cross_check_never_certain_alone():
     facts = estrai_date_modello(INVIO_DEPOSITO, fascicolo=matter(numero_rg="", anno_rg=""))
     assert [(f.campo, f.valore, f.verifica) for f in facts] == [
         ("data_iscrizione_ruolo", "2025-01-23", "plausibile"), ("data_deposito_ricorso", "2025-01-23", "plausibile")]
+    # una voce per riga, come nell'indice generato dal redattore
+    per_riga = INVIO_DEPOSITO.replace("- Ricorso - Nota d'iscrizione a ruolo.PDF", "\n\n- Ricorso\n- Nota d'iscrizione a ruolo.PDF")
+    assert len(estrai_date_modello(per_riga, fascicolo=matter(numero_rg="", anno_rg=""))) == 2
     # un deposito successivo (note, memorie) non porta la nota d'iscrizione
     successivo = INVIO_DEPOSITO.replace("- Ricorso - Nota d'iscrizione a ruolo.PDF", "- Note scritte.PDF")
     assert estrai_date_modello(successivo, fascicolo=matter(numero_rg="", anno_rg="")) == []
@@ -312,3 +315,23 @@ def test_new_rule_does_not_queue_every_case_for_rereading():
 
     # i fascicoli letti prima della regola restano aggiornati: si rileggono solo le fonti toccate
     assert _versione_documenti_aggiornata(VERSIONE_MOTORE_DOCUMENTI.removesuffix("+" + REGOLA_ATTO_INTRODUTTIVO))
+
+
+def test_pec_message_gives_only_the_introductory_act_dates():
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.archivio_letture.motore_documenti import leggi_testo
+
+    pec = ("Oggetto: Notificazione ai sensi della legge n. 53/1994\nMittente: avv.verdi@pec.esempio.it\n"
+           "Destinatari: ente@pec.esempio.it\nData: 05/07/2025 18:38\nCorpo email: " + RELATA_CON_COPIE
+           + "\n[Allegato: Sentenza.pdf]\nTRIBUNALE DI VELLETRI\nSENTENZA\nCausa n. 321/2025 R.G. promossa da ROSSI MARIA\n"
+           "Con ricorso depositato in data 18/06/2025 la parte chiedeva.\n")
+    fascicolo = matter(avvocato_referente="Avv. Paolo Verdi")
+    fatti = leggi_testo(pec, nome="notifica.eml", origine="ocr",
+                        contesto=Contesto(numero_rg="321", anno_rg="2025", ufficio_giudiziario="TRIBUNALE DI VELLETRI",
+                                          cliente="Rossi Maria", avvocati_studio=("Avv. Paolo Verdi",)),
+                        metadata={"fascicolo": fascicolo})
+    natura = {f.valore for f in fatti if f.campo == "natura_documentale"}
+    date = sorted((f.campo, f.valore) for f in fatti if f.categoria == "metadato_fascicolo")
+    assert "messaggio_pec" in natura
+    # dalla PEC solo la copia PolisWeb, non la sentenza allegata
+    assert date == [("data_deposito_ricorso", "2025-06-19")]

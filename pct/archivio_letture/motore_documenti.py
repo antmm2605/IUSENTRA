@@ -221,6 +221,14 @@ def leggi_testo(
             collaudati.extend(collauda_tutti(fatti_parti(testo, origine=origine, avvocati_studio=list(contesto.avvocati_studio), cliente=contesto.cliente), contesto))
     if any(f.campo == "natura_documentale" and f.valore == "messaggio_pec" for f in collaudati):
         escludi_date_di_allegati_estranei(collaudati, testo, contesto=contesto)
+        # La PEC di notifica o di deposito porta le copie PolisWeb attestate, l'indice del deposito e la relata:
+        # se ne leggono solo le date dell'atto introduttivo, mai le date dei provvedimenti allegati.
+        from .date_campi_modello import estrai_date_atti
+        dati = metadata or {}
+        collaudati.extend(estrai_date_atti(
+            testo, fascicolo=dati.get("fascicolo"), origine=origine,
+            codice_fiscale_cliente=str(dati.get("codice_fiscale_cliente") or ""),
+        ))
     collaudati.sort(key=lambda fatto: (ORDINE_VERIFICA.get(fatto.verifica, 9), fatto.posizione))
     return collaudati
 

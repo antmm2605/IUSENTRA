@@ -138,7 +138,9 @@ _COPIA_POLISWEB = re.compile(
 # introduttivo con la nota d'iscrizione a ruolo. La data è quella dell'invio: il deposito si perfeziona con la
 # ricevuta di avvenuta consegna, di regola lo stesso giorno, e per questo l'indice resta un riscontro.
 _INDICE_DEPOSITO = re.compile(r"relativi\s+al\s+deposito\s+telematico\s+inviato\s+in\s+data\s+$", re.I)
-_ATTO_CON_NOTA = re.compile(r"^\s*:\s*-\s*(?P<atto>ricorso|atto\s+di\s+citazione|citazione)\b[^\n]{0,60}?nota\s+d.?\s*iscrizione\s+a\s+ruolo", re.I)
+# Il primo file della busta è l'atto principale, il secondo la nota: sulla stessa riga («- Ricorso - Nota
+# d'iscrizione a ruolo.PDF») o una voce per riga («- Ricorso» / «- Nota d'iscrizione a ruolo.PDF»).
+_ATTO_CON_NOTA = re.compile(r"^\s*:\s*-\s*(?P<atto>ricorso|atto\s+di\s+citazione|citazione)\b[^\n]{0,60}?\s*-\s*nota\s+d.?\s*iscrizione\s+a\s+ruolo", re.I)
 _RICORSO = re.compile(r"\bricors[oi]\b", re.I)
 _CITAZIONE = re.compile(r"\bcitazione\b", re.I)
 # Gli atti principali che non introducono la causa, anche se nominano il ricorso.
@@ -265,7 +267,13 @@ def _date_nominate(raw, identity, origine, *, campi, prove, identity_code="ident
     return result
 
 
-def estrai_date_modello(testo, *, fascicolo, origine="nativo", codice_fiscale_cliente=""):
+def estrai_date_atti(testo, *, fascicolo, origine="nativo", codice_fiscale_cliente=""):
+    """Le sole date dell'atto introduttivo dalle copie PolisWeb, dall'indice del deposito e dalla relata (messaggi PEC)."""
+    return estrai_date_modello(testo, fascicolo=fascicolo, origine=origine, codice_fiscale_cliente=codice_fiscale_cliente,
+                               solo_atti=True)
+
+
+def estrai_date_modello(testo, *, fascicolo, origine="nativo", codice_fiscale_cliente="", solo_atti=False):
     """Non deduce date da upload, termini futuri, citazioni o bozza dell'editor."""
     if fascicolo is None:
         return []
@@ -283,11 +291,13 @@ def estrai_date_modello(testo, *, fascicolo, origine="nativo", codice_fiscale_cl
     # dell'avvocato che ne ripete una data ancora da verificare.
     attestation, provvedimento = _fonte_provvedimento(raw)
     result = []
+    if solo_atti:
+        attestation = provvedimento = False
     if identity["complete_match"] and (attestation or provvedimento):
         extra = [{"codice": "attestazione_copie_fascicolo_informatico", "esito": "ok", "dettaglio": "Identità congiunta verificata nella stessa attestazione."}] if attestation else []
         result += _date_nominate(raw, identity, origine, campi=tuple(_ANCORE), prove=[
             {"codice": "tipo_fonte", "esito": "ok", "dettaglio": "attestazione" if attestation else "provvedimento"}, *extra])
-    elif (identity["rg_match"] and identity["office_match"] and not identity["conflicts"]
+    elif (not solo_atti and identity["rg_match"] and identity["office_match"] and not identity["conflicts"]
           and (provvedimento or _ASSEGNAZIONE.search(raw[:3000])) and _parti_compatibili(raw[:6000], fascicolo)):
         # Il provvedimento del giudice che porta ruolo e ufficio del fascicolo ma non il nome del cliente (decreto
         # di assegnazione, sentenza con il secondo nome): bastano per le sole date dell'atto introduttivo.

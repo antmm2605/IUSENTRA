@@ -44,7 +44,16 @@ def tempo_storico(config: Mapping[str, Any]) -> float:
     return max(30.0, min(TEMPO_STORICO_MASSIMO, secondi))
 
 
+TEMPO_STORICO_MINIMO = 30.0
+
+
 def esegui_da_pianificazione(config: Mapping[str, Any], *, con_storico: bool = False, **opzioni: Any) -> dict[str, Any]:
+    """Un giro orario. Il tempo del recupero storico è il tempo del giro intero: i 30 giorni e il collegamento con la
+    biblioteca Normattiva lo consumano (verifica del 24/11/2026: 42 minuti prima del recupero storico, giro di 103
+    minuti con 3000 s regolati), così il giro non si somma al successivo."""
+    import time
+
+    inizio = time.monotonic()
     archivio = ArchivioGazzetta(percorso_archivio(config))
     esito = esegui_giro(archivio, **opzioni)
     if con_storico and str(config.get("GAZZETTA_RECUPERO_STORICO", "1")).lower() not in {"0", "false", "no", "off"}:
@@ -63,8 +72,13 @@ def esegui_da_pianificazione(config: Mapping[str, Any], *, con_storico: bool = F
             except Exception as exc:  # la biblioteca non risponde: il recupero dal sito resta
                 esito["da_normattiva"] = {"errore": str(exc)}
 
+        residuo = tempo_storico(config) - (time.monotonic() - inizio)
+        if residuo < TEMPO_STORICO_MINIMO:
+            esito["storico"] = {"ok": True, "rinviato": True,
+                                "motivo": "tempo del giro già usato dai 30 giorni e dalla biblioteca Normattiva"}
+            return esito
         try:
-            esito["storico"] = esegui_tratto(archivio, tempo_massimo=tempo_storico(config))
+            esito["storico"] = esegui_tratto(archivio, tempo_massimo=residuo)
         except Exception as exc:  # il giro dei 30 giorni resta valido
             esito["storico"] = {"ok": False, "errore": str(exc)}
     return esito

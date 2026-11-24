@@ -14,6 +14,7 @@ I lavori hanno code distinte:
 * ``pec_acquisizione``: acquisizione, classificazione e OCR PEC, con una sola istanza;
 * ``infrastruttura``: i giri tecnici di pochi millisecondi che consegnano gli eventi alle proiezioni;
 * ``posta``: la sincronizzazione delle caselle, fuori dalla corsia rapida;
+* ``gazzetta``: i sommari e il recupero storico della Gazzetta Ufficiale (fino a quasi un'ora per giro);
 * ``giurisprudenza``: l'alimentazione dell'archivio di giurisprudenza (SentenzeWeb e lettura delle citazioni), che
   lavora su archivi propri e può durare quasi un'ora: nella corsia lunga la occupava e faceva saltare gli altri lavori.
 
@@ -39,6 +40,7 @@ CORSIA_NOTTURNA = "notturna"
 CORSIA_GIURISPRUDENZA = "giurisprudenza"
 CORSIA_POSTA = "posta"
 CORSIA_FONTI_PUBBLICHE = "fonti_pubbliche"
+CORSIA_GAZZETTA = "gazzetta"
 
 THREAD_PER_CORSIA = {
     CORSIA_LUNGA: 1,
@@ -49,7 +51,18 @@ THREAD_PER_CORSIA = {
     CORSIA_GIURISPRUDENZA: 1,
     CORSIA_POSTA: 1,
     CORSIA_FONTI_PUBBLICHE: 1,
+    CORSIA_GAZZETTA: 1,
 }
+
+# Gazzetta Ufficiale (verifica del 24/11/2026 sull'8080): dalla 2.490.2 il giro orario dura fino a 50 minuti di
+# recupero storico più il collegamento con la biblioteca Normattiva (35 minuti su disco lento). Nella corsia lunga,
+# che ha un solo thread, il giro delle 08:25 l'ha tenuta dalle 08:52 alle 10:35: il presidio documentale ed economico
+# dei fascicoli è rimasto in coda e i suoi giri sono stati scartati («missed») o saltati («maximum number of running
+# instances reached») per oltre due ore. La Gazzetta lavora solo sul proprio archivio: ha una corsia propria, non la
+# corsia delle fonti pubbliche, dove i suoi 50 minuti si sommerebbero ai giri da 20 minuti di GA e prassi.
+LAVORI_GAZZETTA = frozenset({
+    "gazzetta_ufficiale_sommari",
+})
 
 # Testi della Giustizia amministrativa e prassi (23/11/2026): giri da 20 minuti ogni ora; nella corsia lunga
 # fermerebbero il piano del giorno, quindi hanno una corsia propria e si alternano.
@@ -83,6 +96,8 @@ TOLLERANZA_RITARDO_SECONDI = {
     "giurisprudenza_alimentazione_continua": 45 * 60,
     "local_ai_maintenance": 25 * 60,
     "archivio_letture_automatico": 8 * 60,
+    # Ogni 15 minuti; dietro il piano del giorno (fino a 16 minuti) i 10 minuti propri lo facevano scartare (24/11/2026).
+    "fascicoli_document_economic_presidio": 14 * 60,
 }
 
 # Termini legali, PEC, avvisi e calendari: brevi e frequenti.
@@ -128,6 +143,8 @@ def corsia_del_lavoro(job_id: str) -> str:
         return CORSIA_POSTA
     if lavoro in LAVORI_FONTI_PUBBLICHE:
         return CORSIA_FONTI_PUBBLICHE
+    if lavoro in LAVORI_GAZZETTA:
+        return CORSIA_GAZZETTA
     if lavoro in LAVORI_RAPIDI:
         return CORSIA_RAPIDA
     return CORSIA_LUNGA

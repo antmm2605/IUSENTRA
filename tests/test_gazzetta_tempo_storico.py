@@ -41,4 +41,43 @@ def test_il_giro_orario_usa_il_tempo_regolato(monkeypatch, tmp_path):
     monkeypatch.setattr(storico, "esegui_tratto", lambda archivio, tempo_massimo: ricevuto.setdefault("t", tempo_massimo) and {"ok": True})
     config = {"GAZZETTA_UFFICIALE_DB": str(tmp_path / "gazzetta.sqlite")}
     pianificazione.esegui_da_pianificazione(config, con_storico=True)
-    assert ricevuto["t"] == 3000.0
+    assert 2990.0 < ricevuto["t"] <= 3000.0
+
+
+def test_il_tempo_dei_trenta_giorni_e_di_normattiva_si_toglie_dal_recupero_storico(monkeypatch, tmp_path):
+    """Verifica del 24/11/2026 sull'8080: 42 minuti prima del recupero storico, giro di 103 minuti con 3000 s."""
+    from pct.gazzetta import pianificazione, storico
+
+    orologio = {"t": 1000.0}
+    monkeypatch.setattr("time.monotonic", lambda: orologio["t"])
+
+    def giro_lento(archivio, **_):
+        orologio["t"] += 1800.0  # 30 minuti fra elenco dei 30 giorni e collegamento Normattiva
+        return {"fascicoli_nuovi": 0}
+
+    ricevuto = {}
+    monkeypatch.setenv("PCT_GAZZETTA_TEMPO_STORICO", "3000")
+    monkeypatch.setattr(pianificazione, "esegui_giro", giro_lento)
+    monkeypatch.setattr(storico, "esegui_tratto", lambda archivio, tempo_massimo: ricevuto.setdefault("t", tempo_massimo) and {"ok": True})
+    pianificazione.esegui_da_pianificazione({"GAZZETTA_UFFICIALE_DB": str(tmp_path / "g.sqlite")}, con_storico=True)
+    assert ricevuto["t"] == 1200.0
+
+
+def test_recupero_storico_rinviato_se_il_giro_ha_gia_usato_il_tempo(monkeypatch, tmp_path):
+    from pct.gazzetta import pianificazione, storico
+
+    orologio = {"t": 0.0}
+    monkeypatch.setattr("time.monotonic", lambda: orologio["t"])
+
+    def giro_lunghissimo(archivio, **_):
+        orologio["t"] += 3500.0
+        return {"fascicoli_nuovi": 0}
+
+    def non_chiamare(*_a, **_k):
+        raise AssertionError("il recupero storico non deve partire oltre il tempo del giro")
+
+    monkeypatch.setenv("PCT_GAZZETTA_TEMPO_STORICO", "3000")
+    monkeypatch.setattr(pianificazione, "esegui_giro", giro_lunghissimo)
+    monkeypatch.setattr(storico, "esegui_tratto", non_chiamare)
+    esito = pianificazione.esegui_da_pianificazione({"GAZZETTA_UFFICIALE_DB": str(tmp_path / "g.sqlite")}, con_storico=True)
+    assert esito["storico"]["rinviato"] is True

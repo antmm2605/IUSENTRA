@@ -13,7 +13,7 @@ from .norme import piano
 # Si chiede solo per l'impugnazione di una sentenza (appello, cassazione, sentenza o condanna impugnata): l'impugnazione di
 # atti amministrativi, rinunce o provvedimenti del giudice civile ha già la sua materia.
 _IMPUGNAZIONE = r"\bappell|cassazione|\bimpugn\w*[^.?]{0,40}(?:sentenz|condann)|(?:sentenz|condann)[^.?]{0,80}\bimpugn"
-_CIVILE = (r"civil|\battor|\bconvenut|citazion|c\.p\.c|giudice di pace|decreto ingiuntiv|\blavor|previdenz|tributar|\btar\b|"
+_CIVILE = (r"\bc\.c\b|codice civile|cpc\b|codice di procedura civile|civil|\battor|\bconvenut|citazion|c\.p\.c|giudice di pace|decreto ingiuntiv|\blavor|previdenz|tributar|\btar\b|"
            r"consiglio di stato|amministrativ|contratt|risarciment|condanna\w* (?:al|a) (?:pagare|pagamento|risarcire|rilasciare)|"
            r"sfratt|locazion|condomin|separazion|divorzi|precett|esecuzion|cartella|\beuro\b|€|caparra|credit|debit|fattur|"
            r"societ|eredit|testament|famiglia|figli|immobil|danni|assicura|consumator|banca|mutuo|tribunale civile|corte d appello civile|"
@@ -24,7 +24,7 @@ _CIVILE = (r"civil|\battor|\bconvenut|citazion|c\.p\.c|giudice di pace|decreto i
            r"regolamento di competenza|licenzia|dimission|protezione (?:internazionale|sussidiaria|speciale)|rifugiat|asilo|"
            r"permesso di soggiorno|espulsion|"
            r"verbale|sanzione amministrativ|ordinanza[- ]ingiunzion|delibera|lodo|provvediment\w* (?:amministrativ|del comune|della regione)")
-_PENALE = (r"penal|imputat|\breat|pubblico ministero|\bpm\b|\bgip\b|\bgup\b|querel|c\.p\.p|\bpena\b|reclusion|\barrest|assolt|"
+_PENALE = (r"\bc\.p\.(?!c)|\bc\.p\b(?!\.c)|\bcp\b|\bcpp\b|codice penale|penal|imputat|\breat|pubblico ministero|\bpm\b|\bgip\b|\bgup\b|querel|c\.p\.p|\bpena\b|reclusion|\barrest|assolt|"
            r"assoluzion|patteggiament|parte civile|indagat|procura della repubblica|dibattiment|abbreviat|riesame|custodia|multa|"
            r"ammenda|furto|truffa|lesion|omicidi|rapina|spaccio|stupefacent|appropriazione|ricettazion|bancarotta|diffamazion|"
            r"corte d assise|tribunale di sorveglianza|esecuzione della pena|carcer|domiciliar|messa alla prova")
@@ -77,3 +77,10 @@ def testo_fuori_materia() -> str:
             "chi assisti, che cosa è successo o quale atto hai ricevuto, e che cosa vuoi ottenere.\n"
             "- Se la questione è fuori dalle materie delle regole (per esempio una consulenza fiscale di pianificazione o una "
             "questione di diritto straniero), Lex non la tratta: va esaminata dall'avvocato.")
+
+
+def testo_dati_mancanti(strumento: str, dati: list[str]) -> str:
+    return ("**Servono alcuni dati**\n"
+            f"- Lo strumento è: {strumento}. Per rispondere con le norme vigenti, senza supporre fatti, mi serve:\n"
+            + "\n".join(f"  - {d}" for d in dati) + "\n"
+            "- Rimanda la domanda con questi dati.")

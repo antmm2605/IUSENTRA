@@ -25,6 +25,42 @@ _CONTESTO = re.compile(r"\b(?:tribunale|giudice|corte|pct|telematic\w*|deposit\w
 _N = (3, 4, 5)
 
 
+# Aree per le proposte: una domanda di precisazione propone solo strumenti della stessa area del più vicino.
+_AREA_PREFISSI = {"pi": "lavoro", "prev": "lavoro", "lav": "lavoro", "es": "esecuzione", "mon": "esecuzione", "civ": "processo",
+                  "cau": "processo", "pos": "diritti reali", "pen": "penale", "ban": "impresa", "soc": "impresa",
+                  "crisi": "impresa", "priv": "impresa", "con": "contratti", "rc": "responsabilita", "suc": "successioni",
+                  "dr": "diritti reali", "fam": "famiglia", "loc": "locazione", "cons": "contratti", "str": "stragiudiziale",
+                  "trib": "tributario", "imm": "amministrativo", "amm": "amministrativo", "cds": "sanzioni"}
+_AREA_REGOLE = {
+    **dict.fromkeys(("opposizione_precetto", "termini_precetto", "pignoramento_terzi", "ricerca_beni", "opposizione_atti_esecutivi",
+                     "esecuzione_contro_pa", "decreto_ingiuntivo", "notifica_decreto_ingiuntivo", "opposizione_decreto_ingiuntivo"),
+                    "esecuzione"),
+    **dict.fromkeys(("sfratto_morosita", "sfratto_finita_locazione", "rilascio", "negoziazione_locazione_inadatta",
+                     "procedibilita_locazione", "restituzione_canone_non_registrato", "sanatoria_morosita", "opposizione_convalida",
+                     "opposizione_sfratto_commerciale", "causa_locazione"), "locazione"),
+    **dict.fromkeys(("sequestro_conservativo", "sequestro_ante_causam", "comparsa_risposta", "rito_semplificato",
+                     "competenza_pagamento", "negoziazione_obbligatoria", "mediazione_obbligatoria"), "processo"),
+    **dict.fromkeys(("garanzia_conformita", "caparra_confirmatoria", "recesso_contratto", "vizi_appalto", "consumatore",
+                     "diffida_commerciale", "diffida_messa_mora", "diffida_1454"), "contratti"),
+    **dict.fromkeys(("disconoscimento_paternita", "separazione_giudiziale", "divorzio_tempi", "figlio_maggiorenne",
+                     "modifica_condizioni", "negoziazione_familiare", "ordini_protezione"), "famiglia"),
+    "chiamato_nel_possesso": "successioni", "lite_condominio": "diritti reali", "impugnazione_delibera": "diritti reali",
+    "sinistro_stradale": "responsabilita",
+    **dict.fromkeys(("impugnazione_licenziamento", "crediti_lavoro", "competenza_lavoro", "appello_lavoro",
+                     "ricorso_dipendente_pubblico"), "lavoro"),
+    **dict.fromkeys(("ricorso_tar", "motivi_aggiunti", "appalti_120", "accesso_atti", "silenzio", "ottemperanza",
+                     "permesso_soggiorno", "ricorso_straordinario"), "amministrativo"),
+    **dict.fromkeys(("ordinanza_ingiunzione", "opposizione_verbale_cds"), "sanzioni"),
+    **dict.fromkeys(("ricorso_tributario", "reclamo_mediazione_tributaria", "sospensione_tributaria", "appello_tributario"),
+                    "tributario"),
+    **dict.fromkeys(("termine_querela", "impugnazione_penale"), "penale"),
+}
+
+
+def area(regola: str) -> str:
+    return _AREA_REGOLE.get(regola) or _AREA_PREFISSI.get(regola.split("_", 1)[0], "altro")
+
+
 @dataclass(frozen=True)
 class Voce:
     regola: str

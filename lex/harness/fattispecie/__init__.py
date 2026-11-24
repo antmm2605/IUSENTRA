@@ -12,11 +12,17 @@ from ..comprensione import Comprensione
 from ..fatti import Fatti
 from ..modello import Analisi
 from ..norme import piano
-from . import amministrativo, appalto, civile, consumo, domande, pubblico, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
+from . import amministrativo, appalto, civile, consumo, difese, domande, pubblico, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
 
 Regola = tuple[str, Callable[[Comprensione, Fatti], int], Callable[[Comprensione, Fatti], Analisi]]
 
 REGOLE: tuple[Regola, ...] = (
+    # Chi subisce l'iniziativa dell'altra parte (lato.py): rispondono solo con il lato passivo dichiarato nel racconto.
+    ("difesa_datore_lavoro", difese.riconosci_difesa_datore, difese.analizza_difesa_datore),
+    ("difesa_condominio", difese.riconosci_difesa_condominio, difese.analizza_difesa_condominio),
+    ("sinistro_responsabile", difese.riconosci_sinistro_responsabile, difese.analizza_sinistro_responsabile),
+    ("garanzia_venditore", difese.riconosci_garanzia_venditore, difese.analizza_garanzia_venditore),
+    ("locatore_canone_nero", difese.riconosci_locatore_canone_nero, difese.analizza_locatore_canone_nero),
     ("opposizione_precetto", esecuzione.riconosci_opposizione_precetto, esecuzione.analizza_opposizione_precetto),
     ("opposizione_decreto_ingiuntivo", monitorio.riconosci_opposizione_di, monitorio.analizza_opposizione_di),
     ("opposizione_sfratto_commerciale", locazione.riconosci_sfratto_commerciale, locazione.analizza_sfratto_commerciale),
@@ -111,7 +117,7 @@ def _peso_della_richiesta(c: Comprensione, f: Fatti, punteggi, migliore: Regola)
 
 
 def scegli(c: Comprensione, f: Fatti) -> Regola | None:
-    from ..lato import famiglia, lato_della_parte, regole_del_lato
+    from ..lato import RUOLI, famiglia, lato_della_parte, regole_del_lato
 
     punteggi = [(regola, regola[1](c, f)) for regola in REGOLE]
     migliore, punteggio = None, 0
@@ -140,12 +146,15 @@ def scegli(c: Comprensione, f: Fatti) -> Regola | None:
     migliore = _peso_della_richiesta(c, f, punteggi, migliore)
     # Il lato della parte assistita decide lo strumento dentro la stessa famiglia (decreto ingiuntivo o opposizione,
     # precetto o opposizione, pignoramento o difesa dell'esecutato, sfratto o difesa del conduttore).
-    fam, lato = famiglia(migliore[0]), lato_della_parte(f.testo)
+    fam = famiglia(migliore[0])
+    lato = lato_della_parte(f.testo, fam[0]) if fam else None
     if fam and lato and fam[1] != lato:
         nomi = regole_del_lato(fam[0], lato)
         candidati = [(r, p) for r, p in punteggi if r[0] in nomi and p > 0]
         if candidati:
             return max(candidati, key=lambda rp: rp[1])[0]
+        if fam[0] in RUOLI:
+            return migliore                          # famiglie a ruoli: la difesa risponde solo se si riconosce da sé
         per_nome = {r[0]: r for r in REGOLE}
         t_lato = piano(f.testo)
         if fam[0] == "pignoramento" and lato == "passivo":
@@ -157,6 +166,11 @@ def scegli(c: Comprensione, f: Fatti) -> Regola | None:
                               (r"pagare per evitare|evitare (?:la vendita|l asta)|conversion|pagare a rate|rateizz", "es_conversione_pignoramento")):
                 if re.search(cue, t_lato) and nome in per_nome:
                     return per_nome[nome]
+        # Licenza o rilascio per finita locazione dal lato del conduttore: opposizione alla convalida, non la sanatoria
+        # della morosità (art. 55 l. 392/1978), che riguarda solo lo sfratto per morosità.
+        if fam[0] == "sfratto" and lato == "passivo" and migliore[0] in {"sfratto_finita_locazione", "rilascio"} \
+                and "opposizione_convalida" in per_nome:
+            return per_nome["opposizione_convalida"]
         if fam[0] == "precetto" and lato == "passivo" and re.search(r"prescri|non (?:e|era) dovut|gia pagat|estint", t_lato):
             return per_nome.get("opposizione_precetto", per_nome[nomi[0]])
         # Decreto ingiuntivo conosciuto solo dopo, per notifica viziata o con il termine scaduto: opposizione tardiva (art. 650).

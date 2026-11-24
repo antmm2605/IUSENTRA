@@ -26,7 +26,7 @@ from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI, VERSIONE_ESTRAZIONE_PAR
 from .estrazione_ruolo import estrai_ruoli
 from .estrazione_tabelle import VERSIONE_ESTRAZIONE_TABELLE
 from .riletture_mirate import (
-    REGOLA_IDENTITA_LIQUIDAZIONE, REGOLA_NOTE_ANTECEDENTI, REGOLA_PREMESSE_127_TER, REGOLA_RUOLO_ALLEGATO,
+    REGOLA_ATTO_INTRODUTTIVO, REGOLA_IDENTITA_LIQUIDAZIONE, REGOLA_NOTE_ANTECEDENTI, REGOLA_PREMESSE_127_TER, REGOLA_RUOLO_ALLEGATO,
     REGOLE_TERMINE_SCRITTO,
 )
 
@@ -111,6 +111,14 @@ VERSIONE_MOTORE_DOCUMENTI += "+" + REGOLA_IDENTITA_LIQUIDAZIONE
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
     versione + "+" + REGOLA_IDENTITA_LIQUIDAZIONE for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
 )
+# Date dell'atto introduttivo (24/11/2026: iscrizione a ruolo, notifica della citazione, copie PolisWeb con il
+# depositante, indice del deposito con la nota d'iscrizione): nessuna rilettura generale. Le fonti che le
+# contengono si rileggono una volta dal testo salvato (`riletture_mirate`, regola «atto-introduttivo»).
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += (VERSIONE_MOTORE_DOCUMENTI,)
+VERSIONE_MOTORE_DOCUMENTI += "+" + REGOLA_ATTO_INTRODUTTIVO
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
+    versione + "+" + REGOLA_ATTO_INTRODUTTIVO for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
+)
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
@@ -124,6 +132,21 @@ def _senza_doppioni(fatti: Iterable[Fatto]) -> list[Fatto]:
         visti.add(fatto.chiave)
         esito.append(fatto)
     return esito
+
+
+def _segna_depositante_dello_studio(fatti: list[Fatto], contesto: Contesto) -> None:
+    """Il deposito PolisWeb dell'avvocato dello studio è della parte assistita; gli altri sono di altre parti."""
+    from .date_campi_modello import _normale
+
+    studio = [set(_normale(nome).split()) - {"avv", "avvocato"} for nome in contesto.avvocati_studio]
+    for fatto in fatti:
+        depositante = next((p.get("dettaglio") for p in fatto.prove if p.get("codice") == "depositante"), "")
+        if fatto.categoria != "data" or not depositante or any(p.get("codice") == "depositante_dello_studio" for p in fatto.prove):
+            continue
+        nostro = any(len(nome) >= 2 and nome == set(_normale(depositante).split()) - {"avv", "avvocato"} for nome in studio)
+        fatto.prove.append({"codice": "depositante_dello_studio", "esito": "ok" if nostro else "attenzione",
+                            "dettaglio": "Atto depositato dall'avvocato dello studio (parte assistita)." if nostro
+                            else "Atto depositato da un difensore diverso dall'avvocato dello studio."})
 
 
 def leggi_testo(
@@ -163,6 +186,7 @@ def leggi_testo(
 
         fatti.extend(fatti_prospetti(testo, origine=origine))
     collaudati = collauda_tutti(_senza_doppioni(fatti), contesto)
+    _segna_depositante_dello_studio(collaudati, contesto)
     from .pertinenza_documentale import applica_pertinenza, escludi_date_di_allegati_estranei
 
     collaudati = applica_pertinenza(collaudati, testo_ruolo, contesto=contesto, origine=origine)

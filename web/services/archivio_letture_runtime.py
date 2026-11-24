@@ -844,6 +844,30 @@ def _riapri_per_regole(fascicolo: Any, registro: RegistroLetture, tenant: str) -
         return 0
 
 
+def _concorda_instaurazione(fascicolo: Any, registro: RegistroLetture, tenant: str) -> int:
+    """Date dell'atto introduttivo lette con l'OCR e confermate da un'altra fonte del fascicolo (solo SQL).
+
+    Regola in pct/archivio_letture/instaurazione (art. 35 d.lgs. 149/2022: testo applicabile secondo la data di
+    instaurazione). Come la riammissione dei ruoli gira anche a ciclo fermo e costa una lettura mirata."""
+    fascicolo_id = _testo(getattr(fascicolo, "id", ""))
+    try:
+        correnti = {(o.tipo, o.oggetto_id, o.impronta) for o in registro.oggetti(tenant, fascicolo_id) if o.presente}
+        promossi = registro.concorda_instaurazione(tenant, fascicolo_id, oggetti_correnti=correnti)
+    except Exception as exc:
+        logger.debug("Riscontro delle date dell'atto introduttivo non riuscito per %s: %s", fascicolo_id, exc)
+        return 0
+    if promossi:
+        logger.info("Confermate %s date dell'atto introduttivo dal riscontro fra fonti nel fascicolo %s", len(promossi), fascicolo_id)
+        invalida_lettura(fascicolo_id)
+        try:
+            from web.services.pannelli_pronti_runtime import segnala_scrittura_fascicolo
+
+            segnala_scrittura_fascicolo(fascicolo_id)
+        except Exception as exc:
+            logger.debug("Pannelli non segnalati dopo il riscontro delle date di %s: %s", fascicolo_id, exc)
+    return len(promossi)
+
+
 def _riammetti_ruoli(fascicolo: Any, registro: RegistroLetture, tenant: str) -> int:
     """Numeri di ruolo respinti da una regola superata (ufficio letto tagliato) riammessi con la regola di oggi.
 
@@ -896,6 +920,7 @@ def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str, *, con_
     except Exception as exc:
         logger.debug("Riconvalida dei fatti non riuscita per %s: %s", fascicolo_id, exc)
     esito["ruoli_riammessi"] = _riammetti_ruoli(fascicolo, registro, tenant)
+    esito["date_instaurazione_confermate"] = _concorda_instaurazione(fascicolo, registro, tenant)
     try:
         # Le discordanze già aperte si ripassano con le regole di oggi (2.469.0: codici fiscali letti male,
         # enti al posto del cliente, secondo nome): quelle che oggi non nascerebbero si chiudono da sole.
@@ -1159,6 +1184,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         if impronta_prima != "impronta-non-calcolata" and not prima.da_leggere and not mancanti_motori:
             # Anche a ciclo fermo la regola di oggi ripassa i ruoli respinti da una regola superata (solo SQL).
             _riammetti_ruoli(fascicolo, registro, tenant)
+            _concorda_instaurazione(fascicolo, registro, tenant)
             metadati = {}
             consegne = {}
             if recupera_metadati:
@@ -1751,15 +1777,18 @@ def _liquidazioni_da_riallineare(registro: RegistroLetture, tenant_id: str, *, l
                   WHEN o.sha256_archivio<>'' THEN 'archivio:' || LOWER(o.sha256_archivio)
                   ELSE 'dimensione:' || CAST(o.dimensione AS TEXT) END
             ORDER BY f.fascicolo_id LIMIT ?
-            """, (tenant_id, "%+" + REGOLA_IDENTITA_LIQUIDAZIONE, limite),
+            """, (tenant_id, "%+" + REGOLA_IDENTITA_LIQUIDAZIONE + "%", limite),
         ).fetchall()]
 
 
 def _versione_documenti_aggiornata(versione: str) -> bool:
-    from pct.archivio_letture.riletture_mirate import REGOLA_IDENTITA_LIQUIDAZIONE
+    from pct.archivio_letture.riletture_mirate import REGOLA_ATTO_INTRODUTTIVO, REGOLA_IDENTITA_LIQUIDAZIONE
 
-    precedente = VERSIONE_MOTORE_DOCUMENTI.removesuffix("+" + REGOLA_IDENTITA_LIQUIDAZIONE)
-    return versione in {VERSIONE_MOTORE_DOCUMENTI, precedente}
+    # Le regole aggiunte dopo l'identità della liquidazione (atto introduttivo, 24/11/2026) non accodano i
+    # fascicoli: le fonti toccate si rileggono con la rilettura mirata.
+    senza_atto = VERSIONE_MOTORE_DOCUMENTI.removesuffix("+" + REGOLA_ATTO_INTRODUTTIVO)
+    precedente = senza_atto.removesuffix("+" + REGOLA_IDENTITA_LIQUIDAZIONE)
+    return versione in {VERSIONE_MOTORE_DOCUMENTI, senza_atto, precedente}
 
 
 def fascicoli_da_aggiornare(registro: RegistroLetture, tenant_id: str, *, limite: int) -> list[str]:

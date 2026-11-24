@@ -64,11 +64,11 @@ def test_un_fascicolo_in_errore_con_versione_corrente_torna_in_coda(tmp_path):
 
 
 def test_regola_economica_accoda_solo_le_fonti_liquidate_e_correnti(tmp_path):
-    from pct.archivio_letture.riletture_mirate import REGOLA_IDENTITA_LIQUIDAZIONE
+    from pct.archivio_letture.riletture_mirate import REGOLA_ATTO_INTRODUTTIVO, REGOLA_IDENTITA_LIQUIDAZIONE
     from pct.registro_letture import Fatto
 
     registro = _registro(tmp_path)
-    precedente = VERSIONE_MOTORE_DOCUMENTI.removesuffix("+" + REGOLA_IDENTITA_LIQUIDAZIONE)
+    precedente = VERSIONE_MOTORE_DOCUMENTI.removesuffix("+" + REGOLA_ATTO_INTRODUTTIVO).removesuffix("+" + REGOLA_IDENTITA_LIQUIDAZIONE)
     for fid, oggetto, ha_liquidazione in (("F-ATTO", _oggetto(1), True), ("F-NORMALE", _oggetto(2), False)):
         registro.registra_inventario(TENANT, fid, [oggetto], tipi=("documento",))
         registro.segna_fascicolo(TENANT, fid, "motore_documenti", impronta="i", oggetti_totali=1, oggetti_letti=1,

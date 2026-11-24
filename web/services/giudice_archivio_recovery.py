@@ -10,7 +10,10 @@ from pct.esenzione_reddito_cu import CAMPO_ANNO_REDDITO
 
 logger = logging.getLogger(__name__)
 
-VERSIONE = "2026.10.10.giudice-date.v3"
+# v4 (24/11/2026): le date dell'atto introduttivo (deposito del ricorso, iscrizione a ruolo, notifica della
+# citazione) dai testi nativi già salvati; nessun file riaperto se non per il riscontro nativo delle sole fonti
+# che le contengono.
+VERSIONE = "2026.11.24.giudice-date.v4"
 
 
 def recupera_da_testi_sql(fascicolo, registro, tenant, repository, *, codice_fiscale_cliente="", limite=200, riscontro_nativo=None,

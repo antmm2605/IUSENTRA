@@ -114,7 +114,8 @@ relativo procedimento R.G. n. 123/2025 dal quale sono estratte.'''
 
 def test_actual_attestation_dates_keep_joint_identity_and_named_proof():
     facts = estrai_date_modello(ATTESTATION, fascicolo=matter())
-    assert [(f.campo, f.valore) for f in facts] == [('data_emissione_decreto', '2025-04-12')]
+    # L'attestazione descrive anche il ricorso con la sua data di deposito (date dell'atto introduttivo, 24/11/2026).
+    assert [(f.campo, f.valore) for f in facts] == [('data_deposito_ricorso', '2025-04-05'), ('data_emissione_decreto', '2025-04-12')]
     assert any(proof['codice'] == 'attestazione_copie_fascicolo_informatico' for proof in facts[0].prove)
 
 

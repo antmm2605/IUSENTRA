@@ -287,7 +287,7 @@ SIGNIFICATO: dict[str, tuple[str | None, tuple[str, ...], tuple[str, ...]]] = {
                         ("voglio separarmi da mio marito", "mia moglie se n'è andata di casa", "non ce la faccio più a vivere con lui")),
     "fam_divorzio_immediato": (A, ("divorzio immediato", "divorzio senza separazione", "coniuge condannato"),
                                ("mio marito è in carcere per una condanna lunga, posso divorziare subito?",
-                                "è stato condannato per maltrattamenti contro di me", "ha tentato di uccidermi")),
+                                "è stato condannato due volte per maltrattamenti contro di me", "ha tentato di uccidermi")),
     "fam_modifica_condizioni": (E, ("modifica delle condizioni", "revisione dell'assegno", "cambio di collocamento"),
                                 ("ho perso il lavoro e non riesco a pagare l'assegno", "l'ex guadagna molto di più adesso",
                                  "mio figlio è andato a vivere dall'altro genitore")),

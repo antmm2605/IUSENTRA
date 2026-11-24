@@ -229,7 +229,9 @@ def analizza_unita_familiare(c: Comprensione, f: Fatti) -> Analisi:
               [Rif("dlgs150:20", "E' competente il tribunale sede della sezione specializzata"),
                Rif("dlgs150:20", "sono regolate dal rito semplificato di cognizione")]),
     ]
-    a.avvertenze.append("Il TAR non è il giudice di questi provvedimenti: un ricorso al TAR farebbe perdere tempo.")
+    a.avvertenze.append(Punto("Il TAR non è il giudice di questi provvedimenti: la legge rimette l'opposizione all'autorità "
+                              "giudiziaria ordinaria, e un ricorso al TAR farebbe perdere tempo.",
+                              [Rif("dlgs286:30", "l'interessato puo' proporre opposizione all'autorita' giudiziaria ordinaria")]))
     return a
 
 

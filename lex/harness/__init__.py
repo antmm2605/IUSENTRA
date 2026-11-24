@@ -22,6 +22,7 @@ from .composizione import componi
 from .controllo import EsitoControllo, verifica_analisi, verifica_citazioni
 from .fatti import leggi_fatti
 from .fattispecie import scegli
+from .modello import Punto
 from .norme import NORME, piano, testo_norma
 
 __all__ = ["RispostaHarness", "comprendi", "e_richiesta_giuridica", "rispondi"]
@@ -284,7 +285,7 @@ def registro(c: Comprensione, f, a, esito: EsitoControllo) -> dict[str, Any]:
         "9_procedibilita": _punti(a.procedibilita),
         "10_termini": _punti(a.termini),
         "11_inquadramento": _punti(a.inquadramento),
-        "12_tranelli_e_avvertenze": list(a.avvertenze),
+        "12_tranelli_e_avvertenze": [_punti([x])[0] if isinstance(x, Punto) else x for x in a.avvertenze],
         "13_dati_mancanti": list(a.dati_mancanti),
         "14_modello_atto": {"scheda": a.modello, "presente_nel_catalogo": bool(scheda and scheda.is_file()),
                             "bozza": bool(a.bozza), "requisiti": getattr(a, "requisiti_bozza", None)},

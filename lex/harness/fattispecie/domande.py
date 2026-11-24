@@ -174,8 +174,9 @@ def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
                                    + (f". Per prudenza conviene agire entro {data_breve(senza)}, la scadenza senza sospensione"
                                       if tocca_agosto(d, senza) else "") + ".",
                                    [Rif("cc:1137", "termine perentorio di trenta giorni"), Rif("l742:1", "sospeso di diritto")]))
-    a.dubbi.append("La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: "
-                   "depositala entro i trenta giorni.")
+    a.avvertenze.append(Punto("La domanda di mediazione, dal momento in cui la comunicazione perviene alle altre parti, "
+                              "impedisce la decadenza per una sola volta: va depositata entro i trenta giorni.",
+                              [Rif("dlgs28:8", "impedisce la decadenza per una sola volta")]))
     return a
 
 
@@ -253,7 +254,9 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
     if d:
         a.conclusione.append(Punto(f"Notizia del fatto il {data_breve(d)}: querela entro {data_breve(termine("PEN_QUERELA_124", d))}.",
                                    [Rif("cp:124", "tre mesi")]))
-    a.dubbi.append("Alcuni reati hanno termini diversi stabiliti dalla legge: verifica la norma del reato specifico.")
+    a.avvertenze.append(Punto("Il termine di tre mesi vale salvo che la legge disponga altrimenti: alcuni reati hanno "
+                              "termini diversi, da verificare sulla norma del reato specifico.",
+                              [Rif("cp:124", "Salvo che la legge disponga altrimenti")]))
     t = _t(f)
     from .strumenti import data_di
 
@@ -262,7 +265,7 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
         lim = termine("PEN_QUERELA_124", notizia)
         a.conclusione = [Punto(f"Il termine decorre dalla notizia del fatto ({notizia.strftime('%d/%m/%Y')}), non dalla "
                                f"pubblicazione: querela entro {data_breve(lim)}.", [Rif("cp:124", "tre mesi")])]
-    if re.search(r"facebook|social|post|pubblic", t):
+    if re.search(r"facebook|instagram|tiktok|social|\bpost\b|pubblic|online|sul web|in rete", t):
         a.inquadramento.append(Punto("Offesa all'altrui reputazione comunicando con più persone: diffamazione, aggravata se "
                                      "commessa con un mezzo di pubblicità come un social network.",
                                      [Rif("cp:595", "comunicando con piu persone"), Rif("cp:595", "mezzo di pubblicita")]))
@@ -271,9 +274,18 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
         a.rimedio = "querela per diffamazione aggravata entro tre mesi dalla notizia, senza atti che valgano rinuncia"
         a.giudice = "Procura della Repubblica competente"
         a.forma = "parere (consulenza)"
-        a.avvertenze = ["I «sei mesi» della richiesta sono sbagliati: il termine è di tre mesi; aspettare febbraio farebbe "
-                        "perdere la querela.", "Accettare la proposta di cancellare il post in cambio di «lasciar perdere» può "
-                        "valere come rinuncia tacita: non accettarla prima di aver presentato querela."]
+        if re.search(r"sei mesi|6 mesi|febbraio|piu tardi|con calma", t):
+            a.avvertenze.append(Punto("Il termine è di tre mesi dalla notizia del fatto: aspettare oltre farebbe perdere la "
+                                      "querela" + ("; i «sei mesi» della richiesta sono sbagliati." if re.search(r"sei mesi|6 mesi", t)
+                                                   else "."), [Rif("cp:124", "tre mesi")]))
+        if re.search(r"cancell|rimuov|togli|lasci\w* perdere|in cambio|accordo|ritratt", t):
+            a.avvertenze.append(Punto("Accettare la proposta di cancellare il post in cambio di «lasciar perdere» può valere "
+                                      "come rinuncia tacita: non accettarla prima di aver presentato querela.",
+                                      [Rif("cp:124", "rinuncia espressa o tacita")]))
+        else:
+            a.avvertenze.append(Punto("Atti incompatibili con la volontà di querelare possono valere come rinuncia tacita: "
+                                      "nessun accordo con l'autore del post prima di aver presentato querela.",
+                                      [Rif("cp:124", "rinuncia espressa o tacita")]))
         a.inquadramento.append(Punto("Il diritto di querela non si esercita se c'è stata rinuncia espressa o tacita.",
                                      [Rif("cp:124", "rinuncia espressa o tacita")]))
         a.dati_mancanti = ["screenshot con data e link del post", "dati del querelato"]
@@ -326,7 +338,20 @@ def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
         a.conclusione.append(Punto(f"Provvedimento notificato il {data_breve(d)}: ricorso da notificare entro "
                                    f"{data_breve(termine('AMM_RICORSO_29', d))} (sessanta giorni con la sospensione feriale).",
                                    [Rif("cpa:29", "sessanta giorni"), Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")]))
-    a.dubbi.append("Riti speciali (appalti, accesso agli atti, silenzio) hanno termini dimezzati o diversi: verifica il rito.")
+    a.avvertenze += [
+        Punto("I sessanta giorni non valgono per tutti i riti: per gli atti delle procedure di affidamento di lavori, servizi "
+              "e forniture il ricorso si propone nel termine di trenta giorni.",
+              [Rif("cpa:120", "sono proposti nel termine di trenta giorni")]),
+        Punto("Nelle materie del rito abbreviato i termini processuali ordinari sono dimezzati, ma non quello per notificare "
+              "il ricorso introduttivo.",
+              [Rif("cpa:119", "Tutti i termini processuali ordinari sono dimezzati"),
+               Rif("cpa:119", "quelli per la notificazione del ricorso introduttivo")]),
+        Punto("Contro il silenzio dell'amministrazione si agisce finché perdura l'inadempimento e comunque non oltre un anno "
+              "dalla scadenza del termine di conclusione del procedimento.",
+              [Rif("cpa:31", "non oltre un anno dalla scadenza del termine di conclusione del procedimento")]),
+    ]
+    a.dubbi.append("Per l'accesso ai documenti il rito è speciale (art. 116 c.p.a.), ma il testo dell'articolo nella biblioteca "
+                   "delle norme è incompleto: il termine non è affermato e va letto sul testo vigente.")
     t = _t(f)
     if re.search(r"annullamento d ufficio|autotutela", t):
         from .strumenti import data_di
@@ -435,7 +460,13 @@ def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
                  "Nel merito: i versamenti sono la restituzione di un prestito, documentata.",],
                 "annullare l'avviso per decadenza e, in subordine, nel merito; con vittoria di spese.",
                 "avviso con relata, dichiarazione, scrittura di prestito, bonifici.", "art. 18 d.lgs. 546/1992")
-    a.dubbi += ["L'istanza di accertamento con adesione sospende il termine per novanta giorni: verifica se è stata presentata.",
-                "Il testo unico della giustizia tributaria (d.lgs. 175/2024) sostituirà il d.lgs. 546/1992: verifica sull'archivio "
-                "la data da cui si applica prima di citarlo nell'atto."]
+    a.avvertenze.append(Punto(
+        "L'istanza di accertamento con adesione presentata prima del ricorso sospende il termine per impugnare per novanta "
+        "giorni dalla presentazione; dopo l'avviso è ammessa solo per gli atti per i quali non si applica il contraddittorio "
+        "preventivo: verifica se è stata presentata.",
+        [Rif("dlgs218:6", "sono sospesi per un periodo di novanta giorni dalla data di presentazione dell'istanza"),
+         Rif("dlgs218:6", "per i quali non si applica il contraddittorio preventivo")]))
+    a.dubbi += ["Il testo unico della giustizia tributaria (d.lgs. 175/2024) riordina le norme del d.lgs. 546/1992 ma non è nella "
+                "biblioteca delle norme dell'harness: prima di citare gli articoli nell'atto verifica sul testo vigente da quale "
+                "data si applica."]
     return a

@@ -91,8 +91,15 @@ def analizza_diffida_commerciale(c: Comprensione, f: Fatti) -> Analisi:
         a.conclusione = [Punto(" ".join(righe) + " Intimare il pagamento entro 15 giorni dal ricevimento, con gli interessi "
                                "moratori dalle singole scadenze e il preavviso del ricorso per decreto ingiuntivo.",
                                [Rif("cc:1219", "intimazione o richiesta fatta per iscritto"), Rif("dlgs231:5", "interessi legali di mora")])]
-    a.avvertenze = ["Gli interessi moratori si indicano al tasso legale di mora ma si calcolano a parte, per semestri, con il "
-                    "tasso di riferimento della BCE.", "Il termine di 15 giorni decorre dal ricevimento della diffida."]
+    a.avvertenze = [Punto("Gli interessi moratori si indicano al tasso legale di mora (tasso di riferimento della BCE "
+                          "maggiorato di otto punti) ma si calcolano a parte, per semestri, con il tasso in vigore il 1° "
+                          "gennaio e il 1° luglio.",
+                          [Rif("dlgs231:5", "Gli interessi moratori sono determinati nella misura degli interessi legali di mora"),
+                           Rif("dlgs231:5", "per il primo semestre dell'anno cui si riferisce il ritardo"),
+                           Rif("dlgs231:2", "tasso di riferimento maggiorato di otto punti percentuali"),
+                           Rif("dlgs231:2", "Banca centrale europea")]),
+                    "Consiglio operativo: il termine di 15 giorni assegnato nella diffida si conta dal ricevimento; conservare "
+                    "la ricevuta di consegna della PEC."]
     a.dati_mancanti = ["data di ricevimento della diffida (ricevuta PEC)", "tasso di riferimento BCE dei semestri interessati"]
     if c.tipo == "redazione":
         a.bozza = "\n".join([
@@ -167,8 +174,14 @@ def analizza_sinistro(c: Comprensione, f: Fatti) -> Analisi:
                    "Non riparare il veicolo prima dell'ispezione.", "Attendere l'offerta nei termini e valutarla; in caso di "
                    "diniego o offerta incongrua, invito alla negoziazione assistita.", "Se la negoziazione fallisce, causa "
                    "davanti al giudice di pace contro l'impresa, chiamando anche il responsabile (art. 144 d.lgs. 209/2005)."]
-    a.avvertenze = ["I termini per l'offerta e per la proponibilità decorrono dalla ricezione della richiesta, non ancora inviata.",
-                    "La negoziazione assistita è obbligatoria per il danno da circolazione a prescindere dal valore."]
+    a.avvertenze = [Punto("I termini per l'offerta dell'assicuratore e per la proponibilità dell'azione decorrono dalla "
+                          "richiesta di risarcimento, che non è ancora stata inviata.",
+                          [Rif("dlgs209:148", "Entro sessanta giorni dalla ricezione di tale documentazione"),
+                           Rif("dlgs209:145", "decorrenti da quello in cui il danneggiato abbia chiesto all'impresa di assicurazione il risarcimento")]),
+                    Punto("La negoziazione assistita è obbligatoria per il danno da circolazione a prescindere dal valore: la "
+                          "soglia dei cinquantamila euro vale solo per le domande di pagamento.",
+                          [Rif("dl132:3", "circolazione di veicoli e natanti"),
+                           Rif("dl132:3", "somme non eccedenti cinquantamila euro")])]
     a.dati_mancanti = ["data di invio e ricezione della richiesta", "certificazione medica di guarigione ed eventuali postumi",
                        "luogo del sinistro (competenza territoriale)"]
     return a

@@ -112,8 +112,11 @@ def analizza_verbale_cds(c: Comprensione, f: Fatti) -> Analisi:
         a.termini.append(Punto(f"Verbale notificato il {data_breve(notifica)}: ricorso al giudice di pace entro {data_breve(ric)} "
                                "(termine processuale: sospensione feriale e proroga del sabato e dei festivi).",
                                [Rif("dlgs150:7", "entro trenta giorni")]))
-    a.avvertenze = ["Non pagare e non proporre ricorso al prefetto: il ricorso al giudice di pace è inammissibile se è stato "
-                    "presentato prima ricorso al prefetto."]
+    a.avvertenze = [Punto("Non pagare e non proporre ricorso al prefetto: l'opposizione al giudice di pace è ammessa se non "
+                          "è stato effettuato il pagamento in misura ridotta, ed è inammissibile se è stato presentato prima "
+                          "ricorso al prefetto.",
+                          [Rif("dlgs285:204bis", "qualora non sia stato effettuato il pagamento in misura ridotta"),
+                           Rif("dlgs150:7", "inammissibile se e' stato previamente presentato ricorso ai sensi dell'articolo 203")])]
     a.dati_mancanti = ["codice fiscale della ricorrente", "copia del verbale e della relata di notifica"]
     if c.tipo == "redazione":
         from ..bozze import ricorso_generico

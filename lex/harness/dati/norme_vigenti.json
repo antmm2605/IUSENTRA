@@ -1,7 +1,18 @@
 {
- "generata_il": "23/11/2026",
+ "generata_il": "24/11/2026",
  "archivio": "normattiva.sqlite",
  "norme": {
+  "cc:1131": {
+   "citazione": "art. 1131 c.c.",
+   "testo": "Art. 1131. (Rappresentanza). Nei limiti delle attribuzioni stabilite ((dall'articolo 1130)) o dei maggiori poteri conferitigli dal regolamento di condominio o dall'assemblea, l'amministratore ha la rappresentanza dei partecipanti e puo' agire in giudizio sia contro i condomini sia contro i terzi. Puo' essere convenuto in giudizio per qualunque azione concernente le parti comuni dell'edificio; a lui sono notificati i provvedimenti dell'autorita' amministrativa che si riferiscono allo stesso oggetto. Qualora la citazione o il provvedimento abbia un contenuto che esorbita dalle attribuzioni dell'amministratore, questi e' tenuto a darne senza indugio notizia all'assemblea dei condomini. L'amministratore che non adempie a quest'obbligo puo' essere revocato ed e' tenuto al risarcimento dei danni.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1131",
+   "titolo_atto": "Approvazione del testo del Codice civile. (042U0262)",
+   "aggiornamento": "29/04/2026",
+   "vigente": true,
+   "document_id": 1127,
+   "article_id": 562603,
+   "sha256": "d90c396151a817e0c51ad80c50b4f175b5d24d194a98927e06189bf7fb339b0f"
+  },
   "cc:1137": {
    "citazione": "art. 1137 c.c.",
    "testo": "Art. 1137. (Impugnazione delle deliberazioni dell'assemblea). Le deliberazioni prese dall'assemblea a norma degli articoli precedenti sono obbligatorie per tutti i condomini. Contro le deliberazioni contrarie alla legge o al regolamento di condominio ogni condomino assente, dissenziente o astenuto puo' adire l'autorita' giudiziaria chiedendone l'annullamento nel termine perentorio di trenta giorni, che decorre dalla data della deliberazione per i dissenzienti o astenuti e dalla data di comunicazione della deliberazione per gli assenti. L'azione di annullamento non sospende l'esecuzione della deliberazione, salvo che la sospensione sia ordinata dall'autorita' giudiziaria. L'istanza per ottenere la sospensione proposta prima dell'inizio della causa di merito non sospende ne' interrompe il termine per la proposizione dell'impugnazione della deliberazione. Per quanto non espressamente previsto, la sospensione e' disciplinata dalle norme di cui al libro IV, titolo I, capo III, sezione I del codice di procedura civile. (321)((322)) -------------- AGGIORNAMENTO (321) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". -------------- AGGIORNAMENTO (322) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\".",
@@ -299,6 +310,28 @@
    "article_id": 563152,
    "sha256": "3ae095d70c721feae561e680f56ab018672616b6e9be46d45326d2c342526aca"
   },
+  "cc:1913": {
+   "citazione": "art. 1913 c.c.",
+   "testo": "Art. 1913. (Avviso all'assicuratore in caso di sinistro). L'assicurato deve dare avviso del sinistro all'assicuratore o all'agente autorizzato a concludere il contratto, entro tre giorni da quello in cui il sinistro si e' verificato o l'assicurato ne ha avuta conoscenza. Non e' necessario l'avviso, se l'assicuratore o l'agente autorizzato alla conclusione del contratto intervengono entro il detto termine alle operazioni di salvataggio o di constatazione del sinistro. Nelle assicurazioni contro la mortalita' del bestiame l'avviso, salvo patto contrario, deve essere dato entro ventiquattro ore.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1913",
+   "titolo_atto": "Approvazione del testo del Codice civile. (042U0262)",
+   "aggiornamento": "29/04/2026",
+   "vigente": true,
+   "document_id": 1127,
+   "article_id": 563401,
+   "sha256": "0f66a60b3cee0cb14f172f056aa1bc3aa29b15fc2d957eae83bd392dcb0e2abf"
+  },
+  "cc:1917": {
+   "citazione": "art. 1917 c.c.",
+   "testo": "Art. 1917. (Assicurazione della responsabilita' civile). Nell'assicurazione della responsabilita' civile l'assicuratore e' obbligato a tenere indenne l'assicurato di quanto questi, in conseguenza del fatto accaduto durante il tempo dell'assicurazione, deve pagare a un terzo, in dipendenza della responsabilita' dedotta nel contratto. Sono esclusi i danni derivanti da fatti dolosi. L'assicuratore ha facolta', previa comunicazione all'assicurato, di pagare direttamente al terzo danneggiato l'indennita' dovuta, ed e' obbligato al pagamento diretto se l'assicurato lo richiede. Le spese sostenute per resistere all'azione del danneggiato contro l'assicurato sono a carico dell'assicuratore nei limiti del quarto della somma assicurata. Tuttavia, nel caso che sia dovuta al danneggiato una somma superiore al capitale assicurato, le spese giudiziali si ripartiscono tra assicuratore e assicurato in proporzione del rispettivo interesse. L'assicurato, convenuto dal danneggiato, puo' chiamare in causa l'assicuratore.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1917",
+   "titolo_atto": "Approvazione del testo del Codice civile. (042U0262)",
+   "aggiornamento": "29/04/2026",
+   "vigente": true,
+   "document_id": 1127,
+   "article_id": 563405,
+   "sha256": "2b26a2ec2f45584ed6ec363853e8a7ac740a23cfae7b53158076e422324fe40b"
+  },
   "cc:1965": {
    "citazione": "art. 1965 c.c.",
    "testo": "Art. 1965. (Nozione). La transazione e' il contratto col quale le parti, facendosi reciproche concessioni, pongono fine a una lite gia' incominciata o prevengono una lite che puo' sorgere tra loro. Con le reciproche concessioni si possono creare, modificare o estinguere anche rapporti diversi da quello che ha formato oggetto della pretesa e della contestazione delle parti.",
@@ -452,6 +485,17 @@
    "document_id": 1127,
    "article_id": 564644,
    "sha256": "5b6423cb22a12a0726babb5574d7e6e50d36ee158013120999a3d4e6aa8fbc84"
+  },
+  "cc:2969": {
+   "citazione": "art. 2969 c.c.",
+   "testo": "Art. 2969. (Rilievo d'ufficio). La decadenza non puo' essere rilevata d'ufficio dal giudice, salvo che, trattandosi di materia sottratta alla disponibilita' delle parti, il giudice debba rilevare le cause d'improponibilita' dell'azione. Roma, addi' 16 marzo 1942-XX VITTORIO EMANUELE GRANDI",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2969",
+   "titolo_atto": "Approvazione del testo del Codice civile. (042U0262)",
+   "aggiornamento": "29/04/2026",
+   "vigente": true,
+   "document_id": 1127,
+   "article_id": 564647,
+   "sha256": "e37c9a7a4052dc353e3a6192afe52f3385a6525a76f53987ece855caa649c7b3"
   },
   "cc:337septies": {
    "citazione": "art. 337-septies c.c.",
@@ -925,6 +969,17 @@
    "document_id": 1125,
    "article_id": 560820,
    "sha256": "0e10ab5081c2b9640f9e7bba339b0fc1fa921d73d5b8510be8f2d7f1bcf59938"
+  },
+  "cpc:416": {
+   "citazione": "art. 416 c.p.c.",
+   "testo": "Art. 416. (Costituzione del convenuto). Il convenuto deve costituirsi almeno dieci giorni prima della udienza ((...)). ((178)) La costituzione del convenuto si effettua mediante deposito ((...)) di una memoria difensiva, nella quale devono essere proposte, a pena di decadenza, le eventuali domande in via riconvenzionale e le eccezioni processuali e di merito che non siano rilevabili d'ufficio. ((178)) Nella stessa memoria il convenuto deve prendere posizione, in maniera precisa e non limitata ad una generica contestazione, circa i fatti affermati dall'attore a fondamento della domanda, proporre tutte le sue difese in fatto e in diritto ed indicare specificamente, a pena di decadenza, i mezzi di prova dei quali intende avvalersi ed in particolare i documenti che deve contestualmente depositare. -------------- AGGIORNAMENTO (178) Il D.Lgs. 31 ottobre 2024, n. 164, ha disposto (con l'art. 7, comma 1) che \"Ove non diversamente previsto, le disposizioni del presente decreto si applicano ai procedimenti introdotti successivamente al 28 febbraio 2023\".",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416",
+   "titolo_atto": "Codice di procedura civile. (040U1443)",
+   "aggiornamento": "05/03/2026",
+   "vigente": true,
+   "document_id": 1125,
+   "article_id": 560822,
+   "sha256": "9d996db86d16b7722b87614ef3b8fb1d7de48d1fd27d51b57a2e98718e359254"
   },
   "cpc:429": {
    "citazione": "art. 429 c.p.c.",
@@ -1695,6 +1750,17 @@
    "document_id": 247434,
    "article_id": 702663,
    "sha256": "6f6c72b871a2e608f9211f133eadfe456b7fda5de6af25d8566e254e14ee2460"
+  },
+  "dlgs206:134": {
+   "citazione": "art. 134 d.lgs. 206/2005 (codice del consumo)",
+   "testo": "Art. 134. 1 Art. 134 (( (Diritto di regresso). )) ((1. Il venditore finale, quando e' responsabile nei confronti del consumatore a causa di un difetto di conformita' imputabile ad un'azione o ad un'omissione di una persona nell'ambito dei passaggi precedenti della medesima catena contrattuale distributiva, inclusa l'omissione di fornire gli aggiornamenti per i beni con elementi digitali a norma dell'articolo 130, comma 2, ha diritto di regresso nei confronti della persona o delle persone responsabili nella catena di transazioni commerciali. 2. Il venditore finale che abbia ottemperato ai rimedi esperiti dal consumatore puo' agire in regresso, entro un anno dall'esecuzione della prestazione, nei confronti del soggetto o dei soggetti responsabili per ottenere la reintegrazione di quanto prestato.)) ((42)) <![CDATA[---------------- ]]> AGGIORNAMENTO (42) Il D.Lgs. 4 novembre 2021, n. 170 ha disposto (con l'art. 2, comma 1) che la presente modifica acquista efficacia a decorrere dal 1° gennaio 2022 e si applica ai contratti conclusi successivamente a tale data.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art134",
+   "titolo_atto": "Codice del consumo, a norma dell'articolo 7 della legge 29 luglio 2003, n. 229.",
+   "aggiornamento": "11/11/2026",
+   "vigente": true,
+   "document_id": 247434,
+   "article_id": 702664,
+   "sha256": "c01023f1b0332ecb8f33a371e137793dde7c1e7b1f281cf155e2c237d8c7b57d"
   },
   "dlgs206:135": {
    "citazione": "art. 135 d.lgs. 206/2005 (codice del consumo)",

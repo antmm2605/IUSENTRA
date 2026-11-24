@@ -41,6 +41,13 @@ def _n(chiave: str, estremi: str, citazione: str, rubrica: str = "") -> Norma:
 _CC, _CPC, _CP, _CPP = "r.d. 262/1942", "r.d. 1443/1940", "r.d. 1398/1930", "d.p.r. 447/1988"
 
 NORME: dict[str, Norma] = {n.chiave: n for n in (
+    # Lato della parte (24/11/2026): difesa del datore, del condominio, del responsabile del sinistro, del venditore
+    _n("cpc:416", f"art. 416 {_CPC}", "art. 416 c.p.c.", "Costituzione del convenuto"),
+    _n("cc:1131", f"art. 1131 {_CC}", "art. 1131 c.c.", "Rappresentanza"),
+    _n("cc:1913", f"art. 1913 {_CC}", "art. 1913 c.c.", "Avviso all'assicuratore in caso di sinistro"),
+    _n("cc:1917", f"art. 1917 {_CC}", "art. 1917 c.c.", "Assicurazione della responsabilità civile"),
+    _n("cc:2969", f"art. 2969 {_CC}", "art. 2969 c.c.", "Rilievo d'ufficio"),
+    _n("dlgs206:134", "art. 134 d.lgs. 206/2005", "art. 134 d.lgs. 206/2005 (codice del consumo)", "Diritto di regresso"),
     # Correzioni delle deviazioni (copertura degli strumenti, 23/11/2026)
     _n("l689:22", "art. 22 l. 689/1981", "art. 22 l. 689/1981", "Opposizione all'ordinanza-ingiunzione"),
     _n("dlgs150:6", "art. 6 d.lgs. 150/2011", "art. 6 d.lgs. 150/2011", "Dell'opposizione ad ordinanza-ingiunzione"),

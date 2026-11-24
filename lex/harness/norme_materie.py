@@ -464,4 +464,18 @@ NORME_MATERIE: tuple[tuple[str, str, str, str, str, str], ...] = (
     ('tub:53', "art. 53 d.lgs. 385/1993", "art. 53 d.lgs. 385/1993 (TUB)", 'Vigilanza regolamentare', "decreto.legislativo:1993-09-01;385", "53"),
     ('tui:13', "art. 13 d.lgs. 286/1998", "art. 13 d.lgs. 286/1998", 'Espulsione amministrativa (Legge 6 marzo 1998, n. 40, art. 11)', "decreto.legislativo:1998-07-25;286", "13"),
     ('tui:5', "art. 5 d.lgs. 286/1998", "art. 5 d.lgs. 286/1998", 'Permesso di soggiorno (Legge 6 marzo 1998, n. 40, art. 5)', "decreto.legislativo:1998-07-25;286", "5"),
+    # ------------------------------------------------------------ prove ed eccezioni (rito del lavoro e appello)
+    _v("cc", "2729", "Presunzioni semplici"),
+    _v("cc", "2050", "Responsabilità per l'esercizio di attività pericolose"),
+    _v("cc", "2934", "Estinzione dei diritti"),
+    _v("cc", "2938", "Non rilevabilità d'ufficio"),
+    _v("cpc", "37", "Difetto di giurisdizione"),
+    _v("cpc", "112", "Corrispondenza tra il chiesto e il pronunciato"),
+    _v("cpc", "115", "Disponibilità delle prove"),
+    _v("cpc", "116", "Valutazione delle prove"),
+    _v("cpc", "345", "Domande ed eccezioni nuove"),
+    _v("cpc", "416", "Costituzione del convenuto"),
+    _v("cpc", "420", "Udienza di discussione della causa"),
+    _v("cpc", "421", "Poteri istruttori del giudice"),
+    _v("cpc", "437", "Udienza di discussione"),
 )

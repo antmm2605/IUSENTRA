@@ -158,14 +158,14 @@ def analizza_difesa_condominio(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- responsabile del sinistro stradale
 def riconosci_sinistro_responsabile(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    if not re.search(r"tamponat|sinistro|incidente|urtat|investit", t):
+    if not re.search(r"tampon|sinistro|incidente|urtat|investit", t):
         return 0
     return 8 if _subisce(f, "sinistro") else 0
 
 
 def analizza_sinistro_responsabile(c: Comprensione, f: Fatti) -> Analisi:
     a = Analisi("sinistro_responsabile", "responsabilità civile auto — difesa del responsabile", forma=forma(c))
-    d_sin = data_di(f, r"tamponat|sinistro|incidente|urtat|investit")
+    d_sin = data_di(f, r"tampon|sinistro|incidente|urtat|investit")
     richiesti = importi_in(frase(f, r"chied|pretend|danni"))
     a.capito = ["Assisto il conducente ritenuto responsabile del sinistro" +
                 (f" del {d_sin.strftime('%d/%m/%Y')}" if d_sin else "") + ": il danneggiato chiede il risarcimento"

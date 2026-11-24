@@ -125,9 +125,16 @@ def _refuso_di(parola: str, s: str) -> bool:
     return False
 
 
+# Parole che il dizionario italiano conosce solo come forme rare o disusate e che negli atti sono sempre il refuso di un
+# termine giuridico: per queste il dizionario non basta a lasciarle com'è (resta la regola dell'unico candidato).
+REFUSI_NEL_DIZIONARIO: frozenset[str] = frozenset({
+    "sfrato",        # da «sfratare» (disusato, togliere i frati): negli atti è «sfratto»
+})
+
+
 @lru_cache(maxsize=4096)
 def _corretta(parola: str) -> str:
-    if parola in lessico() or _parola_italiana(parola):
+    if parola in lessico() or (_parola_italiana(parola) and parola not in REFUSI_NEL_DIZIONARIO):
         return parola
     # Come legal_ocr/lessico: si corregge solo se UNA SOLA parola del lessico è un refuso tipico della parola letta
     # (le forme flesse della stessa parola, «sfratto» e «sfratti», contano come una sola).
@@ -154,10 +161,14 @@ def correggi_refusi(testo: str) -> str:
 
 # Negazioni ed eccezioni: la parola esclusa non deve far vincere proprio quell'istituto («diffamazione senza querela»,
 # «salvo la prescrizione», «non vogliamo fare causa»). La parola si sostituisce con un segnaposto neutro.
-_ESCLUSA = re.compile(r"\b(senza|salvo|tranne|eccetto|escluso|esclusa|non (?:voglio|vogliamo|vuole|vogliono|intendo|intendiamo)"
-                      r"(?: fare| presentare| sporgere| proporre| chiedere)?)\s+(?:la |il |lo |l |le |i |gli |un |una |alcuna |nessuna )?"
+_ESCLUSA = re.compile(r"\b(senza|salvo|tranne|eccetto|escluso|esclusa|escludo|escludiamo|nessun|nessuna|non parlo di|"
+                      r"non si tratta di|non (?:e|è)|non (?:al|alla|dal|dalla|in|con)|non (?:voglio|vogliamo|vuole|vogliono|intendo|intendiamo)"
+                      r"(?: fare| presentare| sporgere| proporre| chiedere| andare (?:in|al|dal|davanti al)| ricorrere (?:in|al)|"
+                      r" fare ricorso (?:in|al))?)\s+(?:la |il |lo |l |le |i |gli |un |una |alcuna |nessuna |nuovo |nuova |"
+                      r"un nuovo |una nuova )?"
                       r"(querel\w*|denunc\w*|caus[ae]|mediazion\w*|negoziazion\w*|transazion\w*|prescrizion\w*|decadenz\w*|"
-                      r"opposizion\w*|ricors\w*|appell\w*|sfratt\w*|separazion\w*|divorzi\w*)", re.IGNORECASE)
+                      r"opposizion\w*|ricors\w*|appell\w*|cassazion\w*|prefett\w*|giudice di pace|riesame|sfratt\w*|"
+                      r"separazion\w*|divorzi\w*)", re.IGNORECASE)
 
 
 def togli_negati(testo: str) -> str:

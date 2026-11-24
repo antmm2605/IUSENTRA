@@ -1,6 +1,7 @@
 """Istantanea delle norme dell'harness di Lex dall'archivio Normattiva del software.
 
 Uso: python scripts/lex_harness_norme.py [percorso normattiva.sqlite] [--solo chiave,chiave]
+     python scripts/lex_harness_norme.py --biblioteca <codici_leggi.sqlite> chiave,chiave   (atti di URN_BIBLIOTECA)
 
 Legge una sola volta l'archivio (una scansione per tutti gli atti del catalogo, poi gli articoli per documento con
 l'indice), con le stesse regole di ``web.services.ricerca_legale_norma_citata`` (atto univoco per numero e anno, versione
@@ -177,7 +178,59 @@ def da_normattiva(chiavi: list[str]) -> int:
     return 0
 
 
+# Atti la cui edizione dell'archivio del server ha articoli incompleti (solo la rubrica): si leggono dalla biblioteca di
+# consultazione (edizione «VIGENTE_AL:<data>» acquisita da Normattiva con scripts/biblioteca_vigente.py aggiorna).
+URN_BIBLIOTECA = {
+    "cpa": "urn:nir:stato:decreto.legislativo:2010-07-02;104",
+    "dlgs175": "urn:nir:stato:decreto.legislativo:2024-11-14;175",
+}
+
+
+def da_biblioteca(db: Path, chiavi: list[str]) -> int:
+    """Uso: --biblioteca <codici_leggi.sqlite> chiave,chiave — solo dall'edizione VIGENTE_AL più recente dell'atto."""
+    istantanea = json.loads(ISTANTANEA.read_text(encoding="utf-8"))
+    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    for k in chiavi:
+        prefisso, numero = k.split(":", 1)
+        urn = URN_BIBLIOTECA.get(prefisso)
+        if not urn or k not in NORME:
+            print(f"{k}: atto non censito per la biblioteca o chiave assente dal catalogo")
+            continue
+        edizioni = conn.execute("SELECT id, vigenza, titolo FROM normative_documents WHERE urn = ? AND vigenza LIKE "
+                                "'VIGENTE_AL:%' ORDER BY vigenza DESC", (urn,)).fetchall()
+        riga = None
+        for doc_id, vigenza, titolo in edizioni:
+            riga = conn.execute("SELECT id, article_text FROM normative_articles WHERE document_id=? AND article_number=? "
+                                "ORDER BY length(article_text) DESC LIMIT 1", (doc_id, numero)).fetchone()
+            if riga is not None:
+                break
+        if riga is None:
+            print(f"{k}: articolo assente nelle edizioni vigenti della biblioteca")
+            continue
+        testo = " ".join((riga[1] or "").split())
+        if re.search(r"\(\(\s*(?:ARTICOLO|PROVVEDIMENTO) ABROGAT", testo[:200]):
+            print(f"{k}: articolo abrogato nel testo vigente")
+            continue
+        vig = vigenza[len("VIGENTE_AL:"):]
+        istantanea["norme"][k] = {
+            "citazione": NORME[k].citazione, "testo": testo,
+            "url": f"https://www.normattiva.it/uri-res/N2Ls?{urn}~art{numero}",
+            "titolo_atto": str(titolo or "").strip()[:200], "aggiornamento": date.fromisoformat(vig).strftime("%d/%m/%Y"),
+            "vigente": True, "document_id": str(doc_id), "article_id": str(riga[0]),
+            "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+            "sha256": hashlib.sha256(testo.encode()).hexdigest(),
+        }
+        istantanea["mancanti"] = [m for m in istantanea.get("mancanti", []) if not m.startswith(k + ":")]
+        print(f"{k}: letto dalla biblioteca ({len(testo)} caratteri, vigente al {vig})")
+    istantanea["norme"] = dict(sorted(istantanea["norme"].items()))
+    ISTANTANEA.write_text(json.dumps(istantanea, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return 0
+
+
 if __name__ == "__main__":
+    if "--biblioteca" in sys.argv:
+        i = sys.argv.index("--biblioteca")
+        raise SystemExit(da_biblioteca(Path(sys.argv[i + 1]), sys.argv[i + 2].split(",")))
     if "--normattiva" in sys.argv:
         raise SystemExit(da_normattiva(sys.argv[sys.argv.index("--normattiva") + 1].split(",")))
     raise SystemExit(main())

@@ -75,6 +75,8 @@ def test_le_flessioni_dichiarate_dal_file_aff_si_riconoscono(dizionario, parola,
 
 def test_senza_dizionario_installato_niente_si_rompe(tmp_path, monkeypatch):
     monkeypatch.setattr(hunspell, "PERCORSI_AFF", (str(tmp_path / "assente.aff"),))
+    monkeypatch.setattr(hunspell, "CARTELLA_DI_RIPIEGO", tmp_path / "nessuna")
+    monkeypatch.delenv(hunspell.VARIABILE_CARTELLA, raising=False)
     dizionario_italiano.cache_clear()
     vuoto = dizionario_italiano()
     assert vuoto.disponibile is False
@@ -85,6 +87,8 @@ def test_senza_dizionario_installato_niente_si_rompe(tmp_path, monkeypatch):
 def test_serve_la_coppia_aff_e_dic(tmp_path, monkeypatch):
     (tmp_path / "it_IT.aff").write_text(AFF, encoding="utf-8")
     monkeypatch.setattr(hunspell, "PERCORSI_AFF", (str(tmp_path / "it_IT.aff"),))
+    monkeypatch.setattr(hunspell, "CARTELLA_DI_RIPIEGO", tmp_path / "nessuna")
+    monkeypatch.delenv(hunspell.VARIABILE_CARTELLA, raising=False)
     dizionario_italiano.cache_clear()
     assert dizionario_italiano().disponibile is False
     dizionario_italiano.cache_clear()
@@ -120,3 +124,33 @@ def test_il_dizionario_di_sistema_reale_se_installato():
     assert reale.conosce("udienza") and reale.conosce("udienze")
     assert reale.conosce("ricorrente") and reale.conosce("ricorrenti")
     assert not reale.conosce("cornparsa")
+
+
+def test_la_cartella_della_variabile_ha_la_precedenza(tmp_path: Path, monkeypatch):
+    (tmp_path / "it_IT.aff").write_text(AFF, encoding="utf-8")
+    (tmp_path / "it_IT.dic").write_text(DIC, encoding="utf-8")
+    monkeypatch.setenv(hunspell.VARIABILE_CARTELLA, str(tmp_path))
+    dizionario_italiano.cache_clear()
+    try:
+        assert hunspell.percorsi("it_IT.aff", ("/sistema/it_IT.aff",))[0] == str(tmp_path / "it_IT.aff")
+        assert dizionario_italiano().conosce("udienze")
+    finally:
+        monkeypatch.delenv(hunspell.VARIABILE_CARTELLA)
+        dizionario_italiano.cache_clear()
+
+
+def test_la_cartella_di_ripiego_viene_dopo_il_sistema():
+    elenco = hunspell.percorsi("it_IT.dic", ("/usr/share/hunspell/it_IT.dic",))
+    assert elenco[-1] == str(hunspell.CARTELLA_DI_RIPIEGO / "it_IT.dic")
+
+
+@pytest.mark.parametrize("parola", ["operaio", "cameriere", "magazziniere", "lavatrice", "frigorifero", "inquilina",
+                                    "condomina", "tamponato", "dimissioni", "televisore"])
+def test_parole_comuni_vere_non_si_correggono(parola):
+    from legal_ocr.lessico.italiano import conosce
+    from lex.harness.normalizzazione import correggi_refusi
+
+    if not conosce("udienze"):
+        pytest.skip("dizionario italiano non disponibile su questo host")
+    assert conosce(parola)
+    assert correggi_refusi(f"il mio {parola} ieri") == f"il mio {parola} ieri"

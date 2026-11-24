@@ -54,6 +54,7 @@ REGOLE: tuple[Regola, ...] = (
     ("competenza_lavoro", lavoro.riconosci_competenza_lavoro, lavoro.analizza_competenza_lavoro),
     ("divorzio_tempi", famiglia.riconosci_divorzio_tempi, famiglia.analizza_divorzio_tempi),
     ("figlio_maggiorenne", famiglia.riconosci_maggiorenne, famiglia.analizza_maggiorenne),
+    ("separazione_consensuale", famiglia.riconosci_separazione_consensuale, famiglia.analizza_separazione_consensuale),
     ("separazione_giudiziale", famiglia.riconosci_separazione, famiglia.analizza_separazione),
     ("modifica_condizioni", famiglia.riconosci_modifica_condizioni, famiglia.analizza_modifica_condizioni),
     ("negoziazione_familiare", famiglia.riconosci_negoziazione_familiare, famiglia.analizza_negoziazione_familiare),

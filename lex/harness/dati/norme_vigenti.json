@@ -255,6 +255,17 @@
    "article_id": 563061,
    "sha256": "1480d3e41b44e1904025d21ba0c70c0928feb6626de229c72217c51adfa96ab8"
   },
+  "cc:158": {
+   "citazione": "art. 158 c.c.",
+   "testo": "Art. 158. Separazione consensuale. La separazione per il solo consenso dei coniugi non ha effetto senza l'omologazione del giudice. ((COMMA ABROGATO DAL D.LGS. 10 OTTOBRE 2022, N. 149, COME MODIFICATO DALLA L. 29 DICEMBRE 2022, N. 197)). (70) --------------- AGGIORNAMENTO (70) La Corte Costituzionale, con sentenza 10 - 18 febbraio 1988, n. 186 (in G.U. 1a s.s. 24/2/1988, n. 8) ha dichiarato \"la illegittimita' costituzionale dell'art. 158 del codice civile, nella parte in cui non prevede che il decreto di omologazione della separazione consensuale costituisce titolo per l'iscrizione dell'ipoteca giudiziale ai sensi dell'art. 2818 del codice civile\".",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art158",
+   "titolo_atto": "Approvazione del testo del Codice civile. (042U0262)",
+   "aggiornamento": "29/04/2026",
+   "vigente": true,
+   "document_id": 1127,
+   "article_id": 561600,
+   "sha256": "24f5b8b5b911472b5244aef6e4c69bda0bb976b379a8b9088891d876f41eefc0"
+  },
   "cc:1587": {
    "citazione": "art. 1587 c.c.",
    "testo": "Art. 1587. (Obbligazioni principali del conduttore). Il conduttore deve: 1) prendere in consegna la cosa e osservare la diligenza del buon padre di famiglia nel servirsene per l'uso determinato nel contratto o per l'uso che puo' altrimenti presumersi dalle circostanze; 2) dare il corrispettivo nei termini convenuti.",
@@ -609,14 +620,15 @@
   },
   "cpa:116": {
    "citazione": "art. 116 c.p.a.",
-   "testo": "Art. 116 - Rito in materia di accesso ai documenti amministrativi Titolo III - Tutela contro l'inerzia della pubblica amministrazione",
+   "testo": "Art. 116 Rito in materia di accesso ai documenti amministrativi 1. Contro le determinazioni e contro il silenzio sulle istanze di accesso ai documenti amministrativi ((, nonche' per la tutela del diritto di accesso civico connessa all'inadempimento degli obblighi di trasparenza)) il ricorso e' proposto entro trenta giorni dalla conoscenza della determinazione impugnata o dalla formazione del silenzio, mediante notificazione all'amministrazione e ad almeno un controinteressato. Si applica l'articolo 49. Il termine per la proposizione di ricorsi incidentali o motivi aggiunti e' di trenta giorni. 2. In pendenza di un giudizio cui la richiesta di accesso e' connessa, il ricorso di cui al comma 1 puo' essere proposto con istanza depositata presso la segreteria della sezione cui e' assegnato il ricorso principale, previa notificazione all'amministrazione e agli eventuali controinteressati. L'istanza e' decisa con ordinanza separatamente dal giudizio principale, ovvero con la sentenza che definisce il giudizio. 3. L'amministrazione puo' essere rappresentata e difesa da un proprio dipendente a cio' autorizzato. 4. Il giudice decide con sentenza in forma semplificata; sussistendone i presupposti, ordina l'esibizione ((e, ove previsto, la pubblicazione)) dei documenti richiesti, entro un termine non superiore, di norma, a trenta giorni, dettando, ove occorra, le relative modalita'. 5. Le disposizioni di cui al presente articolo si applicano anche ai giudizi di impugnazione.",
    "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art116",
-   "titolo_atto": "Attuazione dell'articolo 44 della legge 18 giugno 2009, n. 69, recante delega al governo per il riordino del processo amministrativo. (10G0127)",
-   "aggiornamento": "12/12/2025",
+   "titolo_atto": "d.lgs. 104/2010 — Allegato 1 Codice del processo amministrativo",
+   "aggiornamento": "23/11/2026",
    "vigente": true,
-   "document_id": 1109,
-   "article_id": 558176,
-   "sha256": "a6733ca6c05aeb97c933ccae2298482f0682f12437683269a50522295d68eeaa"
+   "document_id": "1921",
+   "article_id": "92299",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "9f35fc588a3567893f686e87f6041e7b78f3d9b6bf3138409b504274d647029f"
   },
   "cpa:117": {
    "citazione": "art. 117 c.p.a.",
@@ -1101,6 +1113,17 @@
    "document_id": 1125,
    "article_id": 560937,
    "sha256": "0fc6c49e1123a6dfba01c4c1676fff610d71cca56b57fdfa00b187777c857551"
+  },
+  "cpc:473bis51": {
+   "citazione": "art. 473-bis.51 c.p.c.",
+   "testo": "Art. 473-bis.51 (Procedimento su domanda congiunta). La domanda congiunta relativa ai procedimenti di cui all'articolo 473-bis.47 si propone con ricorso al tribunale del luogo di residenza o di domicilio dell'una o dell'altra parte. Il ricorso e' sottoscritto anche dalle parti e contiene le indicazioni di cui all'articolo 473- bis.12, ((primo e secondo comma)), e quelle relative alle disponibilita' reddituali e patrimoniali dell'ultimo triennio e degli oneri a carico delle parti, nonche' le condizioni inerenti alla prole e ai rapporti economici. Con il ricorso le parti possono anche regolamentare, in tutto o in parte, i loro rapporti patrimoniali. Se intendono avvalersi della facolta' di sostituire l'udienza con il deposito di note scritte, devono farne richiesta nel ricorso, dichiarando di non volersi riconciliare e depositando i documenti di cui all'articolo ((473-bis.12, terzo comma)). ((178)) A seguito del deposito, il presidente fissa l'udienza per la comparizione delle parti davanti al giudice relatore e dispone la trasmissione degli atti al pubblico ministero, il quale esprime il proprio parere entro tre giorni prima della data dell'udienza. All'udienza il giudice, sentite le parti e preso atto della loro volonta' di non riconciliarsi, rimette la causa in decisione. Il giudice puo' sempre chiedere i chiarimenti necessari e invitare le parti a depositare la documentazione di cui all'articolo 473-bis.12, terzo comma. Il collegio provvede con sentenza con la quale omologa o prende atto degli accordi intervenuti tra le parti. Se gli accordi sono in contrasto con gli interessi dei figli, convoca le parti indicando loro le modificazioni da adottare, e, in caso di inidonea soluzione, rigetta allo stato la domanda. In caso di domanda congiunta di modifica delle condizioni inerenti all'esercizio della responsabilita' genitoriale nei confronti dei figli e ai contributi economici in favore di questi o delle parti, il presidente designa il relatore che, acquisito il parere del pubblico ministero, riferisce in camera di consiglio. Il giudice dispone la comparizione personale delle parti quando queste ne fanno richiesta congiunta o sono necessari chiarimenti in merito alle nuove condizioni proposte. (171) (173) --------------- AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". ----------- AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\". ----------- AGGIORNAMENTO (178) Il D.Lgs. 31 ottobre 2024, n. 164, ha disposto (con l'art. 7, comma 1) che \"Ove non diversamente previsto, le disposizioni del presente decreto si applicano ai procedimenti introdotti successivamente al 28 febbraio 2023\".",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.51",
+   "titolo_atto": "Codice di procedura civile. (040U1443)",
+   "aggiornamento": "05/03/2026",
+   "vigente": true,
+   "document_id": 1125,
+   "article_id": 560939,
+   "sha256": "60d3096c6c6f8d7d819c14be5bfafd4e35b63eda973838c419bf5c70a6614077"
   },
   "cpc:473bis69": {
    "citazione": "art. 473-bis.69 c.p.c.",
@@ -1597,6 +1620,17 @@
    "article_id": 704747,
    "sha256": "1d00080d59bf8eebe896c4529769803b442fe902b5f6f4df4fc3143ce782d06f"
   },
+  "dl132:12": {
+   "citazione": "art. 12 d.l. 132/2014",
+   "testo": "Art. 12. 1. I coniugi possono concludere, innanzi al sindaco, quale ufficiale dello stato civile a norma dell'articolo 1 del decreto del Presidente della Repubblica 3 novembre 2000, n. 396, del comune di residenza di uno di loro o del comune presso cui e' iscritto o trascritto l'atto di matrimonio, con l'assistenza facoltativa di un avvocato, un accordo di separazione personale ovvero, nei casi di cui all'articolo 3, primo comma, numero 2), lettera b), della legge 1° dicembre 1970, n. 898, di scioglimento o di cessazione degli effetti civili del matrimonio, nonche' di modifica delle condizioni di separazione o di divorzio. 2. Le disposizioni di cui al presente articolo non si applicano in presenza di figli minori, di figli maggiorenni incapaci o portatori di handicap grave ai sensi dell'articolo 3, comma 3, della legge 5 febbraio 1992, n. 104, ovvero economicamente non autosufficienti. 3. L'ufficiale dello stato civile riceve da ciascuna delle parti personalmente, con l'assistenza facoltativa di un avvocato, la dichiarazione che esse vogliono separarsi ovvero far cessare gli effetti civili del matrimonio o ottenerne lo scioglimento secondo condizioni tra di esse concordate. Allo stesso modo si procede per la modifica delle condizioni di separazione o di divorzio. L'accordo non puo' contenere patti di trasferimento patrimoniale. L'atto contenente l'accordo e' compilato e sottoscritto immediatamente dopo il ricevimento delle dichiarazioni di cui al presente comma. L'accordo tiene luogo dei provvedimenti giudiziali che definiscono, nei casi di cui al comma 1, i procedimenti di separazione personale, di cessazione degli effetti civili del matrimonio, di scioglimento del matrimonio e di modifica delle condizioni di separazione o di divorzio. Nei soli casi di separazione personale, ovvero di cessazione degli effetti civili del matrimonio o di scioglimento del matrimonio secondo condizioni concordate, l'ufficiale dello stato civile, quando riceve le dichiarazioni dei coniugi, li invita a comparire di fronte a se' non prima di trenta giorni dalla ricezione per la conferma dell'accordo anche ai fini degli adempimenti di cui al comma 5. La mancata comparizione equivale a mancata conferma dell'accordo. 4. All'articolo 3, al secondo capoverso della lettera b) del numero 2 del primo comma della legge 1° dicembre 1970, n. 898, dopo le parole «trasformato in consensuale» sono aggiunte le seguenti: «, ovvero dalla data certificata nell'accordo di separazione raggiunto a seguito di convenzione di negoziazione assistita da un avvocato ovvero dalla data dell'atto contenente l'accordo di separazione concluso innanzi all'ufficiale dello stato civile.». 5. Al decreto del Presidente della Repubblica 3 novembre 2000, n. 396 sono apportate le seguenti modificazioni: a) all'articolo 49, comma 1, dopo la lettera g-bis), e' aggiunta la seguente lettera: «g-ter) gli accordi di scioglimento o di cessazione degli effetti civili del matrimonio ricevuti dall'ufficiale dello stato civile;»; b) all'articolo 63, comma 1, dopo la lettera g), e' aggiunta la seguente lettera: «g-ter) gli accordi di separazione personale, di scioglimento o di cessazione degli effetti civili del matrimonio ricevuti dall'ufficiale dello stato civile, nonche' di modifica delle condizioni di separazione o di divorzio;»; c) all'articolo 69, comma 1, dopo la lettera d-bis), e' aggiunta la seguente lettera: «d-ter) degli accordi di separazione personale, di scioglimento o di cessazione degli effetti civili del matrimonio ricevuti dall'ufficiale dello stato civile;». 6. Alla Tabella D), allegata alla legge 8 giugno 1962, n. 604, dopo il punto 11 delle norme speciali inserire il seguente punto: «11-bis) Il diritto fisso da esigere da parte dei comuni all'atto della conclusione dell'accordo di separazione personale, ovvero di scioglimento o di cessazione degli effetti civili del matrimonio, nonche' di modifica delle condizioni di separazione o di divorzio, ricevuto dall'ufficiale di stato civile del comune non puo' essere stabilito in misura superiore all'imposta fissa di bollo prevista per le pubblicazioni di matrimonio dall'articolo 4 della tabella allegato A) al decreto del Presidente della Repubblica 26 ottobre 1972, n. 642». 7. Le disposizioni del presente articolo si applicano a decorrere dal trentesimo giorno successivo all'entrata in vigore della legge di conversione del presente decreto. Capo IV Altre misure per la funzionalita' del processo civile di cognizione",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art12",
+   "titolo_atto": "Misure urgenti di degiurisdizionalizzazione ed altri interventi per la definizione dell'arretrato in materia di processo civile.",
+   "aggiornamento": "",
+   "vigente": true,
+   "document_id": 90186,
+   "article_id": 693660,
+   "sha256": "518ba23b63f0a7f2390ccb5facef7c865f9642e3beca211da368b876f1cf9b87"
+  },
   "dl132:2": {
    "citazione": "art. 2 d.l. 132/2014",
    "testo": "Art. 2. 1. La convenzione di negoziazione assistita da avvocati e' un accordo mediante il quale le parti convengono di cooperare in buona fede e con lealta' per risolvere in via amichevole la controversia tramite l'assistenza di avvocati iscritti all'albo anche ai sensi dell'articolo 6 del decreto legislativo 2 febbraio 2001, n. 96. 1-bis. E' fatto obbligo per le amministrazioni pubbliche di cui all'articolo 1, comma 2, del decreto legislativo 30 marzo 2001, n. 165, di affidare la convenzione di negoziazione alla propria avvocatura, ove presente. 2. La convenzione di negoziazione deve precisare: a) il termine concordato dalle parti per l'espletamento della procedura, in ogni caso non inferiore a un mese e non superiore a tre mesi, prorogabile per ulteriori trenta giorni su accordo tra le parti; b) l'oggetto della controversia, che non deve riguardare diritti indisponibili. 2-bis. La convenzione di negoziazione puo' inoltre precisare, nei limiti previsti dal presente capo: a) la possibilita' di acquisire dichiarazioni di terzi su fatti rilevanti in relazione all'oggetto della controversia; b) la possibilita' di acquisire dichiarazioni della controparte sulla verita' di fatti ad essa sfavorevoli e favorevoli alla parte nel cui interesse sono richieste; c) la possibilita' di svolgere la negoziazione con modalita' telematiche; d) la possibilita' di svolgere gli incontri con collegamenti audiovisivi a distanza. 3. La convenzione e' conclusa per un periodo di tempo determinato dalle parti, fermo restando il termine di cui al comma 2, lettera a). 4. La convenzione di negoziazione e' redatta, a pena di nullita', in forma scritta. 5. La convenzione e' conclusa con l'assistenza di almeno un avvocato per ciascuna parte. 6. Gli avvocati certificano l'autografia delle sottoscrizioni apposte alla convenzione sotto la propria responsabilita' professionale. 7. E' dovere deontologico degli avvocati informare il cliente all'atto del conferimento dell'incarico della possibilita' di ricorrere alla convenzione di negoziazione assistita. 7-bis. Salvo diverso accordo, la convenzione di negoziazione assistita e' conclusa mediante utilizzo del modello elaborato dal Consiglio nazionale forense in conformita' alle disposizioni del presente capo. Art. 2. Convenzione di negoziazione assistita da uno o piu' avvocati 1. La convenzione di negoziazione assistita da uno o piu' avvocati e' un accordo mediante il quale le parti convengono di cooperare in buona fede e con lealta' per risolvere in via amichevole la controversia tramite l'assistenza di avvocati iscritti all'albo anche ai sensi dell'articolo 6 del decreto legislativo 2 febbraio 2001, n. 96. 1-bis. E' fatto obbligo per le amministrazioni pubbliche di cui all'articolo 1, comma 2, del decreto legislativo 30 marzo 2001, n. 165, di affidare la convenzione di negoziazione alla propria avvocatura, ove presente. 2. La convenzione di negoziazione deve precisare: a) il termine concordato dalle parti per l'espletamento della procedura, in ogni caso non inferiore a un mese e non superiore a tre mesi, prorogabile per ulteriori trenta giorni su accordo tra le parti; b) l'oggetto della controversia, che non deve riguardare diritti indisponibili o vertere in materia di lavoro. 3. La convenzione e' conclusa per un periodo di tempo determinato dalle parti, fermo restando il termine di cui al comma 2, lettera a). 4. La convenzione di negoziazione e' redatta, a pena di nullita', in forma scritta. 5. La convenzione e' conclusa con l'assistenza di uno o piu' avvocati. 6. Gli avvocati certificano l'autografia delle sottoscrizioni apposte alla convenzione sotto la propria responsabilita' professionale. 7. E' dovere deontologico degli avvocati informare il cliente all'atto del conferimento dell'incarico della possibilita' di ricorrere alla convenzione di negoziazione assistita.",
@@ -1695,6 +1729,126 @@
    "document_id": 287706,
    "article_id": 706825,
    "sha256": "de186351b585f5414f2962f705aa092a9e981067b77fb170cac71328e3f096a5"
+  },
+  "dlgs175:105": {
+   "citazione": "art. 105 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 105. Termini d'impugnazione ( articolo 51 del decreto legislativo n. 546 del 1992 ) 1. Se la legge non dispone diversamente il termine per impugnare la sentenza della corte di giustizia tributaria di primo e secondo grado e' di sessanta giorni, decorrente dalla sua notificazione ad istanza di parte, salvo quanto disposto dall'articolo 87, comma 3. 2. Nel caso di revocazione per i motivi di cui ai numeri 1 , 2 , 3 e 6 dell'articolo 395 del codice di procedura civile il termine di sessanta giorni decorre dal giorno in cui e' stato scoperto il dolo o sono state dichiarate false le prove o e' stato recuperato il documento o e' passata in giudicato la sentenza che accerta il dolo del giudice.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art105",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92681",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "063848e8fc90c28b6e72b5f942bf25832775590a31317c409357ad413bf69c4b"
+  },
+  "dlgs175:106": {
+   "citazione": "art. 106 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 106. Giudice competente e provvedimenti sull'esecuzione provvisoria in appello ( articolo 52 del decreto legislativo n. 546 del 1992 ) 1. La sentenza della corte di giustizia tributaria di primo grado puo' essere appellata alla corte di giustizia tributaria di secondo grado competente a norma dell'articolo 48, comma 2. 2. L'appellante puo' chiedere alla corte di giustizia tributaria di secondo grado di sospendere in tutto o in parte l'esecutivita' della sentenza impugnata, se sussistono gravi e fondati motivi. 3. Il presidente fissa con decreto la trattazione della istanza di sospensione per la prima camera di consiglio utile e comunque non oltre il trentesimo giorno dalla presentazione della medesima istanza, disponendo che ne sia data comunicazione alle parti almeno cinque giorni liberi prima. 4. In caso di eccezionale urgenza il presidente, previa delibazione del merito, puo' disporre con decreto motivato la sospensione dell'esecutivita' della sentenza fino alla pronuncia del collegio. 5. Il collegio, sentite le parti in camera di consiglio e delibato il merito, provvede con ordinanza motivata non impugnabile. 6. La sospensione puo' essere subordinata alla prestazione della garanzia di cui all'articolo 127 comma 2. Si applica la disposizione dell'articolo 96, comma 9. 7. L'udienza di trattazione dell'istanza di sospensione non puo' in ogni caso coincidere con l'udienza di trattazione del merito della controversia.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art106",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92682",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "1fdac837a50d11c8dba41dbcbcee626ae1a533442a81a7efb418685cd3aa272f"
+  },
+  "dlgs175:107": {
+   "citazione": "art. 107 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 107. Forma dell'appello ( articolo 53 del decreto legislativo n. 546 del 1992 ) 1. Il ricorso in appello contiene l'indicazione della corte di giustizia tributaria di secondo grado a cui e' diretto, dell'appellante e delle altre parti nei cui confronti e' proposto, gli estremi della sentenza impugnata, l'esposizione sommaria dei fatti, l'oggetto della domanda ed i motivi specifici dell'impugnazione. Il ricorso in appello e' inammissibile se manca o e' assolutamente incerto uno degli elementi sopra indicati o se non e' sottoscritto a norma dell'articolo 64, comma 3. 2. Il ricorso in appello e' proposto nelle forme di cui all'articolo 66, commi 1 e 2, nei confronti di tutte le parti che hanno partecipato al giudizio di primo grado e deve essere depositato a norma dell'articolo 68, commi 1, 2 e 3. 3. Subito dopo il deposito del ricorso in appello, la segreteria della corte di giustizia tributaria di secondo grado chiede alla segreteria della corte di giustizia tributaria di primo grado la trasmissione del fascicolo del processo, che deve contenere copia autentica della sentenza.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art107",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92683",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "98740030ffdb4afdb2fd38886d7210b2eece12582754cce7c093021208885215"
+  },
+  "dlgs175:130": {
+   "citazione": "art. 130 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 130. Abrogazioni 1. Dalla data di cui all'articolo 131 sono abrogate le seguenti disposizioni: a) l' articolo 59, commi 1 e 2, del decreto del Presidente della Repubblica 26 ottobre 1972, n. 633 ; b) l' articolo 61, commi 1 e 2 , e l' articolo 63, commi da 3 a 5, del decreto del Presidente della Repubblica 29 settembre 1973, n. 600 ; c) il decreto legislativo 31 dicembre 1992, n. 545 ; d) il decreto legislativo 31 dicembre 1992, n. 546 ; e) gli articoli 19 e 22 del decreto legislativo 18 dicembre 1997, n. 472 ; f) gli articoli 21-bis e 21-ter del decreto legislativo 10 marzo 2000, n. 74 ; g) l' articolo 4, comma 39-bis, della legge 12 novembre 2011, n. 183 ; h) l' articolo 3 e l' articolo 8, comma 1, della legge 31 agosto 2022, n. 130 ; i) ((LETTERA ABROGATA DAL D.LGS. 18 DICEMBRE 2025, N. 192)) ; l) l'articolo 1-ter, comma 5, e l'articolo 18 ((, comma 2,)) del decreto-legge 22 giugno 2023, n. 75 , convertito, con modificazioni, dalla legge 10 agosto 2023, n. 112 . 2. Restano abrogate le seguenti disposizioni: l'articolo 288 del testo unico per la finanza locale 14 settembre 1931, n. 1175, il decreto del Presidente della Repubblica 26 ottobre 1972, n. 636, l'articolo 19, commi 4 e 5 , e l' articolo 20 del decreto del Presidente della Repubblica 26 ottobre 1972, n. 638, l'articolo 24 del decreto del Presidente della Repubblica 26 ottobre 1972, n. 639, gli articoli 63, comma 5 , e 68, comma 3 , del decreto del Presidente della Repubblica 28 gennaio 1988, n. 43, l'articolo 4, comma 8 , del decreto-legge 2 marzo 1989, n. 66 , convertito, con modificazioni, dalla legge 24 aprile 1989, n. 144 . 3. I riferimenti contenuti nelle norme vigenti a disposizioni abrogate dal presente testo unico si intendono effettuati agli istituti e alle previsioni corrispondenti risultanti dal presente testo unico.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art130",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92706",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "506ee354baa92f6a13dc03a4c8044a760b86e258d7c1004b13465081b7f30f4a"
+  },
+  "dlgs175:131": {
+   "citazione": "art. 131 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 131. Decorrenza 1. Le disposizioni del presente testo unico si applicano dal ((1° gennaio 2027)) .",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art131",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92707",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "3f51c5dce49f73751ffe39173b3207407a9256210aa7ba593a3349d1bdb9304c"
+  },
+  "dlgs175:64": {
+   "citazione": "art. 64 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 64. Il ricorso ( articolo 18 del decreto legislativo n. 546 del 1992 ) 1. Il processo e' introdotto con ricorso alla corte di giustizia tributaria di primo grado. 2. Il ricorso deve contenere l'indicazione: a) della corte di giustizia tributaria di primo grado cui e' diretto; b) del ricorrente e del suo legale rappresentante, della relativa residenza o sede legale o del domicilio eventualmente eletto nel territorio dello Stato, nonche' del codice fiscale e dell'indirizzo di posta elettronica certificata; c) dell'ufficio nei cui confronti il ricorso e' proposto; d) dell'atto impugnato e dell'oggetto della domanda; e) dei motivi. 3. Il ricorso deve essere sottoscritto dal difensore e contenere l'indicazione: a) della categoria di cui all'articolo 57 alla quale appartiene il difensore; b) dell'incarico a norma dell'articolo 57, comma 7, salvo che il ricorso non sia sottoscritto personalmente; c) dell'indirizzo di posta elettronica certificata del difensore. 4. Il ricorso e' inammissibile se manca o e' assolutamente incerta una delle indicazioni di cui al comma 2, ad eccezione di quella relativa al codice fiscale e all'indirizzo di posta elettronica certificata, o non e' sottoscritto a norma del comma 3.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art64",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92640",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "2edf4b60733cdbbff5fb2b4ed4ad529e7f20af4203fa62ad320f49efe03d74d2"
+  },
+  "dlgs175:67": {
+   "citazione": "art. 67 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 67. Termine per la proposizione del ricorso ( articolo 21 del decreto legislativo n. 546 del 1992 ) 1. Il ricorso deve essere proposto a pena di inammissibilita' entro sessanta giorni dalla data di notificazione dell'atto impugnato. La notificazione della cartella di pagamento vale anche come notificazione del ruolo. 2. Il ricorso avverso il rifiuto tacito di cui all'articolo 65, comma 1, lettere i) e l), puo' essere proposto dopo il novantesimo giorno dalla domanda di restituzione o di autotutela presentata entro i termini previsti da ciascuna legge d'imposta e fino a quando il diritto alla restituzione non e' prescritto. La domanda di restituzione, in mancanza di disposizioni specifiche, non puo' essere presentata dopo due anni dal pagamento ovvero, se posteriore, dal giorno in cui si e' verificato il presupposto per la restituzione.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art67",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92643",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "e77b8d5fbcf310794b8071127f7f694394dd1b7084b9aaa98fb15341505889ff"
+  },
+  "dlgs175:68": {
+   "citazione": "art. 68 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 68. Costituzione in giudizio del ricorrente ( articolo 22 del decreto legislativo n. 546 del 1992 ) 1. Il ricorrente, entro trenta giorni dalla proposizione del ricorso, a pena d'inammissibilita' lo deposita telematicamente, nella segreteria della corte di giustizia tributaria di primo e secondo grado adita, ovvero, nei casi previsti dall'articolo 61 comma 3, trasmette a mezzo posta, in plico raccomandato senza busta con avviso di ricevimento, l'originale del ricorso notificato a norma degli articoli 137 e seguenti del codice di procedura civile ovvero copia del ricorso consegnato o spedito per posta, con fotocopia della ricevuta di deposito o della spedizione per raccomandata a mezzo del servizio postale. All'atto della costituzione in giudizio, il ricorrente deve depositare la nota di iscrizione al ruolo, contenente l'indicazione delle parti, del difensore che si costituisce, dell'atto impugnato, della materia del contendere, del valore della controversia e della data di notificazione del ricorso. 2. L'inammissibilita' del ricorso e' rilevabile d'ufficio in ogni stato e grado del giudizio, anche se la parte resistente si costituisce a norma dell'articolo 69. 3. In caso di consegna o spedizione a mezzo di servizio postale la conformita' dell'atto depositato a quello consegnato o spedito e' attestata conforme dallo stesso ricorrente. Se l'atto depositato nella segreteria della corte di giustizia tributaria non e' conforme a quello consegnato o spedito alla parte nei cui confronti il ricorso e' proposto, il ricorso e' inammissibile e si applica il comma 2. 4. Unitamente al ricorso ed ai documenti previsti al comma 1, il ricorrente deposita il proprio fascicolo, con l'originale o la fotocopia dell'atto impugnato, se notificato, ed i documenti che produce, in originale o fotocopia. 5. Ove sorgano contestazioni il giudice tributario ordina l'esibizione degli originali degli atti e documenti di cui ai precedenti commi.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art68",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92644",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "ad80d1d6295d73362185bed97780bbd951662c9eb508800cd406ed163fa4cdf2"
+  },
+  "dlgs175:87": {
+   "citazione": "art. 87 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 87. Richiesta di copie e notificazione della sentenza ( articolo 38 del decreto legislativo n. 546 del 1992 ) 1. Ciascuna parte puo' richiedere alla segreteria copie autentiche della sentenza e la segreteria e' tenuta a rilasciarle entro cinque giorni dalla richiesta, previa corresponsione delle spese. 2. Le parti hanno l'onere di provvedere direttamente alla notificazione della sentenza alle altre parti a norma dell'articolo 60, depositando, nei successivi trenta giorni, l'originale o copia autentica dell'originale notificato, ovvero copia autentica della sentenza consegnata o spedita per posta, con fotocopia della ricevuta di deposito o della spedizione per raccomandata a mezzo del servizio postale unitamente all'avviso di ricevimento nella segreteria, che ne rilascia ricevuta e l'inserisce nel fascicolo d'ufficio. 3. Se nessuna delle parti provvede alla notificazione della sentenza, si applica l' articolo 327, primo comma, del codice di procedura civile . Tale disposizione non si applica se la parte non costituita dimostri di non avere avuto conoscenza del processo per nullita' della notificazione del ricorso e della comunicazione dell'avviso di fissazione d'udienza.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art87",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92663",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "f7b4e2f6ff391002d57d283c64d712953e20eea4164523404a4577986d24ccb4"
+  },
+  "dlgs175:96": {
+   "citazione": "art. 96 d.lgs. 175/2024 (testo unico della giustizia tributaria)",
+   "testo": "Art. 96. Sospensione dell'atto impugnato ( articolo 47 del decreto legislativo n. 546 del 1992 ) 1. Il ricorrente, se dall'atto impugnato puo' derivargli un danno grave ed irreparabile, puo' chiedere alla corte di giustizia tributaria di primo o di secondo grado presso la quale e' pendente il giudizio, ovvero adita ai sensi dell'articolo 117 la sospensione dell'esecuzione dell'atto stesso con istanza motivata proposta nel ricorso o con atto separato notificata alle altre parti e depositato in segreteria sempre che siano osservate le disposizioni di cui all'articolo 68. 2. Il presidente fissa con decreto la trattazione della istanza di sospensione per la prima camera di consiglio utile e comunque non oltre il trentesimo giorno dalla presentazione della medesima istanza, disponendo che ne sia data comunicazione alle parti almeno cinque giorni liberi prima. L'udienza di trattazione dell'istanza di sospensione non puo', in ogni caso, coincidere con l'udienza di trattazione del merito della controversia. 3. In caso di eccezionale urgenza il presidente, previa delibazione del merito, puo' disporre con decreto motivato la provvisoria sospensione dell'esecuzione fino alla pronuncia del collegio o del giudice monocratico. 4. Il collegio o il giudice monocratico, sentite le parti in camera di consiglio e delibato il merito, provvede con ordinanza motivata nella stessa udienza di trattazione dell'istanza. L'ordinanza e' immediatamente comunicata alle parti. L'ordinanza cautelare collegiale e' impugnabile innanzi alla corte di giustizia tributaria di secondo grado entro il termine perentorio di quindici giorni dalla sua comunicazione da parte della segreteria. Al procedimento si applicano le disposizioni di cui ai commi 2, 3 e 4, in quanto compatibili. L'ordinanza cautelare del giudice monocratico e' impugnabile solo con reclamo innanzi alla medesima corte di giustizia tributaria di primo grado in composizione collegiale, da notificare alle altre parti costituite nel termine perentorio di quindici giorni dalla sua comunicazione da parte della segreteria. Al procedimento d'impugnazione si applicano le norme di cui ai commi 2, 3, 4, 5 e 6, in quanto compatibili, e l'ordinanza che decide sul reclamo non e' impugnabile. L'ordinanza cautelare della corte di giustizia tributaria di secondo grado non e' impugnabile. 5. La sospensione puo' anche essere parziale e subordinata alla prestazione della garanzia di cui all'articolo 127 comma 2. La prestazione della garanzia e' esclusa per i ricorrenti con «bollino di affidabilita' fiscale». Ai fini della disposizione di cui al periodo precedente, i ricorrenti con «bollino di affidabilita' fiscale» sono i contribuenti soggetti alla disciplina di cui ((all'articolo 49 del testo unico delle disposizioni legislative in materia di adempimenti e accertamento)) , ai quali sia stato attribuito un punteggio di affidabilita' pari ad almeno 9 negli ultimi tre periodi d'imposta precedenti a quello di proposizione del ricorso per i quali tali punteggi siano disponibili. 6. Nei casi di sospensione dell'atto impugnato la trattazione della controversia deve essere fissata non oltre novanta giorni dalla pronuncia. 7. Gli effetti della sospensione cessano dalla data di pubblicazione della sentenza. 8. In caso di mutamento delle circostanze la corte di giustizia tributaria di primo o di secondo grado presso la quale e' pendente il giudizio su istanza motivata di parte puo' revocare o modificare il provvedimento cautelare prima della sentenza, osservate per quanto possibile le forme di cui ai commi 1, 2 e 4. 9. Durante il periodo di sospensione cautelare si applicano gli interessi al tasso previsto per la sospensione amministrativa.",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art96",
+   "titolo_atto": "d.lgs. 175/2024 — Allegato",
+   "aggiornamento": "24/11/2026",
+   "vigente": true,
+   "document_id": "1932",
+   "article_id": "92672",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "c715de5c3f92369369992989a9fa4d20fecadf7a0825db3a16ba884d303c8fd0"
   },
   "dlgs206:128": {
    "citazione": "art. 128 d.lgs. 206/2005 (codice del consumo)",

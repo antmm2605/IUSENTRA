@@ -357,8 +357,10 @@ def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
               "dalla scadenza del termine di conclusione del procedimento.",
               [Rif("cpa:31", "non oltre un anno dalla scadenza del termine di conclusione del procedimento")]),
     ]
-    a.dubbi.append("Per l'accesso ai documenti il rito è speciale (art. 116 c.p.a.), ma il testo dell'articolo nella biblioteca "
-                   "delle norme è incompleto: il termine non è affermato e va letto sul testo vigente.")
+    a.avvertenze.append(Punto("Per l'accesso ai documenti il rito è speciale: il ricorso si propone entro trenta giorni "
+                              "dalla conoscenza della determinazione o dalla formazione del silenzio.",
+                              [Rif("cpa:116", "il ricorso e' proposto entro trenta giorni dalla conoscenza della "
+                                              "determinazione impugnata o dalla formazione del silenzio")]))
     t = _t(f)
     if re.search(r"annullamento d ufficio|autotutela", t):
         from .strumenti import data_di
@@ -473,7 +475,4 @@ def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
         "preventivo: verifica se è stata presentata.",
         [Rif("dlgs218:6", "sono sospesi per un periodo di novanta giorni dalla data di presentazione dell'istanza"),
          Rif("dlgs218:6", "per i quali non si applica il contraddittorio preventivo")]))
-    a.dubbi += ["Il testo unico della giustizia tributaria (d.lgs. 175/2024) riordina le norme del d.lgs. 546/1992 ma non è nella "
-                "biblioteca delle norme dell'harness: prima di citare gli articoli nell'atto verifica sul testo vigente da quale "
-                "data si applica."]
     return a

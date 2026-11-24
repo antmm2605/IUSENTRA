@@ -73,7 +73,9 @@ ITALIANO_NUCLEO: tuple[str, ...] = (
 @lru_cache(maxsize=1)
 def dizionario_di_sistema() -> tuple[str, frozenset[str]]:
     """Il dizionario italiano installato: (percorso usato, parole). Vuoto se non c'è."""
-    for percorso in PERCORSI_DIZIONARIO:
+    from .hunspell import percorsi
+
+    for percorso in percorsi("it_IT.dic", PERCORSI_DIZIONARIO):
         file = Path(percorso)
         if not file.is_file():
             continue

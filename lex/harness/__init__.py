@@ -130,6 +130,14 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
         if len(proposte) == 1 and not racconto:
             # Domanda di diritto senza fatti con un solo strumento vicino: rispondono i motori certi o la rubrica ufficiale.
             return None
+        # Richiesta di aiuto vaga, senza fatti (nessuna data, importo o evento, poche parole): non si sceglie una regola
+        # «a caso» per vicinanza di parole, si chiedono i fatti essenziali.
+        vaga = (not (c.racconto or f.importi or f.eventi) and len(piano(domanda).split()) < 12
+                and re.search(r"mi serve|ho bisogno|aiut|consiglio|cosa (?:posso|devo|faccio|rischio)|come (?:posso|faccio)|"
+                              r"rischio|problema|urgent", piano(domanda)))
+        if len(proposte) == 1 and vaga:
+            return RispostaHarness(testo_fuori_materia(), "chiarimento", "fuori_materia", 1.0,
+                                   registro={"rule": "fuori_materia", "vicine": [proposte[0].regola]})
         if len(proposte) == 1:
             # Una sola proposta vicina: si risponde con quella regola, chiedendo i dati se i fatti non bastano.
             regola = next(r for r in REGOLE if r[0] == proposte[0].regola)
@@ -166,6 +174,9 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
 
     analisi.dubbi += [d for d in _coerenza(analisi, f) if d not in analisi.dubbi]
     _requisiti_bozza(analisi)
+    from .vigenza_tributaria import applica as _vigenza_tributaria
+
+    _vigenza_tributaria(analisi, f.oggi)
     esito = verifica_analisi(analisi)
     _vigenza_alla_data_dei_fatti(analisi, f, esito)
     analisi.giurisprudenza = _giurisprudenza(c, analisi)

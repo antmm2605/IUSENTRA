@@ -198,7 +198,12 @@ def analizza_disconoscimento(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- chiamato all'eredità nel possesso dei beni
 def riconosci_eredita_possesso(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    return 5 if re.search(r"eredit|rinuncia all eredita|chiamat", t) and re.search(r"debiti|rinunci", t) else 0
+    if not (re.search(r"eredit|rinuncia all eredita|chiamat", t) and re.search(r"debiti|rinunci", t)):
+        return 0
+    # La regola è quella del chiamato nel possesso dei beni (art. 485 c.c.): senza possesso rispondono rinuncia e beneficio
+    # d'inventario.
+    return 5 if re.search(r"possess|\bchiamat|abit\w* (?:nella|la) casa|vive nella casa|ha le chiavi|chiavi|"
+                          r"usat[oa] (?:il|la|i|le)|conto (?:del|corrente del) defunt|gestisc|incassat|ritirat|preso (?:i|il|la)", t) else 0
 
 
 def analizza_eredita_possesso(c: Comprensione, f: Fatti) -> Analisi:

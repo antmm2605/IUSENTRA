@@ -22,7 +22,7 @@ from .composizione import componi
 from .controllo import EsitoControllo, verifica_analisi, verifica_citazioni
 from .fatti import leggi_fatti
 from .fattispecie import scegli
-from .norme import NORME, testo_norma
+from .norme import NORME, piano, testo_norma
 
 __all__ = ["RispostaHarness", "comprendi", "e_richiesta_giuridica", "rispondi"]
 
@@ -124,7 +124,9 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
             primo_area, primo_punteggio = area(vicine[0][0].regola), vicine[0][1]
             proposte = [v for v, s in vicine if area(v.regola) == primo_area and s >= max(SOGLIA_SIGNIFICATO,
                                                                                        primo_punteggio - DISTACCO_MASSIMO)][:4]
-        if len(proposte) == 1 and not (c.racconto or f.importi or f.eventi):
+        racconto = c.racconto or f.importi or f.eventi or re.search(
+            r"\b(?:mio|mia|miei|mie|nostr[oaie]|mi|ci|ho|abbiamo|hanno|e morto|e morta|il cliente|la cliente)\b", piano(domanda))
+        if len(proposte) == 1 and not racconto:
             # Domanda di diritto senza fatti con un solo strumento vicino: rispondono i motori certi o la rubrica ufficiale.
             return None
         if len(proposte) == 1:

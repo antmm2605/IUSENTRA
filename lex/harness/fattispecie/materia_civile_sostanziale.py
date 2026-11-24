@@ -56,7 +56,8 @@ ANNULLAMENTO = Scheda(
     regola="con_annullamento", materia="contratti", nome="annullamento del contratto",
     segnali=(r"annullament|annullabil|annullar\w* (?:il|la) (?:contratto|vendita|donazione|firma)|annullarl",),
     alcuni=(r"contratt|vendita|firmat|errore|dolo|raggir|violenz|incapac|minacc",),
-    esclusi=(r"delibera|provvedimento|\btar\b|sentenza|decreto|atto amministrativ|annullamento d ufficio|autotutela", _NON_CONTRATTO), punteggio=5,
+    esclusi=(r"delibera|provvedimento|\btar\b|sentenza|decreto|atto amministrativ|annullamento d ufficio|autotutela", _NON_CONTRATTO,
+             r"transazion|transatt"), punteggio=5,
     capito="Contratto viziato da errore, violenza, dolo o incapacità.",
     rimedio="domanda di annullamento del contratto",
     conclusione=[

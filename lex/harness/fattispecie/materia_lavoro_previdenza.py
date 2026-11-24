@@ -39,7 +39,7 @@ def _extra_lavoro(a: Analisi, c: Comprensione, f: Fatti) -> None:
 CONCILIAZIONE = Scheda(
     regola="lav_conciliazione_rinunce", materia="lavoro", nome="conciliazione, rinunce e transazioni del lavoratore",
     segnali=(r"conciliazion|rinunc|transazion|transatt|chiudere (?:la vertenza|la lite)|accordo con il datore", LAV),
-    esclusi=(r"licenzia|precett|pignor|sfratt", r"\binps\b|\bpension"), punteggio=6,
+    esclusi=(r"licenzia|precett|pignor|sfratt", r"\binps\b|\bpension", r"eredit|defunt|successio|\bmort[oa]\b|testament"), punteggio=6,
     capito="Conciliazione della vertenza di lavoro o validità di rinunce e transazioni firmate dal lavoratore.",
     rimedio="conciliazione in sede protetta (commissione presso l'Ispettorato, sede sindacale o prevista dai contratti "
             "collettivi); impugnazione scritta delle rinunce invalide entro sei mesi",

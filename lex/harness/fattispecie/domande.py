@@ -29,6 +29,10 @@ def riconosci_negoziazione(c: Comprensione, f: Fatti) -> int:
             r"prestit|prestat|fattur|credit|soldi|somm|pagament|restitu", t) and not re.search(
             r"sequestr|cautel|urgenz|blocc|congel|svuot|quale giudice|competen|sinistr|incident|circolazion|lavor|condomin|eredit|medic", t):
         return 7
+    if "negoziazione" in t and f.importi and not f.ha("caparra_confirmatoria") and not f.ha("consumatore") and not re.search(
+            r"sinistr|incident|circolazion|tamponat|consumator", t) and re.search(
+            r"obbligatori|serve|occorre|necessari|condizion|devo|dobbiamo|bisogna|prima", t):
+        return 5
     return 3 if "negoziazione" in t and f.importi and not c.racconto and not f.ha("caparra_confirmatoria") else 0
 
 
@@ -53,7 +57,11 @@ def analizza_negoziazione(c: Comprensione, f: Fatti) -> Analisi:
 
 def riconosci_mediazione(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    return 2 if "mediazione" in t and re.search(r"obbligatori|serve|occorre|necessari|condizione", t) and not c.racconto else 0
+    if "mediazion" in t and re.search(r"obbligatori|serve|occorre|necessari|condizion|devo (?:fare|prima)|dobbiamo (?:fare|prima)|bisogna", t) \
+            and not re.search(r"quale giudice|competen", t):
+        # Chi chiede espressamente della mediazione riceve lo strumento, anche se nomina la materia (locazione, condominio).
+        return 4
+    return 0
 
 
 def _materia_mediazione(t: str) -> str | None:

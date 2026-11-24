@@ -154,7 +154,10 @@ def comprendi(testo: str) -> Comprensione:
     # La comunicazione allo studio (PEC, email al cliente) resta al percorso delle comunicazioni.
     domanda = re.search(_FORMA_DOMANDA, t) is not None
     fonti_ufficiali = any(tok in t for tok in _RICERCA_FONTI) and not racconto and not termine
-    comunicazione = re.search(r"\b(?:pec|email|e-mail|mail|messaggio|whatsapp)\b", t) and not atto and not racconto
+    # Richiesta sulle comunicazioni dello studio (leggere, mandare, rispondere a PEC ed email); un fatto avvenuto «su
+    # whatsapp» o «via pec» resta un fatto.
+    comunicazione = re.search(r"\b(?:pec|email|e-mail|mail|messaggio|whatsapp)\b", t) and not atto and not racconto and not re.search(
+        r"\b(?:ha|hanno|aveva|avevano) (?:scritto|mandato|inviato|pubblicato|detto)|danni|diffam|offes|minacc|querel|risarc", t)
     if verbo and atto and not comunicazione:
         motivi.append(f"verbo di redazione e atto «{atto}»")
         return Comprensione("redazione", atto, racconto, True, motivi)

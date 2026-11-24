@@ -76,7 +76,8 @@ MEMORIE = Scheda(
 
 APPELLO = Scheda(
     regola="civ_appello", materia="civile ordinario", nome="appello civile",
-    segnali=(r"appell", r"sentenz|tribunale|giudice di pace|corte|motivi|inammissibil|atto di appello"), esclusi=(_NON_CIVILE, r"cassazion|revocazion"),
+    segnali=(r"appell", r"sentenz|tribunale|giudice di pace|corte|motivi|inammissibil|atto di appello"),
+    esclusi=(_NON_CIVILE, r"cassazion|revocazion", r"\blavoro\b|lavorator|licenzia|retribu|giudice del lavoro"),
     punteggio=4,
     capito="Impugnazione con appello di una sentenza civile di primo grado.",
     rimedio="atto di citazione in appello con motivi specifici per capo",

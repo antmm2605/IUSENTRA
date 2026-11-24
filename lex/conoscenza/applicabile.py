@@ -83,29 +83,54 @@ def testo_applicabile(chiave: str, data_instaurazione: Any = None) -> dict[str, 
 
 
 # ------------------------------------------------------------------ data di instaurazione dalle letture del fascicolo
-# Campi dell'archivio delle letture che datano l'atto introduttivo: deposito del ricorso (riti a ricorso), notifica
-# della citazione (rito ordinario), iscrizione a ruolo.
-CAMPI_INSTAURAZIONE = ("data_deposito_ricorso", "data_notifica_citazione", "data_iscrizione_ruolo",
-                       "data_deposito_atto_introduttivo")
+# Nomi verificati sull'archivio delle letture (campione di 5 fascicoli dell'8080, 24/11/2026):
+# - «data_deposito_ricorso» (categoria «metadato_fascicolo», pct/archivio_letture/date_campi_modello.py): è la data
+#   dell'atto introduttivo nei riti a ricorso; certa quando verificata;
+# - «deposito» (categoria «data», pct/archivio_letture/ancoraggio.py): data generica di un deposito; è dell'atto
+#   introduttivo solo se il contesto lo dice («ricorso depositato in data», «iscritta a ruolo in data», «Nota
+#   d'iscrizione a ruolo»), mai il deposito dell'originale notificato o della relata. «Tipologia: Atto principale» del
+#   PolisWeb NON basta: è l'atto principale di ogni deposito, anche della memoria della controparte;
+# - «data_notifica_citazione»: campo dell'anagrafica del fascicolo (pct/fascicoli.py), scritto dallo studio.
+CAMPO_RICORSO = "data_deposito_ricorso"
 VERIFICHE_CERTE = ("verificata", "corretta")
+_INTRODUTTIVO = re.compile(r"ricorso\s+(?:telematico\s+)?depositato\s+in\s+data|"
+                           r"iscritt[ao]\s+a\s+ruolo\s+in\s+data|nota\s+d.?iscrizione\s+a\s+ruolo", re.I)
+_NON_INTRODUTTIVO = re.compile(r"originale\s+notificato|relata|note\s+scritte|contributo\s+unificato\s+richiesto", re.I)
 
 
-def data_instaurazione(fatti: list[Any]) -> dict[str, Any]:
+def _e_introduttivo(f: Any) -> bool:
+    if getattr(f, "campo", "") == CAMPO_RICORSO:
+        return True
+    contesto = str(getattr(f, "contesto", "") or "")
+    return (getattr(f, "campo", "") == "deposito" and bool(_INTRODUTTIVO.search(contesto))
+            and not _NON_INTRODUTTIVO.search(contesto))
+
+
+def data_instaurazione(fatti: list[Any], fascicolo: Any = None) -> dict[str, Any]:
     """La data di instaurazione dai fatti letti del fascicolo: certa solo se verificata (o corretta dall'avvocato) e
-    unica; con date diverse o solo plausibili è incerta, e lo si dice."""
-    candidati = [f for f in fatti if getattr(f, "campo", "") in CAMPI_INSTAURAZIONE
-                 and getattr(f, "verifica", "") not in ("respinta", "ignorata")]
-    certi = [f for f in candidati if getattr(f, "verifica", "") in VERIFICHE_CERTE and _data(getattr(f, "valore", ""))]
+    unica, oppure scritta dallo studio nell'anagrafica (data di notifica della citazione); con date diverse o solo
+    plausibili è incerta, e lo si dice con la data letta."""
+    candidati = [f for f in fatti if _e_introduttivo(f) and getattr(f, "verifica", "") not in ("respinta", "ignorata")
+                 and _data(getattr(f, "valore", ""))]
+    certi = [f for f in candidati if getattr(f, "verifica", "") in VERIFICHE_CERTE]
     valori = sorted({_data(f.valore) for f in certi})
+    citazione = _data(getattr(fascicolo, "data_notifica_citazione", "")) if fascicolo is not None else None
+    if citazione and not valori:
+        return {"data": citazione.isoformat(), "certa": True, "campo": "data_notifica_citazione",
+                "motivo": "data di notifica della citazione scritta nell'anagrafica del fascicolo"}
     if len(valori) == 1:
         f = next(x for x in certi if _data(x.valore) == valori[0])
-        return {"data": valori[0].isoformat(), "certa": True, "campo": f.campo,
-                "motivo": f"{f.campo.replace('_', ' ')} letta nel fascicolo e verificata"}
+        come = ("data di deposito del ricorso letta" if f.campo == CAMPO_RICORSO
+                else "data di deposito dell'atto introduttivo letta")
+        return {"data": valori[0].isoformat(), "certa": True, "campo": f.campo, "motivo": f"{come} nel fascicolo e verificata"}
     if len(valori) > 1:
         return {"data": "", "certa": False, "motivo": "date di instaurazione diverse fra i documenti letti: "
                 + ", ".join(f"{d:%d/%m/%Y}" for d in valori)}
-    if candidati:
-        return {"data": "", "certa": False, "motivo": "data dell'atto introduttivo letta ma non ancora verificata"}
+    letti = sorted({_data(f.valore) for f in candidati})
+    if letti:
+        return {"data": "", "certa": False, "data_letta": letti[0].isoformat(),
+                "motivo": "deposito dell'atto introduttivo letto ma non ancora verificato: "
+                          + ", ".join(f"{d:%d/%m/%Y}" for d in letti)}
     return {"data": "", "certa": False, "motivo": "nessuna data dell'atto introduttivo fra le letture del fascicolo"}
 
 

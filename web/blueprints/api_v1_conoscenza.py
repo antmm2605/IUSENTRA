@@ -118,11 +118,11 @@ def _applicabilita(s: dict) -> dict:
         if not fascicolo_accessibile(fid):
             return {"instaurazione": {"data": "", "certa": False, "motivo": "fascicolo non accessibile"}}
         try:
-            from types import SimpleNamespace
-
+            from lex.fascicolo_accesso import _carica_fascicolo
             from web.services.archivio_letture_runtime import fatti_fascicolo
 
-            dati = data_instaurazione(fatti_fascicolo(SimpleNamespace(id=fid)))
+            fascicolo = _carica_fascicolo(fid)
+            dati = data_instaurazione(fatti_fascicolo(fascicolo), fascicolo)
         except RuntimeError:
             dati = {"data": "", "certa": False, "motivo": "archivio delle letture non disponibile"}
     return {"instaurazione": dati, "applicabilita": applicabilita_scheda(s, dati["data"] if dati["certa"] else None)}

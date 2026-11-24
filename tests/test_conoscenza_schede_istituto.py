@@ -455,18 +455,37 @@ def test_testo_applicabile_secondo_la_decorrenza_letta():
 
 
 def test_data_di_instaurazione_dalle_letture():
+    """Nomi reali dell'archivio delle letture (campione di 5 fascicoli dell'8080): «data_deposito_ricorso» (metadato
+    del fascicolo) e «deposito» con il contesto dell'atto introduttivo; «data_notifica_citazione» nell'anagrafica."""
     from types import SimpleNamespace as F
 
     from lex.conoscenza.applicabile import data_instaurazione
 
-    certa = data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="verificata")])
-    assert certa == {"data": "2022-11-03", "certa": True, "campo": "data_deposito_ricorso",
-                     "motivo": "data deposito ricorso letta nel fascicolo e verificata"}
-    assert not data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="plausibile")])["certa"]
-    diverse = data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="verificata"),
-                                  F(campo="data_notifica_citazione", valore="2023-04-01", verifica="corretta")])
+    certa = data_instaurazione([F(campo="data_deposito_ricorso", valore="2023-06-19", verifica="verificata", contesto="")])
+    assert certa["certa"] and certa["data"] == "2023-06-19" and certa["campo"] == "data_deposito_ricorso"
+    # Deposito generico: conta solo se il contesto è quello dell'atto introduttivo.
+    sentenza = F(campo="deposito", valore="2023-05-31", verifica="verificata",
+                 contesto="RAGIONI DELLA DECISIONE 1.-Con ricorso depositato in data 31.05.2023 l'odierno ricorrente")
+    assert data_instaurazione([sentenza])["data"] == "2023-05-31"
+    # «Atto principale» del PolisWeb è anche la memoria della controparte: non data l'instaurazione.
+    memoria = F(campo="deposito", valore="2024-03-13", verifica="verificata",
+                contesto="Depositante: BIANCO ANNA; Tipologia: Atto principale; Data deposito: 13-03-2024")
+    assert data_instaurazione([sentenza, memoria])["data"] == "2023-05-31"
+    notificato = F(campo="deposito", valore="2025-11-18", verifica="verificata",
+                   contesto="Relativi al deposito telematico inviato in data 18/11/2025: - Ricorso (originale notificato).pdf - Relata di notifica.")
+    assert not data_instaurazione([notificato])["certa"]
+    assert "nessuna data" in data_instaurazione([notificato])["motivo"]
+    # Letta ma solo plausibile: incerta, con la data letta dichiarata.
+    plausibile = F(campo="deposito", valore="2025-01-23", verifica="plausibile",
+                   contesto="assegna la causa introdotta con il ricorso depositato in data 23/01/2025 e iscritta a ruolo in data 23/01/2025")
+    incerta = data_instaurazione([plausibile])
+    assert not incerta["certa"] and incerta["data_letta"] == "2025-01-23" and "non ancora verificato" in incerta["motivo"]
+    diverse = data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="verificata", contesto=""),
+                                  F(campo="data_deposito_ricorso", valore="2023-04-01", verifica="corretta", contesto="")])
     assert not diverse["certa"] and "diverse" in diverse["motivo"]
-    assert not data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="respinta")])["certa"]
+    assert not data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="respinta", contesto="")])["certa"]
+    citazione = data_instaurazione([], F(data_notifica_citazione="2022-12-01"))
+    assert citazione["certa"] and citazione["campo"] == "data_notifica_citazione"
 
 
 def test_questione_giudicato_implicito_dalle_pronunce_lette():

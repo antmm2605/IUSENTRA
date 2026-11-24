@@ -132,7 +132,8 @@ AUTOTUTELA = Scheda(
         p("Fuori da quei casi l'autotutela è facoltativa, per illegittimità o infondatezza dell'atto.",
           R("l212:10quinquies", "illegittimita' o dell'infondatezza dell'atto")),
     ],
-    avvertenze=["L'istanza di autotutela non sospende il termine per il ricorso: se il termine scade, depositare comunque il ricorso."],
+    avvertenze=["Consiglio operativo: l'istanza di autotutela non sospende il termine per il ricorso: se il termine scade, "
+                "depositare comunque il ricorso."],
     dati=["atto e data di notifica", "vizio (rientra nei casi di autotutela obbligatoria?)"],
 )
 
@@ -182,8 +183,12 @@ PROTEZIONE_INTERNAZIONALE = Scheda(
         p("Il ricorso è proposto, a pena di inammissibilità, entro trenta giorni dalla notificazione (sessanta se il "
           "ricorrente è in un Paese terzo).", R("dlgs25:35bis", "entro trenta giorni dalla notificazione del provvedimento")),
     ],
-    dubbi=["Termini ridotti ed effetto sospensivo nelle procedure accelerate e di frontiera (artt. 35-bis e 35-ter): "
-           "verificare il tipo di procedura indicato nel provvedimento."],
+    termini=[p("Nei casi di procedura accelerata indicati dalla legge il ricorso si propone entro sette giorni; nella procedura "
+               "di frontiera entro cinque giorni.", R("dlgs25:35bis", "entro sette giorni dalla notificazione del provvedimento"),
+               R("dlgs25:35ter", "e' ammesso ricorso entro cinque giorni decorrenti dalla notificazione")),
+             p("Il ricorso sospende l'efficacia esecutiva del provvedimento, salvo i casi di legge.",
+               R("dlgs25:35bis", "la proposizione del ricorso sospende l'efficacia esecutiva del provvedimento impugnato"))],
+    dubbi=["Consiglio operativo: verificare nel provvedimento quale procedura è stata applicata (ordinaria, accelerata, di frontiera)."],
     dati=["provvedimento e data di notifica", "tipo di procedura (ordinaria, accelerata, di frontiera)", "paese di origine"],
 )
 

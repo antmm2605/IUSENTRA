@@ -30,7 +30,7 @@ USURA = Scheda(
     ],
     procedibilita=[_MEDIAZIONE_BANCARIA],
     dati=["contratto e data di stipula", "TEG pattuito e TEGM del trimestre di riferimento", "piano di ammortamento", "perizia econometrica"],
-    dubbi=["Usura sopravvenuta e rilevanza degli interessi di mora: verificare l'orientamento della Cassazione nell'archivio."],
+    dubbi=["Consiglio operativo: usura sopravvenuta e rilevanza degli interessi di mora: verificare l'orientamento della Cassazione nell'archivio."],
 )
 
 ANATOCISMO = Scheda(
@@ -101,7 +101,8 @@ ACF = Scheda(
     conclusione=[p("I soggetti vigilati dalla Consob e i consulenti finanziari aderiscono a sistemi di risoluzione stragiudiziale "
                    "delle controversie con gli investitori non professionali.",
                    R("tuf:32ter", "aderiscono a sistemi di risoluzione stragiudiziale delle controversie con gli investitori"))],
-    dubbi=["Limite di valore e termini sono nel regolamento Consob dell'ACF, non presente nella biblioteca: verificarli."],
+    dubbi=["Consiglio operativo: limite di valore e termini sono nel regolamento Consob dell'ACF, non acquisito nella biblioteca "
+           "(il sito della Consob blocca lo scaricamento automatico): verificarli sul regolamento vigente."],
     dati=["investimento e profilatura", "reclamo e data", "danno"],
 )
 

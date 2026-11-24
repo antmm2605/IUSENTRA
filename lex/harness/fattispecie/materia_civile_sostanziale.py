@@ -221,7 +221,7 @@ RIDUZIONE = Scheda(
           "fatti a non coeredi.", R("cc:564", "non ha accettato l'eredita' col beneficio d'inventario")),
     ],
     procedibilita=[_MEDIAZIONE],
-    dubbi=["Prescrizione decennale e decorrenza (dall'accettazione dell'erede istituito o dalla pubblicazione del testamento): "
+    dubbi=["Consiglio operativo: prescrizione decennale e decorrenza (dall'accettazione dell'erede istituito o dalla pubblicazione del testamento): "
            "verificare l'orientamento delle Sezioni Unite nell'archivio."],
     dati=["testamento e donazioni", "asse ereditario e valori", "legittimari", "accettazione con beneficio d'inventario"],
 )

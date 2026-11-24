@@ -291,7 +291,9 @@ RECLAMO_CAUTELARE = Scheda(
     ],
     scadenze=[Scadenza("reclamo entro", 15, "giorni", r"(?:ordinanza|provvedimento)[^0-9]{0,40}(?:comunicat\w*|notificat\w*|pronunciat\w*|del)(?: il)?",
                        (R("cpc:669terdecies", "nel termine perentorio di quindici giorni"),), modello="CIV_RECLAMO_CAUTELARE_669_TERDECIES")],
-    avvertenze=["I procedimenti cautelari non godono della sospensione feriale."],
+    termini=[p("I procedimenti cautelari non godono della sospensione feriale dei termini.",
+               R("l742:3", "procedimenti indicati nell'articolo 92 dell'ordinamento giudiziario"),
+               R("rd12:92", "ai procedimenti cautelari"))],
     dati=["ordinanza e data di pronuncia o comunicazione", "motivi", "circostanze sopravvenute"],
 )
 

@@ -133,8 +133,9 @@ ORDINI_PROTEZIONE = Scheda(
           "il divieto di avvicinarsi ai luoghi frequentati dalla vittima.",
           R("cpc:473bis70", "dispone l'allontanamento dalla casa familiare")),
     ],
-    avvertenze=["Le vecchie norme del codice civile sugli ordini di protezione sono abrogate (d.lgs. 164/2024): la disciplina "
-                "vigente è nel codice di procedura civile."],
+    inquadramento=[p("La disciplina vigente degli ordini di protezione è nel codice di procedura civile (le norme del codice "
+                     "civile sono state abrogate dal d.lgs. 164/2024).",
+                     R("cpc:473bis69", "ordini di protezione contro gli abusi familiari"))],
     dati=["fatti e date", "convivenza", "figli", "procedimenti penali in corso"],
 )
 

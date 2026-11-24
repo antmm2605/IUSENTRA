@@ -1,7 +1,7 @@
 # Azione di riduzione (lesione di legittima)
 
-- ID: `ist-riduzione` · materia: successioni · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-riduzione` · materia: successioni · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** mediazione obbligatoria e citazione per riduzione delle disposizioni testamentarie e delle donazioni.
 
@@ -42,9 +42,9 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Questione della regola suc_riduzione non riportata (senza norma citata): «Prescrizione decennale e decorrenza (dall'accettazione dell'erede istituito o dalla pubblicazione del testamento): verificare l'orientamento»
-- Norma di riferimento art. 553 c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
+- art. 553 c.c. (art. 553 c.c.) — testo vigente, aggiornamento archivio n.d., versione `7deba5dba9c2d108` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art553
 - art. 554 c.c. (Riduzione delle disposizioni testamentarie) — testo vigente, aggiornamento archivio n.d., versione `d1b4881e72ad05ad` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art554
 - art. 557 c.c. (Soggetti che possono chiedere la riduzione) — testo vigente, aggiornamento archivio n.d., versione `544aa17f051ec53c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art557
 - art. 564 c.c. (Condizioni per l'esercizio dell'azione di riduzione) — testo vigente, aggiornamento archivio n.d., versione `bb4e10781b839f97` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art564
@@ -52,3 +52,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:553

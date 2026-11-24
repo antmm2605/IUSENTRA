@@ -1,7 +1,7 @@
 # Ricorso nel rito del lavoro (art. 414)
 
-- ID: `ist-ricorso-414` · materia: lavoro · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: verificata · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ricorso-414` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: verificata · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
 
@@ -16,11 +16,15 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Termini
 - Il licenziamento va impugnato, a pena di decadenza, entro sessanta giorni dalla ricezione della sua comunicazione in forma scritta, con qualsiasi atto scritto anche extragiudiziale; poi entro centottanta giorni va depositato il ricorso o chiesta la conciliazione o l'arbitrato. La regola vale per tutti i casi di invalidità del licenziamento. — _art. 6 l. 604/1966; art. 32 l. 183/2010_ (ancora letterale trovata nel testo vigente)
 - La sospensione feriale non si applica comunque alle controversie di lavoro: l'art. 3 l. 742/1969 esclude le cause dell'art. 92 dell'ordinamento giudiziario e le controversie di lavoro e di previdenza, richiamate con la numerazione del codice di rito anteriore alla l. 533/1973 (oggi artt. 409 ss. c.p.c.). — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
+- La sospensione feriale non si applica alle controversie di lavoro e di previdenza. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - Ricorso al Tribunale in funzione di giudice del lavoro nel rito del lavoro per la condanna del datore al pagamento delle differenze retributive, oltre interessi legali e rivalutazione monetaria. — _art. 414 c.p.c.; art. 429 c.p.c._ (ancora letterale trovata nel testo vigente)
 - È competente il Tribunale in funzione di giudice del lavoro. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ricorso al Tribunale in funzione di giudice del lavoro nel rito del lavoro per l'accertamento dell'illegittimità del licenziamento e la tutela prevista. — _art. 414 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Le controversie dei rapporti di lavoro subordinato privato seguono il rito del lavoro. — _art. 409 c.p.c._ (ancora letterale trovata nel testo vigente)
+- È competente il giudice del luogo in cui è sorto il rapporto o si trova l'azienda o la dipendenza cui è addetto il lavoratore. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il ricorso deve contenere, fra l'altro, l'esposizione dei fatti e degli elementi di diritto e l'indicazione specifica dei mezzi di prova e dei documenti, a pena di decadenza. — _art. 414 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Giudice: il tribunale in funzione di giudice del lavoro, per le controversie relative a rapporti di lavoro subordinato privato. — _art. 409 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -33,6 +37,9 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Documenti e dati da verificare
 - codici fiscali e PEC delle parti (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - retribuzione utile ai fini del TFR (busta paga) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- luogo del rapporto e sede dell'azienda (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- domande (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- mezzi di prova e documenti (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -51,15 +58,16 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «competenza_lavoro»
 - Regola di Lex «impugnazione_licenziamento»
 - Ricorso per impugnazione del licenziamento e reintegrazione — `/template-atti?scheda=LAV_003`
+- Regola di Lex «lav_ricorso_414»
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
-- Norma di riferimento art. 415 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
+- art. 415 c.p.c. (Deposito del ricorso e decreto di fissazione dell'udienza) — testo vigente, aggiornamento archivio n.d., versione `4c73da4cf9658ba6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art415
 - art. 429 c.p.c. (Pronuncia della sentenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `bd356badf417fb65` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art429
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
@@ -76,3 +84,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:415
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

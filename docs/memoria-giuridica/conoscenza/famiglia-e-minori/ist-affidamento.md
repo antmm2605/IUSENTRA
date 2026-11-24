@@ -1,7 +1,7 @@
 # Affidamento e collocamento dei figli (anche nati fuori dal matrimonio)
 
-- ID: `ist-affidamento` · materia: famiglia e minori · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-affidamento` · materia: famiglia e minori · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale del luogo di residenza abituale del minore (rito unificato delle persone, dei minorenni e delle famiglie).
 
@@ -47,11 +47,11 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Norma di riferimento art. 473-bis.12 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 337-ter c.c. (Provvedimenti riguardo ai figli) — testo vigente, aggiornamento archivio 29/04/2026, versione `b22492dba36fe097` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337ter
 - art. 337-quater c.c. (Affidamento a un solo genitore) — testo vigente, aggiornamento archivio n.d., versione `b883cf520e2fd3d8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337quater
+- art. 473-bis.12 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `a434907c6fd0499d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.12
 - art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
 - Corte di Cassazione — civile, sez. 1, n. 34143/2025 (testo integrale) — versione `d90769a46a8da677` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025134143O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 1, n. 32587/2025 (testo integrale) — versione `5447d48a447d3fc7` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025132587O&rows=1&wt=json
@@ -62,3 +62,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:473bis12

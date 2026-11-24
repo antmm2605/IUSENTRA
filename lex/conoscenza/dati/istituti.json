@@ -349,7 +349,8 @@
    "materia": "cautelare e urgenza",
    "nome": "Sequestro conservativo e giudiziario",
    "regole": [
-    "sequestro_conservativo"
+    "sequestro_conservativo",
+    "cau_sequestro"
    ],
    "norme": [
     {
@@ -535,7 +536,8 @@
    "nome": "Ricorso per decreto ingiuntivo",
    "regole": [
     "decreto_ingiuntivo",
-    "notifica_decreto_ingiuntivo"
+    "notifica_decreto_ingiuntivo",
+    "mon_ricorso_credito"
    ],
    "norme": [
     {
@@ -595,7 +597,8 @@
    "materia": "monitorio",
    "nome": "Opposizione a decreto ingiuntivo",
    "regole": [
-    "opposizione_decreto_ingiuntivo"
+    "opposizione_decreto_ingiuntivo",
+    "mon_opposizione_di"
    ],
    "norme": [
     {
@@ -905,7 +908,8 @@
    "materia": "famiglia e minori",
    "nome": "Separazione personale (giudiziale e consensuale)",
    "regole": [
-    "separazione_giudiziale"
+    "separazione_giudiziale",
+    "fam_separazione"
    ],
    "norme": [
     {
@@ -915,7 +919,7 @@
      "stato_biblioteca": "vigente"
     },
     {
-     "chiave": "cpc:473bis.12",
+     "chiave": "cpc:473bis12",
      "citazione": "art. 473-bis.12 c.p.c.",
      "rubrica": "Forma della domanda",
      "stato_biblioteca": "vigente"
@@ -927,7 +931,7 @@
      "stato_biblioteca": "vigente"
     },
     {
-     "chiave": "cpc:473bis.11",
+     "chiave": "cpc:473bis11",
      "citazione": "art. 473-bis.11 c.p.c.",
      "rubrica": "Competenza per territorio",
      "stato_biblioteca": "vigente"
@@ -941,7 +945,8 @@
    "nome": "Divorzio (scioglimento e cessazione degli effetti civili)",
    "regole": [
     "separazione_giudiziale",
-    "divorzio_tempi"
+    "divorzio_tempi",
+    "fam_divorzio_immediato"
    ],
    "norme": [
     {
@@ -957,7 +962,7 @@
      "stato_biblioteca": "vigente"
     },
     {
-     "chiave": "cpc:473bis.49",
+     "chiave": "cpc:473bis49",
      "citazione": "art. 473-bis.49 c.p.c.",
      "rubrica": "Cumulo di domande di separazione e scioglimento o cessazione degli effetti civili del matrimonio",
      "stato_biblioteca": "vigente"
@@ -970,11 +975,12 @@
    "materia": "famiglia e minori",
    "nome": "Modifica delle condizioni di separazione o divorzio",
    "regole": [
-    "modifica_condizioni"
+    "modifica_condizioni",
+    "fam_modifica_condizioni"
    ],
    "norme": [
     {
-     "chiave": "cpc:473bis.29",
+     "chiave": "cpc:473bis29",
      "citazione": "art. 473-bis.29 c.p.c.",
      "rubrica": "Modificabilità dei provvedimenti",
      "stato_biblioteca": "vigente"
@@ -1015,7 +1021,7 @@
      "stato_biblioteca": "vigente"
     },
     {
-     "chiave": "cpc:473bis.12",
+     "chiave": "cpc:473bis12",
      "citazione": "art. 473-bis.12 c.p.c.",
      "rubrica": "Forma della domanda",
      "stato_biblioteca": "vigente"
@@ -1029,7 +1035,8 @@
    "nome": "Mantenimento dei figli e del coniuge",
    "regole": [
     "figlio_maggiorenne",
-    "separazione_giudiziale"
+    "separazione_giudiziale",
+    "fam_mantenimento"
    ],
    "norme": [
     {
@@ -1051,7 +1058,7 @@
      "stato_biblioteca": "vigente"
     },
     {
-     "chiave": "cpc:473bis.36",
+     "chiave": "cpc:473bis36",
      "citazione": "art. 473-bis.36 c.p.c.",
      "rubrica": "Garanzie a tutela del credito",
      "stato_biblioteca": "vigente"
@@ -1064,42 +1071,48 @@
    "materia": "famiglia e minori",
    "nome": "Ordini di protezione contro gli abusi familiari",
    "regole": [
-    "ordini_protezione"
+    "ordini_protezione",
+    "fam_ordini_protezione"
    ],
    "norme": [
     {
-     "chiave": "cc:342bis",
-     "citazione": "art. 342-bis c.c.",
-     "rubrica": "",
-     "stato_biblioteca": "abrogato"
-    },
-    {
-     "chiave": "cc:342ter",
-     "citazione": "art. 342-ter c.c.",
-     "rubrica": "",
-     "stato_biblioteca": "abrogato"
-    },
-    {
-     "chiave": "cpc:473bis.69",
+     "chiave": "cpc:473bis69",
      "citazione": "art. 473-bis.69 c.p.c.",
      "rubrica": "Ordini di protezione contro gli abusi familiari",
      "stato_biblioteca": "vigente"
     },
     {
-     "chiave": "cpc:473bis.70",
+     "chiave": "cpc:473bis70",
      "citazione": "art. 473-bis.70 c.p.c.",
      "rubrica": "Contenuto degli ordini di protezione",
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "La cliente subisce violenze dal convivente: possiamo farlo allontanare da casa con un ordine del giudice?"
+   "frase_esempio": "La cliente subisce violenze dal convivente: possiamo farlo allontanare da casa con un ordine del giudice?",
+   "norme_abrogate": [
+    {
+     "chiave": "cc:342bis",
+     "citazione": "art. 342-bis c.c.",
+     "abrogata_da": "d.lgs. 31 ottobre 2024, n. 164",
+     "decorrenza": "si applica ai procedimenti introdotti dopo il 28/02/2023 (art. 7, comma 1, d.lgs. 164/2024)",
+     "sede_vigente": "artt. 473-bis.69 e 473-bis.70 c.p.c. (introdotti dal d.lgs. 149/2022)"
+    },
+    {
+     "chiave": "cc:342ter",
+     "citazione": "art. 342-ter c.c.",
+     "abrogata_da": "d.lgs. 31 ottobre 2024, n. 164",
+     "decorrenza": "si applica ai procedimenti introdotti dopo il 28/02/2023 (art. 7, comma 1, d.lgs. 164/2024)",
+     "sede_vigente": "artt. 473-bis.69 e 473-bis.70 c.p.c. (introdotti dal d.lgs. 149/2022)"
+    }
+   ]
   },
   {
    "id": "negoziazione_familiare",
    "materia": "famiglia e minori",
    "nome": "Negoziazione assistita familiare",
    "regole": [
-    "negoziazione_familiare"
+    "negoziazione_familiare",
+    "fam_negoziazione"
    ],
    "norme": [
     {
@@ -1116,7 +1129,8 @@
    "materia": "famiglia e minori",
    "nome": "Disconoscimento di paternità",
    "regole": [
-    "disconoscimento_paternita"
+    "disconoscimento_paternita",
+    "fam_disconoscimento"
    ],
    "norme": [
     {
@@ -1139,7 +1153,8 @@
    "materia": "successioni",
    "nome": "Accettazione con beneficio d'inventario",
    "regole": [
-    "chiamato_nel_possesso"
+    "chiamato_nel_possesso",
+    "suc_beneficio_inventario"
    ],
    "norme": [
     {
@@ -1168,7 +1183,8 @@
    "materia": "successioni",
    "nome": "Rinuncia all'eredità",
    "regole": [
-    "chiamato_nel_possesso"
+    "chiamato_nel_possesso",
+    "suc_rinuncia_eredita"
    ],
    "norme": [
     {
@@ -1598,7 +1614,8 @@
    "materia": "contratti",
    "nome": "Esecuzione in forma specifica dell'obbligo di concludere il contratto (art. 2932)",
    "regole": [
-    "caparra_confirmatoria"
+    "caparra_confirmatoria",
+    "con_esecuzione_2932"
    ],
    "norme": [
     {
@@ -1621,7 +1638,8 @@
    "materia": "contratti",
    "nome": "Recesso dal contratto",
    "regole": [
-    "recesso_contratto"
+    "recesso_contratto",
+    "con_recesso"
    ],
    "norme": [
     {
@@ -1725,7 +1743,8 @@
    "materia": "responsabilità civile",
    "nome": "Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)",
    "regole": [
-    "sinistro_stradale"
+    "sinistro_stradale",
+    "rc_sinistro"
    ],
    "norme": [
     {
@@ -1761,7 +1780,8 @@
    "nome": "Negoziazione assistita per sinistri stradali",
    "regole": [
     "sinistro_stradale",
-    "negoziazione_obbligatoria"
+    "negoziazione_obbligatoria",
+    "rc_negoziazione_sinistri"
    ],
    "norme": [
     {
@@ -1912,7 +1932,8 @@
    "materia": "lavoro",
    "nome": "Differenze retributive e crediti di lavoro",
    "regole": [
-    "crediti_lavoro"
+    "crediti_lavoro",
+    "lav_crediti"
    ],
    "norme": [
     {
@@ -1942,7 +1963,8 @@
    "nome": "TFR (trattamento di fine rapporto)",
    "regole": [
     "crediti_lavoro",
-    "decreto_ingiuntivo"
+    "decreto_ingiuntivo",
+    "lav_tfr"
    ],
    "norme": [
     {
@@ -1990,7 +2012,8 @@
    "regole": [
     "crediti_lavoro",
     "competenza_lavoro",
-    "impugnazione_licenziamento"
+    "impugnazione_licenziamento",
+    "lav_ricorso_414"
    ],
    "norme": [
     {
@@ -2056,7 +2079,8 @@
    "regole": [
     "decreto_ingiuntivo",
     "crediti_lavoro",
-    "mon_provvisoria_esecuzione"
+    "mon_provvisoria_esecuzione",
+    "lav_decreto_ingiuntivo"
    ],
    "norme": [
     {
@@ -2079,7 +2103,8 @@
    "materia": "lavoro",
    "nome": "Appello nel rito del lavoro (art. 434)",
    "regole": [
-    "appello_lavoro"
+    "appello_lavoro",
+    "lav_appello"
    ],
    "norme": [
     {
@@ -2316,7 +2341,8 @@
    "materia": "locazioni",
    "nome": "Licenza e sfratto per finita locazione",
    "regole": [
-    "sfratto_finita_locazione"
+    "sfratto_finita_locazione",
+    "loc_disdetta"
    ],
    "norme": [
     {
@@ -2376,7 +2402,8 @@
    "materia": "locazioni",
    "nome": "Esecuzione per rilascio dell'immobile",
    "regole": [
-    "rilascio"
+    "rilascio",
+    "loc_mobili_rilascio"
    ],
    "norme": [
     {
@@ -2475,7 +2502,8 @@
    "materia": "locazioni",
    "nome": "Restituzione del canone non registrato o in nero",
    "regole": [
-    "restituzione_canone_non_registrato"
+    "restituzione_canone_non_registrato",
+    "loc_canone_nero"
    ],
    "norme": [
     {
@@ -2492,7 +2520,8 @@
    "materia": "consumatori",
    "nome": "Garanzia legale di conformità",
    "regole": [
-    "garanzia_conformita"
+    "garanzia_conformita",
+    "cons_garanzia"
    ],
    "norme": [
     {
@@ -2550,7 +2579,8 @@
    "materia": "consumatori",
    "nome": "Clausole vessatorie",
    "regole": [
-    "consumatore"
+    "consumatore",
+    "cons_clausole_vessatorie"
    ],
    "norme": [
     {
@@ -2638,7 +2668,8 @@
    "nome": "Foro del consumatore e competenza",
    "regole": [
     "consumatore",
-    "negoziazione_obbligatoria"
+    "negoziazione_obbligatoria",
+    "cons_foro"
    ],
    "norme": [
     {
@@ -3071,7 +3102,8 @@
    "materia": "amministrativo",
    "nome": "Sospensiva e misure cautelari al TAR",
    "regole": [
-    "ricorso_tar"
+    "ricorso_tar",
+    "amm_sospensiva"
    ],
    "norme": [
     {
@@ -3260,19 +3292,21 @@
   {
    "id": "reclamo_mediazione_tributaria",
    "materia": "tributario",
-   "nome": "Reclamo e mediazione tributaria (art. 17-bis, abrogato)",
+   "nome": "Reclamo e mediazione tributaria (istituto abrogato: oggi ricorso diretto)",
    "regole": [
     "reclamo_mediazione_tributaria"
    ],
-   "norme": [
+   "norme": [],
+   "frase_esempio": "Per una cartella sotto i 50.000 euro devo fare prima il reclamo-mediazione?",
+   "norme_abrogate": [
     {
      "chiave": "dlgs546:17bis",
      "citazione": "art. 17-bis d.lgs. 546/1992",
-     "rubrica": "",
-     "stato_biblioteca": "abrogato"
+     "abrogata_da": "d.lgs. 30 dicembre 2023, n. 220",
+     "decorrenza": "secondo l'art. 4, comma 2, d.lgs. 220/2023 (ricorsi notificati dopo il 01/09/2024, salvo le lettere applicabili dal giorno successivo all'entrata in vigore): la lettera che abroga l'art. 17-bis va verificata sul d.lgs. 220/2023, non presente in biblioteca",
+     "sede_vigente": "nessuna: il ricorso si propone direttamente (art. 21 d.lgs. 546/1992)"
     }
-   ],
-   "frase_esempio": "Per una cartella sotto i 50.000 euro devo fare prima il reclamo-mediazione?"
+   ]
   },
   {
    "id": "autotutela_tributaria",
@@ -3393,7 +3427,9 @@
    "id": "definizioni_agevolate",
    "materia": "tributario",
    "nome": "Definizioni agevolate (rottamazione)",
-   "regole": [],
+   "regole": [
+    "trib_definizione_agevolata"
+   ],
    "norme": [
     {
      "chiave": "dpr602:19",
@@ -3415,7 +3451,8 @@
    "materia": "penale",
    "nome": "Querela",
    "regole": [
-    "termine_querela"
+    "termine_querela",
+    "pen_querela"
    ],
    "norme": [
     {
@@ -3594,7 +3631,8 @@
    "materia": "penale",
    "nome": "Appello penale",
    "regole": [
-    "impugnazione_penale"
+    "impugnazione_penale",
+    "pen_appello"
    ],
    "norme": [
     {
@@ -3623,7 +3661,8 @@
    "materia": "penale",
    "nome": "Ricorso per cassazione penale",
    "regole": [
-    "impugnazione_penale"
+    "impugnazione_penale",
+    "pen_cassazione"
    ],
    "norme": [
     {
@@ -3745,7 +3784,8 @@
    "materia": "violazioni amministrative",
    "nome": "Ricorso al Prefetto contro il verbale (art. 203 cod. strada)",
    "regole": [
-    "opposizione_verbale_cds"
+    "opposizione_verbale_cds",
+    "cds_prefetto"
    ],
    "norme": [
     {
@@ -3849,7 +3889,8 @@
    "materia": "immigrazione",
    "nome": "Diniego o revoca del permesso di soggiorno ed espulsione",
    "regole": [
-    "permesso_soggiorno"
+    "permesso_soggiorno",
+    "imm_permesso_espulsione"
    ],
    "norme": [
     {
@@ -3966,7 +4007,8 @@
    "materia": "stragiudiziale",
    "nome": "Mediazione civile e commerciale (d.lgs. 28/2010)",
    "regole": [
-    "mediazione_obbligatoria"
+    "mediazione_obbligatoria",
+    "str_mediazione"
    ],
    "norme": [
     {
@@ -3995,7 +4037,8 @@
    "materia": "stragiudiziale",
    "nome": "Negoziazione assistita (d.l. 132/2014)",
    "regole": [
-    "negoziazione_obbligatoria"
+    "negoziazione_obbligatoria",
+    "str_negoziazione"
    ],
    "norme": [
     {
@@ -4107,6 +4150,17 @@
    ],
    "norme": [],
    "frase_esempio": "Quale giudice è competente per una causa di pagamento di 12.000 euro contro un'impresa di Milano?",
+   "origine": "regola dell'harness di Lex senza voce nel catalogo"
+  },
+  {
+   "id": "rimessione_termini",
+   "materia": "civile ordinario",
+   "nome": "Rimessione in termini (art. 153 c.p.c.)",
+   "regole": [
+    "civ_rimessione_termini"
+   ],
+   "norme": [],
+   "frase_esempio": "Ho perso un termine per causa non imputabile: posso chiedere la rimessione in termini?",
    "origine": "regola dell'harness di Lex senza voce nel catalogo"
   }
  ]

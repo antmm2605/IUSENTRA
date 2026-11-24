@@ -1,6 +1,6 @@
 # Vizi e difformità nell'appalto
 
-- ID: `ist-vizi-appalto` · materia: contratti · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-vizi-appalto` · materia: contratti · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di garanzia per vizi dell'appalto (artt. 1667-1668 c.c.): diffida interruttiva della prescrizione, accertamento tecnico preventivo e poi giudizio di merito per l'eliminazione dei vizi o la riduzione del prezzo.
@@ -70,3 +70,4 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

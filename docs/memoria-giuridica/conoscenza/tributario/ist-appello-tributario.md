@@ -1,7 +1,7 @@
 # Appello tributario
 
-- ID: `ist-appello-tributario` · materia: tributario · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-appello-tributario` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** appello alla Corte di giustizia tributaria di secondo grado.
 
@@ -44,11 +44,11 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Norma di riferimento art. 107 d.lgs. 175/2024 (TU giustizia tributaria) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 51 d.lgs. 546/1992 (Termini d'impugnazione) — testo vigente, aggiornamento archivio 12/05/2026, versione `e7afc1d00439fb4f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art51
 - art. 53 d.lgs. 546/1992 (Forma dell'appello) — testo vigente, aggiornamento archivio 12/05/2026, versione `cb6998813af3b2f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art53
+- art. 107 d.lgs. 175/2024 (TU giustizia tributaria) (Forma dell'appello) — testo vigente, aggiornamento archivio n.d., versione `211c98f428029300` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art107
 - art. 52 d.lgs. 546/1992 (Giudice competente e legittimazione ad appellare) — testo vigente, aggiornamento archivio 12/05/2026, versione `5450f57114a3364b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art52
 - art. 38 d.lgs. 546/1992 (Richiesta di copie e notificazione della sentenza) — testo vigente, aggiornamento archivio 12/05/2026, versione `f1ebbf5161663be7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art38
 - art. 327 c.p.c. (Decadenza dall'impugnazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `3e877539f1fa0e9a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art327
@@ -60,3 +60,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:tu175:107

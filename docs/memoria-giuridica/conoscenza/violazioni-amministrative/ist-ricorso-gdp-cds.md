@@ -1,9 +1,9 @@
 # Opposizione al verbale davanti al giudice di pace (art. 204-bis cod. strada, art. 7 d.lgs. 150/2011)
 
-- ID: `ist-ricorso-gdp-cds` · materia: violazioni amministrative · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ricorso-gdp-cds` · materia: violazioni amministrative · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Scheda in attesa di fonti.
+**Sintesi.** Norme di riferimento: art. 204-bis d.lgs. 285/1992 (cod. strada), art. 7 d.lgs. 150/2011.
 
 ## Presupposti
 - Se la violazione non è contestata immediatamente, il verbale deve essere notificato entro novanta giorni dall'accertamento al proprietario risultante dal P.R.A.; altrimenti l'obbligo di pagare si estingue per chi non ha ricevuto la notificazione nel termine. — _art. 201 d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
@@ -42,15 +42,15 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Questioni interpretative.
 - Avvertenza della regola opposizione_verbale_cds non riportata (senza norma citata): «Non pagare e non proporre ricorso al prefetto: il ricorso al giudice di pace è inammissibile se è stato presentato prima ricorso al prefetto»
-- Norma di riferimento art. 204-bis d.lgs. 285/1992 (cod. strada) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 7 d.lgs. 150/2011 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
+- art. 204-bis d.lgs. 285/1992 (cod. strada) (art. 204-bis d.lgs. 285/1992 (cod. strada)) — testo vigente, aggiornamento archivio 21/11/2026, versione `c97ff73abe25f3f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art204bis
+- art. 7 d.lgs. 150/2011 (Dell'opposizione al verbale di accertamento di violazione del codice della strada) — testo vigente, aggiornamento archivio n.d., versione `6b181fa029b8efec` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art7
 - art. 201 d.lgs. 285/1992 (codice della strada) (Notificazione delle violazioni) — testo vigente, aggiornamento archivio 16/05/2026, versione `2e85718f58599280` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art201
-- art. 7 d.lgs. 150/2011 (Opposizione al verbale di accertamento di violazione del codice della strada) — testo vigente, aggiornamento archivio 19/06/2025, versione `377198aaa49a8a85` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art7
 - art. 204-bis d.lgs. 285/1992 (codice della strada) (Ricorso al giudice di pace) — testo vigente, aggiornamento archivio 16/05/2026, versione `f280bca71a2c21d9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art204bis
 - art. 203 d.lgs. 285/1992 (codice della strada) (Ricorso al prefetto) — testo vigente, aggiornamento archivio 16/05/2026, versione `4c6242f8d1b581cf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art203
 - Corte costituzionale, n. 69/2012 (testo integrale) — versione `cc1:db666fe0d642` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/69
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cds:204bis, norma:dlgs150_11:7, norma:dlgs150:7

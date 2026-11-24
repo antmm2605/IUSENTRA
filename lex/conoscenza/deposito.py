@@ -189,11 +189,18 @@ def pagina_scheda(s: dict[str, Any]) -> str:
     r += [f"- {x['titolo']}" + (f" — `{x['collegamento']}`" if x.get("collegamento") else "") for x in s["strumenti"]] or ["- nessuno"]
     r += ["", "## Limiti e lacune dichiarate"] + [f"- {x}" for x in s["lacune"]] + ["", "## Fonti con versione"]
     for f in s["fonti"]:
-        if f["tipo"] == "norma":
+        if f["tipo"] == "norma" and f.get("stato") == "abrogata":
+            r.append(f"- {f['citazione']} — NORMA ABROGATA ({f.get('nota_abrogazione', '')}), versione `{f.get('versione', '')}` — "
+                     f"{f.get('url', '')}")
+        elif f["tipo"] == "norma":
             r.append(f"- {f['citazione']} ({f.get('rubrica', '')}) — testo vigente, aggiornamento archivio "
                      f"{f.get('aggiornamento') or 'n.d.'}, versione `{f.get('versione', '')}` — {f.get('url', '')}")
         else:
             r.append(f"- {f['citazione']} ({f.get('tipo_testo', '')}) — versione `{f.get('versione', '')}` — {f.get('url', '')}")
+    if s.get("norme_abrogate"):
+        r += ["", "## Norme abrogate (storico, non norme di riferimento)"]
+        r += [f"- {a['citazione']}: abrogato dal {a['abrogata_da']}; decorrenza: {a['decorrenza']}; sede vigente: {a['sede_vigente']}"
+              for a in s["norme_abrogate"]]
     r += ["", "## Cronologia delle revisioni"] + [f"- r{x['revisione']} · {_data_it(x['data'])} · {x['motivo']}"
                                                   for x in s.get("storia", [])]
     return "\n".join(r) + "\n"

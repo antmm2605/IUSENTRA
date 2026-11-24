@@ -1,7 +1,7 @@
 # Giustizia riparativa
 
-- ID: `ist-giustizia-riparativa` · materia: penale · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-giustizia-riparativa` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta all'autorità giudiziaria di invio al Centro per la giustizia riparativa.
 
@@ -41,13 +41,13 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 42 d.lgs. 150/2022 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 44 d.lgs. 150/2022 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 129-bis c.p.p. (Accesso ai programmi di giustizia riparativa) — testo vigente, aggiornamento archivio n.d., versione `8198946ae6eadfbb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art129bis
+- art. 42 d.lgs. 150/2022 (Definizioni) — testo vigente, aggiornamento archivio n.d., versione `090c72608fe07013` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2022-10-10;150~art42
 - art. 44 d.lgs. 150/2022 (Principi sull'accesso) — testo vigente, aggiornamento archivio n.d., versione `db264f0e511a6727` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2022-10-10;150~art44
 - art. 152 c.p. (Remissione della querela) — testo vigente, aggiornamento archivio n.d., versione `e1776bcb6189d67a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398~art152
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:dlgs150_22:42, norma:dlgs150_22:44, norma:dlgs150g:44

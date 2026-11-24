@@ -1,7 +1,7 @@
 # Licenza e sfratto per finita locazione
 
-- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di licenza (prima della scadenza) o di sfratto (dopo la scadenza) per finita locazione, con citazione per la convalida; Tribunale del luogo dell'immobile.
 
@@ -16,6 +16,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Il locatore può intimare licenza per finita locazione prima della scadenza del contratto, con contestuale citazione per la convalida, rispettando i termini del contratto, della legge o degli usi; dopo la scadenza può intimare lo sfratto con la stessa citazione. — _art. 657 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Nelle locazioni abitative a 4+4 il locatore può negare il rinnovo alla prima scadenza solo per i motivi di legge, con preavviso di almeno sei mesi. — _art. 3 l. 431/1998_ (ancora letterale trovata nel testo vigente)
+- Nelle locazioni ad uso diverso il contratto si rinnova di sei anni in sei anni salvo disdetta da comunicare almeno dodici mesi prima della scadenza; alla prima scadenza il diniego è ammesso solo per i motivi di legge. — _art. 28 l. 392/1978; art. 29 l. 392/1978_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - È competente il tribunale del luogo in cui si trova la cosa locata. — _art. 661 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -26,6 +28,10 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Documenti e dati da verificare
 - data di scadenza del contratto e disdetta inviata (data e modalità) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - tipo di locazione (abitativa o uso diverso: per l'abitativa la prima scadenza richiede una disdetta motivata) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- tipo di contratto e decorrenza (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- scadenza (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- motivo del diniego (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data e modo della comunicazione (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -41,15 +47,17 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «sfratto_finita_locazione»
 - Intimazione di sfratto per morosità con citazione per la convalida — `/template-atti?scheda=LOC_001`
+- Regola di Lex «loc_disdetta»
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
-- Norma di riferimento art. 28 l. 392/1978 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 657 c.p.c. (Intimazione di licenza e di sfratto) — testo vigente, aggiornamento archivio 05/03/2026, versione `a4fa9dd73b8b85e2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art657
 - art. 3 l. 431/1998 (Disdetta del contratto da parte del locatore e recesso del conduttore) — testo vigente, aggiornamento archivio n.d., versione `388fb1babc9cbc46` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1998-12-09;431~art3
+- art. 28 l. 392/1978 (Rinnovazione del contratto) — testo vigente, aggiornamento archivio 21/11/2026, versione `500bdc1a84aa2704` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art28
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 29 l. 392/1978 (Diniego di rinnovazione alla prima scadenza) — testo vigente, aggiornamento archivio 21/11/2026, versione `e9cf9ab3d2032cfb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art29
 - art. 661 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `bed85335f84f3c14` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art661
 - Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29253/2024 (testo integrale) — versione `84a43c2b77894d4c` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024329253S&rows=1&wt=json
@@ -60,3 +68,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:l392:28
+- r3 · 24/11/2026 01:12 · fonti cambiate: norma:l392:29

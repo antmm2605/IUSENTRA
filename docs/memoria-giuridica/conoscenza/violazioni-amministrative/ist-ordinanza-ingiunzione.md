@@ -1,7 +1,7 @@
 # Opposizione all'ordinanza-ingiunzione (l. 689/1981, art. 6 d.lgs. 150/2011)
 
-- ID: `ist-ordinanza-ingiunzione` · materia: violazioni amministrative · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ordinanza-ingiunzione` · materia: violazioni amministrative · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso in opposizione all'ordinanza-ingiunzione (art. 22 l. 689/1981, art. 6 d.lgs. 150/2011) entro trenta giorni dalla notificazione; non è un'opposizione a decreto ingiuntivo.
 
@@ -41,12 +41,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 18 l. 689/1981 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 6 d.lgs. 150/2011 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
+- art. 18 l. 689/1981 (Ordinanza-ingiunzione) — testo vigente, aggiornamento archivio n.d., versione `4c5daac30f42de32` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1981-11-24;689~art18
 - art. 22 l. 689/1981 (Opposizione all'ordinanza-ingiunzione) — testo vigente, aggiornamento archivio n.d., versione `172ca5106492bfd4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1981-11-24;689~art22
-- art. 6 d.lgs. 150/2011 (Dell'opposizione ad ordinanza-ingiunzione) — testo vigente, aggiornamento archivio 19/06/2025, versione `da9362078772df6e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art6
+- art. 6 d.lgs. 150/2011 (Dell'opposizione ad ordinanza-ingiunzione) — testo vigente, aggiornamento archivio n.d., versione `fc231fca9d811581` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art6
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:dlgs150_11:6, norma:l689:18, norma:dlgs150:6

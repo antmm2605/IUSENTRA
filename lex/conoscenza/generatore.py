@@ -58,9 +58,16 @@ def fonte_norma(chiave: str, *, comma: str = "", ancora: str = "") -> dict[str, 
     t = testo_norma(chiave) if n else None
     if n is None or t is None:
         return None
+    abrogazione = _ABROGATO.search(t.testo[:400])
     return {"tipo": "norma", "chiave": chiave, "citazione": n.citazione, "rubrica": n.rubrica, "comma": comma,
             "ancora": ancora, "url": t.url, "aggiornamento": t.aggiornamento, "origine": t.origine,
-            "vigente": t.vigente, "versione": hashlib.sha256(t.testo.encode()).hexdigest()[:16]}
+            "vigente": t.vigente and not abrogazione, "stato": "abrogata" if abrogazione else "vigente",
+            "nota_abrogazione": " ".join(abrogazione.group(0).strip("() ").split()).capitalize() if abrogazione else "",
+            "versione": hashlib.sha256(t.testo.encode()).hexdigest()[:16]}
+
+
+# Nota di Normattiva sull'articolo abrogato per intero («((ARTICOLO ABROGATO DAL D.LGS. …))»).
+_ABROGATO = re.compile(r"\(\(\s*ARTICOLO ABROGATO[^)]*\)\)|\(\(\s*ABROGATO\s*\)\)", re.I)
 
 
 def _voce_punto(p, provenienza: str) -> dict[str, Any] | None:
@@ -282,9 +289,15 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
                           f"norme di Lex: testo non letto dalla scheda.")
             continue
         f["stato_biblioteca"] = n.stato_biblioteca
+        if f["stato"] == "abrogata" or n.stato_biblioteca == "abrogato":
+            # Una norma abrogata non è mai una norma di riferimento: si dichiara come storico.
+            lacune.append(f"{f['citazione']} è abrogato ({f['nota_abrogazione'] or 'biblioteca: abrogato'}): non è usato come "
+                          f"norma di riferimento; va tolto dal catalogo dell'istituto.")
+            continue
         riferimento.append(f)
         if n.stato_biblioteca and n.stato_biblioteca != "vigente":
             lacune.append(f"{f['citazione']}: in biblioteca «{n.stato_biblioteca}»; verificare il comma applicabile.")
+    abrogate = [dict(a) for a in ist.norme_abrogate]
 
     # Orientamenti: solo pronunce con il passaggio letto che cita la norma; prima le norme della conclusione.
     for chiave in list(dict.fromkeys([f["chiave"] for v in sez["rimedi"] + sez["presupposti"] for f in v["fonti"]]
@@ -319,6 +332,8 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
     sezioni = {k: _sezione(sez[k], motivi[k]) for k, _ in SEZIONI}
     fonti: dict[str, dict[str, Any]] = {}
     for f in riferimento + [f for s in sezioni.values() for v in s["voci"] for f in v["fonti"]]:
+        if f["tipo"] == "norma" and any(g["tipo"] == "norma" and g["citazione"] == f["citazione"] for g in fonti.values()):
+            continue  # stessa norma registrata con due chiavi («cpc:473bis69» e «cpc:473bis.69»)
         fonti.setdefault(f["tipo"] + ":" + f["chiave"], {k: v for k, v in f.items() if k not in ("comma", "ancora")})
     mancanti = [titolo for k, titolo in SEZIONI if sezioni[k]["stato"] == "mancante"]
     if mancanti:
@@ -326,8 +341,12 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
     if not ist.regole:
         lacune.insert(0, "Nessuna regola di Lex per questo istituto: la scheda riporta solo le norme di riferimento.")
     sintesi = _sintesi(ist, rimedi_sintesi, giudici, riferimento)
+    for f in fonti.values():
+        if f.get("stato") == "abrogata":
+            lacune.append(f"{f['citazione']} è citato come norma abrogata ({f['nota_abrogazione']}): vale per i fatti e i "
+                          f"giudizi anteriori secondo la disciplina transitoria, non come diritto vigente.")
     contenuto = {"sezioni": sezioni, "fonti": list(fonti.values()), "strumenti": strumenti, "lacune": lacune,
-                 "sintesi": sintesi}
+                 "sintesi": sintesi, "norme_abrogate": abrogate}
     return {
         "id": ist.id_scheda, "istituto": ist.id, "materia": ist.materia, "titolo": ist.nome,
         "regole": list(ist.regole), "pipeline": PIPELINE, **contenuto,

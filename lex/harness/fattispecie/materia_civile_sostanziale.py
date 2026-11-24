@@ -54,7 +54,7 @@ RESCISSIONE = Scheda(
 
 ANNULLAMENTO = Scheda(
     regola="con_annullamento", materia="contratti", nome="annullamento del contratto",
-    segnali=(r"annullament|annullabil|annullare (?:il|la) (?:contratto|vendita|donazione|firma)",),
+    segnali=(r"annullament|annullabil|annullar\w* (?:il|la) (?:contratto|vendita|donazione|firma)|annullarl",),
     alcuni=(r"contratt|vendita|firmat|errore|dolo|raggir|violenz|incapac|minacc",),
     esclusi=(r"delibera|provvedimento|\btar\b|sentenza|decreto|atto amministrativ|annullamento d ufficio|autotutela", _NON_CONTRATTO), punteggio=5,
     capito="Contratto viziato da errore, violenza, dolo o incapacità.",
@@ -150,7 +150,7 @@ COSE_IN_CUSTODIA = Scheda(
 
 DIFFAMAZIONE_CIVILE = Scheda(
     regola="rc_diffamazione", materia="responsabilità civile", nome="diffamazione: risarcimento civile",
-    segnali=(r"diffam|recension\w* (?:false|offensiv)|post offensiv|ha scritto[^.]{0,40}(?:truffator|ladro|incapace)",),
+    segnali=(r"diffam|recension\w* (?:fals|offensiv)|post offensiv|scritt\w*[^.]{0,60}(?:truffator|ladro|incapace|delinquent)",),
     alcuni=(r"danni|danno|risarc|civil|causa|citazione",), esclusi=(r"querel\w*[^.]{0,30}(?:entro|termin)",), punteggio=6,
     capito="Lesione della reputazione con chiedere il risarcimento in sede civile.",
     rimedio="citazione per risarcimento del danno (mediazione obbligatoria se a mezzo stampa o altro mezzo di pubblicità)",
@@ -227,7 +227,9 @@ RIDUZIONE = Scheda(
 
 REVOCA_AMMINISTRATORE = Scheda(
     regola="dr_revoca_amministratore", materia="diritti reali e condominio", nome="revoca giudiziale dell'amministratore di condominio",
-    segnali=(r"amministrator", r"revoc|cacciar|mandare via|gravi irregolarita|rendiconto"), alcuni=(r"condomin",), punteggio=6,
+    segnali=(r"amministrator", r"revoc|cacci|mandare via|gravi irregolarita|rendiconto|conto corrente condominiale"),
+    alcuni=(r"condomin|rendiconto|revoca giudiziale|non fa il suo lavoro|grave irregolarita",),
+    esclusi=(r"societa|\bsrl\b|\bspa\b|di sostegno|amministratore unico",), punteggio=6,
     capito="Condòmino che chiede la revoca dell'amministratore per gravi irregolarità o mancato rendiconto.",
     rimedio="ricorso per revoca giudiziale dell'amministratore (procedimento in camera di consiglio)",
     conclusione=[
@@ -239,13 +241,17 @@ REVOCA_AMMINISTRATORE = Scheda(
           R("dispattcc:64", "provvede in camera di consiglio, con decreto motivato"),
           R("dispattcc:64", "entro dieci giorni dalla notificazione o dalla comunicazione")),
     ],
-    dubbi=["Il testo vigente dell'art. 64 disp. att. c.c. attribuisce la revoca al giudice di pace: verificare la decorrenza "
-           "dell'attribuzione (riforma della magistratura onoraria) prima di scegliere l'ufficio."],
+    competenza=[p("La competenza passa dal tribunale al giudice di pace con la riforma della magistratura onoraria, le cui "
+                  "modifiche alle disposizioni di attuazione del codice civile entrano in vigore il 31 ottobre 2027: fino al "
+                  "30 ottobre 2027 il ricorso si propone al tribunale.",
+                  R("dlgs116:27", "all'articolo 64, sono apportate le seguenti modificazioni"),
+                  R("dlgs116:32", "le disposizioni dell'articolo 27 entrano in vigore il"))],
     dati=["irregolarità contestate", "rendiconti mancanti", "delibere assembleari sulla revoca"],
 )
 
 NEGATORIA = Scheda(
     regola="dr_negatoria", materia="diritti reali e condominio", nome="azione negatoria",
+    esclusi=(r"precett|esecuzion|pignor",),
     segnali=(r"negatori|inesistenza (?:della|di una|del) (?:servitu|diritto)|pretende (?:una|di avere) (?:servitu|diritto)|"
              r"servitu che non esiste|come se avesse (?:diritto|una servitu)",), punteggio=6,
     capito="Proprietario che contesta un diritto affermato da altri sulla sua cosa.",
@@ -260,7 +266,7 @@ NEGATORIA = Scheda(
 CONFESSORIA = Scheda(
     regola="dr_confessoria", materia="diritti reali e condominio", nome="azione confessoria della servitù",
     segnali=(r"confessori|riconoscere la servitu|accertamento della servitu|(?:impedisce|impedito|blocca)[^.]{0,60}(?:passaggio|servitu)|"
-             r"servitu di passaggio[^.]{0,60}(?:cancello|impedi|blocc)|servitu[^.]{0,40}contestat",),
+             r"servitu di passaggio[^.]{0,60}(?:cancello|impedi|blocc)|servitu[^.]{0,40}contestat|fondo servente|destinazione del padre di famiglia",),
     esclusi=(r"inesistenza|negatori",), punteggio=6,
     capito="Titolare di una servitù contestata o impedita dal proprietario del fondo servente.",
     rimedio="citazione per l'accertamento della servitù, la cessazione degli impedimenti e la rimessione in pristino",
@@ -274,7 +280,7 @@ CONFESSORIA = Scheda(
 
 USUCAPIONE = Scheda(
     regola="dr_usucapione", materia="diritti reali e condominio", nome="usucapione",
-    segnali=(r"usucap|possiede da (?:oltre )?(?:venti|20|vent)|da (?:oltre )?(?:venti|20|25|trent) anni[^.]{0,60}(?:possied|coltiv|uso|usa)",),
+    segnali=(r"usucap|diventarne proprietari|(?:possied|coltiv|usa|utilizz)\w*[^.]{0,60}da (?:oltre )?\d+ anni|possiede da (?:oltre )?(?:venti|20|vent)|da (?:oltre )?(?:venti|20|25|trent) anni[^.]{0,60}(?:possied|coltiv|uso|usa)",),
     punteggio=7,
     capito="Acquisto della proprietà o di un diritto reale per possesso prolungato.",
     rimedio="mediazione obbligatoria e citazione per accertamento dell'usucapione (trascrizione della sentenza o del verbale)",

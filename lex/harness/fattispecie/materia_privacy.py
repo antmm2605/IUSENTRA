@@ -7,12 +7,12 @@ from __future__ import annotations
 
 from .schede import R, Scheda, p
 
-_DATI = (r"provvedimento del garante|garante (?:della )?privacy|garante per la protezione|privacy|dati personali|\bgdpr\b|trattamento (?:dei|illecito)|"
+_DATI = (r"provvedimento del garante|(?:reclamo|segnalazione|ricorso) al garante|garante (?:della )?privacy|garante per la protezione|privacy|dati personali|\bgdpr\b|trattamento (?:dei|illecito)|"
          r"dati (?:sanitari|sensibili)|telecamer|videosorveglianz|telemarketing|chiamate pubblicitarie|diritto (?:di accesso|all oblio)")
 
 RECLAMO_GARANTE = Scheda(
     regola="priv_reclamo_garante", materia="privacy", nome="reclamo al Garante per la protezione dei dati personali",
-    segnali=(_DATI, r"garante|reclamo|segnalar"), esclusi=(r"risarciment|giudice|tribunale|opposizione al provvedimento",),
+    segnali=(_DATI, r"garante|reclamo|segnalar"), esclusi=(r"risarciment|tribunale|opposizione al provvedimento|ricorr\w* al giudice|rigettat\w* il reclamo",),
     punteggio=6,
     capito="Interessato che lamenta un trattamento dei propri dati in violazione del GDPR.",
     rimedio="reclamo al Garante (in alternativa al ricorso al giudice per lo stesso oggetto)",

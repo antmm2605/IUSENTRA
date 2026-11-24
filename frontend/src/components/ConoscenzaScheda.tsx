@@ -30,7 +30,7 @@ function PassaggioNorma({ fonte }: { fonte: Fonte }) {
 }
 
 function FonteVoce({ fonte, aperta, onApri }: { fonte: Fonte; aperta: boolean; onApri: () => void }) {
-  const etichetta = fonte.tipo === 'norma' ? `${fonte.citazione}${fonte.comma ? `, comma ${fonte.comma}` : ''}` : fonte.citazione
+  const etichetta = fonte.tipo === 'norma' ? `${fonte.citazione}${fonte.comma ? `, comma ${fonte.comma}` : ''}${fonte.stato === 'abrogata' ? ' (abrogato)' : ''}` : fonte.citazione
   return <span className="iu-cn-fonte">
     {fonte.tipo === 'norma'
       ? <Button tone="neutral" aria-expanded={aperta} onClick={onApri}>{etichetta}</Button>
@@ -101,7 +101,8 @@ export function ConoscenzaScheda({ schedaId, puoAnnotare, onClose }: { schedaId:
         <ul className="iu-cn-strumenti">{s.strumenti.map(x => <li key={`${x.tipo}:${x.id}`}>{x.collegamento ? <ButtonLink tone="neutral" href={x.collegamento}>{x.titolo}</ButtonLink> : <span>{x.titolo}</span>}</li>)}</ul>
       </section>
       <details className="iu-cn-sezione"><summary>Limiti e lacune dichiarate ({s.lacune.length})</summary><ul>{s.lacune.map(x => <li key={x}>{x}</li>)}</ul></details>
-      <details className="iu-cn-sezione"><summary>Fonti con versione ({s.fonti.length})</summary><ul>{s.fonti.map(f => <li key={chiaveFonte(f)}>{f.citazione}{f.rubrica ? ` — ${f.rubrica}` : ''}{f.tipo === 'norma' ? ` · aggiornamento ${f.aggiornamento || 'n.d.'}` : ` · ${f.tipo_testo || ''}`} · versione {f.versione}{f.url ? <> · <a href={f.url} target="_blank" rel="noreferrer">fonte ufficiale</a></> : null}</li>)}</ul></details>
+      <details className="iu-cn-sezione"><summary>Fonti con versione ({s.fonti.length})</summary><ul>{s.fonti.map(f => <li key={chiaveFonte(f)}>{f.citazione}{f.rubrica ? ` — ${f.rubrica}` : ''}{f.tipo === 'norma' ? (f.stato === 'abrogata' ? ` · norma abrogata (${f.nota_abrogazione || ''})` : ` · testo vigente, aggiornamento ${f.aggiornamento || 'n.d.'}`) : ` · ${f.tipo_testo || ''}`} · versione {f.versione}{f.url ? <> · <a href={f.url} target="_blank" rel="noreferrer">fonte ufficiale</a></> : null}</li>)}</ul></details>
+      {s.norme_abrogate?.length ? <section className="iu-cn-sezione" aria-label="Norme abrogate"><h3>Norme abrogate (storico, non norme di riferimento)</h3><ul>{s.norme_abrogate.map(a => <li key={a.citazione}>{a.citazione}: abrogato dal {a.abrogata_da}; decorrenza: {a.decorrenza}; sede vigente: {a.sede_vigente}</li>)}</ul></section> : null}
       <details className="iu-cn-sezione"><summary>Cronologia delle revisioni ({s.storia.length})</summary><ol>{s.storia.map(r => <li key={r.revisione}>Revisione {r.revisione} · {dataOraIt(r.data)} · {r.motivo}</li>)}</ol></details>
       <section className="iu-cn-sezione" aria-label="Annotazioni dello studio"><h3>Annotazioni dello studio</h3>
         {!dati.annotazioni_disponibili ? <p>Annotazioni non leggibili in questo momento.</p> : null}

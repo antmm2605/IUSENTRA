@@ -1,6 +1,6 @@
 # Caparra confirmatoria e preliminare
 
-- ID: `ist-caparra` · materia: contratti · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-caparra` · materia: contratti · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1385 c.c., art. 1386 c.c..
@@ -57,3 +57,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

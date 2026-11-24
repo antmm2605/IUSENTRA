@@ -1,7 +1,7 @@
 # Opposizione alla richiesta di archiviazione
 
-- ID: `ist-opposizione-archiviazione` · materia: penale · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-opposizione-archiviazione` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione motivata al GIP con indicazione delle investigazioni suppletive e dei relativi elementi di prova.
 
@@ -41,11 +41,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 409 c.p.p. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 408 c.p.p. (Richiesta di archiviazione per infondatezza della notizia di reato) — testo vigente, aggiornamento archivio n.d., versione `0dac6e79eddbc0bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art408
 - art. 410 c.p.p. (Opposizione alla richiesta di archiviazione) — testo vigente, aggiornamento archivio n.d., versione `ddfb13faac61b549` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art410
+- art. 409 c.p.p. (Provvedimenti del giudice sulla richiesta di archiviazione) — testo vigente, aggiornamento archivio n.d., versione `fa90a084e93c6183` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art409
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpp:409

@@ -1,7 +1,7 @@
 # Liquidazione controllata del sovraindebitato
 
-- ID: `ist-liquidazione-controllata` · materia: crisi d'impresa e sovraindebitamento · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-liquidazione-controllata` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale per l'apertura della liquidazione controllata, con la relazione dell'OCC.
 
@@ -41,11 +41,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 269 d.lgs. 14/2019 (CCII) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 268 d.lgs. 14/2019 (CCII) (Liquidazione controllata) — testo vigente, aggiornamento archivio 21/11/2026, versione `5749dfedba26a261` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art268
+- art. 269 d.lgs. 14/2019 (CCII) (Domanda del debitore) — testo vigente, aggiornamento archivio 21/11/2026, versione `d8617cd829d1091b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art269
 - art. 282 d.lgs. 14/2019 (CCII) (Condizioni e procedimento di esdebitazione) — testo vigente, aggiornamento archivio 21/11/2026, versione `7e33e95b1c6f6459` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art282
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:ccii:269

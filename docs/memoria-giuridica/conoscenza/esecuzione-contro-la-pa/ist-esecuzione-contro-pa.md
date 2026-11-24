@@ -1,6 +1,6 @@
 # Esecuzione forzata contro la PA e ottemperanza del giudicato
 
-- ID: `ist-esecuzione-contro-pa` · materia: esecuzione contro la PA · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-esecuzione-contro-pa` · materia: esecuzione contro la PA · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: verificata · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** notificare il titolo, attendere 120 giorni, poi precetto e pignoramento presso terzi; in alternativa, passata in giudicato la sentenza, ricorso per ottemperanza al TAR; giudice dell'esecuzione (pignoramento presso terzi: foro dell'Avvocatura dello Stato del distretto del creditore) oppure TAR per l'ottemperanza del giudicato.
@@ -67,3 +67,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

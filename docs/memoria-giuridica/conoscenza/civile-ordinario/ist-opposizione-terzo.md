@@ -1,6 +1,6 @@
 # Opposizione di terzo
 
-- ID: `ist-opposizione-terzo` · materia: civile ordinario · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-opposizione-terzo` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione in opposizione di terzo davanti allo stesso giudice che ha pronunciato la sentenza.
@@ -50,3 +50,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

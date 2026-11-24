@@ -1,7 +1,7 @@
 # Contenzioso sugli appalti pubblici (art. 120 c.p.a.)
 
-- ID: `ist-appalti-120` · materia: amministrativo · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-appalti-120` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR nel rito speciale degli appalti, entro trenta giorni, con eventuale istanza cautelare.
 
@@ -41,11 +41,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 209 d.lgs. 36/2023 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 120 c.p.a. (Disposizioni specifiche ai giudizi in materia di contratti pubblici) — testo vigente, aggiornamento archivio 12/12/2025, versione `9c267b4072c524b6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art120
 - art. 119 c.p.a. (Materie di rito abbreviato) — testo vigente, aggiornamento archivio 12/12/2025, versione `64b3dfd3e7b8701c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art119
+- art. 209 d.lgs. 36/2023 (Modifiche al codice del processo amministrativo di cui all'allegato 1 al decreto legislativo 2 luglio 2010, n. 104) — testo vigente, aggiornamento archivio 21/11/2026, versione `f7ded4d20c1d433f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2023-03-31;36~art209
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:dlgs36:209

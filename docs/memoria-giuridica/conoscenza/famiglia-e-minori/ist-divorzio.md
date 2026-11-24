@@ -1,9 +1,9 @@
 # Divorzio (scioglimento e cessazione degli effetti civili)
 
-- ID: `ist-divorzio` · materia: famiglia e minori · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-divorzio` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Tribunale.
+**Sintesi.** ricorso per divorzio fondato sull'art. 3, n. 1, l. 898/1970 (senza separazione); Tribunale.
 
 ## Presupposti
 - La separazione giudiziale si chiede quando si verificano fatti tali da rendere intollerabile la prosecuzione della convivenza o recare grave pregiudizio all'educazione dei figli. — _art. 151 c.c._ (ancora letterale trovata nel testo vigente)
@@ -21,6 +21,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 ## Rimedi e forme
 - Ricorso al Tribunale nelle forme degli artt. 473-bis ss. c.p.c. — _art. 473-bis.12 c.p.c.; art. 473-bis.11 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il divorzio si può chiedere quando la separazione si è protratta ininterrottamente per almeno dodici mesi dalla comparizione dei coniugi davanti al giudice nella separazione giudiziale, e per sei mesi nella separazione consensuale. — _art. 3 l. 898/1970_ (ancora letterale trovata nel testo vigente)
+- Il divorzio si può chiedere subito se l'altro coniuge è stato condannato con sentenza definitiva, anche per fatti precedenti al matrimonio, all'ergastolo o a più di quindici anni per delitti non colposi. — _art. 3 l. 898/1970_ (ancora letterale trovata nel testo vigente)
+- Bastano invece condanne a qualsiasi pena per l'omicidio volontario di un figlio o il tentato omicidio del coniuge o di un figlio, e i reati di violenza o maltrattamenti in famiglia indicati dalla legge con due o più condanne. — _art. 3 l. 898/1970_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Competenza per territorio: se ci sono figli minori, è competente il tribunale del luogo in cui il minore ha la residenza abituale; altrimenti valgono gli altri criteri dello stesso articolo (residenza del convenuto). — _art. 473-bis.11 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -31,7 +33,10 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- sentenze di condanna e passaggio in giudicato (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- reati e pene (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- figli minori (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- residenza dei coniugi (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -53,17 +58,17 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «separazione_giudiziale»
 - Ricorso per separazione giudiziale o divorzio giudiziale — `/template-atti?scheda=FAM_002`
 - Regola di Lex «divorzio_tempi»
+- Regola di Lex «fam_divorzio_immediato»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
-- Norma di riferimento art. 5 l. 898/1970 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 473-bis.49 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 3 l. 898/1970 (Casi di scioglimento) — testo vigente, aggiornamento archivio n.d., versione `49c52561e587ccb1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-12-01;898~art3
+- art. 5 l. 898/1970 (art. 5 l. 898/1970) — testo vigente, aggiornamento archivio n.d., versione `914e53e1a5b477cc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-12-01;898~art5
+- art. 473-bis.49 c.p.c. (Cumulo di domande di separazione e divorzio) — testo vigente, aggiornamento archivio 05/03/2026, versione `0fc6c49e1123a6df` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.49
 - art. 151 c.c. (Separazione giudiziale) — testo vigente, aggiornamento archivio 29/04/2026, versione `36a8e7b216b18181` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art151
 - art. 337-ter c.c. (Provvedimenti riguardo ai figli) — testo vigente, aggiornamento archivio 29/04/2026, versione `b22492dba36fe097` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337ter
-- art. 473-bis.49 c.p.c. (Cumulo di domande di separazione e divorzio) — testo vigente, aggiornamento archivio 05/03/2026, versione `0fc6c49e1123a6df` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.49
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 473-bis.12 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `a434907c6fd0499d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.12
 - art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
@@ -82,3 +87,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:l898:5
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

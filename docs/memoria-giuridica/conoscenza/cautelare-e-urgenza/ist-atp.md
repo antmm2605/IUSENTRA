@@ -1,6 +1,6 @@
 # Accertamento tecnico preventivo e consulenza tecnica preventiva (artt. 696 e 696-bis)
 
-- ID: `ist-atp` · materia: cautelare e urgenza · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-atp` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per accertamento tecnico preventivo o per consulenza tecnica preventiva ai fini della composizione della lite.
@@ -49,3 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

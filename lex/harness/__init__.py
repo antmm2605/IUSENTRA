@@ -44,7 +44,8 @@ class RispostaHarness:
         return {"answer": self.testo, "kind": self.tipo, "rule": self.regola, "confidence": self.affidabilita,
                 "sources": self.fonti, "verified_norms": self.norme_verificate,
                 "removed_claims": self.affermazioni_tolte, "unverified_citations": self.citazioni_non_verificate,
-                "draft": self.bozza, "deterministic": True, "registro": self.registro}
+                "draft": self.bozza, "deterministic": True, "registro": self.registro,
+                **({"choices": self.registro["scelte"]} if self.registro.get("scelte") else {})}
 
 
 def _affidabilita(esito: EsitoControllo, punti: int) -> float:
@@ -76,16 +77,46 @@ def risposta_norma(domanda: str) -> RispostaHarness | None:
                            [{"title": f"Normattiva — {NORME[chiave].citazione}", "url": t.url}], [chiave])
 
 
+SOGLIA_SIGNIFICATO = 0.22   # somiglianza minima per proporre uno strumento: fuori materia <= 0,16, in materia >= 0,26 (24/11)
+
+
 def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensione | None = None) -> RispostaHarness | None:
     c = comprensione or comprendi(domanda)
     if not c.per_harness:
         return None
     if c.tipo == "norma":
         return risposta_norma(domanda)
-    f = leggi_fatti(domanda, oggi=oggi)
-    regola = scegli(c, f)
+    from .chiarimenti import materia_da_chiarire, testo_chiarimento, testo_chiarimento_lato, testo_chiarimento_strumento
+
+    scelte = materia_da_chiarire(domanda)
+    if scelte:
+        return RispostaHarness(testo_chiarimento(scelte), "chiarimento", "chiarimento_materia", 1.0,
+                               registro={"rule": "chiarimento_materia", "scelte": scelte})
+    from .normalizzazione import normalizza_richiesta
+
+    f = leggi_fatti(normalizza_richiesta(domanda), oggi=oggi)
+    from .fattispecie import REGOLE
+    from .significato import cerca, strumento_indicato
+
+    indicata = strumento_indicato(domanda)
+    regola = next((r for r in REGOLE if r[0] == indicata), None) if indicata else scegli(c, f)
     if regola is None:
-        return None
+        # Nessuna regola riconosce la fattispecie: la ricerca per significato propone gli strumenti più vicini, e
+        # l'avvocato sceglie. Sotto la soglia la domanda non è materia delle regole di Lex.
+        # Le domande di termine e di calcolo restano ai motori certi (calcolatori dei termini), che rispondono senza regola.
+        proposte = [v for v, s in cerca(domanda, 4) if s >= SOGLIA_SIGNIFICATO] if c.tipo in {"parere", "redazione"} else []
+        if not proposte:
+            return None
+        base = domanda.strip()
+        scelte = [f"{base} (strumento: {v.nome})" for v in proposte[:4]]
+        return RispostaHarness(testo_chiarimento_strumento(scelte, [v.nome for v in proposte[:4]]), "chiarimento",
+                               "chiarimento_strumento", 1.0, registro={"rule": "chiarimento_strumento", "scelte": scelte})
+    from .lato import scelte_sul_lato
+
+    scelte_lato = (scelte_sul_lato(domanda, regola[0]) if c.tipo in {"parere", "termine"} and not indicata else None)
+    if scelte_lato:
+        return RispostaHarness(testo_chiarimento_lato(scelte_lato), "chiarimento", "chiarimento_lato", 1.0,
+                               registro={"rule": "chiarimento_lato", "scelte": scelte_lato})
     # Prima la scheda di istituto (conoscenza già verificata dalle stesse fonti), poi la verifica delle fonti.
     scheda = _scheda_istituto(regola[0])
     analisi = regola[2](c, f)

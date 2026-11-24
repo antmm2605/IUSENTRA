@@ -34,6 +34,7 @@ class Istituto:
     norme: tuple[NormaRiferimento, ...] = ()
     frase_esempio: str = ""
     origine: str = ""
+    norme_abrogate: tuple[dict, ...] = ()        # storico: mai norme di riferimento (abrogata_da, decorrenza, sede vigente)
     extra: dict = field(default_factory=dict, compare=False, hash=False)
 
     @property
@@ -65,7 +66,7 @@ def carica(percorso: Path | None = None) -> tuple[list[str], list[Istituto]]:
         norme = tuple(NormaRiferimento(n["chiave"], n.get("citazione", ""), n.get("rubrica", ""),
                                        n.get("stato_biblioteca", "")) for n in v.get("norme", []))
         istituti.append(Istituto(v["id"], v["materia"], v["nome"], tuple(v.get("regole", [])), norme,
-                                 v.get("frase_esempio", ""), v.get("origine", "")))
+                                 v.get("frase_esempio", ""), v.get("origine", ""), tuple(v.get("norme_abrogate", []))))
     materie = list(dati.get("materie") or dict.fromkeys(i.materia for i in istituti))
     for i in istituti:
         if i.materia not in materie:

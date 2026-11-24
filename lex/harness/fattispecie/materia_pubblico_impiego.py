@@ -65,8 +65,10 @@ def _comuni(a: Analisi, c: Comprensione, f: Fatti) -> None:
           "ha un reddito imponibile superiore a tre volte il limite del patrocinio a spese dello Stato; altrimenti è esente.",
           R("dpr115:9", "concernenti rapporti di pubblico impiego"), R("dpr115:9", "superiore a tre volte")),
     ]
-    a.dubbi.append("Notifica all'amministrazione statale: va eseguita presso l'Avvocatura dello Stato del distretto "
-                   "(r.d. 1611/1933); la norma non è ancora leggibile nella biblioteca di IUSENTRA: verificarla prima del deposito.")
+    a.rito.append(p("Gli atti introduttivi contro un'amministrazione dello Stato si notificano, a pena di nullità, presso "
+                    "l'ufficio dell'Avvocatura dello Stato nel cui distretto ha sede il giudice adito.",
+                    R("rd1611:11", "presso l'ufficio dell'Avvocatura dello Stato nel cui distretto ha sede l'autorita' giudiziaria"),
+                    R("rd1611:11", "a pena di nullita'")))
 
 
 def _interessi(a: Analisi) -> None:

@@ -1,7 +1,7 @@
 # Concordato preventivo
 
-- ID: `ist-concordato` · materia: crisi d'impresa e sovraindebitamento · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-concordato` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per concordato preventivo (anche con riserva) al tribunale del centro degli interessi principali.
 
@@ -41,11 +41,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 87 d.lgs. 14/2019 (CCII) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 84 d.lgs. 14/2019 (CCII) (Finalità del concordato preventivo) — testo vigente, aggiornamento archivio 21/11/2026, versione `dcbd2f74ba183b51` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art84
+- art. 87 d.lgs. 14/2019 (CCII) (Contenuto del piano di concordato) — testo vigente, aggiornamento archivio 21/11/2026, versione `5fd095a72d44ce99` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art87
 - art. 44 d.lgs. 14/2019 (CCII) (Accesso con riserva) — testo vigente, aggiornamento archivio 21/11/2026, versione `727a5775e0c8bc8b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art44
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:ccii:87

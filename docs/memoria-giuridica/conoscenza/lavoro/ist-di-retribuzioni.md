@@ -1,9 +1,9 @@
 # Decreto ingiuntivo per retribuzioni
 
-- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: verificata · fonti dirette: 25 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: verificata · fonti dirette: 26 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Tribunale in funzione di giudice del lavoro.
+**Sintesi.** ricorso per decreto ingiuntivo al tribunale in funzione di giudice del lavoro, con le buste paga; Tribunale in funzione di giudice del lavoro.
 
 ## Presupposti
 - Il decreto ingiuntivo si chiede per un credito di una somma liquida di danaro di cui si dà prova scritta. — _art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -20,6 +20,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Termini
 - Il decreto va notificato entro sessanta giorni dalla pronuncia (novanta se all'estero), altrimenti diventa inefficace. — _art. 644 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il debitore può proporre opposizione entro quaranta giorni dalla notificazione. — _art. 641 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Le retribuzioni si prescrivono in cinque anni. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- La sospensione feriale non si applica alle controversie di lavoro. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - Ricorso per decreto ingiuntivo al giudice competente per valore, oltre interessi e spese; richiesta di provvisoria esecuzione solo se ne ricorrono i presupposti. — _art. 633 c.p.c.; art. 637 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -27,6 +29,9 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Con il decreto il giudice autorizza l'esecuzione provvisoria se il credito è fondato su cambiale, assegno o atto notarile, se vi è pericolo di grave pregiudizio nel ritardo o se il ricorrente produce documentazione sottoscritta dal debitore comprovante il diritto. — _art. 642 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Nel giudizio di opposizione il giudice può concederla in prima udienza se l'opposizione non è fondata su prova scritta o di pronta soluzione e deve concederla per le somme non contestate. — _art. 648 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Su istanza dell'opponente, per gravi motivi, il giudice può sospendere l'esecuzione provvisoria concessa con il decreto. — _art. 649 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Chi è creditore di una somma liquida ottiene l'ingiunzione se del diritto dà prova scritta: per le retribuzioni lo sono, in pratica, le buste paga consegnate dal datore e gli altri documenti del rapporto. — _art. 633 c.p.c.; art. 634 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il ricorso va al tribunale in funzione di giudice del lavoro del luogo del rapporto o dell'azienda. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il decreto si notifica e il datore ha quaranta giorni per opporsi; può essere chiesta l'esecuzione provvisoria se c'è pericolo nel ritardo o documentazione sottoscritta dal debitore. — _art. 641 c.p.c.; art. 642 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Competente è il giudice di pace o il tribunale che sarebbe competente per la domanda proposta in via ordinaria. — _art. 637 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -42,6 +47,9 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - documenti a fondamento del credito (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - pericolo nel ritardo (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - somme contestate e non contestate (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- buste paga o altri documenti firmati dal datore (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- mensilità e importi netti/lordi (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- sede dell'azienda o luogo di lavoro (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -63,6 +71,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «crediti_lavoro»
 - Ricorso per crediti di lavoro (differenze retributive, TFR, ferie e permessi) — `/template-atti?scheda=LAV_005`
 - Regola di Lex «mon_provvisoria_esecuzione»
+- Regola di Lex «lav_decreto_ingiuntivo»
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -79,12 +88,13 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
 - art. 644 c.p.c. (Mancata notificazione del decreto) — testo vigente, aggiornamento archivio 05/03/2026, versione `5e162b8609e86369` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art644
 - art. 641 c.p.c. (Accoglimento della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `257353832d5720c4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art641
+- art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 637 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `3798af16206abf88` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art637
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
 - art. 648 c.p.c. (Esecuzione provvisoria in pendenza di opposizione) — testo vigente, aggiornamento archivio n.d., versione `1f562281b531456d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art648
 - art. 649 c.p.c. (Sospensione dell'esecuzione provvisoria) — testo vigente, aggiornamento archivio n.d., versione `b030b5e8f30a3e16` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art649
-- art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
+- art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 - Corte di Cassazione — civile, sez. 1, n. 29102/2026 (testo integrale) — versione `e2a228abfdb5a872` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026129102O&rows=1&wt=json
 - Corte costituzionale, n. 96/2008 (testo integrale) — versione `cc1:28b7f4a445f5` — https://www.cortecostituzionale.it/scheda-pronuncia/2008/96
 - Corte costituzionale, n. 299/2003 (testo integrale) — versione `cc1:95706fadab4b` — https://www.cortecostituzionale.it/scheda-pronuncia/2003/299
@@ -97,3 +107,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 01:12 · fonti cambiate: norma:l742:3

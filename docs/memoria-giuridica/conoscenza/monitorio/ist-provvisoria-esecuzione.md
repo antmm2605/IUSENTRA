@@ -1,6 +1,6 @@
 # Provvisoria esecuzione del decreto (artt. 642 e 648)
 
-- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: verificata · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
@@ -90,3 +90,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

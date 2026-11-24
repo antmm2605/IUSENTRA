@@ -1,9 +1,9 @@
 # Querela
 
-- ID: `ist-querela` · materia: penale · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-querela` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 124 c.p., art. 336 c.p.p..
+**Sintesi.** querela scritta o orale all'autorità giudiziaria o alla polizia giudiziaria entro tre mesi dalla notizia del fatto.
 
 ## Presupposti
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
@@ -16,6 +16,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Salvo che la legge disponga altrimenti, il diritto di querela si esercita entro tre mesi dal giorno della notizia del fatto che costituisce il reato. — _art. 124 c.p._ (ancora letterale trovata nel testo vigente)
+- La persona offesa da un reato procedibile a querela ha diritto di querela. — _art. 120 c.p._ (ancora letterale trovata nel testo vigente)
+- La querela si propone con dichiarazione, personalmente o con procuratore speciale, che manifesta la volontà che si proceda; il termine è di tre mesi dalla notizia del fatto. — _art. 336 c.p.p.; art. 124 c.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -24,7 +26,9 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- fatto e data della notizia (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- reato e procedibilità (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- querelato (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -40,13 +44,14 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «termine_querela»
 - Querela, denuncia-querela e remissione — `/template-atti?scheda=PEN_009`
+- Regola di Lex «pen_querela»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
 - Questione della regola termine_querela non riportata (senza norma citata): «Alcuni reati hanno termini diversi stabiliti dalla legge: verifica la norma del reato specifico.»
-- Norma di riferimento art. 120 c.p. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
+- art. 120 c.p. (Diritto di querela) — testo vigente, aggiornamento archivio n.d., versione `480c64af733379ec` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398~art120
 - art. 124 c.p. (Termine per proporre la querela) — testo vigente, aggiornamento archivio 16/07/2026, versione `10c433c455251474` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398~art124
 - art. 336 c.p.p. (Querela) — testo vigente, aggiornamento archivio 11/11/2026, versione `6077f31820720cd1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:1988-09-22;447~art336
 - Corte di Cassazione — penale, sez. 2, n. 39664/2026 (testo integrale) — versione `2a5820478a5672f8` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2026239664S&rows=1&wt=json
@@ -58,3 +63,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cp:120
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

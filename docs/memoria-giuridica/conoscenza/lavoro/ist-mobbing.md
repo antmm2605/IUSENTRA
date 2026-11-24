@@ -1,6 +1,6 @@
 # Mobbing, straining e demansionamento
 
-- ID: `ist-mobbing` · materia: lavoro · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-mobbing` · materia: lavoro · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. per la reintegra nelle mansioni e il risarcimento del danno alla salute e alla professionalità; Tribunale in funzione di giudice del lavoro.
@@ -57,3 +57,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

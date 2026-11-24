@@ -1,9 +1,9 @@
 # Separazione personale (giudiziale e consensuale)
 
-- ID: `ist-separazione` · materia: famiglia e minori · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-separazione` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Tribunale.
+**Sintesi.** ricorso per separazione giudiziale (o congiunto per la consensuale) al tribunale; Tribunale.
 
 ## Presupposti
 - La separazione giudiziale si chiede quando si verificano fatti tali da rendere intollerabile la prosecuzione della convivenza o recare grave pregiudizio all'educazione dei figli. — _art. 151 c.c._ (ancora letterale trovata nel testo vigente)
@@ -19,6 +19,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Ricorso al Tribunale nelle forme degli artt. 473-bis ss. c.p.c. — _art. 473-bis.12 c.p.c.; art. 473-bis.11 c.p.c._ (ancora letterale trovata nel testo vigente)
+- La separazione può essere chiesta quando si verificano, anche indipendentemente dalla volontà di uno o di entrambi i coniugi, fatti tali da rendere intollerabile la prosecuzione della convivenza. — _art. 151 c.c._ (ancora letterale trovata nel testo vigente)
+- La domanda si propone con ricorso al tribunale secondo il rito unificato delle persone, dei minorenni e delle famiglie. — _art. 473-bis.12 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Competenza per territorio: se ci sono figli minori, è competente il tribunale del luogo in cui il minore ha la residenza abituale; altrimenti valgono gli altri criteri dello stesso articolo (residenza del convenuto). — _art. 473-bis.11 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -29,7 +31,10 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- residenza dei coniugi e dei figli (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- figli minori (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- redditi e patrimonio (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- fatti (anche violenze) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -49,20 +54,19 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «separazione_giudiziale»
 - Ricorso per separazione giudiziale o divorzio giudiziale — `/template-atti?scheda=FAM_002`
+- Regola di Lex «fam_separazione»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
-- Norma di riferimento art. 473-bis.12 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 473-bis.51 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 473-bis.11 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 151 c.c. (Separazione giudiziale) — testo vigente, aggiornamento archivio 29/04/2026, versione `36a8e7b216b18181` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art151
+- art. 473-bis.12 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `a434907c6fd0499d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.12
+- art. 473-bis.51 c.p.c. (Procedimento su domanda congiunta) — testo vigente, aggiornamento archivio n.d., versione `d62f1478b4baea50` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.51
+- art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
 - art. 337-ter c.c. (Provvedimenti riguardo ai figli) — testo vigente, aggiornamento archivio 29/04/2026, versione `b22492dba36fe097` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337ter
 - art. 473-bis.49 c.p.c. (Cumulo di domande di separazione e divorzio) — testo vigente, aggiornamento archivio 05/03/2026, versione `0fc6c49e1123a6df` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.49
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
-- art. 473-bis.12 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `a434907c6fd0499d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.12
-- art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
 - art. 473-bis c.p.c. (Ambito di applicazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `d2c209461fe64ceb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis
 - Corte di Cassazione — civile, sez. 1, n. 27890/2026 (testo integrale) — versione `b35d1f873838f50b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026127890O&rows=1&wt=json
 - Corte costituzionale, n. 266/2014 (testo integrale) — versione `cc1:c14d23597acb` — https://www.cortecostituzionale.it/scheda-pronuncia/2014/266
@@ -77,3 +81,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:473bis.51
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

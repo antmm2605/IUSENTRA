@@ -1,7 +1,7 @@
 # Revocazione della sentenza
 
-- ID: `ist-revocazione` · materia: civile ordinario · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-revocazione` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per revocazione davanti allo stesso giudice che ha pronunciato la sentenza.
 
@@ -42,10 +42,10 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 396 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 395 c.p.c. (Casi di revocazione) — testo vigente, aggiornamento archivio n.d., versione `89297d4b229c8dc4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art395
+- art. 396 c.p.c. (Revocazione delle sentenze per le quali è scaduto il termine per l'appello) — testo vigente, aggiornamento archivio n.d., versione `5f395f5c32f4ee43` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art396
 - art. 398 c.p.c. (Proposizione della domanda di revocazione) — testo vigente, aggiornamento archivio n.d., versione `da8d3862ee038f7d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art398
 - art. 325 c.p.c. (Termini per le impugnazioni) — testo vigente, aggiornamento archivio 05/03/2026, versione `a8a512cd9b78ba36` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art325
 - art. 326 c.p.c. (Decorrenza dei termini) — testo vigente, aggiornamento archivio n.d., versione `358eb8a805aa88ab` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326
@@ -54,3 +54,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:396

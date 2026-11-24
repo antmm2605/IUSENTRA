@@ -1,7 +1,7 @@
 # Accesso agli atti (l. 241/1990, art. 116 c.p.a.)
 
-- ID: `ist-accesso-atti` · materia: amministrativo · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-accesso-atti` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR nel rito dell'accesso, oppure richiesta di riesame al difensore civico o alla Commissione per l'accesso.
 
@@ -39,11 +39,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 22 l. 241/1990 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
+- art. 22 l. 241/1990 (Definizioni e principi in materia di accesso) — testo vigente, aggiornamento archivio n.d., versione `f2732dcbfc9b3845` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241~art22
 - art. 25 l. 241/1990 (Modalità di esercizio del diritto di accesso e ricorsi) — testo vigente, aggiornamento archivio n.d., versione `6635f1ed09c8b097` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241~art25
 - art. 116 c.p.a. (Rito in materia di accesso ai documenti amministrativi) — testo vigente, aggiornamento archivio 12/12/2025, versione `a6733ca6c05aeb97` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art116
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:l241:22

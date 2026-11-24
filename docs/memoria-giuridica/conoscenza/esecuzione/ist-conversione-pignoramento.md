@@ -1,6 +1,6 @@
 # Conversione del pignoramento (art. 495)
 
-- ID: `ist-conversione-pignoramento` · materia: esecuzione · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-conversione-pignoramento` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di conversione del pignoramento al giudice dell'esecuzione con il deposito di almeno un sesto.
@@ -46,3 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

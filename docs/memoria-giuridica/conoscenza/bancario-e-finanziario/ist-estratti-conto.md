@@ -1,6 +1,6 @@
 # Contestazione degli estratti conto e richiesta documenti (art. 119 TUB)
 
-- ID: `ist-estratti-conto` · materia: bancario e finanziario · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-estratti-conto` · materia: bancario e finanziario · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta ex art. 119, comma 4, TUB; contestazione scritta degli estratti conto.
@@ -46,3 +46,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

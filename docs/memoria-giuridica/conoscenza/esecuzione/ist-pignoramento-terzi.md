@@ -1,6 +1,6 @@
 # Pignoramento presso terzi
 
-- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di pignoramento presso terzi notificato al terzo e al debitore, con citazione davanti al giudice dell'esecuzione; Tribunale del luogo di residenza, domicilio, dimora o sede del debitore.
@@ -80,3 +80,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

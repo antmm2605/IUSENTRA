@@ -1,7 +1,7 @@
 # Ricerca telematica dei beni (art. 492-bis)
 
-- ID: `ist-ricerca-beni` · materia: esecuzione · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ricerca-beni` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di ricerca telematica dei beni all'ufficiale giudiziario (o al presidente del tribunale se c'è pericolo nel ritardo).
 
@@ -45,13 +45,14 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Norma di riferimento art. 155-quinquies disp. att. c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 492-bis c.p.c. (Ricerca con modalità telematiche dei beni da pignorare) — testo vigente, aggiornamento archivio 05/03/2026, versione `45b9ae8013d01e60` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art492bis
+- art. 155-quinquies disp. att. c.p.c. (Accesso alle banche dati tramite i gestori) — testo vigente, aggiornamento archivio n.d., versione `c1a74b86dbc465b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-12-18;1368~art155quinquies
 - Corte di Cassazione — civile, sez. L, n. 24518/2026 (testo integrale) — versione `c0ba528f61df423b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L24518O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 21687/2026 (testo integrale) — versione `12357fbd7c39b32b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026221687O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 19294/2026 (testo integrale) — versione `1a507c373b93743f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026219294O&rows=1&wt=json
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:dispattcpc:155quinquies

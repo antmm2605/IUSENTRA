@@ -1,21 +1,22 @@
 # Esecuzione in forma specifica dell'obbligo di concludere il contratto (art. 2932)
 
-- ID: `ist-esecuzione-2932` · materia: contratti · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-esecuzione-2932` · materia: contratti · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 2932 c.c..
+**Sintesi.** citazione ex art. 2932 c.c. con trascrizione della domanda (mediazione obbligatoria se diritti reali).
 
 ## Presupposti
-_Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
+- La materia rientra fra quelle per cui la mediazione è condizione di procedibilità. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-_Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
+- Prescrizione decennale dalla data fissata per il definitivo. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-_Sezione mancante: nessuna conclusione verificata nelle regole dell'istituto._
+- Se l'obbligato a concludere il contratto non adempie, l'altra parte può ottenere una sentenza che produca gli effetti del contratto non concluso; se si tratta di trasferire la proprietà, deve eseguire o offrire la propria prestazione. — _art. 2932 c.c._ (ancora letterale trovata nel testo vigente)
+- La domanda va trascritta: la trascrizione della sentenza di accoglimento prevale sulle trascrizioni e iscrizioni successive alla domanda. — _art. 2652 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -24,7 +25,10 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- preliminare e data fissata per il rogito (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- prezzo pagato o offerto (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- diffide (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- dati catastali (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -40,14 +44,18 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «caparra_confirmatoria»
 - Atto di citazione ordinario — `/template-atti?scheda=CIV_ORD_001`
+- Regola di Lex «con_esecuzione_2932»
+- Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
 - Questione della regola caparra_confirmatoria non riportata (senza norma citata): «Manca l'importo della caparra: senza di esso non si calcolano domanda, valore e procedibilità.»
-- Norma di riferimento art. 2652 c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 2932 c.c. (Esecuzione specifica dell'obbligo di concludere un contratto) — testo vigente, aggiornamento archivio 29/04/2026, versione `63ffe47853417906` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2932
+- art. 2652 c.c. (Domande riguardanti atti soggetti a trascrizione) — testo vigente, aggiornamento archivio n.d., versione `4b3fe032dbe2babb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2652
+- art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
 - Corte di Cassazione — civile, sez. 2, n. 29297/2026 (testo integrale) — versione `c51bbc2803db4522` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229297O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 29165/2026 (testo integrale) — versione `5fc94a3224d6e475` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229165O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 29037/2026 (testo integrale) — versione `5874f2e0079ba063` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229037I&rows=1&wt=json
@@ -57,3 +65,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:2652
+- r3 · 24/11/2026 01:12 · fonti cambiate: norma:cc:2946, norma:dlgs28:5

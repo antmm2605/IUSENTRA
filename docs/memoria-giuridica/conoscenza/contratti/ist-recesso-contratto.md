@@ -1,6 +1,6 @@
 # Recesso dal contratto
 
-- ID: `ist-recesso-contratto` · materia: contratti · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-recesso-contratto` · materia: contratti · revisione 3 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di recesso alla controparte, nei limiti pattuiti.
@@ -16,6 +16,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - La facoltà di recesso attribuita dal contratto si esercita finché il contratto non ha avuto un principio di esecuzione; nei contratti a esecuzione continuata o periodica anche dopo, ma senza effetto per le prestazioni già eseguite o in corso. — _art. 1373 c.c._ (ancora letterale trovata nel testo vigente)
+- Se a una parte è attribuita la facoltà di recedere, la può esercitare finché il contratto non ha avuto principio di esecuzione; nei contratti a esecuzione continuata o periodica anche dopo, senza effetto per le prestazioni eseguite. Senza previsione di legge o di contratto il recesso unilaterale non è ammesso. — _art. 1373 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -24,7 +25,9 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- contratto e clausola di recesso (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- esecuzione già iniziata (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- preavviso e corrispettivo (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -39,9 +42,10 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Strumenti del software
 - Regola di Lex «recesso_contratto»
+- Regola di Lex «con_recesso»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 1373 c.c. (Recesso unilaterale) — testo vigente, aggiornamento archivio 29/04/2026, versione `26c008b6f84a9832` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1373
@@ -55,3 +59,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

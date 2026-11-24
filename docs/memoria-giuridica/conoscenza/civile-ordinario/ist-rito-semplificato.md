@@ -1,9 +1,9 @@
 # Procedimento semplificato di cognizione (art. 281-decies)
 
-- ID: `ist-rito-semplificato` · materia: civile ordinario · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-rito-semplificato` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 281-decies c.p.c., art. 281-undecies c.p.c..
+**Sintesi.** Norme di riferimento: art. 281-decies c.p.c., art. 281-undecies c.p.c., art. 281-duodecies c.p.c..
 
 ## Presupposti
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
@@ -37,11 +37,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 281-duodecies c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 281-decies c.p.c. (Procedimento semplificato di cognizione) — testo vigente, aggiornamento archivio 05/03/2026, versione `fa60b5d07f29aa5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art281decies
 - art. 281-undecies c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `981c5b5c10967d9e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art281undecies
+- art. 281-duodecies c.p.c. (Procedimento) — testo vigente, aggiornamento archivio n.d., versione `59bc51f822d9e1d0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art281duodecies
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:281duodecies

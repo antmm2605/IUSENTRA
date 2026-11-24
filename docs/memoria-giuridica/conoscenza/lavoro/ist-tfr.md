@@ -1,9 +1,9 @@
 # TFR (trattamento di fine rapporto)
 
-- ID: `ist-tfr` · materia: lavoro · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: verificata · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-tfr` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: verificata · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Tribunale in funzione di giudice del lavoro.
+**Sintesi.** diffida, poi decreto ingiuntivo o ricorso al giudice del lavoro; con datore insolvente domanda al Fondo di garanzia INPS; Tribunale in funzione di giudice del lavoro.
 
 ## Presupposti
 - Sui crediti di lavoro il giudice, oltre agli interessi nella misura legale, determina il maggior danno per la diminuzione di valore del credito (rivalutazione). — _art. 429 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -20,10 +20,13 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Termini
 - Il decreto va notificato entro sessanta giorni dalla pronuncia (novanta se all'estero), altrimenti diventa inefficace. — _art. 644 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il debitore può proporre opposizione entro quaranta giorni dalla notificazione. — _art. 641 c.p.c._ (ancora letterale trovata nel testo vigente)
+- La sospensione feriale non si applica alle controversie di lavoro e di previdenza. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - Ricorso al Tribunale in funzione di giudice del lavoro nel rito del lavoro per la condanna del datore al pagamento delle differenze retributive, oltre interessi legali e rivalutazione monetaria. — _art. 414 c.p.c.; art. 429 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ricorso per decreto ingiuntivo al giudice competente per valore, oltre interessi e spese; richiesta di provvisoria esecuzione solo se ne ricorrono i presupposti. — _art. 633 c.p.c.; art. 637 c.p.c._ (ancora letterale trovata nel testo vigente)
+- In ogni caso di cessazione del rapporto di lavoro subordinato spetta il TFR: per ogni anno una quota pari alla retribuzione annua divisa per 13,5, rivalutata. — _art. 2120 c.c._ (ancora letterale trovata nel testo vigente)
+- Il diritto si prescrive in cinque anni dalla cessazione. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Giudice: il tribunale in funzione di giudice del lavoro, per le controversie relative a rapporti di lavoro subordinato privato. — _art. 409 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -36,6 +39,9 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 
 ## Documenti e dati da verificare
 - importo del credito (fatture e somme già pagate) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data di cessazione (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- retribuzioni annue e anticipi (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- eventuale procedura concorsuale del datore (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -53,6 +59,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Ricorso per crediti di lavoro (differenze retributive, TFR, ferie e permessi) — `/template-atti?scheda=LAV_005`
 - Regola di Lex «decreto_ingiuntivo»
 - Ricorso per decreto ingiuntivo — `/template-atti?scheda=MON_001`
+- Regola di Lex «lav_tfr»
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -70,6 +77,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 644 c.p.c. (Mancata notificazione del decreto) — testo vigente, aggiornamento archivio 05/03/2026, versione `5e162b8609e86369` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art644
 - art. 641 c.p.c. (Accoglimento della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `257353832d5720c4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art641
+- art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
 - art. 637 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `3798af16206abf88` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art637
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
@@ -83,3 +91,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 01:12 · fonti cambiate: norma:l742:3

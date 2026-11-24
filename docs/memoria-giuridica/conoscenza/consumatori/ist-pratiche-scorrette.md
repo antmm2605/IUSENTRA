@@ -1,6 +1,6 @@
 # Pratiche commerciali scorrette
 
-- ID: `ist-pratiche-scorrette` · materia: consumatori · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-pratiche-scorrette` · materia: consumatori · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** segnalazione all'Autorità garante della concorrenza e del mercato; azione civile per i danni.
@@ -40,14 +40,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 20 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 21 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 27 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
-- art. 20 d.lgs. 206/2005 (codice del consumo) (Divieto delle pratiche commerciali scorrette) — testo vigente, aggiornamento archivio n.d., versione `a5ec9241c74c2835` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art20
+- art. 20 d.lgs. 206/2005 (codice del consumo) (((Divieto delle pratiche commerciali scorrette))) — testo vigente, aggiornamento archivio n.d., versione `a5ec9241c74c2835` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art20
 - art. 21 d.lgs. 206/2005 (codice del consumo) (Azioni ingannevoli) — testo vigente, aggiornamento archivio n.d., versione `2812d49eed09f401` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art21
 - art. 27 d.lgs. 206/2005 (codice del consumo) (Tutela amministrativa e giurisdizionale) — testo vigente, aggiornamento archivio n.d., versione `357e3f1ed91e7f65` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art27
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:codcons:20, norma:codcons:21, norma:codcons:27, norma:dlgs206:20, norma:dlgs206:21, norma:dlgs206:27

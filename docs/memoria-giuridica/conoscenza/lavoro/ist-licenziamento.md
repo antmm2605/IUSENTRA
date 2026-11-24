@@ -1,7 +1,7 @@
 # Impugnazione del licenziamento
 
-- ID: `ist-licenziamento` · materia: lavoro · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: verificata · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-licenziamento` · materia: lavoro · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: verificata · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
 
@@ -48,12 +48,12 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
-- Norma di riferimento art. 441-bis c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 6 l. 604/1966 (Impugnazione del licenziamento) — testo vigente, aggiornamento archivio n.d., versione `609a2c8f440e1260` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1966-07-15;604~art6
 - art. 3 d.lgs. 23/2015 (Licenziamento per giustificato motivo e giusta causa) — testo vigente, aggiornamento archivio 13/02/2026, versione `1d38ed0ed171d384` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2015-03-04;23~art3
 - art. 18 l. 300/1970 (Tutela del lavoratore in caso di licenziamento illegittimo) — testo vigente, aggiornamento archivio n.d., versione `91e60f87076f449a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-05-20;300~art18
+- art. 441-bis c.p.c. (Controversie in materia di licenziamento) — testo vigente, aggiornamento archivio n.d., versione `a3b138c9e66d77de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art441bis
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
 - art. 32 l. 183/2010 (Decadenze e disposizioni in materia di contratto di lavoro a tempo determinato) — testo vigente, aggiornamento archivio 10/10/2025, versione `b2b61406eb4fe21e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2010-11-04;183~art32
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
@@ -69,3 +69,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:441bis

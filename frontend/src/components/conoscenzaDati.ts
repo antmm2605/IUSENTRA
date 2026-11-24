@@ -13,6 +13,8 @@ export type Fonte = {
   tipo_testo?: string
   data?: string
   norma?: string
+  stato?: 'vigente' | 'abrogata'
+  nota_abrogazione?: string
 }
 export type Voce = { testo: string; fonti: Fonte[]; provenienza: string; verifica: string; etichetta?: string; orientamento?: string; calcolo?: { quantita: number; unita: string; calcolatore: string; sospensione_feriale: boolean } }
 export type Sezione = { stato: 'compilata' | 'mancante'; voci: Voce[]; motivo?: string }
@@ -20,7 +22,7 @@ export type Strumento = { tipo: string; id: string; titolo: string; collegamento
 export type Revisione = { revisione: number; data: string; motivo: string }
 export type Scheda = {
   id: string; titolo: string; materia: string; istituto: string; sintesi: string; revisione: number; ultimo_controllo: string; generata_il: string
-  stato_verifica: string; sezioni: Record<string, Sezione>; strumenti: Strumento[]; lacune: string[]; fonti: Fonte[]; storia: Revisione[]; regole: string[]
+  stato_verifica: string; norme_abrogate?: { citazione: string; abrogata_da: string; decorrenza: string; sede_vigente: string }[]; sezioni: Record<string, Sezione>; strumenti: Strumento[]; lacune: string[]; fonti: Fonte[]; storia: Revisione[]; regole: string[]
 }
 export type VoceIndice = { id: string; titolo: string; materia: string; sintesi: string; fonti_dirette: number; stato: string; sezioni_compilate: number; sezioni_mancanti: string[]; revisione: number; ultimo_controllo: string; frammento?: string }
 export type Catalogo = { materie: { materia: string; schede: VoceIndice[]; conteggi: Record<string, number> }[]; totale: number; conteggi: Record<string, number>; aggiornato_il: string; puo_annotare: boolean }

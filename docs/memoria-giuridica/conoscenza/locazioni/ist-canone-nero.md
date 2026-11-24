@@ -1,14 +1,15 @@
 # Restituzione del canone non registrato o in nero
 
-- ID: `ist-canone-nero` · materia: locazioni · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-canone-nero` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 13 l. 431/1998.
+**Sintesi.** azione di restituzione entro sei mesi dalla riconsegna dell'immobile.
 
 ## Presupposti
 - È nullo il patto che fissa un canone superiore a quello del contratto scritto e registrato; il conduttore può chiederne la restituzione con azione proponibile nel termine di sei mesi dalla riconsegna dell'immobile. — _art. 13 l. 431/1998_ (ancora letterale trovata nel testo vigente)
 - È un termine di decadenza: non si interrompe con una diffida; lo impedisce solo il compimento dell'atto previsto. — _art. 2964 c.c.; art. 2966 c.c._ (ancora letterale trovata nel testo vigente)
 - La materia è a mediazione obbligatoria (locazione); la domanda di mediazione comunicata alle altre parti impedisce la decadenza per una sola volta. — _art. 5 d.lgs. 28/2010; art. 8 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
+- La materia rientra fra quelle per cui la mediazione è condizione di procedibilità. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -17,7 +18,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
 
 ## Rimedi e forme
-_Sezione mancante: nessuna conclusione verificata nelle regole dell'istituto._
+- È nulla ogni pattuizione che fissi un canone superiore a quello del contratto scritto e registrato; il conduttore può chiedere la restituzione delle somme pagate in più entro sei mesi dalla riconsegna dell'immobile. — _art. 13 l. 431/1998_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -27,6 +28,9 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 
 ## Documenti e dati da verificare
 - data di comunicazione della domanda di mediazione alla controparte (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- contratto registrato e canone (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- somme pagate in più e prove (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data di riconsegna (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -43,9 +47,10 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Strumenti del software
 - Regola di Lex «restituzione_canone_non_registrato»
+- Regola di Lex «loc_canone_nero»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 13 l. 431/1998 (Patti contrari alla legge) — testo vigente, aggiornamento archivio n.d., versione `c5a5ba9c17162e30` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1998-12-09;431~art13
@@ -64,3 +69,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

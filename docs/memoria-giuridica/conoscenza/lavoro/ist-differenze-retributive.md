@@ -1,9 +1,9 @@
 # Differenze retributive e crediti di lavoro
 
-- ID: `ist-differenze-retributive` · materia: lavoro · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-differenze-retributive` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: verificata · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Tribunale in funzione di giudice del lavoro.
+**Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro (o decreto ingiuntivo con le buste paga); Tribunale in funzione di giudice del lavoro.
 
 ## Presupposti
 - Sui crediti di lavoro il giudice, oltre agli interessi nella misura legale, determina il maggior danno per la diminuzione di valore del credito (rivalutazione). — _art. 429 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -14,10 +14,12 @@
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-_Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
+- La sospensione feriale non si applica alle controversie di lavoro e di previdenza. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - Ricorso al Tribunale in funzione di giudice del lavoro nel rito del lavoro per la condanna del datore al pagamento delle differenze retributive, oltre interessi legali e rivalutazione monetaria. — _art. 414 c.p.c.; art. 429 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il ricorso si propone al tribunale in funzione di giudice del lavoro del luogo in cui è sorto il rapporto o si trova l'azienda. — _art. 413 c.p.c.; art. 414 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Le retribuzioni si prescrivono in cinque anni. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Giudice: il tribunale in funzione di giudice del lavoro, per le controversie relative a rapporti di lavoro subordinato privato. — _art. 409 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -28,7 +30,10 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- contratto e CCNL (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- livello e mansioni (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- buste paga e conteggi (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- periodo (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -44,18 +49,21 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «crediti_lavoro»
 - Ricorso per crediti di lavoro (differenze retributive, TFR, ferie e permessi) — `/template-atti?scheda=LAV_005`
+- Regola di Lex «lav_crediti»
+- Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
-- Norma di riferimento art. 2099 c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
+- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
+- art. 2099 c.c. (art. 2099 c.c.) — testo vigente, aggiornamento archivio n.d., versione `778f854c2773f93a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2099
 - art. 429 c.p.c. (Pronuncia della sentenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `bd356badf417fb65` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art429
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
-- art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
+- art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
+- art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 - Corte di Cassazione — civile, sez. L, n. 29446/2026 (testo integrale) — versione `4ee179018b5f65fc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29446O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 5, n. 29147/2026 (testo integrale) — versione `a3317a02460159dc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529147O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 29047/2026 (testo integrale) — versione `fead8d45396a9a67` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29047O&rows=1&wt=json
@@ -65,3 +73,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:2099
+- r3 · 24/11/2026 01:12 · fonti cambiate: norma:l742:3

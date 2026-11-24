@@ -1,9 +1,9 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 3 · ultimo controllo 24/11/2026 01:12
 - Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 633 c.p.c., art. 634 c.p.c., art. 641 c.p.c., art. 644 c.p.c..
+**Sintesi.** ricorso per decreto ingiuntivo al giudice competente per valore.
 
 ## Presupposti
 - Il decreto ingiuntivo si chiede per un credito di una somma liquida di danaro di cui si dà prova scritta. — _art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -21,6 +21,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Rimedi e forme
 - Ricorso per decreto ingiuntivo al giudice competente per valore, oltre interessi e spese; richiesta di provvisoria esecuzione solo se ne ricorrono i presupposti. — _art. 633 c.p.c.; art. 637 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il decreto ingiuntivo va notificato entro sessanta giorni dalla pronuncia, novanta se la notificazione si fa all'estero; altrimenti diventa inefficace. — _art. 644 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Chi è creditore di una somma liquida ed esigibile, o di cose fungibili o mobili determinate, ottiene l'ingiunzione se fornisce prova scritta del diritto. — _art. 633 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Sono prove scritte anche le polizze e promesse unilaterali per scrittura privata e i telegrammi; per i crediti d'impresa gli estratti autentici delle scritture contabili. — _art. 634 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Competente è il giudice di pace o il tribunale che sarebbe competente per la domanda proposta in via ordinaria. — _art. 637 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -30,6 +32,9 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 
 ## Documenti e dati da verificare
 - importo del credito (fatture e somme già pagate) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- credito, importo e scadenza (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- prova scritta (contratto, fatture, riconoscimento di debito) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- sede del debitore (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -49,6 +54,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «decreto_ingiuntivo»
 - Ricorso per decreto ingiuntivo — `/template-atti?scheda=MON_001`
 - Regola di Lex «notifica_decreto_ingiuntivo»
+- Regola di Lex «mon_ricorso_credito»
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -75,3 +81,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

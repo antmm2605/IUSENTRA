@@ -71,7 +71,8 @@ CONCILIAZIONE = Scheda(
 MOBBING = Scheda(
     regola="lav_mobbing_demansionamento", materia="lavoro", nome="mobbing, straining e demansionamento",
     segnali=(r"mobbing|straining|vessa|demansion|mansioni (?:inferiori|dequalific)|dequalific|umilia|isolat\w*|"
-             r"persecut|svuotat\w* (?:di|delle) mansioni", LAV), esclusi=(r"licenzia|precett|pignor",), punteggio=6, modello="LAV_005",
+             r"persecut|svuotat\w* (?:di|delle) mansioni", LAV),
+    esclusi=(r"licenzia|precett|pignor|provvediment\w* (?:d )?urgent|\b700\b|ricorso d urgenza",), punteggio=6, modello="LAV_005",
     capito="Lavoratore che lamenta condotte vessatorie (mobbing, straining) o l'assegnazione a mansioni inferiori.",
     rimedio="ricorso ex art. 414 c.p.c. per la reintegra nelle mansioni e il risarcimento del danno alla salute e alla professionalità",
     conclusione=[

@@ -1,7 +1,7 @@
 # Ricorso per cassazione civile
 
-- ID: `ist-cassazione-civile` · materia: civile ordinario · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-cassazione-civile` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per cassazione sottoscritto da avvocato abilitato con procura speciale.
 
@@ -49,7 +49,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Norma di riferimento art. 380-bis c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 360 c.p.c. (Sentenze impugnabili e motivi di ricorso) — testo vigente, aggiornamento archivio n.d., versione `cbf080d9733b408b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art360
@@ -57,6 +56,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 366 c.p.c. (Contenuto del ricorso) — testo vigente, aggiornamento archivio n.d., versione `b5172ef4a6f56383` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art366
 - art. 325 c.p.c. (Termini per le impugnazioni) — testo vigente, aggiornamento archivio 05/03/2026, versione `a8a512cd9b78ba36` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art325
 - art. 327 c.p.c. (Decadenza dall'impugnazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `3e877539f1fa0e9a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art327
+- art. 380-bis c.p.c. (Procedimento per la decisione accelerata dei ricorsi inammissibili, improcedibili o manifestamente infondati) — testo vigente, aggiornamento archivio n.d., versione `fefd87d6d35f62ba` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art380bis
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 - art. 369 c.p.c. (Deposito del ricorso) — testo vigente, aggiornamento archivio n.d., versione `01d49368ec3683d0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art369
 - Corte di Cassazione — civile, sez. 2, n. 28413/2026 (testo integrale) — versione `def30439bbd8966a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228413O&rows=1&wt=json
@@ -68,3 +68,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:380bis

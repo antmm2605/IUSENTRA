@@ -1,7 +1,7 @@
 # Esecuzione per rilascio dell'immobile
 
-- ID: `ist-rilascio` · materia: locazioni · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-rilascio` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** precetto per rilascio, poi avviso di sloggio dell'ufficiale giudiziario almeno dieci giorni prima dell'accesso.
 
@@ -18,6 +18,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 - Il precetto per il rilascio di immobili deve contenere anche la descrizione sommaria dei beni; se il titolo fissa il termine del rilascio, l'intimazione va fatta con riferimento a quel termine. — _art. 605 c.p.c._ (ancora letterale trovata nel testo vigente)
 - L'esecuzione inizia con la notifica dell'avviso con cui l'ufficiale giudiziario comunica, almeno dieci giorni prima, il giorno e l'ora in cui procederà; quel giorno immette la parte istante nel possesso e le consegna le chiavi. — _art. 608 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Prima del precetto il titolo esecutivo va notificato; il precetto intima di adempiere in un termine non minore di dieci giorni. — _art. 479 c.p.c.; art. 480 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Se nell'immobile si trovano beni che non vanno consegnati, l'ufficiale giudiziario intima alla parte tenuta al rilascio, o al proprietario dei beni, di asportarli entro un termine. — _art. 609 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -26,7 +27,8 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- verbale di rilascio (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- beni presenti e proprietario (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -44,16 +46,18 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «rilascio»
 - Atto di precetto — `/template-atti?scheda=ESE_001`
+- Regola di Lex «loc_mobili_rilascio»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
-- Norma di riferimento art. 610 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 605 c.p.c. (Precetto per consegna o rilascio) — testo vigente, aggiornamento archivio 05/03/2026, versione `87c7d12a33697385` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art605
 - art. 608 c.p.c. (Modo dell'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `2a7c60ac181b44e1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art608
+- art. 610 c.p.c. (Provvedimenti temporanei) — testo vigente, aggiornamento archivio n.d., versione `9b939a9ef87905ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art610
 - art. 479 c.p.c. (Notificazione del titolo esecutivo e del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `1cac0925f6c5ae80` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479
 - art. 480 c.p.c. (Forma del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `8d05fb17defb2bf1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art480
+- art. 609 c.p.c. (Provvedimenti circa i mobili estranei all'esecuzione) — testo vigente, aggiornamento archivio n.d., versione `7d8a9c58394799f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art609
 - Corte di Cassazione — civile, sez. 3, n. 27670/2026 (testo integrale) — versione `ebe0e5a9f4f3b125` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026327670O&rows=1&wt=json
 - Corte di Cassazione — penale, sez. 3, n. 35868/2026 (testo integrale) — versione `d168dc537e978ffc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2026335868S&rows=1&wt=json
 - Corte costituzionale, n. 95/2006 (testo integrale) — versione `cc1:9da7c9d579c7` — https://www.cortecostituzionale.it/scheda-pronuncia/2006/95
@@ -64,3 +68,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:610
+- r3 · 24/11/2026 01:12 · fonti cambiate: norma:cpc:609

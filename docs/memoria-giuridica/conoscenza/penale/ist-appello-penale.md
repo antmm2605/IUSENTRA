@@ -1,9 +1,9 @@
 # Appello penale
 
-- ID: `ist-appello-penale` · materia: penale · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-appello-penale` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 585 c.p.p..
+**Sintesi.** atto di appello con motivi specifici.
 
 ## Presupposti
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
@@ -16,6 +16,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Il termine per l'impugnazione penale è di quindici giorni se la motivazione è contestuale, di trenta giorni se la motivazione è depositata entro il quindicesimo giorno, di quarantacinque giorni se il giudice fissa un termine più lungo per la motivazione. — _art. 585 c.p.p._ (ancora letterale trovata nel testo vigente)
+- L'imputato può appellare le sentenze di condanna. — _art. 593 c.p.p._ (ancora letterale trovata nel testo vigente)
+- Il termine è di quindici giorni (motivazione contestuale o camera di consiglio), trenta o quarantacinque se la motivazione è depositata dopo; aumentato di quindici giorni per il difensore dell'imputato giudicato in assenza. — _art. 585 c.p.p._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -24,7 +26,9 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- sentenza e data di deposito o avviso (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- tipo di motivazione (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- processo in assenza (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 - Per il difensore dell'imputato giudicato in assenza i termini sono aumentati di quindici giorni: verifica il caso concreto sul testo dell'art. 585 c.p.p. — _art. 585 c.p.p._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola)
@@ -39,14 +43,15 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 
 ## Strumenti del software
 - Regola di Lex «impugnazione_penale»
+- Regola di Lex «pen_appello»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare.
-- Norma di riferimento art. 593 c.p.p. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 581 c.p.p. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri.
 
 ## Fonti con versione
+- art. 593 c.p.p. (Casi di appello) — testo vigente, aggiornamento archivio n.d., versione `3092542ba73ababf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art593
 - art. 585 c.p.p. (Termini per l'impugnazione) — testo vigente, aggiornamento archivio 11/11/2026, versione `1d00080d59bf8eeb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:1988-09-22;447~art585
+- art. 581 c.p.p. ((Forma dell'impugnazione)) — testo vigente, aggiornamento archivio n.d., versione `f683c8914a5364a7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art581
 - Corte di Cassazione — penale, sez. 1, n. 40606/2026 (testo integrale) — versione `23cf18e2423c0d09` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2026140606S&rows=1&wt=json
 - Corte di Cassazione — penale, sez. 6, n. 40014/2026 (testo integrale) — versione `d4f89e95e76f2bfc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2026640014S&rows=1&wt=json
 - Corte di Cassazione — penale, sez. 7, n. 39848/2026 (testo integrale) — versione `f52907ac9546aef5` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2026739848O&rows=1&wt=json
@@ -56,3 +61,5 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpp:581, norma:cpp:593
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

@@ -1,12 +1,13 @@
 # Atto di citazione (rito ordinario di cognizione)
 
-- ID: `ist-citazione` · materia: civile ordinario · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-citazione` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione a udienza fissa notificato al convenuto, con iscrizione a ruolo.
 
 ## Presupposti
-- Verificare se la materia richiede la mediazione obbligatoria o la negoziazione assistita prima della causa. — _art. 5 d.lgs. 28/2010; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
+- Verificare se la materia richiede la mediazione obbligatoria prima della causa. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
+- Per le domande di pagamento a qualsiasi titolo fino a 50.000 euro (fuori dalle materie di mediazione) e per i danni da circolazione stradale, l'invito alla negoziazione assistita è condizione di procedibilità. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -65,3 +66,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

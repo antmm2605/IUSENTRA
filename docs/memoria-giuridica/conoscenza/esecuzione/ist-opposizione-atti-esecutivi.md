@@ -1,7 +1,7 @@
 # Opposizione agli atti esecutivi (art. 617)
 
-- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: verificata · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a precetto (art. 615, comma 1, c.p.c.) con istanza di sospensione dell'efficacia esecutiva del titolo per gravi motivi; giudice del luogo dell'esecuzione.
 
@@ -51,10 +51,10 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Prove e oneri, Questioni interpretative.
-- Norma di riferimento art. 618 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 617 c.p.c. (Forma dell'opposizione agli atti esecutivi) — testo vigente, aggiornamento archivio 05/03/2026, versione `79b4302774c6396a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art617
+- art. 618 c.p.c. (Provvedimenti del giudice dell'esecuzione) — testo vigente, aggiornamento archivio n.d., versione `986c974e6f482f7b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art618
 - art. 615 c.p.c. (Forma dell'opposizione all'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `f1b9eef332b162b1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art615
 - art. 1965 c.c. (Nozione della transazione) — testo vigente, aggiornamento archivio 29/04/2026, versione `05d0a906e6bbe9c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1965
 - art. 1199 c.c. (Diritto del debitore alla quietanza) — testo vigente, aggiornamento archivio 29/04/2026, versione `8a28f2c2f0fb7a05` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1199
@@ -73,3 +73,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:618

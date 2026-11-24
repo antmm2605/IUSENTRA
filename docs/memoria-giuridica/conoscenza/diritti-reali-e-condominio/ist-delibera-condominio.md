@@ -1,9 +1,9 @@
 # Impugnazione della delibera condominiale (art. 1137)
 
-- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 1137 c.c., art. 5 d.lgs. 28/2010.
+**Sintesi.** Norme di riferimento: art. 1137 c.c., art. 71-quater disp. att. c.c., art. 5 d.lgs. 28/2010.
 
 ## Presupposti
 - Mediazione obbligatoria: la controversia in materia di condominio rientra nell'elenco dell'art. 5, comma 1, d.lgs. 28/2010; l'esperimento del procedimento di mediazione è condizione di procedibilità della domanda. — _art. 5 d.lgs. 28/2010, comma 1; art. 5 d.lgs. 28/2010, comma 2_ (ancora letterale trovata nel testo vigente)
@@ -43,10 +43,10 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
 - Questione della regola impugnazione_delibera non riportata (senza norma citata): «La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: depositala entro i trenta giorni.»
-- Norma di riferimento art. 71-quater disp. att. c.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 1137 c.c. (Impugnazione delle deliberazioni dell'assemblea) — testo vigente, aggiornamento archivio 29/04/2026, versione `b55891c7a8b508f2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1137
+- art. 71-quater disp. att. c.c. (art. 71-quater disp. att. c.c.) — testo vigente, aggiornamento archivio n.d., versione `e0408ae6b5914a61` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;318~art71quater
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - Corte di Cassazione — civile, sez. 2, n. 28134/2026 (testo integrale) — versione `7b876f209a3c6f99` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228134S&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 28135/2026 (testo integrale) — versione `ae33f4c650a43414` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228135S&rows=1&wt=json
@@ -57,3 +57,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:dispattcc:71quater

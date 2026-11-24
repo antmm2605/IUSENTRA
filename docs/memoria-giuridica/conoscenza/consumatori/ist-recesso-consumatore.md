@@ -1,7 +1,7 @@
 # Diritto di recesso del consumatore
 
-- ID: `ist-recesso-consumatore` · materia: consumatori · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-recesso-consumatore` · materia: consumatori · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione esplicita di recesso (anche con il modulo tipo) entro il termine.
 
@@ -41,14 +41,13 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 52 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 54 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 57 d.lgs. 206/2005 (cod. consumo) presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 52 d.lgs. 206/2005 (codice del consumo) (Diritto di recesso) — testo vigente, aggiornamento archivio n.d., versione `0de33ebb1ebaa0dd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art52
+- art. 54 d.lgs. 206/2005 (codice del consumo) (((Esercizio del diritto di recesso))) — testo vigente, aggiornamento archivio n.d., versione `b9eb896ac7d226f1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art54
+- art. 57 d.lgs. 206/2005 (codice del consumo) (Obblighi del consumatore nel caso di recesso) — testo vigente, aggiornamento archivio n.d., versione `a88c10cb7f3a8648` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art57
 - art. 53 d.lgs. 206/2005 (codice del consumo) (Non adempimento dell'obbligo d'informazione sul diritto di recesso) — testo vigente, aggiornamento archivio n.d., versione `aa18658707c3e327` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art53
-- art. 54 d.lgs. 206/2005 (codice del consumo) (Esercizio del diritto di recesso) — testo vigente, aggiornamento archivio n.d., versione `b9eb896ac7d226f1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art54
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:codcons:52, norma:codcons:54, norma:codcons:57, norma:dlgs206:52, norma:dlgs206:54

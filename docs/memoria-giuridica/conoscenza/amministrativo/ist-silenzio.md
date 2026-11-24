@@ -1,7 +1,7 @@
 # Ricorso avverso il silenzio della PA
 
-- ID: `ist-silenzio` · materia: amministrativo · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-silenzio` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR avverso il silenzio, per l'accertamento dell'obbligo di provvedere.
 
@@ -40,11 +40,12 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 2 l. 241/1990 presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 117 c.p.a. (Ricorsi avverso il silenzio) — testo vigente, aggiornamento archivio 12/12/2025, versione `dc80bdd430b87b9f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art117
 - art. 31 c.p.a. (Azione avverso il silenzio e declaratoria di nullità) — testo vigente, aggiornamento archivio 12/12/2025, versione `e524ff92f123c5ec` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art31
+- art. 2 l. 241/1990 (Conclusione del procedimento) — testo vigente, aggiornamento archivio n.d., versione `564f700a143de7d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241~art2
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:l241:2

@@ -193,8 +193,8 @@ def analizza_ordini_protezione(c: Comprensione, f: Fatti) -> Analisi:
               "anche se la convivenza è cessata.",
               [Rif("cpc:473bis69", "e' causa di grave pregiudizio all'integrita' fisica o morale"),
                Rif("cpc:473bis69", "anche quando la convivenza e' cessata")]),
-        Punto("La disciplina vigente è nel codice di procedura civile (artt. 473-bis.69 e seguenti), non più agli artt. 342-bis "
-              "e 342-ter c.c.; se la condotta può pregiudicare i minori provvede, anche su istanza del pubblico ministero, il "
+        Punto("La disciplina vigente degli ordini di protezione è nel codice di procedura civile, nel procedimento in materia di "
+              "persone, minorenni e famiglie; se la condotta può pregiudicare i minori provvede, anche su istanza del pubblico ministero, il "
               "tribunale per i minorenni.",
               [Rif("cpc:473bis69", "dal tribunale per i minorenni")]),
         Punto("Con il decreto il giudice ordina la cessazione della condotta e l'allontanamento dalla casa familiare, e può "

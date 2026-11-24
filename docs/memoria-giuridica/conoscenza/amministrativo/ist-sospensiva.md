@@ -1,9 +1,9 @@
 # Sospensiva e misure cautelari al TAR
 
-- ID: `ist-sospensiva` · materia: amministrativo · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sospensiva` · materia: amministrativo · revisione 3 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Scheda in attesa di fonti.
+**Sintesi.** domanda cautelare collegiale nel ricorso o con atto separato; in estrema urgenza istanza di decreto monocratico.
 
 ## Presupposti
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
@@ -16,6 +16,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Rimedi e forme
 - L'azione di annullamento davanti al TAR si propone nel termine di decadenza di sessanta giorni, che decorre dalla notificazione, comunicazione o piena conoscenza del provvedimento. — _art. 29 c.p.a.; art. 41 c.p.a._ (ancora letterale trovata nel testo vigente)
+- Chi allega un pregiudizio grave e irreparabile nel tempo necessario alla decisione può chiedere misure cautelari; il collegio decide con ordinanza in camera di consiglio. — _art. 55 c.p.a._ (ancora letterale trovata nel testo vigente)
+- In caso di estrema gravità e urgenza che non consente di attendere la camera di consiglio si chiedono al presidente misure cautelari provvisorie con decreto. — _art. 56 c.p.a._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -24,7 +26,9 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- provvedimento impugnato (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data dell'esecuzione temuta (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- pregiudizio grave e irreparabile (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -40,15 +44,16 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «ricorso_tar»
 - Ricorso al TAR di annullamento (anche concessioni e sanzioni di settore) — `/template-atti?scheda=AMM_001`
+- Regola di Lex «amm_sospensiva»
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
 - Questione della regola ricorso_tar non riportata (senza norma citata): «Riti speciali (appalti, accesso agli atti, silenzio) hanno termini dimezzati o diversi: verifica il rito.»
-- Norma di riferimento art. 55 c.p.a. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
-- Norma di riferimento art. 56 c.p.a. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
+- art. 55 c.p.a. (Misure cautelari collegiali) — testo vigente, aggiornamento archivio 23/11/2026, versione `e3838346afdf798e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art55
+- art. 56 c.p.a. (Misure cautelari monocratiche) — testo vigente, aggiornamento archivio 23/11/2026, versione `e7e7f3347006a819` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art56
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 - art. 29 c.p.a. (Azione di annullamento) — testo vigente, aggiornamento archivio 12/12/2025, versione `fc8a6ac96a40c784` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art29
 - art. 41 c.p.a. (Notificazione del ricorso e suoi destinatari) — testo vigente, aggiornamento archivio 12/12/2025, versione `1f125f48b5d2bf6b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art41
@@ -61,3 +66,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpa:55, norma:cpa:56
+- r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti

@@ -1,7 +1,7 @@
 # Regolamento di competenza
 
-- ID: `ist-regolamento-competenza` · materia: civile ordinario · revisione 1 · ultimo controllo 24/11/2026 00:20
-- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-regolamento-competenza` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:12
+- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso alla Corte di cassazione per regolamento di competenza (in alternativa: riassunzione davanti al giudice indicato).
 
@@ -41,12 +41,13 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Norma di riferimento art. 43 c.p.c. presente in biblioteca ma non nel registro delle norme di Lex: testo non letto dalla scheda.
 
 ## Fonti con versione
 - art. 42 c.p.c. (Regolamento necessario di competenza) — testo vigente, aggiornamento archivio n.d., versione `4334630d2940b3cd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art42
+- art. 43 c.p.c. (Regolamento facoltativo di competenza) — testo vigente, aggiornamento archivio n.d., versione `366fb4d2650e6172` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art43
 - art. 47 c.p.c. (Procedimento del regolamento di competenza) — testo vigente, aggiornamento archivio n.d., versione `c28e4ec7f97e5933` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art47
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:43

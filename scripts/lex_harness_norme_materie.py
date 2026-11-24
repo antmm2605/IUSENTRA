@@ -35,6 +35,21 @@ def _documento(conn: sqlite3.Connection, urn: str) -> tuple[int, str] | None:
     return migliore[0], migliore[1]
 
 
+_FONTI_NON_NORMATTIVA = {
+    # Disposizioni della Banca d'Italia sull'ABF: testo consolidato pubblicato dalla Banca d'Italia.
+    "banca.italia:provvedimento:2009-06-18;abf": "https://www.bancaditalia.it/compiti/vigilanza/normativa/archivio-norme/"
+                                                 "disposizioni/disposizioni/SMD_Disposizioni_ABF.pdf",
+}
+
+
+def _url(urn: str, numero: str) -> str:
+    if urn in _FONTI_NON_NORMATTIVA:
+        return _FONTI_NON_NORMATTIVA[urn]
+    if urn.startswith("unione"):
+        return ""
+    return f"https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:{urn}~art{numero}"
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
@@ -42,7 +57,9 @@ def main() -> int:
     db = Path(sys.argv[1])
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     norme, mancanti = {}, {}
-    for chiave, _estremi, citazione, _rubrica, urn, numero in NORME_MATERIE:
+    for voce in NORME_MATERIE:
+        chiave, _estremi, citazione, _rubrica, urn, numero = voce[:6]
+        estratto = voce[6] if len(voce) > 6 else None   # (inizio, fine): solo i commi utili di un articolo molto lungo
         doc = _documento(conn, urn)
         if doc is None:
             mancanti[chiave] = "atto non presente nella biblioteca"
@@ -53,15 +70,19 @@ def main() -> int:
             mancanti[chiave] = f"articolo {numero} non trovato nell'edizione {doc[0]}"
             continue
         testo = " ".join((r[1] or "").split())
+        if estratto:
+            i, j = testo.find(estratto[0]), testo.find(estratto[1])
+            if i < 0 or j <= i:
+                mancanti[chiave] = f"commi {estratto} non trovati nell'articolo"
+                continue
+            testo = testo[i:j].strip()
         if re.search(r"\(\(\s*(?:ARTICOLO|PROVVEDIMENTO) ABROGAT", testo[:200]):
             mancanti[chiave] = "articolo abrogato nel testo vigente"
             continue
         titolo = conn.execute("SELECT titolo FROM normative_documents WHERE id=?", (doc[0],)).fetchone()[0] or ""
         vig = doc[1][len("VIGENTE_AL:"):] if doc[1].startswith("VIGENTE_AL:") else ""
         agg = date.fromisoformat(vig).strftime("%d/%m/%Y") if vig else ""
-        norme[chiave] = {"citazione": citazione, "testo": testo,
-                         "url": f"https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:{urn}~art{numero}"
-                         if not urn.startswith("unione") else "",
+        norme[chiave] = {"citazione": citazione, "testo": testo, "url": _url(urn, numero),
                          "titolo_atto": titolo, "aggiornamento": agg, "vigente": True, "document_id": str(doc[0]),
                          "article_id": str(r[0]), "origine": "biblioteca di consultazione (testo vigente Normattiva)",
                          "sha256": hashlib.sha256(testo.encode()).hexdigest()}

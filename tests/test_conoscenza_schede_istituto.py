@@ -293,3 +293,23 @@ def test_api_conoscenza(tmp_path):
         assert client.post(f"/api/v1/ui/conoscenza/schede/{ident}/annotazioni", json={"sezione": "x", "testo": "y"}).status_code == 400
         s = client.get(f"/api/v1/ui/conoscenza/schede/{ident}").get_json()
         assert [a["testo"] for a in s["annotazioni"]] == ["Nota di prova."]
+
+
+def test_nessuna_norma_abrogata_come_riferimento():
+    """Gli ordini di protezione stanno negli artt. 473-bis.69 ss. c.p.c.: gli artt. 342-bis e 342-ter c.c. (abrogati dal
+    d.lgs. 164/2024) restano solo come storico; nessuna norma di riferimento del catalogo è abrogata."""
+    _, istituti = carica()
+    ordini = next(i for i in istituti if i.id == "ordini_protezione")
+    assert {n.chiave for n in ordini.norme} == {"cpc:473bis69", "cpc:473bis70"}
+    assert {a["chiave"] for a in ordini.norme_abrogate} == {"cc:342bis", "cc:342ter"}
+    for i in istituti:
+        for n in i.norme:
+            f = generatore.fonte_norma(n.chiave)
+            assert f is not None and f["stato"] == "vigente" and n.stato_biblioteca != "abrogato", (i.id, n.chiave)
+    s = consultazione.scheda("ist-ordini-protezione")
+    assert not any(f["chiave"].startswith("cc:342") for f in s["fonti"]) and s["norme_abrogate"]
+
+
+def test_norma_abrogata_citata_e_dichiarata():
+    f = generatore.fonte_norma("dlgs546:17bis")
+    assert f["stato"] == "abrogata" and not f["vigente"] and "220" in f["nota_abrogazione"]

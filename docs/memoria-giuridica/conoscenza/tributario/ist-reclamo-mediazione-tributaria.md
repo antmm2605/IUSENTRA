@@ -1,6 +1,6 @@
-# Reclamo e mediazione tributaria (art. 17-bis, abrogato)
+# Reclamo e mediazione tributaria (istituto abrogato: oggi ricorso diretto)
 
-- ID: `ist-reclamo-mediazione-tributaria` · materia: tributario · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-reclamo-mediazione-tributaria` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso diretto alla Corte di giustizia tributaria di primo grado, senza reclamo-mediazione.
@@ -39,12 +39,16 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- art. 17-bis d.lgs. 546/1992: in biblioteca «abrogato»; verificare il comma applicabile.
+- art. 17-bis d.lgs. 546/1992 è citato come norma abrogata (Articolo abrogato dal d.lgs. 30 dicembre 2023, n. 220): vale per i fatti e i giudizi anteriori secondo la disciplina transitoria, non come diritto vigente.
 
 ## Fonti con versione
-- art. 17-bis d.lgs. 546/1992 (Il reclamo e la mediazione) — testo vigente, aggiornamento archivio 12/05/2026, versione `ec908f64a3e7523e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art17bis
+- art. 17-bis d.lgs. 546/1992 — NORMA ABROGATA (Articolo abrogato dal d.lgs. 30 dicembre 2023, n. 220), versione `ec908f64a3e7523e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art17bis
 - art. 21 d.lgs. 546/1992 (Termine per la proposizione del ricorso) — testo vigente, aggiornamento archivio 12/05/2026, versione `0e3a2c96f7e731ca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art21
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 
+## Norme abrogate (storico, non norme di riferimento)
+- art. 17-bis d.lgs. 546/1992: abrogato dal d.lgs. 30 dicembre 2023, n. 220; decorrenza: secondo l'art. 4, comma 2, d.lgs. 220/2023 (ricorsi notificati dopo il 01/09/2024, salvo le lettere applicabili dal giorno successivo all'entrata in vigore): la lettera che abroga l'art. 17-bis va verificata sul d.lgs. 220/2023, non presente in biblioteca; sede vigente: nessuna: il ricorso si propone direttamente (art. 21 d.lgs. 546/1992)
+
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

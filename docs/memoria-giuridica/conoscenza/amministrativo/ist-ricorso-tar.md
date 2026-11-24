@@ -1,6 +1,6 @@
 # Ricorso al TAR (art. 29 c.p.a.)
 
-- ID: `ist-ricorso-tar` · materia: amministrativo · revisione 1 · ultimo controllo 24/11/2026 00:20
+- ID: `ist-ricorso-tar` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 01:12
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 29 c.p.a., art. 41 c.p.a., art. 40 c.p.a..
@@ -60,3 +60,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
+- r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti

@@ -66,7 +66,7 @@ def _evento(operazione: str, scheda: dict[str, Any] | None, ora: str, **dettagli
     base = {"operazione": operazione, "scheda": scheda["id"] if scheda else "",
             "revisione": scheda.get("revisione") if scheda else None,
             "impronta": scheda.get("impronta", "")[:16] if scheda else "", **dettaglio}
-    if operazione == "controllo":
+    if operazione in ("controllo", "lint"):
         base["ora"] = ora  # un controllo per passaggio: l'ora lo distingue
     return {"evento_id": impronta(base)[:20], "ts": ora, "materia": scheda.get("materia", "") if scheda else "",
             "titolo": scheda.get("titolo", "") if scheda else "", "esito": "completato", **base}
@@ -257,7 +257,8 @@ def log_md(eventi: list[dict[str, Any]]) -> str:
             r.append(f"revision: {e['revisione_precedente']} -> {e['revisione']}")
         elif e.get("revisione") is not None:
             r.append(f"revision: {e['revisione']}")
-        for k in ("motivo", "generate", "aggiornate", "rinominate", "invariate", "ritirate", "schede", "fonti"):
+        for k in ("motivo", "generate", "aggiornate", "rinominate", "invariate", "ritirate", "schede", "fonti",
+                  "senza_fonti", "norma_abrogata", "collegamento_rotto", "riesame_scaduto"):
             if e.get(k) not in (None, "", []):
                 r.append(f"{k}: {e[k]}")
         for k in ("cambiate", "aggiunte", "tolte"):

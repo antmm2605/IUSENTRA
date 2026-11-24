@@ -494,3 +494,46 @@ def test_questione_giudicato_implicito_dalle_pronunce_lette():
     assert q and all("giudicat" in v["testo"].lower() and v["fonti"][0]["citazione"].startswith("Corte di Cassazione")
                      for v in q)
     assert all("nessuna prevalenza" in v["orientamento"] for v in q)
+
+
+# ------------------------------------------------------------------ controllo della wiki (lint)
+def test_lint_sui_record_pubblicati_e_pulito():
+    from lex.conoscenza.lint import controlla
+
+    r = controlla(viste=deposito.VISTE)
+    assert r["schede"] >= 150 and r["segnalazioni"] == [], r["segnalazioni"][:5]
+
+
+def test_lint_trova_gli_errori_introdotti(tmp_path):
+    import copy
+    from datetime import datetime
+
+    from lex.conoscenza.lint import controlla, registra
+
+    dati = copy.deepcopy(deposito.leggi_archivio())
+    s = dati["schede"]
+    s["ist-carta-docente"]["fonti"] = [f for f in s["ist-carta-docente"]["fonti"] if f["tipo"] != "norma"]
+    abrogata = generatore.fonte_norma("dlgs546:17bis")
+    s["ist-ricorso-tributario"]["fonti"].append(dict(abrogata, stato_biblioteca="abrogato"))
+    s["ist-licenziamento"]["strumenti"].append({"tipo": "modello_atto", "id": "NON_ESISTE", "titolo": "Modello sparito", "collegamento": ""})
+    s["ist-licenziamento"]["fonti"].append({"tipo": "norma", "chiave": "cc:9999", "citazione": "art. 9999 c.c.", "versione": "x"})
+    s["ist-tfr"]["dipendenze"] = {**s["ist-tfr"]["dipendenze"], "norma:cc:2948": "vecchia"}
+    s["ist-tfr"]["da_riesaminare_dal"] = "2026-09-01T03:00:00+02:00"
+    archivio = tmp_path / "schede.json"
+    archivio.write_text(json.dumps(dati, ensure_ascii=False), encoding="utf-8")
+    r = controlla(archivio=archivio, adesso=datetime.fromisoformat("2026-11-24T04:00:00+01:00"))
+    per = {(x["categoria"], x["scheda"], x["oggetto"]) for x in r["segnalazioni"]}
+    assert ("senza_fonti", "ist-carta-docente", "fonti") in per
+    assert ("norma_abrogata", "ist-ricorso-tributario", "dlgs546:17bis") in per
+    assert ("collegamento_rotto", "ist-licenziamento", "modello_atto:NON_ESISTE") in per
+    assert ("collegamento_rotto", "ist-licenziamento", "norma:cc:9999") in per
+    assert ("riesame_scaduto", "ist-tfr", "stato") in per
+    # ID stabile: la stessa segnalazione resta la stessa al giro successivo.
+    assert {x["id"] for x in controlla(archivio=archivio, adesso=datetime.fromisoformat("2026-11-25T04:00:00+01:00"))["segnalazioni"]} \
+        == {x["id"] for x in r["segnalazioni"]}
+    registro = tmp_path / "registro.jsonl"
+    registra(r, registro=registro, ora="2026-11-24T04:00:00+01:00")
+    ev = deposito.leggi_registro(registro)[-1]
+    assert ev["operazione"] == "lint" and ev["senza_fonti"] == 1 and ev["segnalazioni"]
+    # Nessuna correzione automatica: l'archivio non è stato toccato.
+    assert json.loads(archivio.read_text(encoding="utf-8")) == dati

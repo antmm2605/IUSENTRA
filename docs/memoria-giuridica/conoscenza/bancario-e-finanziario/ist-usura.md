@@ -1,6 +1,6 @@
 # Usura bancaria
 
-- ID: `ist-usura` · materia: bancario e finanziario · revisione 5 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-usura` · materia: bancario e finanziario · revisione 5 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di accertamento della nullità della clausola degli interessi e di ripetizione (mediazione preventiva obbligatoria).

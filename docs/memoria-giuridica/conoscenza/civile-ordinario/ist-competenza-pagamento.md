@@ -1,6 +1,6 @@
 # Competenza per territorio nelle cause di pagamento
 
-- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 5 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 5 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale.

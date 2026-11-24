@@ -1,6 +1,6 @@
 # Procedimento semplificato di cognizione (art. 281-decies)
 
-- ID: `ist-rito-semplificato` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-rito-semplificato` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 281-decies c.p.c., art. 281-undecies c.p.c., art. 281-duodecies c.p.c..

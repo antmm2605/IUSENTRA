@@ -1,6 +1,6 @@
 # Provvedimento d'urgenza (art. 700 c.p.c.)
 
-- ID: `ist-ricorso-700` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-ricorso-700` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 700 c.p.c. al giudice competente per il merito.

@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "pipeline": "schede-istituto/1",
- "aggiornato_il": "2026-11-24T04:24:43+01:00",
+ "aggiornato_il": "2026-11-24T04:27:45+01:00",
  "schede": {
   "ist-abbreviato": {
    "id": "ist-abbreviato",
@@ -254,7 +254,7 @@
    "impronta": "8ac79d185861c8048f6be238b46abc3749479a230456c1fc1f7317de3f284b9f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -491,7 +491,7 @@
    "impronta": "63368be1a214db240dfba5a0d3e03dd7324576b3e817940eff59e32dbe7b15a2",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -594,7 +594,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -616,7 +616,7 @@
        "provenienza": "norma generale dell'istituto (voce «modifica_domande_lavoro»)"
       },
       {
-       "testo": "Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo grado; nei giudizi di impugnazione solo se oggetto di specifico motivo.",
+       "testo": "Difetto di giurisdizione del giudice ordinario: verso la pubblica amministrazione è rilevato, anche d'ufficio, in qualunque stato e grado del processo; verso il giudice amministrativo o i giudici speciali è rilevato anche d'ufficio nel giudizio di primo grado e, nei giudizi di impugnazione, solo se oggetto di specifico motivo. Testo in vigore per i procedimenti instaurati dopo il 28/02/2023.",
        "fonti": [
         {
          "tipo": "norma",
@@ -624,7 +624,7 @@
          "citazione": "art. 37 c.p.c.",
          "rubrica": "Difetto di giurisdizione",
          "comma": "",
-         "ancora": "nei confronti del giudice amministrativo o dei giudici speciali e' rilevato anche d'ufficio nel giudizio di primo grado",
+         "ancora": "nei confronti della pubblica amministrazione e' rilevato, anche d'ufficio, in qualunque stato e grado del processo",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37",
          "aggiornamento": "",
          "origine": "istantanea dell'archivio",
@@ -1470,7 +1470,9 @@
      "collegamento": "/strumenti-legali/"
     }
    ],
-   "lacune": [],
+   "lacune": [
+    "Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da verificare per le cause anteriori."
+   ],
    "sintesi": "ricorso ex art. 414 c.p.c. al giudice del lavoro per il risarcimento del danno da abuso (non per la conversione); Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.",
    "norme_abrogate": [],
    "fonti_dirette": 23,
@@ -1502,10 +1504,10 @@
     "pronuncia:Corte costituzionale|50/2005": "cc1:9e4ebb9aa39e",
     "pronuncia:Corte costituzionale|29/2001": "cc1:526ba51dccec"
    },
-   "impronta": "0d6a4e8108c25b355a152c8b243ed0954834b30f7453297f70c8e7a8657ea424",
-   "revisione": 5,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "cb8c3df0957dc4ad19744c493100ec58483777a2833ea332c9569656e04be5fb",
+   "revisione": 8,
+   "generata_il": "2026-11-24T04:27:45+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -1536,6 +1538,24 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "0d6a4e8108c25b35",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 6,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "f7a182e1a4be75de",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T04:27:27+01:00",
+     "impronta": "42d23c67a5d39ab1",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 8,
+     "data": "2026-11-24T04:27:45+01:00",
+     "impronta": "cb8c3df0957dc4ad",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -1761,7 +1781,7 @@
    "impronta": "ebf315c276f371f5f9dd0471a9f0097938eed348865aa7e1d16a1ad11ccf3ee6",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -1922,7 +1942,7 @@
    "impronta": "16ee72c5773a333da9a9da6dec742f6c6f8dbb97b4f0175c0b8023b8b0c67652",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2125,7 +2145,7 @@
    "impronta": "2cfedef6329d038057a8971f80af5a0a05d207e7ca4cd6aca7c50112797cdbab",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2300,7 +2320,7 @@
    "impronta": "ab9afee72544bcec967789ed6a8c97bc0b350414b3faed8b4bbf09e6ffd487aa",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2727,7 +2747,7 @@
    "impronta": "006324ec62d02f7959a6679f2469ef31ca3912fc5047c4809fbe0acf8f7f3dc9",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2874,7 +2894,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "le pigioni delle case, i fitti dei beni rustici e ogni altro corrispettivo di locazioni",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -3306,10 +3326,10 @@
     "norma:cpc:115": "8874c35c61f6d6de",
     "norma:cpc:116": "37ef8c82fd389102"
    },
-   "impronta": "c615640ab101640c5e66e0b65f5a83da777b450371eede70aea32c86020fd7ca",
-   "revisione": 4,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "9e4634a231967aeacb90bb74889bafebac7a1e0814ab5f1c0413b21d2db6ad37",
+   "revisione": 5,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -3334,6 +3354,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "c615640ab101640c",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116"
+    },
+    {
+     "revisione": 5,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "9e4634a231967aea",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -4192,7 +4218,7 @@
    "impronta": "989976312d0a42595d2d248a9b2414adad4b465bb5445a6df60b525080d16f72",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -4656,7 +4682,7 @@
    "impronta": "142643ccbd1a5c1c89e44c34e8d7ca73a30bd1acfdda7cb32cb0cbd347c0440c",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -4923,7 +4949,7 @@
    "impronta": "2b1014a60deb485f3c2bb64a188a92a95575d3ec49f18a0320b66008453978b3",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -5611,7 +5637,7 @@
    "impronta": "f2aad4aa004dd8256b65b3bdd5e653a01e04cf2d840f449e893b83dccbec6578",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -6165,7 +6191,7 @@
    "impronta": "bd2d5f71d418bb009b89c88d28932a621ee65c6cd06d81151fef121ff767ccc8",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -6618,7 +6644,7 @@
    "impronta": "0774f4554ac87ff73f852ae7ddc256fd6d861be22dd36daefb27cb72fa3a9c8b",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7084,7 +7110,7 @@
    "impronta": "f14e89355ce0c147ab213d914f74029219057af666d885c59b7dbaf189daa906",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7317,7 +7343,7 @@
    "impronta": "8f7d2d242b98627cf70b51daadbd1289696ab76d8f576719172ef3b25762ef09",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7549,7 +7575,7 @@
    "impronta": "38838d755a67af85d098497756e28bce99d30e88c91cf853c33750f27f10be4b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7808,7 +7834,7 @@
    "impronta": "c00c5ac97df0a934d14e9e0db6db52bc753d9d2ab039aadfac5aa52e6fe16343",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -8527,7 +8553,7 @@
    "impronta": "646d3bb1fc45a53e213972df46d21b9541e8fb97c2656bed9ee14af1d769befb",
    "revisione": 1,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -8713,7 +8739,7 @@
    "impronta": "82334528448181e98a8eccdd285be811feb5a2abcd9c7b725cc9986081b02475",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -9266,7 +9292,7 @@
    "impronta": "452c03c0c3a88dc55c4a320fcf82c9c2615f61af839c22d659e59a85716b8df6",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -9517,7 +9543,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "le pigioni delle case, i fitti dei beni rustici e ogni altro corrispettivo di locazioni",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -10163,10 +10189,10 @@
     "pronuncia:Corte costituzionale|87/2017": "cc1:d03476b10f12",
     "pronuncia:Corte di Cassazione — civile|29672/2026": "78ea4ddd30a67567"
    },
-   "impronta": "656d28b24fff1eed7cbb835696506affc5b62373ed890123525b377ff7d727ae",
-   "revisione": 7,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "742786cb6d21562c5097ce5faf04462a6072b7844a2b178a6d911a2c8ce989fc",
+   "revisione": 8,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -10209,6 +10235,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "656d28b24fff1eed",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116"
+    },
+    {
+     "revisione": 8,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "742786cb6d21562c",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -11008,7 +11040,7 @@
    "impronta": "24d0170613b6731206639b84cc9311cf870472d81b28bfc6cce57473e1ffe1ff",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -11107,7 +11139,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -11129,7 +11161,7 @@
        "provenienza": "norma generale dell'istituto (voce «modifica_domande_lavoro»)"
       },
       {
-       "testo": "Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo grado; nei giudizi di impugnazione solo se oggetto di specifico motivo.",
+       "testo": "Difetto di giurisdizione del giudice ordinario: verso la pubblica amministrazione è rilevato, anche d'ufficio, in qualunque stato e grado del processo; verso il giudice amministrativo o i giudici speciali è rilevato anche d'ufficio nel giudizio di primo grado e, nei giudizi di impugnazione, solo se oggetto di specifico motivo. Testo in vigore per i procedimenti instaurati dopo il 28/02/2023.",
        "fonti": [
         {
          "tipo": "norma",
@@ -11137,7 +11169,7 @@
          "citazione": "art. 37 c.p.c.",
          "rubrica": "Difetto di giurisdizione",
          "comma": "",
-         "ancora": "nei confronti del giudice amministrativo o dei giudici speciali e' rilevato anche d'ufficio nel giudizio di primo grado",
+         "ancora": "nei confronti della pubblica amministrazione e' rilevato, anche d'ufficio, in qualunque stato e grado del processo",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37",
          "aggiornamento": "",
          "origine": "istantanea dell'archivio",
@@ -11998,7 +12030,8 @@
    ],
    "lacune": [
     "Sezioni senza fonte: Questioni interpretative.",
-    "Questione della regola pi_carta_docente non riportata (senza norma citata): «Consiglio operativo: prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio SentenzeWeb pri»"
+    "Questione della regola pi_carta_docente non riportata (senza norma citata): «Consiglio operativo: prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio SentenzeWeb pri»",
+    "Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da verificare per le cause anteriori."
    ],
    "sintesi": "ricorso ex art. 414 c.p.c. al giudice del lavoro per l'accertamento del diritto alla carta per gli anni scolastici indicati e la condanna del Ministero all'attribuzione o al risarcimento per equivalente; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.",
    "norme_abrogate": [],
@@ -12034,10 +12067,10 @@
     "pronuncia:Corte costituzionale|50/2005": "cc1:9e4ebb9aa39e",
     "pronuncia:Corte costituzionale|29/2001": "cc1:526ba51dccec"
    },
-   "impronta": "7e69681e22327bc6a4a951218146984099976d4cdefa12d5eba4f5d18a193096",
-   "revisione": 4,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "08e7ccbccc91241463eefeb161edf5dfd519c11ad97f16951b4dd900d0c5ac46",
+   "revisione": 7,
+   "generata_il": "2026-11-24T04:27:45+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -12062,6 +12095,24 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "7e69681e22327bc6",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 5,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "007bc4347c90e5bf",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 6,
+     "data": "2026-11-24T04:27:27+01:00",
+     "impronta": "40cdeda1c504cb2d",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T04:27:45+01:00",
+     "impronta": "08e7ccbccc912414",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -12638,7 +12689,7 @@
    "impronta": "3d9839f0bd13a8cc827c55f94592f60818cb6938b048527c898789e4105e4b3e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -13174,7 +13225,7 @@
    "impronta": "0945b3653b35b8cbb0afa392fcd86916f9905fc6d0898b21a903df2458fba4ef",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -13361,7 +13412,7 @@
    "impronta": "96ebd20c438d1c732a305e9212a0f9419b795fd03e4674078e9673c74ed5531a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -14121,7 +14172,7 @@
    "impronta": "eb9ca7672c4832dea261df5daa416ad26f7855c536901a7203e00c62abfcf80e",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -14619,7 +14670,7 @@
    "impronta": "6d1a338beff11585f772b8427cb4eeaf24dbc81a7fd86467212f5583a96e8079",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -15293,7 +15344,7 @@
    "impronta": "5045d97fc554e73d6b01249f2445f425903b034b526bb9404c490d2de78c5980",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -16165,7 +16216,7 @@
    "impronta": "383e9056b1494c3580f581e979acc1560b8c5817146eadb1333d26a784a9da2f",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -16416,7 +16467,7 @@
    "impronta": "83f71a890249cafa442100208de6d155f4ebe43db646898caa8713305c897bbc",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -17074,7 +17125,7 @@
    "impronta": "8eb3cc3dec9f25bf010ede096fbeb085539fd41048ab475a41e11d6dc1886bd7",
    "revisione": 3,
    "generata_il": "2026-11-24T04:04:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -17298,7 +17349,7 @@
    "impronta": "617ba6e175d9e22b6406e1a757a83ca43dfea6d914fa583ef9b2b55e7ea797f1",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -17934,7 +17985,7 @@
    "impronta": "98127709334e94125115bfb0ad6ffa7bd1a0feeb4e95142e8194a203b439d050",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -18134,7 +18185,7 @@
    "impronta": "8efaa0a57b502b45cda8db9a8a23cd27f07d10aa8d08f0f7b511f2a8012aff69",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -18968,7 +19019,7 @@
    "impronta": "af5ee729c48347bddf7ec6e9bcf62d84c823a12ca7b942df1c8be97cec96a0b7",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -19965,7 +20016,7 @@
    "impronta": "1b280e6f9a84d7ba8c1e96095ec964fdf0d0ebb8fae0f19d88f8238b3262e765",
    "revisione": 8,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -20283,7 +20334,7 @@
    "impronta": "3af963bf4f8499ce06057f22868ac8a1d271dd01794be5c6e44dbea44be9ba31",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -20916,7 +20967,7 @@
    "impronta": "62e0bfb63283f48ec795f779b2cfde7cccd57f709a36ef733f68280e16116caa",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -21706,7 +21757,7 @@
    "impronta": "92c80fd0b3b82e9d5e3986c24ee04c8e0fc4c1a7d4ea68937fa34fcb679360bd",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -21993,7 +22044,7 @@
        "provenienza": "norma generale dell'istituto (voce «diritti_indisponibili»)"
       },
       {
-       "testo": "Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni).",
+       "testo": "Prescrizione quinquennale degli interessi e, in generale, di tutto ciò che si paga periodicamente ad anno o in termini più brevi.",
        "fonti": [
         {
          "tipo": "norma",
@@ -22001,7 +22052,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "tutto cio' che deve pagarsi periodicamente ad anno o in termini piu' brevi",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -23316,10 +23367,10 @@
     "pronuncia:Corte di Cassazione — civile|19040/2026": "fa27630e6a2bc93a",
     "pronuncia:Corte di Cassazione — civile|12660/2026": "22e41421ba5d5a99"
    },
-   "impronta": "46913b1efaa067d60aaf9218ba3b6a318d041e1f226a255fb5693da69b0f7834",
-   "revisione": 9,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "2f64d49721bdcb4181476e4de329a71a40ca3124d40848ad03aa154082555a2c",
+   "revisione": 10,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -23374,6 +23425,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "46913b1efaa067d6",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116"
+    },
+    {
+     "revisione": 10,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "2f64d49721bdcb41",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -24270,7 +24327,7 @@
    "impronta": "1ae893ab57396d37125462f08621ea04381945fbbdf68c6ea1203058f7b49cd9",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -24420,7 +24477,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -24501,7 +24558,7 @@
        "provenienza": "norma generale dell'istituto (voce «diritti_indisponibili»)"
       },
       {
-       "testo": "Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni).",
+       "testo": "Prescrizione quinquennale degli interessi e, in generale, di tutto ciò che si paga periodicamente ad anno o in termini più brevi.",
        "fonti": [
         {
          "tipo": "norma",
@@ -24509,7 +24566,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "tutto cio' che deve pagarsi periodicamente ad anno o in termini piu' brevi",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -25529,10 +25586,10 @@
     "pronuncia:Corte costituzionale|186/2023": "cc1:a9c01c2c2a64",
     "pronuncia:Corte costituzionale|54/2023": "cc1:fd09adf50e46"
    },
-   "impronta": "304ddde97b5423d676c094ed28072ecfde6820703d337cbacb32805855232203",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "b66f9fb7956d22360660ea3cda3ad861914528bbc6bb104f38502ea392df1c8b",
+   "revisione": 7,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -25569,6 +25626,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "304ddde97b5423d6",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "b66f9fb7956d2236",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -25622,7 +25685,7 @@
          "citazione": "art. 1455 c.c.",
          "rubrica": "Importanza dell'inadempimento",
          "comma": "",
-         "ancora": "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza",
+         "ancora": "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza, avuto riguardo all'interesse dell'altra",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1455",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -26035,10 +26098,10 @@
     "pronuncia:Corte costituzionale|362/2000": "cc1:e356ba89c66e",
     "pronuncia:Corte di Cassazione — civile|27719/2026": "fea3a500721661a7"
    },
-   "impronta": "35790317b2b70553e5ad436130a014572948db055c843a302aae2327aac69681",
-   "revisione": 4,
-   "generata_il": "2026-11-24T04:13:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "e1eb17b2016e63507dd8a1deb75056926c1dca674cbc9d3acbc8383ff22418c4",
+   "revisione": 5,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -26063,6 +26126,12 @@
      "data": "2026-11-24T04:13:33+01:00",
      "impronta": "35790317b2b70553",
      "motivo": "fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026"
+    },
+    {
+     "revisione": 5,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "e1eb17b2016e6350",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -26727,7 +26796,7 @@
    "impronta": "3dc82a7e4eab23edaaef14964efecdaa86c378510ab4957fe37d7af9bb29d2ce",
    "revisione": 5,
    "generata_il": "2026-11-24T04:14:14+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -27265,7 +27334,7 @@
    "impronta": "f5abee303d782dc5342d70fec9afef1ae3f6786ce6b19895df1c7f30928c7f5c",
    "revisione": 4,
    "generata_il": "2026-11-24T04:04:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -27972,7 +28041,7 @@
    "impronta": "58238bafc68ab239ff2502123457ffbe2a5c98a980e743237c61e9723018aae4",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -28720,7 +28789,7 @@
    "impronta": "a9f23f962dd2354b713437d097b63864b6e37484955ef0fdc14d51b21fffb8d3",
    "revisione": 5,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -28956,7 +29025,7 @@
    "impronta": "306be91fd02c3e6528ff03e4c82eff3299e430930fa5792000ab996ef40a5dd0",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -29833,7 +29902,7 @@
    "impronta": "45f0a49f41009753f54297f62222a762f0e144e6d3a7bf34a396b0dffa3b1306",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -30447,7 +30516,7 @@
    "impronta": "8f60849edbd4546ce9dc4ba91974e1b7abe6f37cd2c292f117a4a6ac5e278495",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -30680,7 +30749,7 @@
    "impronta": "7b64dd3568c703ac47a4b6fd3db7470c25652c83b758e3f8678712cdded9501b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -31064,7 +31133,7 @@
    "impronta": "a80716aeea4dbb477d3aa51ed3afcccb55391b9cac93be476e0a9247e186cbe0",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -31760,7 +31829,7 @@
    "impronta": "c6aced198ec805e0a4dd0a63c604b635bd5836aef2c5edd32dcf873a3bd97a9e",
    "revisione": 4,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -32737,7 +32806,7 @@
    "impronta": "007f86ff81683cc3bbc3ce4deb21c7329a7b244ef5ab7345728ff1ae4eba4f7c",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -33009,7 +33078,7 @@
    "impronta": "5a681b995b7ab1d8d177e1341877f281cd6a15fc442dd096ce06a5d6e5f2e336",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -33428,7 +33497,7 @@
    "impronta": "46fb9ea24b2aab54cde415d93920f4e5ceb90bbde72d0e528c664b2579a034a6",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -33674,7 +33743,7 @@
    "impronta": "8ea466068228d3654c80c4dbeb0f90c8c7e45928b4fb4a867eda237e030d1aac",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -33755,7 +33824,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -34658,10 +34727,10 @@
     "pronuncia:Corte costituzionale|186/2023": "cc1:a9c01c2c2a64",
     "pronuncia:Corte costituzionale|54/2023": "cc1:fd09adf50e46"
    },
-   "impronta": "2f50f9f46914bfc9c742f4b229b2b66fe4f1c3f1e3eb6378002e8c17876f7741",
-   "revisione": 5,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "267dd611fe413587ddf021877961379b55744df1ba7d215022c48f385551f213",
+   "revisione": 6,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -34692,6 +34761,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "2f50f9f46914bfc9",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 6,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "267dd611fe413587",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -34896,7 +34971,7 @@
    "impronta": "2f924a88ff09245a4d4c92eca93b1dc54617e39d988115d8bd40d8455a598460",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -35465,7 +35540,7 @@
    "impronta": "55c1edb520c4cebddc19f169713fb4277e6d2e6e2988d48b27e10eadf7a53c54",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -36322,7 +36397,7 @@
    "impronta": "eb38c16dfcedcf91f602771dcf8925882718edd310aa9786b85a155fb2394f97",
    "revisione": 5,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -36537,7 +36612,7 @@
    "impronta": "68a3de7444c66f44f59bd254f796775a3dd51a404a0fed9f257402d9368b386b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -37024,7 +37099,7 @@
    "impronta": "e36bbc75a29a87dc8b3c6a3d92d49955a5dbbdbebad3a9a3842991e6a8b5462e",
    "revisione": 5,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -37502,7 +37577,7 @@
    "impronta": "b45bfbfecbf838959c1e419a4e417ec3c3be6952f3e41126f39f5a898fd09cb2",
    "revisione": 3,
    "generata_il": "2026-11-24T01:20:54+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -37711,7 +37786,7 @@
    "impronta": "117c54e5dcac48bc934ecfc581df61fa8ddda46ec9edc79a07f8cb649a853b21",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -37769,7 +37844,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -38379,10 +38454,10 @@
     "norma:cpc:116": "37ef8c82fd389102",
     "norma:cpc:421": "c77b5ae539337563"
    },
-   "impronta": "7fd5bb25da439ca3b6516cb38a5476f6a2c7443f3942cbf3efc069f0d2458d0d",
-   "revisione": 4,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "6e17d37fe402a8622d6d42bfbee22928c650a7bbc33310aa363b2ae31e8abb69",
+   "revisione": 5,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -38407,6 +38482,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "7fd5bb25da439ca3",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 5,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "6e17d37fe402a862",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -38648,7 +38729,7 @@
    "impronta": "8c35a39dcdc48be9039569a1cdc6dedec1d1db219d48403dc9d24437b77a6209",
    "revisione": 4,
    "generata_il": "2026-11-24T01:20:54+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -38886,7 +38967,7 @@
    "impronta": "8e1e4c94592b8559f4b40e2a15cb74fd9e420454b5f80cd8eb1af32728e5929d",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -39463,7 +39544,7 @@
    "impronta": "2d4a0c37775e11396f52c5b0205e0f9a785f2ed2a4fbbe1762306517b468f60d",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -39983,7 +40064,7 @@
    "impronta": "c0efa219e0e64beb5073908a4b2e61f3c7b9591353b74924e7176f1505c9ea5b",
    "revisione": 4,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -40250,7 +40331,7 @@
    "impronta": "291c9b592bca681ffcc3ec5f5a519e22fed0b9902acf8d83b085677e7b7d0885",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41193,7 +41274,7 @@
    "impronta": "0fe47547ba7a1758ee085e11ee6666bcbae75457de59fccb07f5132eab1876cb",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41658,7 +41739,7 @@
    "impronta": "1f974d11a3d142627125a5ba52a6f47c27b40eeb034250e7087a96d80e99f00c",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41904,7 +41985,7 @@
    "impronta": "4394031cef5d0528c85fc0d2ea853f131a6eb6e3145dc65db878e889683d03df",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42144,7 +42225,7 @@
    "impronta": "2e8f7b4c6515dc37aec8c46e8ad856007a2f77fcf227872266fe9d91651f1a5a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42391,7 +42472,7 @@
    "impronta": "4a0283deeb3b3bbbec7547ceabf657394ea4893313db5551ce4c44e88499da3e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -43208,7 +43289,7 @@
    "impronta": "dc794bfe5403c3e0b08dad7b81b147e8a8f27b8f40f604b3f8ea4bcf26892c60",
    "revisione": 7,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -43552,7 +43633,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "le pigioni delle case, i fitti dei beni rustici e ogni altro corrispettivo di locazioni",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -43640,7 +43721,7 @@
          "citazione": "art. 1455 c.c.",
          "rubrica": "Importanza dell'inadempimento",
          "comma": "",
-         "ancora": "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza",
+         "ancora": "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza, avuto riguardo all'interesse dell'altra",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1455",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -44535,10 +44616,10 @@
     "pronuncia:Corte costituzionale|79/2020": "cc1:17b03ab6d9e5",
     "pronuncia:Corte costituzionale|142/1990": "cc1:d859afabe4fd"
    },
-   "impronta": "d04f705f4607c8e340b5cade8661ee2cb9f11c5d7c97ffba669d712a3af159c1",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "67b29988721786162fc9f34aac8db9e1dc3e6b4b3ca073a72c5365bdf1108d29",
+   "revisione": 7,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -44575,6 +44656,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "d04f705f4607c8e3",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "67b2998872178616",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -45418,7 +45505,7 @@
    "impronta": "54777a184742710b69cd0cbafbddd17a35a68702281d772273a24584067f55ac",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -46300,7 +46387,7 @@
    "impronta": "44a3d8191775d0b8b0d9190dfd5935e8ac626592eeeecdecf3292b06e611c2a1",
    "revisione": 6,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -46712,7 +46799,7 @@
    "impronta": "ae48888808b39b1e81a215d37ce751442c9fec1cb4807770e9c35540a4218c32",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -46997,7 +47084,7 @@
    "impronta": "e6c9b23b17d59d26103fd3f6339aaf8e3b8ece6b73d90a823058c8b6b8d1bd7c",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -47403,7 +47490,7 @@
    "impronta": "55cb52f62f3287da359f5ae1f299859e42b9c1deeffcda15a7e4b09c66b60531",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -47694,7 +47781,7 @@
    "impronta": "10c8ec4498e647d0f77feffef32c62950131c1aa7f8b6b1ff7d82356e842588e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48006,7 +48093,7 @@
    "impronta": "2762384b53c748bddffcf82f7d5042af6123a8de24999e2463fd19de084a2f60",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48197,7 +48284,7 @@
    "impronta": "7c5b1ce49dcd5983b2046208ceaf162c24c77413c36c6dfe2166bb042bea1b71",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48357,7 +48444,7 @@
    "impronta": "02acef0191cd61ab6944573b88c950f8c7bdf47f53dac3384b48dc249f3c955f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48612,7 +48699,7 @@
    "impronta": "aad6109380d7cf7de9c9a4baacf7322279960b3f4d8293ff1732fd901c0602ff",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48815,7 +48902,7 @@
    "impronta": "b4f3f9ba4412fc07c23c85ab2470d4a35d13462a2f74e7b052f79f899f1ceef9",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -49158,7 +49245,7 @@
    "impronta": "4300fc35085822d415e4a17256e6e91c198f90838d4fe49ab4283b7314638801",
    "revisione": 4,
    "generata_il": "2026-11-24T01:20:54+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -49784,7 +49871,7 @@
    "impronta": "a06af7e97d006e4e9d45a268dcdc4899b7de5aa0378a94e48dbb2195bd867502",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50119,7 +50206,7 @@
    "impronta": "9594ac95c251cd65e467bf648dd1ddd9a093c7371d66c695b4e877e0d568ab90",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50429,7 +50516,7 @@
    "impronta": "645d027ee23e2b0cb82224ded6b1a85a4c9064a5a98cb9a758c06e66f09c1e07",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51084,7 +51171,7 @@
    "impronta": "e1229fb7bca1ecd56a997fe4409060e4d9fd0fcb338a69933a7ea047ca061d47",
    "revisione": 4,
    "generata_il": "2026-11-24T04:04:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51324,7 +51411,7 @@
    "impronta": "313d0f80702f53a4d0700f07a877ba5754a896894a09d5789a02a1adad93dd72",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51738,7 +51825,7 @@
    "impronta": "23711daa847cdd06cde9ac4c4911a9e2199196436c69bdc65d7bbd4b4d75360c",
    "revisione": 3,
    "generata_il": "2026-11-24T04:04:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -52478,7 +52565,7 @@
    "impronta": "117c59b89c058f9b66fdb5ec317e3a1e7edbe560dbfaf155cfa829089c8636db",
    "revisione": 4,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -52781,7 +52868,7 @@
    "impronta": "a9c245897a82c06e00ff2d7f03be20860e26a5c34c3a16054f1e3fc22896ef18",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -53664,7 +53751,7 @@
    "impronta": "0a0954e920f26870b788f33b793a660d0da399b440469cd0ac4796990b6bf0e9",
    "revisione": 7,
    "generata_il": "2026-11-24T04:21:07+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54130,7 +54217,7 @@
    "impronta": "0553715a0d9adf1721ac58aecb365fa9d1502d9f63400a2cb36e50c14ce047d3",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54318,7 +54405,7 @@
    "impronta": "e4af6cab03917b3db5fe6b763d0a4ae5f9a0b89170db9987d4078b0ee5ba2184",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54665,7 +54752,7 @@
    "impronta": "101d4aa8f854bc79bac418933db763858bfa1d483b8b016bfa83bb249b85b9c6",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54913,7 +55000,7 @@
    "impronta": "4bb538cbb33d3b703acf1706a803b7655d99837dfa576c4f19de8b607106109d",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -55290,7 +55377,7 @@
    "impronta": "f3544ab8298845cfe2b9a6801b60bedc5ebb946f8fcc1b80751afaac7924a230",
    "revisione": 5,
    "generata_il": "2026-11-24T04:05:46+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -55684,7 +55771,7 @@
    "impronta": "145c9f77a89920134344bee14a12fa108f4a74f3a85c21d52e8e555175107c8f",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -55956,7 +56043,7 @@
    "impronta": "d342452879ab1cb58d08bbdcd776ba16218c9a3704c91c6125eb1728b177ef19",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -56203,7 +56290,7 @@
    "impronta": "c9f842950e6728a465ec3996b55e3248ec79d9d31eb4df9bab2451271f0d7b1e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -56601,7 +56688,7 @@
    "impronta": "07fba73423f5ef99da68aaacc3f77cd420da7bd6a5719c17ba268052ba8f23d8",
    "revisione": 4,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -56890,7 +56977,7 @@
    "impronta": "31c2274597c4fe402157a79f9893663e7ce80109047048675c1c8ffd15940372",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -57504,7 +57591,7 @@
    "impronta": "b66bf43ad42bb1863bb87b31674767a092ef0a9efa668e352918369c95b136ad",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -57754,7 +57841,7 @@
    "impronta": "9535f1c3c3af2ff96ad2da0c304237ba6dd4872a949708295973f12bfa68246a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -57994,7 +58081,7 @@
    "impronta": "7758cde52ef5cfdf8a90c5ed9e5e36bebf6d3de1675b892cc9201383952ebf03",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -58453,7 +58540,7 @@
    "impronta": "6c5eaeebf57105b99781c796b10c01ec0a5328f653806e563dddd5eee802c265",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -58848,7 +58935,7 @@
    "impronta": "da20d93e54c54db66595f492228c52431708d4a4b8811e7d550cf6b94725652b",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -59810,7 +59897,7 @@
    "impronta": "1507f2221ab31f0e2abcb6c1e19b7ae8ba9803cfb151b746a6543530a531c924",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60089,7 +60176,7 @@
    "impronta": "d0b28a41587c933831651c9ec00079af5068a1ccc1a6bf0785ed5229fd9f90a3",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60436,7 +60523,7 @@
    "impronta": "7b8b02a8e1d977b66de125bb626ad7123b7382d30f030d2570d7c08a865f5e09",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60770,7 +60857,7 @@
    "impronta": "4916973dcc67a6b0ea518136e3e4de6ab3585523b6dcd0267541524fe380be61",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60898,7 +60985,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -60979,7 +61066,7 @@
        "provenienza": "norma generale dell'istituto (voce «diritti_indisponibili»)"
       },
       {
-       "testo": "Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni).",
+       "testo": "Prescrizione quinquennale degli interessi e, in generale, di tutto ciò che si paga periodicamente ad anno o in termini più brevi.",
        "fonti": [
         {
          "tipo": "norma",
@@ -60987,7 +61074,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "tutto cio' che deve pagarsi periodicamente ad anno o in termini piu' brevi",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -62112,10 +62199,10 @@
     "pronuncia:Corte costituzionale|186/2023": "cc1:a9c01c2c2a64",
     "pronuncia:Corte costituzionale|54/2023": "cc1:fd09adf50e46"
    },
-   "impronta": "eb7d6ef8e04fb5d6446f111bcb510916a0c2c960c0f79bbec0b899d0f67ea8d4",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "98a0a8c55a1fc0d5a01c6140cf98a26ee06ed5f611c38c0281c5f72035268769",
+   "revisione": 7,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -62152,6 +62239,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "eb7d6ef8e04fb5d6",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "98a0a8c55a1fc0d5",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -62197,7 +62290,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -62712,10 +62805,10 @@
     "norma:cpc:116": "37ef8c82fd389102",
     "norma:cpc:421": "c77b5ae539337563"
    },
-   "impronta": "13bd35d6264cddb40366b970929cd78166a1c718b3a2d93ba6f6bc1ee02f5e90",
-   "revisione": 4,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "e2435878343586f55608e7612af436059d92807d534ef89286c7d15c013e20d2",
+   "revisione": 5,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -62740,6 +62833,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "13bd35d6264cddb4",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 5,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "e2435878343586f5",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -63189,7 +63288,7 @@
    "impronta": "41633242b350c53becc69c67e6f5d7b7e9b5d9266d8139d3f8b1b68fb4442a9f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -63472,7 +63571,7 @@
    "impronta": "e567e06912ad79d29c58bd4b9f0d0721f10c5fe40cd9ca2b939ea4ad2ba475ad",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -63638,7 +63737,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -63660,7 +63759,7 @@
        "provenienza": "norma generale dell'istituto (voce «modifica_domande_lavoro»)"
       },
       {
-       "testo": "Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo grado; nei giudizi di impugnazione solo se oggetto di specifico motivo.",
+       "testo": "Difetto di giurisdizione del giudice ordinario: verso la pubblica amministrazione è rilevato, anche d'ufficio, in qualunque stato e grado del processo; verso il giudice amministrativo o i giudici speciali è rilevato anche d'ufficio nel giudizio di primo grado e, nei giudizi di impugnazione, solo se oggetto di specifico motivo. Testo in vigore per i procedimenti instaurati dopo il 28/02/2023.",
        "fonti": [
         {
          "tipo": "norma",
@@ -63668,7 +63767,7 @@
          "citazione": "art. 37 c.p.c.",
          "rubrica": "Difetto di giurisdizione",
          "comma": "",
-         "ancora": "nei confronti del giudice amministrativo o dei giudici speciali e' rilevato anche d'ufficio nel giudizio di primo grado",
+         "ancora": "nei confronti della pubblica amministrazione e' rilevato, anche d'ufficio, in qualunque stato e grado del processo",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37",
          "aggiornamento": "",
          "origine": "istantanea dell'archivio",
@@ -63741,7 +63840,7 @@
        "provenienza": "norma generale dell'istituto (voce «diritti_indisponibili»)"
       },
       {
-       "testo": "Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni).",
+       "testo": "Prescrizione quinquennale degli interessi e, in generale, di tutto ciò che si paga periodicamente ad anno o in termini più brevi.",
        "fonti": [
         {
          "tipo": "norma",
@@ -63749,7 +63848,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "tutto cio' che deve pagarsi periodicamente ad anno o in termini piu' brevi",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -64992,7 +65091,8 @@
    ],
    "lacune": [
     "Sezioni senza fonte: Questioni interpretative.",
-    "Questione della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Consiglio operativo: regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare l'orientament»"
+    "Questione della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Consiglio operativo: regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare l'orientament»",
+    "Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da verificare per le cause anteriori."
    ],
    "sintesi": "ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.",
    "norme_abrogate": [],
@@ -65038,10 +65138,10 @@
     "pronuncia:Corte costituzionale|212/2020": "cc1:646cd827e06c",
     "pronuncia:Corte costituzionale|66/2002": "cc1:a7ce4ecb946c"
    },
-   "impronta": "72971cc6864c26805c52d47260da76d712b3c0d1ba0d0320c14faab75b54cf89",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "a3f5172cd6afe4591553933a7fdf47a40d820b6eb84f04c61a87cc2750a2847b",
+   "revisione": 9,
+   "generata_il": "2026-11-24T04:27:45+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -65078,6 +65178,24 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "72971cc6864c2680",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "5d240a6919a3bf31",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 8,
+     "data": "2026-11-24T04:27:27+01:00",
+     "impronta": "a74c5b0a30290cd1",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 9,
+     "data": "2026-11-24T04:27:45+01:00",
+     "impronta": "a3f5172cd6afe459",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -65504,7 +65622,7 @@
    "impronta": "02537d448c27da6fdfe9f3181d2d19794f67e9f0eb220d91730fcc5db35d4ac5",
    "revisione": 3,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -65774,7 +65892,7 @@
    "impronta": "05f0c2e528d4dfdf7e8e561b4ec659f4c9d11c4cecbf5151795998bf28131589",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -66324,7 +66442,7 @@
    "impronta": "027cefcb32f9df9dee181e99ea706146312a0f9b209b65df917cdeb7f0d09d62",
    "revisione": 4,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -66609,7 +66727,7 @@
    "impronta": "12310c237d08c6f749b76e02196f0276420cfaff3ca70e761581b6694458d0d9",
    "revisione": 3,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -67024,7 +67142,7 @@
    "impronta": "5b7651e5707b98c1e2790fd663511ce96cfa888d2f875749c0bbfe8e2bdf25c5",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -67419,7 +67537,7 @@
    "impronta": "7798fbce19a32e807f1873713d7e69541877efeb1de0baafd8b844ab1f902d00",
    "revisione": 3,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -68091,7 +68209,7 @@
    "impronta": "9fa7a509632b832c99f57edc43fd5ecd751de4bc7cc50401b11329a2afaa0784",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -68415,7 +68533,7 @@
    "impronta": "e99d600f3a345aa87dec1f7cd2de6719e0160ae57b7ae7efe87b789a8842d2ab",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -68938,7 +69056,7 @@
    "impronta": "55b936aa47228a2561404b64bd18446da535158729d167898d057dfa9c5d6b0f",
    "revisione": 4,
    "generata_il": "2026-11-24T04:04:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -69110,7 +69228,7 @@
    "impronta": "443751af6f26651fbee1c655da070267716e50b9ffec561a05873580e373b69d",
    "revisione": 2,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -69736,7 +69854,7 @@
    "impronta": "8645e08afd808fd610acd9a02d3904e0d0f905fd913b06765a6be183316c8c1d",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -70513,7 +70631,7 @@
    "impronta": "9f34a3603f3bfc32a35b537f12c84fc380265028d1f96e757dedc6133850f18c",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -70760,7 +70878,7 @@
          "citazione": "art. 1455 c.c.",
          "rubrica": "Importanza dell'inadempimento",
          "comma": "",
-         "ancora": "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza",
+         "ancora": "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza, avuto riguardo all'interesse dell'altra",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1455",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -71508,10 +71626,10 @@
     "pronuncia:Corte costituzionale|29/2019": "cc1:411c446a7074",
     "pronuncia:Corte costituzionale|281/2004": "cc1:91e0af15046b"
    },
-   "impronta": "2d7a165f1dc43b35ed53e3af3c287a0fb2fbed382dd6faac9ce6084d06a96a9c",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "29dda01938171b2309eef0b1ecc641dc69bf3abf3f665cd9209646982598ab0c",
+   "revisione": 7,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -71548,6 +71666,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "2d7a165f1dc43b35",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "29dda01938171b23",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -71768,7 +71892,7 @@
    "impronta": "174b7d2ff3ceece04a7385ec00eb8de4e0b8810ffcca78213ccab76e9add7291",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -72099,7 +72223,7 @@
    "impronta": "f7de15d47c691f67111a43c1280093b40ead5f720e01e2e5eaca18b69f16db74",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -72777,7 +72901,7 @@
    "impronta": "814cadc4e3ca2a5f306ee13b1969c95ef68d09dd9aa8864ed9d95c926f032315",
    "revisione": 5,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -73402,7 +73526,7 @@
    "impronta": "d4cfd7ffafac5256a66f71e82534f3c0ad8ad62d345d8b5c0fc19a80eee894b4",
    "revisione": 6,
    "generata_il": "2026-11-24T04:14:14+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -74162,7 +74286,7 @@
    "impronta": "d757bef8c5b281699c5fabf8a32327416841969f0cc2e21eb4b50d0cb3849d21",
    "revisione": 3,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -74886,7 +75010,7 @@
    "impronta": "9e635578276f0fceb2ec2df8b932cb7f6e54cb175724f4870bbb247a7e3c67e1",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -75350,7 +75474,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "le pigioni delle case, i fitti dei beni rustici e ogni altro corrispettivo di locazioni",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -75438,7 +75562,7 @@
          "citazione": "art. 1455 c.c.",
          "rubrica": "Importanza dell'inadempimento",
          "comma": "",
-         "ancora": "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza",
+         "ancora": "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza, avuto riguardo all'interesse dell'altra",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1455",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -76440,10 +76564,10 @@
     "pronuncia:Corte costituzionale|2/1992": "cc1:b6d6621394e5",
     "pronuncia:Corte di Cassazione — civile|22105/2023": "f9db5e0d5b2ef6ae"
    },
-   "impronta": "2f01cd952690750b7a5479ad93956be306303bfe382a5e8fba57990e25bee1a5",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "b19b65a91dbd538a2b1ffb2d7b14bb0049298471ae2d334bfefa6cf72efffb96",
+   "revisione": 7,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -76480,6 +76604,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "2f01cd952690750b",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "b19b65a91dbd538a",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -76726,7 +76856,7 @@
    "impronta": "bc0e8e2f70aa305a5e9068794a8f493c4b6eda4c046a63e736df7db90c87d501",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -77913,7 +78043,7 @@
    "impronta": "cc3caad7267a0a3daa135193cff26bde17fea5ca656f19b7535e0fb7a9ca8da6",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -78117,7 +78247,7 @@
    "impronta": "d2b2b7cad61206484331085bf0c3415bea0b8b97197d2c93a7c5e6bba7f002de",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -78607,7 +78737,7 @@
    "impronta": "56f999395157064f2e20a5bb1b2f6b51f0ec3e0f20b3d934917294735fdb1f3a",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -78844,7 +78974,7 @@
        "provenienza": "norma generale dell'istituto (voce «memoria_416_eccezioni»)"
       },
       {
-       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice.",
+       "testo": "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice.",
        "fonti": [
         {
          "tipo": "norma",
@@ -78933,7 +79063,7 @@
          "citazione": "art. 2948 c.c.",
          "rubrica": "Prescrizione di cinque anni",
          "comma": "",
-         "ancora": "le indennita' spettanti per la cessazione del rapporto di lavoro",
+         "ancora": "Si prescrivono in cinque anni",
          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948",
          "aggiornamento": "29/04/2026",
          "origine": "istantanea dell'archivio",
@@ -80130,10 +80260,10 @@
     "pronuncia:Corte costituzionale|186/2023": "cc1:a9c01c2c2a64",
     "pronuncia:Corte costituzionale|54/2023": "cc1:fd09adf50e46"
    },
-   "impronta": "7b8b2a6d5fe23421e18d1efa99bf52c086ed725819d28bd379c8440375f1a9a4",
-   "revisione": 10,
-   "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "impronta": "e81577e5260616c5518e10891a4188bb9c017d7a405b1c41180addbd3d5cc5fa",
+   "revisione": 11,
+   "generata_il": "2026-11-24T04:26:46+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -80194,6 +80324,12 @@
      "data": "2026-11-24T04:24:43+01:00",
      "impronta": "7b8b2a6d5fe23421",
      "motivo": "fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421"
+    },
+    {
+     "revisione": 11,
+     "data": "2026-11-24T04:26:46+01:00",
+     "impronta": "e81577e5260616c5",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -80472,7 +80608,7 @@
    "impronta": "0ac29b5ec9e410b1a628ac08d74b908d9119da050b99b5d235f79b71e17fe633",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -81137,7 +81273,7 @@
    "impronta": "44cd5e2fbf91b9818d484c4642476796b5a93471e8723d8f257e75f9617c5c15",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -82022,7 +82158,7 @@
    "impronta": "bd8e8dd358931e8976ccd5d8cdb70530a5051d04637ccb039aa2d8b9fbc7b002",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -82884,7 +83020,7 @@
    "impronta": "d364e29217c35837911e1790972607cfbb48a24f50505fc6422c11c7e8029ded",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:24:43+01:00",
+   "ultimo_controllo": "2026-11-24T04:27:45+01:00",
    "storia": [
     {
      "revisione": 1,

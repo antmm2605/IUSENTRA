@@ -1,6 +1,6 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 8 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 8 · ultimo controllo 24/11/2026 04:27
 - Stato: verificata · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al giudice competente per valore.

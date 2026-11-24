@@ -1,6 +1,6 @@
 # Carta del docente per i supplenti
 
-- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 4 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 7 · ultimo controllo 24/11/2026 04:27
 - Stato: verificata · fonti dirette: 24 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per l'accertamento del diritto alla carta per gli anni scolastici indicati e la condanna del Ministero all'attribuzione o al risarcimento per equivalente; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
@@ -10,8 +10,8 @@
 
 ## Eccezioni e tranelli
 - Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo grado; nei giudizi di impugnazione solo se oggetto di specifico motivo. — _art. 37 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Difetto di giurisdizione del giudice ordinario: verso la pubblica amministrazione è rilevato, anche d'ufficio, in qualunque stato e grado del processo; verso il giudice amministrativo o i giudici speciali è rilevato anche d'ufficio nel giudizio di primo grado e, nei giudizi di impugnazione, solo se oggetto di specifico motivo. Testo in vigore per i procedimenti instaurati dopo il 28/02/2023. — _art. 37 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Prescrizione: i crediti retributivi, come tutto ciò che si paga periodicamente ad anno o in termini più brevi, si prescrivono in cinque anni da ciascuna scadenza; nessuna decadenza per il ricorso. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
@@ -63,6 +63,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Questioni interpretative.
 - Questione della regola pi_carta_docente non riportata (senza norma citata): «Consiglio operativo: prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio SentenzeWeb pri»
+- Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da verificare per le cause anteriori.
 
 ## Fonti con versione
 - art. 63 d.lgs. 165/2001 (Controversie relative ai rapporti di lavoro) — testo vigente, aggiornamento archivio 11/11/2026, versione `de186351b585f541` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art63
@@ -95,3 +96,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:l107_2015:1, norma:rd1611:11, norma:l107:1
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+- r5 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti

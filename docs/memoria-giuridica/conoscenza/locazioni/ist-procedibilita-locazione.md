@@ -1,6 +1,6 @@
 # Condizioni di procedibilità nelle cause di locazione
 
-- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con citazione per la convalida, senza mediazione preventiva; mediazione da avviare dopo il mutamento del rito, se il giudizio prosegue nel merito; Tribunale del luogo dell'immobile.

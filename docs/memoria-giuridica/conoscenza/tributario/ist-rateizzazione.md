@@ -1,6 +1,6 @@
 # Rateizzazione delle cartelle
 
-- ID: `ist-rateizzazione` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-rateizzazione` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di dilazione all'Agenzia delle entrate-Riscossione.

@@ -1,6 +1,6 @@
 # Diniego o revoca del permesso di soggiorno ed espulsione
 
-- ID: `ist-permesso-soggiorno` · materia: immigrazione · revisione 4 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-permesso-soggiorno` · materia: immigrazione · revisione 4 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione al tribunale ordinario (sezione specializzata immigrazione), non ricorso al TAR.

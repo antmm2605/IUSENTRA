@@ -1,6 +1,6 @@
 # Impugnazione del licenziamento
 
-- ID: `ist-licenziamento` · materia: lavoro · revisione 5 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-licenziamento` · materia: lavoro · revisione 6 · ultimo controllo 24/11/2026 04:27
 - Stato: verificata · fonti dirette: 25 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
@@ -10,7 +10,7 @@
 
 ## Eccezioni e tranelli
 - Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ai termini a pena di decadenza non si applicano le norme sull'interruzione della prescrizione né, salvo diversa disposizione, quelle sulla sospensione. — _art. 2964 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
@@ -90,3 +90,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2964, norma:l604:5, pronuncia:Corte di Cassazione — civile|28948/2026
 - r4 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|28948/2026
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+- r6 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti

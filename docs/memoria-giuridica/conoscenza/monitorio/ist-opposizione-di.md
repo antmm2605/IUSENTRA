@@ -1,6 +1,6 @@
 # Opposizione a decreto ingiuntivo
 
-- ID: `ist-opposizione-di` · materia: monitorio · revisione 6 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-opposizione-di` · materia: monitorio · revisione 6 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).

@@ -1,6 +1,6 @@
 # Danno da cose in custodia (art. 2051) e insidia stradale
 
-- ID: `ist-cose-in-custodia` · materia: responsabilità civile · revisione 4 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-cose-in-custodia` · materia: responsabilità civile · revisione 4 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento al custode (ente proprietario della strada, esercente, condominio) e azione ex art. 2051 c.c.

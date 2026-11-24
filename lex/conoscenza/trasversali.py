@@ -54,6 +54,7 @@ class Voce:
     testo: str
     rif: tuple[Rif, ...]
     istituti: frozenset[str]
+    lacuna: str = ""             # limite dichiarato nella scheda quando la voce si applica
 
 
 def R(chiave: str, ancora: str) -> Rif:
@@ -94,6 +95,7 @@ VOCI: tuple[Voce, ...] = (
          "Se l'intimato si oppone con eccezioni non fondate su prova scritta, il giudice, su istanza del locatore e se non "
          "vi sono gravi motivi contrari, pronuncia ordinanza di rilascio con riserva delle eccezioni.",
          (R("cpc:665", "oppone eccezioni non fondate su prova scritta"),
+          R("cpc:665", "su istanza del locatore, se non sussistono gravi motivi in contrario"),
           R("cpc:665", "pronuncia ordinanza non impugnabile di rilascio, con riserva delle eccezioni del convenuto")),
          frozenset({"sfratto_morosita", "sfratto_finita_locazione", "opposizione_convalida"})),
     Voce("presunzioni", "prove_oneri",
@@ -121,12 +123,14 @@ VOCI: tuple[Voce, ...] = (
          "Rito del lavoro: nella memoria difensiva il convenuto prende posizione in modo preciso sui fatti affermati "
          "dall'attore e indica specificamente, a pena di decadenza, i mezzi di prova e i documenti, da depositare insieme.",
          (R("cpc:416", "deve prendere posizione, in maniera precisa e non limitata ad una generica contestazione"),
-          R("cpc:416", "indicare specificamente, a pena di decadenza, i mezzi di prova dei quali intende avvalersi")),
+          R("cpc:416", "indicare specificamente, a pena di decadenza, i mezzi di prova dei quali intende avvalersi"),
+          R("cpc:416", "ed in particolare i documenti che deve contestualmente depositare")),
          _RITO_LAVORO),
     Voce("poteri_istruttori_lavoro", "prove_oneri",
          "Rito del lavoro: il giudice può disporre d'ufficio, in qualsiasi momento, ogni mezzo di prova anche fuori dei "
          "limiti del codice civile, salvo il giuramento decisorio.",
-         (R("cpc:421", "disporre d'ufficio in qualsiasi momento l'ammissione di ogni mezzo di prova, anche fuori dei limiti stabiliti dal codice civile"),),
+         (R("cpc:421", "disporre d'ufficio in qualsiasi momento l'ammissione di ogni mezzo di prova, anche fuori dei limiti stabiliti dal codice civile"),
+          R("cpc:421", "ad eccezione del giuramento decisorio")),
          _RITO_LAVORO),
     Voce("nova_appello_lavoro_prove", "prove_oneri",
          "Appello nel rito del lavoro: non sono ammessi nuovi mezzi di prova, salvo il giuramento estimatorio e salvo che "
@@ -137,7 +141,8 @@ VOCI: tuple[Voce, ...] = (
          "Appello civile: non sono ammessi nuovi mezzi di prova né nuovi documenti, salvo che la parte dimostri di non "
          "averli potuti proporre o produrre in primo grado per causa a lei non imputabile.",
          (R("cpc:345", "Non sono ammessi i nuovi mezzi di prova e non possono essere prodotti nuovi documenti"),
-          R("cpc:345", "per causa ad essa non imputabile")), frozenset({"appello_civile"})),
+          R("cpc:345", "dimostri di non aver potuto proporli o produrli nel giudizio di primo grado per causa ad essa non imputabile")),
+         frozenset({"appello_civile"})),
     # ------------------------------------------------------------------ eccezioni
     Voce("memoria_416_eccezioni", "eccezioni",
          "Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria "
@@ -147,7 +152,7 @@ VOCI: tuple[Voce, ...] = (
           R("cpc:416", "devono essere proposte, a pena di decadenza, le eventuali domande in via riconvenzionale e le eccezioni processuali e di merito che non siano rilevabili d'ufficio")),
          _RITO_LAVORO),
     Voce("modifica_domande_lavoro", "eccezioni",
-         "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi "
+         "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi "
          "motivi e con l'autorizzazione del giudice.",
          (R("cpc:420", "se ricorrono gravi motivi, modificare le domande, eccezioni e conclusioni gia' formulate, previa autorizzazione del giudice"),),
          _RITO_LAVORO),
@@ -158,12 +163,22 @@ VOCI: tuple[Voce, ...] = (
          "Appello civile: le domande nuove sono inammissibili, rilevabili d'ufficio; non si propongono nuove eccezioni "
          "che non siano rilevabili anche d'ufficio.",
          (R("cpc:345", "Nel giudizio d'appello non possono proporsi domande nuove"),
+          R("cpc:345", "debbono essere dichiarate inammissibili d'ufficio"),
           R("cpc:345", "Non possono proporsi nuove eccezioni, che non siano rilevabili anche d'ufficio")), frozenset({"appello_civile"})),
     Voce("giurisdizione_pa", "eccezioni",
-         "Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo "
-         "grado; nei giudizi di impugnazione solo se oggetto di specifico motivo.",
-         (R("cpc:37", "nei confronti del giudice amministrativo o dei giudici speciali e' rilevato anche d'ufficio nel giudizio di primo grado"),
-          R("cpc:37", "Nei giudizi di impugnazione puo' essere rilevato solo se oggetto di specifico motivo")), _PUBBLICO_IMPIEGO),
+         "Difetto di giurisdizione del giudice ordinario: verso la pubblica amministrazione è rilevato, anche d'ufficio, in "
+         "qualunque stato e grado del processo; verso il giudice amministrativo o i giudici speciali è rilevato anche "
+         "d'ufficio nel giudizio di primo grado e, nei giudizi di impugnazione, solo se oggetto di specifico motivo. Testo "
+         "in vigore per i procedimenti instaurati dopo il 28/02/2023.",
+         (R("cpc:37", "nei confronti della pubblica amministrazione e' rilevato, anche d'ufficio, in qualunque stato e grado del processo"),
+          R("cpc:37", "nei confronti del giudice amministrativo o dei giudici speciali e' rilevato anche d'ufficio nel giudizio di primo grado"),
+          R("cpc:37", "Nei giudizi di impugnazione puo' essere rilevato solo se oggetto di specifico motivo"),
+          R("cpc:37", "hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data")),
+         _PUBBLICO_IMPIEGO,
+         "Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i "
+         "procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e "
+         "nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da "
+         "verificare per le cause anteriori."),
     Voce("prescrizione_non_rilevabile", "eccezioni",
          "La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata "
          "alle parti.",
@@ -202,13 +217,17 @@ VOCI: tuple[Voce, ...] = (
          _PRESCRIZIONE_ORDINARIA),
     Voce("prescrizione_canoni", "eccezioni",
          "Prescrizione quinquennale dei canoni e di ogni altro corrispettivo di locazione.",
-         (R("cc:2948", "le pigioni delle case, i fitti dei beni rustici e ogni altro corrispettivo di locazioni"),), _CANONI),
+         (R("cc:2948", "Si prescrivono in cinque anni"),
+          R("cc:2948", "le pigioni delle case, i fitti dei beni rustici e ogni altro corrispettivo di locazioni")), _CANONI),
     Voce("prescrizione_periodici", "eccezioni",
-         "Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni).",
-         (R("cc:2948", "tutto cio' che deve pagarsi periodicamente ad anno o in termini piu' brevi"),), _PERIODICI_LAVORO),
+         "Prescrizione quinquennale degli interessi e, in generale, di tutto ciò che si paga periodicamente ad anno o in "
+         "termini più brevi.",
+         (R("cc:2948", "Si prescrivono in cinque anni"),
+          R("cc:2948", "tutto cio' che deve pagarsi periodicamente ad anno o in termini piu' brevi")), _PERIODICI_LAVORO),
     Voce("prescrizione_tfr", "eccezioni",
          "Prescrizione quinquennale delle indennità spettanti per la cessazione del rapporto di lavoro.",
-         (R("cc:2948", "le indennita' spettanti per la cessazione del rapporto di lavoro"),), frozenset({"tfr"})),
+         (R("cc:2948", "Si prescrivono in cinque anni"),
+          R("cc:2948", "le indennita' spettanti per la cessazione del rapporto di lavoro")), frozenset({"tfr"})),
     Voce("prescrizione_illecito", "eccezioni",
          "Il diritto al risarcimento del danno da fatto illecito si prescrive in cinque anni dal giorno del fatto.",
          (R("cc:2947", "si prescrive in cinque anni dal giorno in cui il fatto si e' verificato"),), _ILLECITO),
@@ -227,13 +246,15 @@ VOCI: tuple[Voce, ...] = (
     Voce("decadenza", "eccezioni",
          "Ai termini a pena di decadenza non si applicano le norme sull'interruzione della prescrizione né, salvo diversa "
          "disposizione, quelle sulla sospensione.",
-         (R("cc:2964", "non si applicano le norme relative all'interruzione della prescrizione"),),
+         (R("cc:2964", "non si applicano le norme relative all'interruzione della prescrizione"),
+          R("cc:2964", "Del pari non si applicano le norme che si riferiscono alla sospensione, salvo che sia disposto altrimenti")),
          frozenset({"licenziamento", "conciliazione_lavoro"})),
     Voce("rinunce_lavoratore", "eccezioni",
          "Rinunce e transazioni del lavoratore su diritti inderogabili: invalide, ma l'impugnazione va proposta, a pena di "
          "decadenza, entro sei mesi dalla cessazione del rapporto o dalla rinuncia o transazione successiva.",
          (R("cc:2113", "non sono valide"),
-          R("cc:2113", "L'impugnazione deve essere proposta, a pena di decadenza, entro sei mesi dalla data di cessazione del rapporto")),
+          R("cc:2113", "L'impugnazione deve essere proposta, a pena di decadenza, entro sei mesi dalla data di cessazione del rapporto"),
+          R("cc:2113", "o dalla data della rinunzia o della transazione, se queste sono intervenute dopo la cessazione medesima")),
          frozenset({"conciliazione_lavoro", "differenze_retributive", "tfr"})),
     Voce("inadempimento_eccezione", "eccezioni",
          "Eccezione di inadempimento: nei contratti a prestazioni corrispettive ciascuno può rifiutarsi di adempiere se "
@@ -243,7 +264,7 @@ VOCI: tuple[Voce, ...] = (
          frozenset({"risoluzione", "risarcimento_contrattuale", "caparra", "vizi_appalto", "sfratto_morosita", "opposizione_convalida"})),
     Voce("scarsa_importanza", "eccezioni",
          "Il contratto non si risolve se l'inadempimento ha scarsa importanza, avuto riguardo all'interesse dell'altra parte.",
-         (R("cc:1455", "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza"),),
+         (R("cc:1455", "Il contratto non si puo' risolvere se l'inadempimento di una delle parti ha scarsa importanza, avuto riguardo all'interesse dell'altra"),),
          frozenset({"risoluzione", "diffida_1454", "sfratto_morosita", "opposizione_convalida"})),
 )
 

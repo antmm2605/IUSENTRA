@@ -1,6 +1,6 @@
 # Anatocismo e ripetizione di indebito bancario
 
-- ID: `ist-anatocismo` · materia: bancario e finanziario · revisione 5 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-anatocismo` · materia: bancario e finanziario · revisione 5 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** mediazione e poi citazione per accertamento del saldo e ripetizione dell'indebito.

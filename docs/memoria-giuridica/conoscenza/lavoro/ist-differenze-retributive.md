@@ -1,6 +1,6 @@
 # Differenze retributive e crediti di lavoro
 
-- ID: `ist-differenze-retributive` · materia: lavoro · revisione 6 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-differenze-retributive` · materia: lavoro · revisione 7 · ultimo controllo 24/11/2026 04:27
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro (o decreto ingiuntivo con le buste paga); Tribunale in funzione di giudice del lavoro.
@@ -12,10 +12,10 @@
 
 ## Eccezioni e tranelli
 - Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
-- Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni). — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- Prescrizione quinquennale degli interessi e, in generale, di tutto ciò che si paga periodicamente ad anno o in termini più brevi. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
 - Rinunce e transazioni del lavoratore su diritti inderogabili: invalide, ma l'impugnazione va proposta, a pena di decadenza, entro sei mesi dalla cessazione del rapporto o dalla rinuncia o transazione successiva. — _art. 2113 c.c._ (ancora letterale trovata nel testo vigente)
@@ -105,3 +105,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2113, norma:cc:2697, norma:cc:2935, norma:cc:2943, pronuncia:Corte di Cassazione — civile|27991/2026
 - r5 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27991/2026
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+- r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti

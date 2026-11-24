@@ -1,6 +1,6 @@
 # Memorie integrative art. 171-ter c.p.c.
 
-- ID: `ist-memorie-171ter` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-memorie-171ter` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** deposito delle memorie integrative a quaranta, venti e dieci giorni prima dell'udienza di prima comparizione.

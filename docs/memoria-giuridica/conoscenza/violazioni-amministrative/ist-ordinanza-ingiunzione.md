@@ -1,6 +1,6 @@
 # Opposizione all'ordinanza-ingiunzione (l. 689/1981, art. 6 d.lgs. 150/2011)
 
-- ID: `ist-ordinanza-ingiunzione` · materia: violazioni amministrative · revisione 2 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-ordinanza-ingiunzione` · materia: violazioni amministrative · revisione 2 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso in opposizione all'ordinanza-ingiunzione (art. 22 l. 689/1981, art. 6 d.lgs. 150/2011) entro trenta giorni dalla notificazione; non è un'opposizione a decreto ingiuntivo.

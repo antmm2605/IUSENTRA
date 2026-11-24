@@ -1,6 +1,6 @@
 # Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
 
-- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 6 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 9 · ultimo controllo 24/11/2026 04:27
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
@@ -13,11 +13,11 @@
 ## Eccezioni e tranelli
 - Per i dipendenti pubblici non si usa il foro dell'azienda (art. 413, secondo comma): vale l'ufficio di assegnazione. — _art. 413 c.p.c._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 413 c.p.c.: atto dedotto dalle norme citate dalla stessa regola)
 - Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo grado; nei giudizi di impugnazione solo se oggetto di specifico motivo. — _art. 37 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Difetto di giurisdizione del giudice ordinario: verso la pubblica amministrazione è rilevato, anche d'ufficio, in qualunque stato e grado del processo; verso il giudice amministrativo o i giudici speciali è rilevato anche d'ufficio nel giudizio di primo grado e, nei giudizi di impugnazione, solo se oggetto di specifico motivo. Testo in vigore per i procedimenti instaurati dopo il 28/02/2023. — _art. 37 c.p.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
-- Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni). — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- Prescrizione quinquennale degli interessi e, in generale, di tutto ciò che si paga periodicamente ad anno o in termini più brevi. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
 
@@ -87,6 +87,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Questioni interpretative.
 - Questione della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Consiglio operativo: regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare l'orientament»
+- Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da verificare per le cause anteriori.
 
 ## Fonti con versione
 - art. 63 d.lgs. 165/2001 (Controversie relative ai rapporti di lavoro) — testo vigente, aggiornamento archivio 11/11/2026, versione `de186351b585f541` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art63
@@ -131,3 +132,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2697, norma:cc:2935, norma:cc:2943
 - r5 · 24/11/2026 04:05 · contenuto delle regole cambiato con le stesse fonti
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+- r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti

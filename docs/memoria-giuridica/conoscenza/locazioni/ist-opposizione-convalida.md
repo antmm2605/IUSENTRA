@@ -1,6 +1,6 @@
 # Opposizione alla convalida di sfratto e termine di grazia
 
-- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 7 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 29 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** comparsa di costituzione e opposizione alla convalida (art. 665 c.p.c.), non l'istanza di termine di grazia dell'art. 55 l. 392/1978.
@@ -109,3 +109,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1455, norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cc:2948, pronuncia:Corte costituzionale|448/1998, pronuncia:Corte di Cassazione — civile|11406/2026, pronuncia:Corte di Cassazione — civile|11783/2026
 - r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+- r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti

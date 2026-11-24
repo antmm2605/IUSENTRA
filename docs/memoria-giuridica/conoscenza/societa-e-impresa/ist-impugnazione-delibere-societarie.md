@@ -1,6 +1,6 @@
 # Impugnazione delle delibere societarie
 
-- ID: `ist-impugnazione-delibere-societarie` · materia: società e impresa · revisione 4 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-impugnazione-delibere-societarie` · materia: società e impresa · revisione 4 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione davanti al tribunale delle imprese del luogo della sede, con eventuale istanza di sospensione.

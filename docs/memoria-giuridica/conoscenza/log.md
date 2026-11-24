@@ -4398,3 +4398,187 @@ rinominate: 0
 invariate: 88
 ritirate: 0
 schede: 155
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Risoluzione per inadempimento
+event_id: a94031fbc99364bd0fc4
+scheda: ist-risoluzione
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Diffida ad adempiere (art. 1454)
+event_id: aa4ce53a95ed5944b2b4
+scheda: ist-diffida-1454
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Impugnazione del licenziamento
+event_id: 456e3dd86957ff81b90a
+scheda: ist-licenziamento
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Differenze retributive e crediti di lavoro
+event_id: bb285e8cd8dd613e6cd8
+scheda: ist-differenze-retributive
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: 7aa9bc661ecb26774c3d
+scheda: ist-tfr
+status: completato
+revision: 10 -> 11
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Mobbing, straining e demansionamento
+event_id: 93d52e0bd3a4bd951938
+scheda: ist-mobbing
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Ricorso nel rito del lavoro (art. 414)
+event_id: 6e36ad004bc9f099f0aa
+scheda: ist-ricorso-414
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Decreto ingiuntivo per retribuzioni
+event_id: 28b973ba7527e1cfa014
+scheda: ist-di-retribuzioni
+status: completato
+revision: 9 -> 10
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
+event_id: d2c5d339d8ab5a6285d1
+scheda: ist-ricorso-dipendente-pubblico
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Carta del docente per i supplenti
+event_id: ffd5ab631d56ab7a8033
+scheda: ist-carta-docente
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
+event_id: 22fd6ce5542717def06c
+scheda: ist-abuso-termine-pa
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Controversie previdenziali (artt. 442-443 c.p.c.)
+event_id: e26ab2b8aeba321d1cf0
+scheda: ist-ricorso-442
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Intimazione di sfratto per morosità e citazione per la convalida
+event_id: 83e2de5cb81a808b75d9
+scheda: ist-sfratto-morosita
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Opposizione alla convalida di sfratto e termine di grazia
+event_id: f956dd81344cbd74ae29
+scheda: ist-opposizione-convalida
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Aggiornamento ISTAT del canone
+event_id: 68abd92410e6c48ce1e2
+scheda: ist-aggiornamento-canone
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] aggiornamento | Restituzione del canone non registrato o in nero
+event_id: 9f534ec86268cee09474
+scheda: ist-canone-nero
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:26:46+01:00] controllo | passaggio di controllo
+event_id: a0273775f30d51cc1e17
+status: completato
+generate: 0
+aggiornate: 16
+rinominate: 0
+invariate: 139
+ritirate: 0
+schede: 155
+
+## [2026-11-24T04:27:27+01:00] aggiornamento | Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
+event_id: d414146989f711ac1441
+scheda: ist-ricorso-dipendente-pubblico
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:27:27+01:00] aggiornamento | Carta del docente per i supplenti
+event_id: 8ea6ff42e4abbb81883a
+scheda: ist-carta-docente
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:27:27+01:00] aggiornamento | Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
+event_id: c1b043ff5ce8f3726335
+scheda: ist-abuso-termine-pa
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:27:27+01:00] controllo | passaggio di controllo
+event_id: 37177863b779004da70b
+status: completato
+generate: 0
+aggiornate: 3
+rinominate: 0
+invariate: 152
+ritirate: 0
+schede: 155
+
+## [2026-11-24T04:27:45+01:00] aggiornamento | Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
+event_id: 76981b60e78fe207ae0d
+scheda: ist-ricorso-dipendente-pubblico
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:27:45+01:00] aggiornamento | Carta del docente per i supplenti
+event_id: 7e8f68060d7c7ccec0bd
+scheda: ist-carta-docente
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:27:45+01:00] aggiornamento | Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
+event_id: f9617a07e7bd3691173e
+scheda: ist-abuso-termine-pa
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:27:45+01:00] controllo | passaggio di controllo
+event_id: dfb82226242765bcab63
+status: completato
+generate: 0
+aggiornate: 3
+rinominate: 0
+invariate: 152
+ritirate: 0
+schede: 155

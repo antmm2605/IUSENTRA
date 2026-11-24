@@ -1,6 +1,6 @@
 # TFR (trattamento di fine rapporto)
 
-- ID: `ist-tfr` · materia: lavoro · revisione 10 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-tfr` · materia: lavoro · revisione 11 · ultimo controllo 24/11/2026 04:27
 - Stato: verificata · fonti dirette: 35 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida, poi decreto ingiuntivo o ricorso al giudice del lavoro; con datore insolvente domanda al Fondo di garanzia INPS; Tribunale in funzione di giudice del lavoro.
@@ -16,7 +16,7 @@
 
 ## Eccezioni e tranelli
 - Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Prescrizione quinquennale delle indennità spettanti per la cessazione del rapporto di lavoro. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
@@ -127,3 +127,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r8 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r9 · 24/11/2026 04:21 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r10 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+- r11 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti

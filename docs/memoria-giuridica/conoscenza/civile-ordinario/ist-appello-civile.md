@@ -1,6 +1,6 @@
 # Atto di appello civile
 
-- ID: `ist-appello-civile` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-appello-civile` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in appello con motivi specifici per capo.

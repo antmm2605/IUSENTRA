@@ -419,6 +419,8 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
             continue
         _aggiungi(sez[v.sezione], _voce_punto(punto, f"norma {'generale' if len(v.istituti) > 3 else 'speciale'} "
                                                      f"dell'istituto (voce «{v.id}»)"), sez)
+        if v.lacuna:
+            lacune.append(v.lacuna)
 
     motivi = {
         "presupposti": "nessuna regola con inquadramento ancorato al testo vigente",

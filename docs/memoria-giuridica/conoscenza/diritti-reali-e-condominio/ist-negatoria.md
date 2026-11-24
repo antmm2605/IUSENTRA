@@ -1,6 +1,6 @@
 # Azione negatoria
 
-- ID: `ist-negatoria` · materia: diritti reali e condominio · revisione 5 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-negatoria` · materia: diritti reali e condominio · revisione 5 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per accertamento dell'inesistenza del diritto e cessazione delle molestie.

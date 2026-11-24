@@ -1,6 +1,6 @@
 # Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
 
-- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 5 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 8 · ultimo controllo 24/11/2026 04:27
 - Stato: verificata · fonti dirette: 23 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per il risarcimento del danno da abuso (non per la conversione); Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
@@ -11,8 +11,8 @@
 
 ## Eccezioni e tranelli
 - Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo grado; nei giudizi di impugnazione solo se oggetto di specifico motivo. — _art. 37 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Difetto di giurisdizione del giudice ordinario: verso la pubblica amministrazione è rilevato, anche d'ufficio, in qualunque stato e grado del processo; verso il giudice amministrativo o i giudici speciali è rilevato anche d'ufficio nel giudizio di primo grado e, nei giudizi di impugnazione, solo se oggetto di specifico motivo. Testo in vigore per i procedimenti instaurati dopo il 28/02/2023. — _art. 37 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - La sospensione feriale non si applica alle controversie di lavoro. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
@@ -61,6 +61,7 @@
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
+- Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da verificare per le cause anteriori.
 
 ## Fonti con versione
 - art. 36 d.lgs. 165/2001 (Personale a tempo determinato o assunto con forme di lavoro flessibile) — testo vigente, aggiornamento archivio 21/11/2026, versione `fbe5c409530384b6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art36
@@ -93,3 +94,6 @@
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+- r6 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti

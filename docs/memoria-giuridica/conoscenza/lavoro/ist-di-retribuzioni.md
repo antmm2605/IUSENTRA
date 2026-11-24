@@ -1,6 +1,6 @@
 # Decreto ingiuntivo per retribuzioni
 
-- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 9 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 10 · ultimo controllo 24/11/2026 04:27
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al tribunale in funzione di giudice del lavoro, con le buste paga; Tribunale in funzione di giudice del lavoro.
@@ -17,7 +17,7 @@
 ## Eccezioni e tranelli
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
-- Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni). — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- Prescrizione quinquennale degli interessi e, in generale, di tutto ciò che si paga periodicamente ad anno o in termini più brevi. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
 
@@ -128,3 +128,4 @@
 - r7 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r8 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r9 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+- r10 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti

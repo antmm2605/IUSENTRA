@@ -1,6 +1,6 @@
 # Ricorso straordinario al Capo dello Stato
 
-- ID: `ist-ricorso-straordinario` · materia: amministrativo · revisione 3 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-ricorso-straordinario` · materia: amministrativo · revisione 3 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso straordinario al Presidente della Repubblica entro centoventi giorni, in alternativa al TAR.

@@ -1,6 +1,6 @@
 # Mobbing, straining e demansionamento
 
-- ID: `ist-mobbing` · materia: lavoro · revisione 4 · ultimo controllo 24/11/2026 04:24
+- ID: `ist-mobbing` · materia: lavoro · revisione 5 · ultimo controllo 24/11/2026 04:27
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. per la reintegra nelle mansioni e il risarcimento del danno alla salute e alla professionalità; Tribunale in funzione di giudice del lavoro.
@@ -10,7 +10,7 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
 - Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
-- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare solo se ricorrono gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Prescrizione decennale per il risarcimento da inadempimento contrattuale del datore. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
@@ -75,3 +75,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2697
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+- r5 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti

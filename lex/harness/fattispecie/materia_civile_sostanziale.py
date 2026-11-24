@@ -226,7 +226,11 @@ RIDUZIONE = Scheda(
         "anni; se la qualità di legittimario nasce da una sentenza che dichiara la filiazione dopo la morte, il termine "
         "decorre dal passaggio in giudicato di quella sentenza. https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025208517S&rows=1&wt=json"],
     dubbi=["Da verificare: la decorrenza ordinaria della prescrizione (Cass. SU n. 20644/2004, citata da Cass. n. 17749/2023) "
-           "non è nell'archivio SentenzeWeb, che copre gli anni dal 2021: leggerne il testo prima di indicarla al cliente."],
+           "non ha un testo ufficiale leggibile. Fonti tentate il 24/11/2026: archivio SentenzeWeb (copre dal 2021); "
+           "Italgiure/SentenzeWeb (non raggiungibile: certificato non verificabile); sito della Corte di cassazione (nessun "
+           "archivio delle Sezioni Unite anteriori); Portale del Massimario (43 rassegne civili 2010-2025: la sentenza non è "
+           "citata); Gazzetta Ufficiale (non pubblica le sentenze della Cassazione; ricerca respinta). Leggerne il testo "
+           "prima di indicare la decorrenza al cliente."],
     dati=["testamento e donazioni", "asse ereditario e valori", "legittimari", "accettazione con beneficio d'inventario"],
 )
 

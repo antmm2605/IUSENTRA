@@ -47,6 +47,10 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("cc:1913", f"art. 1913 {_CC}", "art. 1913 c.c.", "Avviso all'assicuratore in caso di sinistro"),
     _n("cc:1917", f"art. 1917 {_CC}", "art. 1917 c.c.", "Assicurazione della responsabilità civile"),
     _n("cc:2969", f"art. 2969 {_CC}", "art. 2969 c.c.", "Rilievo d'ufficio"),
+    # Separazione consensuale (24/11/2026)
+    _n("cpc:473bis51", f"art. 473-bis.51 {_CPC}", "art. 473-bis.51 c.p.c.", "Procedimento su domanda congiunta"),
+    _n("cc:158", f"art. 158 {_CC}", "art. 158 c.c.", "Separazione consensuale"),
+    _n("dl132:12", "art. 12 d.l. 132/2014", "art. 12 d.l. 132/2014", "Separazione consensuale davanti all'ufficiale dello stato civile"),
     _n("dlgs206:134", "art. 134 d.lgs. 206/2005", "art. 134 d.lgs. 206/2005 (codice del consumo)", "Diritto di regresso"),
     # Correzioni delle deviazioni (copertura degli strumenti, 23/11/2026)
     _n("l689:22", "art. 22 l. 689/1981", "art. 22 l. 689/1981", "Opposizione all'ordinanza-ingiunzione"),

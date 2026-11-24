@@ -100,14 +100,40 @@ def analizza_accesso(c: Comprensione, f: Fatti) -> Analisi:
         Punto("Le controversie sull'accesso seguono il codice del processo amministrativo, che ha per esse un rito apposito.",
               [Rif("l241:25", "sono disciplinate dal codice del processo amministrativo")]),
     ]
-    a.dubbi.append("Il termine del rito dell'accesso (art. 116 c.p.a.) non si può leggere: nella biblioteca l'articolo "
-                   "risulta senza testo. È più breve del termine ordinario di sessanta giorni: contarlo sul testo ufficiale "
-                   "prima di fissare la scadenza.")
-    richiesta = data_di(f, r"istanza|richiesta")
+    a.rito = [Punto("Contro le determinazioni e il silenzio sulle istanze di accesso il ricorso al TAR si propone entro "
+                    "trenta giorni dalla conoscenza della determinazione o dalla formazione del silenzio, notificandolo "
+                    "all'amministrazione e ad almeno un controinteressato; il giudice decide con sentenza in forma "
+                    "semplificata.",
+                    [Rif("cpa:116", "il ricorso e' proposto entro trenta giorni dalla conoscenza della determinazione "
+                                    "impugnata o dalla formazione del silenzio"),
+                     Rif("cpa:116", "ad almeno un controinteressato"),
+                     Rif("cpa:116", "Il giudice decide con sentenza in forma semplificata")])]
+    from .strumenti import data_dopo
+
+    richiesta = (data_dopo(f, r"(?:chiest\w*|presentat\w*|inviat\w*|depositat\w*|istanza del|richiesta del)(?: il)?")
+                 or data_di(f, r"istanza|richiesta"))
+    diniego = data_dopo(f, r"(?:respint\w*|rigettat\w*|negat\w*|dinieg\w*|differit\w*)[^0-9]{0,40}?(?:notificat\w*|"
+                           r"comunicat\w*|ricevut\w*)?(?: il)?")
     if richiesta:
+        silenzio = termine_giorni(richiesta, 30, sospensione_feriale=False, sostanziale=True)
         a.termini.append(Punto(f"Istanza del {data_it(richiesta)}: in mancanza di risposta, si intende respinta dal "
-                               f"{data_it(termine_giorni(richiesta, 30, sospensione_feriale=False, sostanziale=True))}.",
+                               f"{data_it(silenzio)}.",
                                [Rif("l241:25", "Decorsi inutilmente trenta giorni dalla richiesta")]))
+        if not diniego:
+            limite = termine_giorni(silenzio, 30)
+            a.termini.append(Punto(f"Formato il silenzio, il ricorso al TAR va notificato entro {data_breve(limite)} "
+                                   "(trenta giorni, con la sospensione feriale)"
+                                   + (f": il termine è già scaduto (oggi {data_it(f.oggi)})." if f.oggi > limite else "."),
+                                   [Rif("cpa:116", "dalla formazione del silenzio"), Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")]))
+            if f.oggi > limite:
+                a.dubbi.append("Termine del ricorso contro il silenzio scaduto: se l'istanza si può ripresentare con fatti o "
+                               "ragioni nuove va valutato sulla giurisprudenza amministrativa letta nell'archivio, non lo "
+                               "affermo senza una pronuncia.")
+    if diniego and diniego != richiesta:
+        a.termini.append(Punto(f"Diniego conosciuto il {data_it(diniego)}: ricorso al TAR da notificare entro "
+                               f"{data_breve(termine_giorni(diniego, 30))} (trenta giorni, con la sospensione feriale).",
+                               [Rif("cpa:116", "entro trenta giorni dalla conoscenza della determinazione impugnata"),
+                                Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")]))
     return a
 
 

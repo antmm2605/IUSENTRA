@@ -37,7 +37,7 @@ RINUNCIA_EREDITA = Scheda(
     termini=[p("Il diritto di accettare si prescrive in dieci anni dall'apertura della successione; chi è nel possesso di beni "
                "ereditari ha invece tre mesi per l'inventario, altrimenti è erede puro e semplice.",
                R("cc:480", "si prescrive in dieci anni"), R("cc:485", "entro tre mesi dal giorno dell'apertura della successione"))],
-    avvertenze=["Se nessuno degli eredi vuole i debiti, conviene che rinuncino anche i figli del rinunciante, o che i minori "
+    avvertenze=["Consiglio operativo: se nessuno degli eredi vuole i debiti, conviene che rinuncino anche i figli del rinunciante, o che i minori "
                 "accettino con beneficio d'inventario."],
     dati=["data del decesso", "atti compiuti sui beni del defunto", "possesso di beni ereditari", "figli del chiamato"],
 )
@@ -95,9 +95,9 @@ def _extra_definizione(a: Analisi, c: Comprensione, f: Fatti) -> None:
     from datetime import date
 
     if f.oggi > date(2026, 4, 30):
-        a.avvertenze.append("Nel testo vigente della l. 199/2025 (Normattiva, vigente al 23/11/2026) il termine per la "
-                            "dichiarazione di adesione era il 30/04/2026 ed è scaduto: per carichi non dichiarati entro quella "
-                            "data la definizione non è più disponibile, salvo una nuova legge.")
+        a.termini.append(p("Il termine per la dichiarazione di adesione era il 30/04/2026 ed è scaduto: per i carichi non "
+                           "dichiarati entro quella data la definizione non è più disponibile, salvo una nuova legge.",
+                           R("l199:1", "entro il 30 aprile 2026")))
 
 
 DEFINIZIONE_AGEVOLATA = Scheda(
@@ -136,7 +136,7 @@ RIMESSIONE_TERMINI = Scheda(
           R("cpc:153", "i termini perentori non possono essere abbreviati o prorogati"),
           R("cpc:153", "per causa ad essa non imputabile")),
     ],
-    avvertenze=["L'istanza va proposta tempestivamente, appena cessato l'impedimento, e con la prova documentale della causa."],
+    avvertenze=["Consiglio operativo: l'istanza va proposta tempestivamente, appena cessato l'impedimento, e con la prova documentale della causa."],
     dati=["termine scaduto e atto mancato", "causa dell'impedimento e prove", "data in cui l'impedimento è cessato"],
 )
 
@@ -157,4 +157,32 @@ DIVORZIO_IMMEDIATO = Scheda(
     dati=["sentenze di condanna e passaggio in giudicato", "reati e pene", "figli minori", "residenza dei coniugi"],
 )
 
-SCHEDE = (RINUNCIA_EREDITA, NEGOZIAZIONE_SINISTRI, DI_RETRIBUZIONI, DEFINIZIONE_AGEVOLATA, RIMESSIONE_TERMINI, DIVORZIO_IMMEDIATO)
+ATTIVITA_PERICOLOSE = Scheda(
+    regola="rc_attivita_pericolose", materia="responsabilità civile", nome="danno da attività pericolose (art. 2050 c.c.)",
+    segnali=(r"attivita pericolos|(?:\b(?:art\w*\.?|ex)\s*2050\b|\b2050\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|esplosion|fuochi d artificio|pirotecnic|petard|cantiere|lavori stradali|scavo|gas|impianto (?:elettrico|a gas)|"
+             r"armi|caccia|poligono|centrale|cava\b|ruspa|gru\b|macchinari pesanti|sostanze (?:tossiche|chimiche)|incendio",),
+    alcuni=(r"dann|risarc|ferit|lesion|morto|responsabil|chi paga|colpa",),
+    esclusi=(r"sinistro stradale|tamponat|incidente (?:stradale|con l auto)|medic|ospedal|lavorator\w* (?:infortunat|dipendent)|"
+             r"infortunio sul lavoro|inail|condomin",), punteggio=6,
+    capito="Danno causato a terzi da un'attività pericolosa per sua natura o per i mezzi usati.",
+    rimedio="domanda di risarcimento contro chi esercita l'attività, con la presunzione di responsabilità dell'art. 2050 c.c.",
+    conclusione=[
+        p("Chi cagiona danno nello svolgimento di un'attività pericolosa, per sua natura o per la natura dei mezzi adoperati, "
+          "risarcisce il danno se non prova di avere adottato tutte le misure idonee a evitarlo: il danneggiato prova l'attività, "
+          "il danno e il nesso; spetta a chi la esercita la prova liberatoria.",
+          R("cc:2050", "svolgimento di un'attivita' pericolosa, per sua natura o per la natura dei mezzi adoperati"),
+          R("cc:2050", "se non prova di avere adottato tutte le misure idonee a evitare il danno")),
+    ],
+    inquadramento=[
+        p("È diversa dalla responsabilità per le cose in custodia, che riguarda il danno causato dalla cosa e si supera "
+          "provando il caso fortuito.", R("cc:2051", "salvo che provi il caso fortuito")),
+        p("Ed è diversa dalla regola generale del fatto illecito, dove il danneggiato deve provare il dolo o la colpa di chi "
+          "ha causato il danno.", R("cc:2043", "qualunque fatto doloso o colposo")),
+    ],
+    termini=[p("Il diritto al risarcimento si prescrive in cinque anni dal giorno del fatto (più a lungo se il fatto è reato).",
+               R("cc:2947", "si prescrive in cinque anni dal giorno in cui il fatto si e' verificato"))],
+    dati=["attività svolta e chi la esercitava", "data e dinamica del danno", "danni e prove (foto, testimoni, certificati)",
+          "misure di sicurezza adottate o mancanti"],
+)
+
+SCHEDE = (ATTIVITA_PERICOLOSE, RINUNCIA_EREDITA, NEGOZIAZIONE_SINISTRI, DI_RETRIBUZIONI, DEFINIZIONE_AGEVOLATA, RIMESSIONE_TERMINI, DIVORZIO_IMMEDIATO)

@@ -733,7 +733,7 @@
    "regola": "ban_usura",
    "materia": "bancario e finanziario",
    "nome": "usura bancaria",
-   "lato": "attivo",
+   "lato": null,
    "sinonimi": [
     "usura bancaria",
     "tasso soglia",
@@ -749,7 +749,7 @@
    "regola": "ban_anatocismo",
    "materia": "bancario e finanziario",
    "nome": "anatocismo e ripetizione dell'indebito bancario",
-   "lato": "attivo",
+   "lato": null,
    "sinonimi": [
     "anatocismo",
     "interessi sugli interessi",
@@ -992,7 +992,7 @@
    "regola": "con_rescissione",
    "materia": "contratti",
    "nome": "rescissione del contratto",
-   "lato": "attivo",
+   "lato": null,
    "sinonimi": [
     "rescissione",
     "lesione oltre la metà",
@@ -1008,7 +1008,7 @@
    "regola": "con_annullamento",
    "materia": "contratti",
    "nome": "annullamento del contratto",
-   "lato": "attivo",
+   "lato": null,
    "sinonimi": [
     "annullamento del contratto",
     "errore",
@@ -1218,7 +1218,7 @@
    "regola": "dr_usucapione",
    "materia": "diritti reali e condominio",
    "nome": "usucapione",
-   "lato": "attivo",
+   "lato": null,
    "sinonimi": [
     "usucapione",
     "possesso ventennale",
@@ -1439,6 +1439,24 @@
     "il cliente vuole un parere scritto",
     "mi serve una consulenza su questa clausola",
     "conviene fare causa?"
+   ]
+  },
+  {
+   "regola": "rc_attivita_pericolose",
+   "materia": "responsabilità civile",
+   "nome": "danno da attività pericolose (art. 2050 c.c.)",
+   "lato": null,
+   "sinonimi": [
+    "attività pericolosa",
+    "art. 2050",
+    "danno da cantiere",
+    "esplosione",
+    "fuochi d'artificio"
+   ],
+   "situazioni": [
+    "i lavori del cantiere accanto mi hanno danneggiato la casa",
+    "durante i fuochi d'artificio della festa mi sono ferito",
+    "è esplosa la bombola del ristorante e ha rovinato il mio negozio"
    ]
   },
   {
@@ -1867,7 +1885,7 @@
    "regola": "cons_garanzia",
    "materia": "consumatori",
    "nome": "garanzia legale di conformità",
-   "lato": "attivo",
+   "lato": null,
    "sinonimi": [
     "garanzia legale",
     "difetto di conformità",
@@ -1883,7 +1901,7 @@
    "regola": "cons_clausole_vessatorie",
    "materia": "consumatori",
    "nome": "clausole vessatorie",
-   "lato": "attivo",
+   "lato": null,
    "sinonimi": [
     "clausole vessatorie",
     "clausole abusive",
@@ -1899,7 +1917,7 @@
    "regola": "cons_foro",
    "materia": "consumatori",
    "nome": "foro del consumatore",
-   "lato": "passivo",
+   "lato": null,
    "sinonimi": [
     "foro del consumatore",
     "competenza territoriale consumatore"
@@ -1946,7 +1964,7 @@
    "regola": "pen_appello",
    "materia": "penale",
    "nome": "appello penale",
-   "lato": "passivo",
+   "lato": null,
    "sinonimi": [
     "appello penale",
     "impugnare la condanna"
@@ -1961,7 +1979,7 @@
    "regola": "pen_cassazione",
    "materia": "penale",
    "nome": "ricorso per cassazione penale",
-   "lato": "passivo",
+   "lato": null,
    "sinonimi": [
     "ricorso per cassazione penale",
     "saltum"

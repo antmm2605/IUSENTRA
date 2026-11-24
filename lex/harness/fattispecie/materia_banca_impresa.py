@@ -30,7 +30,15 @@ USURA = Scheda(
     ],
     procedibilita=[_MEDIAZIONE_BANCARIA],
     dati=["contratto e data di stipula", "TEG pattuito e TEGM del trimestre di riferimento", "piano di ammortamento", "perizia econometrica"],
-    dubbi=["Usura sopravvenuta e rilevanza degli interessi di mora: verificare l'orientamento della Cassazione nell'archivio."],
+    avvertenze=[
+        "Usura sopravvenuta — Cass. SU n. 24675/2017, come riportata da Cass., sez. I, n. 404/2025 (dep. 08/01/2025): non "
+        "rileva l'usura sopravvenuta; non è illecito pretendere interessi a un tasso non superiore alla soglia alla data "
+        "della pattuizione che la superi al momento della maturazione o del pagamento. https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025100404O&rows=1&wt=json",
+        "Interessi di mora — Cass., sez. III, n. 23433/2026 (dep. 17/07/2026), con Cass. n. 23424/2023 e n. 18540/2024: la "
+        "disciplina antiusura si applica anche agli interessi moratori; il confronto si fa con un parametro omogeneo, senza "
+        "sommare corrispettivi e moratori; la clausola di mora usuraria è nulla ma il rapporto non diventa gratuito: si "
+        "applicano gli interessi corrispettivi lecitamente pattuiti o, in mancanza, il tasso legale. "
+        "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026323433O&rows=1&wt=json"],
 )
 
 ANATOCISMO = Scheda(
@@ -55,7 +63,7 @@ ANATOCISMO = Scheda(
 
 ESTRATTI = Scheda(
     regola="ban_documenti_estratti", materia="bancario e finanziario", nome="estratti conto e documentazione bancaria (art. 119 TUB)",
-    segnali=(r"estratt\w* conto|documentazione bancaria|copia del contratto|\b119\b|contestar\w*[^.]{0,30}estratto",),
+    segnali=(r"estratt\w* conto|documentazione bancaria|copia del contratto|(?:\b(?:art\w*\.?|ex)\s*119\b|\b119\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|contestar\w*[^.]{0,30}estratto",),
     alcuni=(_BANCA,), punteggio=6,
     capito="Richiesta di documentazione alla banca o contestazione degli estratti conto.",
     rimedio="richiesta scritta ex art. 119, comma 4, TUB; contestazione scritta degli estratti conto",
@@ -101,7 +109,8 @@ ACF = Scheda(
     conclusione=[p("I soggetti vigilati dalla Consob e i consulenti finanziari aderiscono a sistemi di risoluzione stragiudiziale "
                    "delle controversie con gli investitori non professionali.",
                    R("tuf:32ter", "aderiscono a sistemi di risoluzione stragiudiziale delle controversie con gli investitori"))],
-    dubbi=["Limite di valore e termini sono nel regolamento Consob dell'ACF, non presente nella biblioteca: verificarli."],
+    dubbi=["Consiglio operativo: limite di valore e termini sono nel regolamento Consob dell'ACF, non acquisito nella biblioteca "
+           "(il sito della Consob blocca lo scaricamento automatico): verificarli sul regolamento vigente."],
     dati=["investimento e profilatura", "reclamo e data", "danno"],
 )
 

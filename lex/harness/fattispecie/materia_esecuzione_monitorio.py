@@ -125,8 +125,8 @@ OPPOSIZIONE_ESECUZIONE = Scheda(
              r"pignorament\w*[^.]{0,30}(?:gia|e stato|avvenut|eseguit|notificat)|esecuzione (?:gia )?iniziat|dopo il pignoramento|"
              r"beni pignorati|ci hanno pignorato|hanno pignorato|pignorat\w* (?:il|la|lo|i|le) |impignorabil|"
              r"sospension\w* dell esecuzione|titolo prescritto|procede con un titolo|diritto (?:del creditore )?a procedere"),
-    esclusi=(r"\b617\b|precett|vizi\w* (?:di forma|formal)|nullit|irregolar|atti esecutivi|di mia proprieta|non (?:e|sono) del debitore|"
-             r"proprieta (?:di|del) terz|intestat\w* a|terzo proprietario|619|decreto ingiuntiv|ingiunzion|\b650\b|"
+    esclusi=(r"(?:\b(?:art\w*\.?|ex)\s*617\b|\b617\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|precett|vizi\w* (?:di forma|formal)|nullit|irregolar|atti esecutivi|di mia proprieta|non (?:e|sono) del debitore|"
+             r"proprieta (?:di|del) terz|intestat\w* a|terzo proprietario|(?:\b(?:art\w*\.?|ex)\s*619\b|\b619\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|decreto ingiuntiv|ingiunzion|(?:\b(?:art\w*\.?|ex)\s*650\b|\b650\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|"
              r"vero proprietario", *_NON_ESEC),
     punteggio=7,
     capito="Debitore che contesta il diritto del creditore a procedere, o la pignorabilità dei beni, a esecuzione già iniziata.",
@@ -154,8 +154,8 @@ OPPOSIZIONE_ESECUZIONE = Scheda(
 
 OPPOSIZIONE_TERZO = Scheda(
     regola="es_opposizione_terzo", materia="esecuzione", nome="opposizione di terzo all'esecuzione (art. 619)",
-    segnali=(r"pignor|\b619\b|opposizione di terzo all esecuzione", r"di mia proprieta|esecuzione mobiliare|non (?:e|sono) del debitore|proprieta (?:di|del|della) (?:terz|madre|padre|moglie|marito|societa)|"
-             r"intestat\w* a|terzo proprietario|opposizione di terzo|\b619\b|terzo che (?:e|e il) proprietario|appartengono a|"
+    segnali=(r"pignor|(?:\b(?:art\w*\.?|ex)\s*619\b|\b619\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|opposizione di terzo all esecuzione", r"di mia proprieta|esecuzione mobiliare|non (?:e|sono) del debitore|proprieta (?:di|del|della) (?:terz|madre|padre|moglie|marito|societa)|"
+             r"intestat\w* a|terzo proprietario|opposizione di terzo|(?:\b(?:art\w*\.?|ex)\s*619\b|\b619\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|terzo che (?:e|e il) proprietario|appartengono a|"
              r"vero proprietario|il proprietario (?:dei|del|delle) ben"),
     esclusi=(r"intestat\w* a lui|intestat\w* al debitore|\(creditore", *_NON_ESEC), punteggio=8,
     capito="Terzo, estraneo al debito, i cui beni sono stati pignorati.",
@@ -178,7 +178,7 @@ OPPOSIZIONE_TERZO = Scheda(
 
 CONVERSIONE = Scheda(
     regola="es_conversione_pignoramento", materia="esecuzione", nome="conversione del pignoramento (art. 495)",
-    segnali=(r"conversione del pignoramento|\b495\b|sostituire (?:i beni|le cose|il bene)[^.]{0,30}pignorat|"
+    segnali=(r"conversione del pignoramento|(?:\b(?:art\w*\.?|ex)\s*495\b|\b495\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|sostituire (?:i beni|le cose|il bene)[^.]{0,30}pignorat|"
              r"(?:pignor|vendita)[^.]{0,80}(?:a rate|rateizz|pagando a rate)|(?:a rate|rateizz)[^.]{0,80}(?:pignor|vendita)",),
     esclusi=_NON_ESEC, punteggio=6,
     capito="Debitore esecutato che vuole evitare la vendita sostituendo ai beni pignorati una somma di denaro, anche a rate.",
@@ -227,9 +227,9 @@ RICERCA_BENI = Scheda(
 
 OBBLIGHI_FARE = Scheda(
     regola="es_obblighi_fare", materia="esecuzione", nome="esecuzione degli obblighi di fare e non fare; misure coercitive",
-    segnali=(r"obblig\w* di (?:fare|non fare)|\b612\b|614-?bis|demolir|rimozion|rimuover|ripristin|consegnare i documenti|"
+    segnali=(r"obblig\w* di (?:fare|non fare)|(?:\b(?:art\w*\.?|ex)\s*612\b|\b612\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|614-?bis|demolir|rimozion|rimuover|ripristin|consegnare i documenti|"
              r"penale per ogni giorno|somma per ogni giorno|misur\w* coercitiv|astreinte",
-             r"sentenz|condann|titolo|ordinanza|giudice|esecuzion|adempiment|ritardo|ricorso|\b612\b"),
+             r"sentenz|condann|titolo|ordinanza|giudice|esecuzion|adempiment|ritardo|ricorso|(?:\b(?:art\w*\.?|ex)\s*612\b|\b612\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))"),
     esclusi=(r"ordinanza di demolizione|permesso di costruire|\btar\b|comune ha", *_NON_ESEC), punteggio=6,
     capito="Titolo che condanna a fare o non fare qualcosa (demolire, rimuovere, consegnare) rimasto ineseguito.",
     rimedio="precetto e ricorso al giudice dell'esecuzione per le modalità dell'esecuzione; misura coercitiva per ogni giorno di ritardo",
@@ -253,8 +253,8 @@ OBBLIGHI_FARE = Scheda(
 
 OPPOSIZIONE_TARDIVA = Scheda(
     regola="mon_opposizione_tardiva", materia="monitorio", nome="opposizione tardiva a decreto ingiuntivo (art. 650)",
-    segnali=(r"decreto ingiuntiv|ingiunzion|\bdi\b notificat|opposizione tardiva|\b650\b",
-             r"tardiv|\b650\b|(?:termine|giorni)[^.]{0,50}(?:scadut|decors)|oltre il termine|scopert\w* solo|vecchio indirizzo|altro indirizzo|ricoverat|"
+    segnali=(r"decreto ingiuntiv|ingiunzion|\bdi\b notificat|opposizione tardiva|(?:\b(?:art\w*\.?|ex)\s*650\b|\b650\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))",
+             r"tardiv|(?:\b(?:art\w*\.?|ex)\s*650\b|\b650\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|(?:termine|giorni)[^.]{0,50}(?:scadut|decors)|oltre il termine|scopert\w* solo|vecchio indirizzo|altro indirizzo|ricoverat|"
              r"mai ricevut|mai notificat|notifica\w* (?:era |e )?(?:nulla|irregolar|inesistent)|(?:40|quaranta) giorni (?:sono )?(?:scadut|passat|decors)|non (?:ne )?(?:ho|abbiamo|ha) avuto conoscenza"),
     esclusi=(r"ordinanza.ingiunzione|\(creditore",), punteggio=6,
     capito="Ingiunto che ha saputo del decreto dopo la scadenza del termine per l'opposizione.",
@@ -269,7 +269,9 @@ OPPOSIZIONE_TARDIVA = Scheda(
     scadenze=[Scadenza("opposizione tardiva al più tardi entro", 10, "giorni",
                        r"(?:primo atto di esecuzione|pignoramento|precetto)[^0-9]{0,30}(?:notificat\w*|eseguit\w*)?(?: il)?",
                        (R("cpc:650", "non e' piu' ammessa decorsi dieci giorni dal primo atto di esecuzione"),))],
-    avvertenze=["Il termine di dieci giorni dal primo atto esecutivo è un limite finale: se l'esecuzione è iniziata, agire subito."],
+    inquadramento=[p("Il termine di dieci giorni dal primo atto di esecuzione è un limite finale: iniziata l'esecuzione, "
+                     "l'opposizione tardiva va proposta subito.",
+                     R("cpc:650", "non e' piu' ammessa decorsi dieci giorni dal primo atto di esecuzione"))],
     cosa_fare=["Ricostruire come e dove è stato notificato il decreto (relata) e quando se ne è avuta conoscenza.",
                "Raccogliere la prova dell'impedimento (certificati di ricovero, residenza diversa, vizio della notifica).",
                "Citazione in opposizione con istanza di sospensione dell'esecutorietà."],
@@ -278,8 +280,8 @@ OPPOSIZIONE_TARDIVA = Scheda(
 
 PROVVISORIA_ESECUZIONE = Scheda(
     regola="mon_provvisoria_esecuzione", materia="monitorio", nome="provvisoria esecuzione del decreto ingiuntivo (artt. 642 e 648)",
-    segnali=(r"provvisori\w* esecuzion|esecuzione provvisoria|provvisoriamente esecutiv|esecutorieta|subito esecutiv|\b642\b|\b648\b|\b649\b",
-             r"decret|ingiun|\b642\b|\b648\b|opposizion"),
+    segnali=(r"provvisori\w* esecuzion|esecuzione provvisoria|provvisoriamente esecutiv|esecutorieta|subito esecutiv|(?:\b(?:art\w*\.?|ex)\s*642\b|\b642\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|(?:\b(?:art\w*\.?|ex)\s*648\b|\b648\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|(?:\b(?:art\w*\.?|ex)\s*649\b|\b649\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))",
+             r"decret|ingiun|(?:\b(?:art\w*\.?|ex)\s*642\b|\b642\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|(?:\b(?:art\w*\.?|ex)\s*648\b|\b648\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|opposizion"),
     esclusi=(r"precett|\(creditore",), punteggio=6,
     capito="Esecutorietà del decreto ingiuntivo: concessione con il decreto o nel giudizio di opposizione, sospensione.",
     conclusione=[

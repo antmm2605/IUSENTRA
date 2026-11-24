@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 from ..comprensione import Comprensione
 from ..fatti import Fatti
@@ -19,7 +20,14 @@ from ..norme import piano
 from ..termini import data_breve, termine_anni, termine_giorni, termine_mesi
 
 
-_IMPORTO = re.compile(r"(?:\b(?:euro|eur)\s*|€\s*)\d[\d.,]*|\b\d[\d.,]*\s*(?:euro|eur\b|€|mila\b)")
+# Ripetizione limitata e solo dall'inizio di un numero: niente backtracking quadratico su lunghe file di cifre e punti.
+_IMPORTO = re.compile(r"(?:\b(?:euro|eur)\s*|€\s*)\d[\d.,]{0,20}|(?<![\d.,])\b\d[\d.,]{0,20}\s*(?:euro|eur\b|€|mila\b)")
+
+
+@lru_cache(maxsize=32)
+def segnali_del_testo(testo: str) -> str:
+    """Testo su cui si cercano i segnali delle schede: calcolato una volta per richiesta, non per ogni scheda."""
+    return senza_importi(piano(testo))
 
 
 def senza_importi(t: str) -> str:
@@ -93,7 +101,7 @@ class Scheda:
     def riconosci(self, c: Comprensione, f: Fatti) -> int:
         if c.tipo not in self.tipi:
             return 0
-        t = senza_importi(piano(f.testo))
+        t = segnali_del_testo(f.testo)
         if not all(re.search(s, t) for s in self.segnali):
             return 0
         if self.alcuni and not any(re.search(s, t) for s in self.alcuni):

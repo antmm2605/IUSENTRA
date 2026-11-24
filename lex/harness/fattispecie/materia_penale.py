@@ -30,7 +30,8 @@ REMISSIONE = Scheda(
           R("cpp:340", "le spese del procedimento sono a carico del querelato")),
     ],
     dati=["reato e procedibilità a querela", "fase del procedimento", "accordi su spese e risarcimento"],
-    avvertenze=["Se il reato è procedibile d'ufficio la remissione non estingue il reato."],
+    inquadramento=[p("La remissione estingue solo i reati punibili a querela: per i reati procedibili d'ufficio non ha effetto.",
+                     R("cp:152", "punibili a querela della persona offesa, la remissione estingue il reato"))],
 )
 
 OPPOSIZIONE_ARCHIVIAZIONE = Scheda(
@@ -54,7 +55,7 @@ OPPOSIZIONE_ARCHIVIAZIONE = Scheda(
 
 PATTEGGIAMENTO = Scheda(
     regola="pen_patteggiamento", materia="penale", nome="applicazione della pena su richiesta (patteggiamento)",
-    segnali=(r"patteggi|applicazione della pena su richiesta|\b444\b",), punteggio=6,
+    segnali=(r"patteggi|applicazione della pena su richiesta|(?:\b(?:art\w*\.?|ex)\s*444\b|\b444\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))",), punteggio=6,
     capito="Definizione del processo con applicazione concordata della pena.",
     rimedio="richiesta di applicazione della pena con il consenso del pubblico ministero",
     conclusione=[
@@ -128,7 +129,12 @@ RIESAME = Scheda(
     scadenze=[Scadenza("riesame entro", 10, "giorni", r"(?:eseguit\w*|notificat\w*|arrestat\w*|sequestrat\w*)(?: il)?",
                        (R("cpp:309", "entro dieci giorni dalla esecuzione o notificazione del provvedimento"),),
                        sospensione_feriale=False)],
-    avvertenze=["Nei procedimenti con imputati detenuti i termini non sono sospesi nel periodo feriale."],
+    termini=[p("Nei procedimenti relativi a imputati in custodia cautelare la sospensione feriale dei termini non opera se "
+               "l'imputato o il difensore vi rinunciano.",
+               R("l742:2", "non opera nei procedimenti relativi ad imputati in stato di custodia cautelare"),
+               R("l742:2", "rinunzino alla sospensione dei termini"))],
+    dubbi=["Consiglio operativo: il termine del riesame è calcolato senza sospensione feriale, in via prudenziale: proporre la "
+           "richiesta entro quella data."],
     dati=["ordinanza e data di esecuzione o notifica", "tipo di misura (personale o reale)", "motivi"],
 )
 

@@ -22,10 +22,10 @@ PA = (r"minister|\bmiur\b|\bmim\b|istruzione e del merito|scuol|scolastic|istitu
       r"universita|agenzia delle entrate|\binps\b come datore")
 _RETRIB = (r"retribu|differenz\w* (?:retributiv|stipendial)|stipend|indennit|scatt|compens|\brpd\b|\bcia\b|ferie non godut|"
            r"tredicesim|emolument|trattamento economico|busta paga|buste paga|progression|arretrat")
-_CARTA = r"carta (?:elettronica )?(?:per l aggiornamento )?(?:del |dei )?docent|bonus (?:formazione|aggiornamento|500)|500 euro[^.]{0,60}formazion"
+_CARTA = r"carta (?:elettronica )?(?:per l aggiornamento )?(?:del |dei )?docent|bonus (?:formazione|aggiornamento|500\b|docent)|(?:500 euro|\[importo\])[^.]{0,60}formazion"
 _TERMINE = (r"abus\w*|reiterazion|successione di contratti|contratti a termine|tempo determinato|36 mesi|trentasei mesi|"
             r"stabilizz|danno comunitario|precari\w*[^.]{0,40}(?:dieci|anni|risarc)")
-_CARRIERA = r"ricostruzione (?:di |della )?carriera|pre-?ruolo|servizio non di ruolo|anzianita di servizio|\b485\b|servizio prestato prima del ruolo"
+_CARRIERA = r"ricostruzione (?:di |della )?carriera|pre-?ruolo|servizio non di ruolo|anzianita di servizio|(?:\b(?:art\w*\.?|ex)\s*485\b|\b485\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|servizio prestato prima del ruolo"
 _ESECUZIONE = r"precett|pignor|ottemper|esecuzion|tesoreria|centoventi giorni|120 giorni|giudicato|commissario ad acta"
 PA_ESEC = PA + r"|amministrazion|\bcomune\b|regione|\bente\b"
 _TITOLO = r"sentenz|titolo|decreto ingiuntivo|giudicato|condann|ordinanza"
@@ -155,8 +155,23 @@ CARTA_DOCENTE = Scheda(
                "Interrompere la prescrizione con diffida al Ministero per gli anni più vecchi."],
     dati=["anni scolastici e tipo di contratto per ciascuno", "scuola e ufficio di assegnazione", "servizio attuale (in ruolo, supplente, cessato)",
           "eventuali carte già ricevute"],
-    dubbi=["Prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio "
-           "SentenzeWeb prima di indicarli al cliente."],
+    avvertenze=[
+        "Giurisprudenza letta — Cass., sez. lav., n. 29961/2023 (dep. 27/10/2023), principi di diritto: la carta spetta ai "
+        "docenti non di ruolo con incarichi annuali fino al 31/8 o fino al termine delle attività didattiche (30/6), anche "
+        "senza domanda a suo tempo; a chi al momento della sentenza è ancora nel sistema scolastico (graduatorie, supplenza "
+        "o ruolo) spetta l'attribuzione della carta per il valore perduto, a chi ne è uscito il risarcimento dei danni "
+        "allegati. https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023L29961S&rows=1&wt=json",
+        "Prescrizione — Cass., sez. lav., n. 17494/2025 (dep. 29/06/2025): l'azione di adempimento si prescrive in cinque "
+        "anni dalla data del conferimento dell'incarico o, se posteriore, da quella in cui il sistema telematico consente la "
+        "registrazione (dal 1° settembre), o dalla presa di servizio se successiva. https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025L17494O&rows=1&wt=json",
+        "Corte di giustizia UE, ord. 18/05/2022, C-450/21: la clausola 4, punto 1, dell'accordo quadro sul lavoro a tempo "
+        "determinato osta a riservare la carta ai soli docenti a tempo indeterminato. Sentenza 29/01/2026, C-654/24: non osta "
+        "a subordinare la concessione a posteriori alla permanenza nel sistema scolastico e, altrimenti, al risarcimento a "
+        "condizioni specifiche, purché valgano anche per i docenti di ruolo e rispettino equivalenza ed effettività. "
+        "https://publications.europa.eu/resource/celex/62021CO0450 — https://publications.europa.eu/resource/celex/62024CJ0654",
+        "Questione aperta — Cass., sez. lav., ord. n. 24317/2026 (31/07/2026) ha rimesso nuove questioni alla Corte di "
+        "giustizia sospendendo il giudizio: verificarne l'esito prima di concludere su casi analoghi. "
+        "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L24317I&rows=1&wt=json"],
     bozza=Bozza("Ricorso ex art. 414 c.p.c.", "accertamento del diritto alla carta elettronica del docente",
                 ["Servizi prestati dal ricorrente negli anni scolastici [da completare] con contratti [da completare].",
                  "Diritto alla carta elettronica per l'aggiornamento e la formazione (art. 1, comma 121, l. 107/2015) e "
@@ -196,10 +211,13 @@ ABUSO_TERMINE = Scheda(
                "Calcolare l'ultima retribuzione di riferimento per il TFR."],
     dati=["elenco dei contratti con date e sede", "posto vacante e disponibile o supplenza temporanea",
           "eventuale immissione in ruolo e data", "ultima retribuzione di riferimento per il TFR"],
-    dubbi=["La forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e "
-           "per i contratti anteriori verificare la disciplina transitoria e l'orientamento delle Sezioni Unite "
-           "nell'archivio SentenzeWeb."],
-    avvertenze=["Nel pubblico impiego non si chiede la conversione del rapporto: la domanda è risarcitoria."],
+    avvertenze=[
+        "Giurisprudenza letta — Cass., sez. lav., n. 26352/2026 (dep. 06/10/2026), principio di diritto: l'indennità da 4 a "
+        "24 mensilità introdotta nel comma 5 nel 2024 si applica, come ius superveniens, alle controversie pendenti e anche "
+        "nel giudizio di rinvio, salvo il giudicato interno (conformi nn. 26495/2026, 26566/2026, 26567/2026, 28603/2026, "
+        "28820/2026). https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L26352S&rows=1&wt=json"],
+    inquadramento=[p("Nel pubblico impiego non si chiede la conversione del rapporto a tempo indeterminato: la domanda è "
+                     "risarcitoria.", R("dlgs165:36", "non puo' comportare la costituzione di rapporti di lavoro a tempo indeterminato"))],
     extra=_extra_termine,
 )
 
@@ -230,8 +248,15 @@ RICOSTRUZIONE = Scheda(
                "Verificare la data di immissione in ruolo (prima o dopo l'a.s. 2023/2024)."],
     dati=["data di immissione e conferma in ruolo", "ordine di scuola", "servizi pre-ruolo con date",
           "decreto di ricostruzione già emesso"],
-    dubbi=["Regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare "
-           "l'orientamento della Cassazione nell'archivio prima di indicarli al cliente."],
+    avvertenze=[
+        "Giurisprudenza letta — Cass. n. 31149/2019, principio riportato da Cass., sez. 6-L, n. 37650/2022 (dep. "
+        "23/12/2022): per i docenti a termine poi immessi in ruolo la regola sul riconoscimento del pre-ruolo va disapplicata "
+        "quando l'anzianità che ne risulta è inferiore a quella del docente comparabile assunto fin dall'origine a tempo "
+        "indeterminato; il giudice compara i due trattamenti senza valorizzare le interruzioni tra un contratto e l'altro. "
+        "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022637650O&rows=1&wt=json",
+        "Prescrizione — Cass., sez. lav., n. 15840/2024 (dep. 06/06/2024): l'anzianità di servizio non è un diritto autonomo "
+        "e può essere accertata senza limiti di tempo, se c'è interesse; sulle differenze retributive opera la prescrizione "
+        "quinquennale. https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024L15840O&rows=1&wt=json"],
     extra=_extra_carriera,
 )
 
@@ -274,7 +299,8 @@ ESECUZIONE_PA = Scheda(
                "Con l'ottemperanza chiedere anche la nomina del commissario ad acta e la penalità di mora."],
     dati=["titolo (sentenza, decreto ingiuntivo) e data di notificazione all'amministrazione", "passaggio in giudicato",
           "importo dovuto e pagamenti parziali", "residenza del creditore (foro dell'Avvocatura)"],
-    avvertenze=["Il precetto notificato prima dei 120 giorni è inefficace come atto di esecuzione: si espone a opposizione."],
+    inquadramento=[p("Il precetto notificato prima dei 120 giorni viola il divieto di legge ed è esposto a opposizione.",
+                     R("dl669:14", "il creditore non puo' procedere ad esecuzione forzata ne' alla notifica di atto di precetto"))],
     extra=_extra_esecuzione,
 )
 

@@ -20,7 +20,7 @@ CITAZIONE = Scheda(
     segnali=(r"atto di citazione|\bcitazione\b|citare in giudizio|atto introduttivo|termini? a comparire|fare causa|"
              r"prima udienza[^.]{0,40}notifica",),
     esclusi=(_NON_CIVILE, r"appell|opposizion|caparra|delibera|sfratt|decreto ingiuntiv|precett|separazion|divorzi|"
-             r"revocazion|cassazion|semplificat|281-?decies|comparsa|memori|2932|forma specifica|responsabilit|amministrator|"
+             r"revocazion|cassazion|semplificat|281-?decies|comparsa|memori|(?:\b(?:art\w*\.?|ex)\s*2932\b|\b2932\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|forma specifica|responsabilit|amministrator|"
              r"incidente|sinistro|risoluzion|nullit|annullament|usucap|divisione|riduzion|petizione|negatori|confessori|confin|"
              r"diffam|medic|ospedal|usur|anatocism|indebit|consumator"), punteggio=3,
     capito="Introduzione di una causa civile davanti al tribunale con atto di citazione.",
@@ -130,7 +130,7 @@ CASSAZIONE = Scheda(
 
 REVOCAZIONE = Scheda(
     regola="civ_revocazione", materia="civile ordinario", nome="revocazione della sentenza",
-    segnali=(r"revocazion|revocatori\w* (?:errore|motivo)|errore revocatorio|\b395\b|document\w* (?:falsi|decisiv\w*)[^.]{0,60}(?:sentenz|nascost)|"
+    segnali=(r"revocazion|revocatori\w* (?:errore|motivo)|errore revocatorio|(?:\b(?:art\w*\.?|ex)\s*395\b|\b395\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|document\w* (?:falsi|decisiv\w*)[^.]{0,60}(?:sentenz|nascost)|"
              r"sentenz\w*[^.]{0,60}(?:documenti falsi|falsita|dolo della controparte)",),
     esclusi=(_NON_CIVILE, r"revocazione (?:dell|della) (?:ordinanza|decreto|patente|permesso)|azione revocatoria"), punteggio=6,
     capito="Revocazione di una sentenza d'appello o in unico grado per i casi tassativi dell'art. 395 c.p.c.",
@@ -153,9 +153,9 @@ REVOCAZIONE = Scheda(
 
 OPPOSIZIONE_TERZO_SENTENZA = Scheda(
     regola="civ_opposizione_terzo", materia="civile ordinario", nome="opposizione di terzo alla sentenza (art. 404)",
-    segnali=(r"opposizione di terzo|\b404\b|sentenz\w*[^.]{0,80}(?:tra altr|fra altr|non era parte|pregiudic\w* (?:i )?(?:suoi|miei|diritti)|"
+    segnali=(r"opposizione di terzo|(?:\b(?:art\w*\.?|ex)\s*404\b|\b404\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|sentenz\w*[^.]{0,80}(?:tra altr|fra altr|non era parte|pregiudic\w* (?:i )?(?:suoi|miei|diritti)|"
              r"collusion)|non era parte del giudizio",),
-    esclusi=(_NON_CIVILE, r"pignor|esecuzion|\b619\b"), punteggio=6,
+    esclusi=(_NON_CIVILE, r"pignor|esecuzion|(?:\b(?:art\w*\.?|ex)\s*619\b|\b619\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))"), punteggio=6,
     capito="Terzo pregiudicato da una sentenza pronunciata fra altre persone.",
     rimedio="citazione in opposizione di terzo davanti allo stesso giudice che ha pronunciato la sentenza",
     conclusione=[
@@ -239,7 +239,7 @@ SEQUESTRO_DOMANDA = Scheda(
 
 ATP = Scheda(
     regola="cau_atp", materia="cautelare e urgenza", nome="accertamento tecnico preventivo e consulenza tecnica preventiva",
-    segnali=(r"\batp\b|accertamento tecnico preventivo|696-?bis|consulenza tecnica preventiva|\b696\b|cristallizzar\w* lo stato|"
+    segnali=(r"\batp\b|accertamento tecnico preventivo|696-?bis|consulenza tecnica preventiva|(?:\b(?:art\w*\.?|ex)\s*696\b|\b696\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|cristallizzar\w* lo stato|"
              r"stato dei luoghi[^.]{0,40}prima",),
     esclusi=(_NON_CIVILE, r"invalidita|445-?bis|obbligatorio|responsabilita (?:medica|sanitaria)|ospedal|medic|clinica|chirurg|sanitari"), punteggio=6,
     capito="Accertamento tecnico prima della causa: urgente (art. 696) o a fini conciliativi (art. 696-bis).",
@@ -260,7 +260,7 @@ ATP = Scheda(
 
 ISTRUZIONE_PREVENTIVA = Scheda(
     regola="cau_istruzione_preventiva", materia="cautelare e urgenza", nome="istruzione preventiva: testimoni a futura memoria",
-    segnali=(r"futura memoria|\b692\b|istruzione preventiva|(?:testimon|teste)[^.]{0,80}(?:malat|trasferir|estero|anzian|morire|prima della causa)",),
+    segnali=(r"futura memoria|(?:\b(?:art\w*\.?|ex)\s*692\b|\b692\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|istruzione preventiva|(?:testimon|teste)[^.]{0,80}(?:malat|trasferir|estero|anzian|morire|prima della causa)",),
     esclusi=(_NON_CIVILE,), punteggio=6,
     capito="Assunzione preventiva di una testimonianza che rischia di andare perduta.",
     rimedio="ricorso per assunzione di testimoni a futura memoria",
@@ -278,7 +278,7 @@ ISTRUZIONE_PREVENTIVA = Scheda(
 
 RECLAMO_CAUTELARE = Scheda(
     regola="cau_reclamo", materia="cautelare e urgenza", nome="reclamo cautelare (art. 669-terdecies)",
-    segnali=(r"reclam", r"cautelar|\b700\b|sequestr|ordinanza|urgenza|possessori|669"),
+    segnali=(r"reclam", r"cautelar|(?:\b(?:art\w*\.?|ex)\s*700\b|\b700\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|sequestr|ordinanza|urgenza|possessori|669"),
     esclusi=(_NON_CIVILE, r"garante|consumator|condomin|reclamo (?:al|alla) (?:banca|compagnia)"), punteggio=6,
     capito="Impugnazione dell'ordinanza che ha concesso o negato una misura cautelare.",
     rimedio="reclamo al collegio del tribunale (o ad altra sezione della corte d'appello)",
@@ -291,7 +291,9 @@ RECLAMO_CAUTELARE = Scheda(
     ],
     scadenze=[Scadenza("reclamo entro", 15, "giorni", r"(?:ordinanza|provvedimento)[^0-9]{0,40}(?:comunicat\w*|notificat\w*|pronunciat\w*|del)(?: il)?",
                        (R("cpc:669terdecies", "nel termine perentorio di quindici giorni"),), modello="CIV_RECLAMO_CAUTELARE_669_TERDECIES")],
-    avvertenze=["I procedimenti cautelari non godono della sospensione feriale."],
+    termini=[p("I procedimenti cautelari non godono della sospensione feriale dei termini.",
+               R("l742:3", "procedimenti indicati nell'articolo 92 dell'ordinamento giudiziario"),
+               R("rd12:92", "ai procedimenti cautelari"))],
     dati=["ordinanza e data di pronuncia o comunicazione", "motivi", "circostanze sopravvenute"],
 )
 
@@ -336,7 +338,7 @@ MANUTENZIONE = Scheda(
 
 NUOVA_OPERA = Scheda(
     regola="pos_nuova_opera_danno_temuto", materia="possessorio", nome="denuncia di nuova opera e di danno temuto",
-    segnali=(r"nuova opera|danno temuto|1171|1172|(?:sta costruendo|lavori iniziat\w*|costruzione in corso)[^.]{0,80}(?:bloccar|fermar|danno|luce)|"
+    segnali=(r"nuova opera|danno temuto|(?:\b(?:art\w*\.?|ex)\s*1171\b|\b1171\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|(?:\b(?:art\w*\.?|ex)\s*1172\b|\b1172\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|(?:sta costruendo|lavori iniziat\w*|costruzione in corso)[^.]{0,80}(?:bloccar|fermar|danno|luce)|"
              r"(?:pericolant|rischia di cadere|minaccia di crollare|sta per cadere)",),
     esclusi=(_NON_CIVILE, r"permesso di costruire|\btar\b|condomin"), punteggio=6,
     capito="Opera intrapresa da altri o cosa pericolante che minaccia danno al bene posseduto.",

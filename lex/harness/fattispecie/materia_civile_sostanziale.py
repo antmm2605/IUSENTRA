@@ -111,7 +111,7 @@ RESPONSABILITA_SANITARIA = Scheda(
     regola="rc_responsabilita_sanitaria", materia="responsabilità civile", nome="responsabilità sanitaria (l. 24/2017)",
     segnali=(r"medic|ospedal|chirurg|sanitari|clinica|malasanita|infezione ospedaliera|errore (?:diagnostic|medico)|struttura sanitaria",),
     alcuni=(r"danni|danno|risarc|causa|errore|mort|responsabil|assicurazion|citare|rispond",),
-    esclusi=(r"invalidita civile|inps|accompagnamento|\b104\b|dati (?:sanitari|personali)|privacy|garante",), punteggio=7,
+    esclusi=(r"invalidita civile|inps|accompagnamento|(?:\blegge|\bl\.)\s*(?:n\.?\s*)?104\b|dati (?:sanitari|personali)|privacy|garante",), punteggio=7,
     capito="Danno da prestazione sanitaria: responsabilità della struttura e del medico.",
     rimedio="ricorso per consulenza tecnica preventiva ex art. 696-bis c.p.c. (o mediazione), poi giudizio di merito",
     conclusione=[
@@ -221,8 +221,12 @@ RIDUZIONE = Scheda(
           "fatti a non coeredi.", R("cc:564", "non ha accettato l'eredita' col beneficio d'inventario")),
     ],
     procedibilita=[_MEDIAZIONE],
-    dubbi=["Prescrizione decennale e decorrenza (dall'accettazione dell'erede istituito o dalla pubblicazione del testamento): "
-           "verificare l'orientamento delle Sezioni Unite nell'archivio."],
+    avvertenze=[
+        "Giurisprudenza letta — Cass., sez. II, n. 8517/2025 (dep. 01/04/2025): l'azione di riduzione si prescrive in dieci "
+        "anni; se la qualità di legittimario nasce da una sentenza che dichiara la filiazione dopo la morte, il termine "
+        "decorre dal passaggio in giudicato di quella sentenza. https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025208517S&rows=1&wt=json"],
+    dubbi=["Da verificare: la decorrenza ordinaria della prescrizione (Cass. SU n. 20644/2004, citata da Cass. n. 17749/2023) "
+           "non è nell'archivio SentenzeWeb, che copre gli anni dal 2021: leggerne il testo prima di indicarla al cliente."],
     dati=["testamento e donazioni", "asse ereditario e valori", "legittimari", "accettazione con beneficio d'inventario"],
 )
 

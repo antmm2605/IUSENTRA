@@ -14,8 +14,8 @@ from .schede import Bozza, R, Scadenza, Scheda, p
 LAV = r"rapporto (?:di lavoro|cessat)|lavor|dipendent|datore|azienda|impiegat|operai|\bcapo\b|superior|colleg|mansion|vertenza|sindacal|ispettorato"
 ENTE = (r"\binps\b|\binail\b|\bpension|naspi|disoccupazion|assegno (?:sociale|unico|di invalidita|ordinario)|indennita di "
         r"(?:malattia|maternita|accompagnamento)|reversibilita|prestazion\w* (?:previdenz|assistenz)|invalidita civile|"
-        r"inabilita|contribut\w* previdenz|\b104\b|handicap|indebito (?:pensionistico|previdenziale)|accompagnamento")
-_INVALIDITA = r"invalidita|inabilita|accompagnament|handicap|\b104\b|cecita|sordita|disabilita|445-?bis|assegno ordinario"
+        r"inabilita|contribut\w* previdenz|(?:\blegge|\bl\.)\s*(?:n\.?\s*)?104\b|handicap|indebito (?:pensionistico|previdenziale)|accompagnamento")
+_INVALIDITA = r"invalidita|inabilita|accompagnament|handicap|(?:\blegge|\bl\.)\s*(?:n\.?\s*)?104\b|cecita|sordita|disabilita|445-?bis|assegno ordinario"
 
 _TERMINI_LAVORO = p("La sospensione feriale non si applica alle controversie di lavoro e di previdenza.",
                     R("l742:3", "controversie previste dagli articoli 429"))
@@ -72,7 +72,7 @@ MOBBING = Scheda(
     regola="lav_mobbing_demansionamento", materia="lavoro", nome="mobbing, straining e demansionamento",
     segnali=(r"mobbing|straining|vessa|demansion|mansioni (?:inferiori|dequalific)|dequalific|umilia|isolat\w*|"
              r"persecut|svuotat\w* (?:di|delle) mansioni", LAV),
-    esclusi=(r"licenzia|precett|pignor|provvediment\w* (?:d )?urgent|\b700\b|ricorso d urgenza",), punteggio=6, modello="LAV_005",
+    esclusi=(r"licenzia|precett|pignor|provvediment\w* (?:d )?urgent|(?:\b(?:art\w*\.?|ex)\s*700\b|\b700\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|ricorso d urgenza",), punteggio=6, modello="LAV_005",
     capito="Lavoratore che lamenta condotte vessatorie (mobbing, straining) o l'assegnazione a mansioni inferiori.",
     rimedio="ricorso ex art. 414 c.p.c. per la reintegra nelle mansioni e il risarcimento del danno alla salute e alla professionalità",
     conclusione=[

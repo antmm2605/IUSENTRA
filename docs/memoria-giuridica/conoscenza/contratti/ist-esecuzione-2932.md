@@ -1,6 +1,6 @@
 # Esecuzione in forma specifica dell'obbligo di concludere il contratto (art. 2932)
 
-- ID: `ist-esecuzione-2932` · materia: contratti · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-esecuzione-2932` · materia: contratti · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione ex art. 2932 c.c. con trascrizione della domanda (mediazione obbligatoria se diritti reali).

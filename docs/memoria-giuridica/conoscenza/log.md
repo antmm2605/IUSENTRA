@@ -2531,3 +2531,91 @@ rinominate: 0
 invariate: 117
 ritirate: 0
 schede: 154
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Memorie integrative art. 171-ter c.p.c.
+event_id: 22bdbbe08e8ff8f7cf7a
+scheda: ist-memorie-171ter
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Pignoramento presso terzi
+event_id: 78d83bb8542ebedb2dd1
+scheda: ist-pignoramento-terzi
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Modifica delle condizioni di separazione o divorzio
+event_id: fa18dc847e5a9372b188
+scheda: ist-modifica-condizioni
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:l898:9
+fonti_tolte: norma:l898:9
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
+event_id: f8c5b58d7c1d03e04e8b
+scheda: ist-ricorso-dipendente-pubblico
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
+event_id: 3f79ff46249a7ef1d2b1
+scheda: ist-abuso-termine-pa
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Intimazione di sfratto per morosità e citazione per la convalida
+event_id: ca4f343026af5f9e360e
+scheda: ist-sfratto-morosita
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Opposizione alla convalida di sfratto e termine di grazia
+event_id: f5f170195661400a91d5
+scheda: ist-opposizione-convalida
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Reclamo e mediazione tributaria (istituto abrogato: oggi ricorso diretto)
+event_id: 9a2ff389e2c20eb63d6d
+scheda: ist-reclamo-mediazione-tributaria
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Ricorso contro il diniego di protezione internazionale
+event_id: f7c8977f8d0282c6e178
+scheda: ist-protezione-internazionale
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Diniego o revoca del permesso di soggiorno ed espulsione
+event_id: dd4e3ca39e546f2cb5bb
+scheda: ist-permesso-soggiorno
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] aggiornamento | Mediazione civile e commerciale (d.lgs. 28/2010)
+event_id: 42f210aa43db403fbaf6
+scheda: ist-mediazione
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T01:20:54+01:00] controllo | passaggio di controllo
+event_id: cf0569dc85beaa7b9389
+status: completato
+generate: 0
+aggiornate: 11
+rinominate: 0
+invariate: 143
+ritirate: 0
+schede: 154

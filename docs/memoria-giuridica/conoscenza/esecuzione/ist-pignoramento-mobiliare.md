@@ -1,6 +1,6 @@
 # Pignoramento mobiliare presso il debitore
 
-- ID: `ist-pignoramento-mobiliare` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-pignoramento-mobiliare` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta all'ufficiale giudiziario di pignoramento mobiliare, poi iscrizione a ruolo e istanza di vendita.

@@ -1,6 +1,6 @@
 # Mediazione civile e commerciale (d.lgs. 28/2010)
 
-- ID: `ist-mediazione` · materia: stragiudiziale · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-mediazione` · materia: stragiudiziale · revisione 4 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di mediazione all'organismo competente.
@@ -32,7 +32,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - data del deposito e del primo incontro (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- Materia non riconosciuta fra quelle dell'art. 5, comma 1: indica l'oggetto preciso della lite. — _art. 5 d.lgs. 28/2010_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 5 d.lgs. 28/2010: atto dedotto dalle norme citate dalla stessa regola)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
@@ -42,8 +42,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Regola di Lex «str_mediazione»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Questione della regola mediazione_obbligatoria non riportata (senza norma citata): «Materia non riconosciuta fra quelle dell'art. 5, comma 1: indica l'oggetto preciso della lite.»
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
@@ -56,3 +55,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:dlgs28:12
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:dlgs28:12bis, norma:dlgs28:6
+- r4 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti

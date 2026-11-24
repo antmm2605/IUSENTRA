@@ -1,6 +1,6 @@
 # Ricorso tributario di primo grado
 
-- ID: `ist-ricorso-tributario` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-ricorso-tributario` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 18 d.lgs. 546/1992, art. 21 d.lgs. 546/1992, art. 67 d.lgs. 175/2024 (TU giustizia tributaria).

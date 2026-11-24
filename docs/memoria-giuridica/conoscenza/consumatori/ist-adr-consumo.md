@@ -1,6 +1,6 @@
 # Risoluzione alternativa delle controversie di consumo (ADR, Corecom)
 
-- ID: `ist-adr-consumo` · materia: consumatori · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-adr-consumo` · materia: consumatori · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda all'organismo ADR del settore (Corecom/ConciliaWeb per le comunicazioni, Servizio conciliazione ARERA per energia).

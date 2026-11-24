@@ -1,6 +1,6 @@
 # Pignoramento presso terzi
 
-- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di pignoramento presso terzi notificato al terzo e al debitore, con citazione davanti al giudice dell'esecuzione; Tribunale del luogo di residenza, domicilio, dimora o sede del debitore.
@@ -57,12 +57,12 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
-- art. 548 c.p.c.: in biblioteca «vigente (alcuni commi abrogati)»; verificare il comma applicabile.
 
 ## Fonti con versione
 - art. 543 c.p.c. (Forma del pignoramento presso terzi) — testo vigente, aggiornamento archivio 05/03/2026, versione `a10190d276815b33` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art543
 - art. 545 c.p.c. (Crediti impignorabili) — testo vigente, aggiornamento archivio 05/03/2026, versione `5cbe63624292795f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art545
 - art. 547 c.p.c. (Dichiarazione del terzo) — testo vigente, aggiornamento archivio n.d., versione `b0257f6a9a10cfe8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art547
+- art. 548 c.p.c., comma 2 (pertinente): comma 1 abrogato dal d.l. 132/2014, conv. l. 162/2014; vigenti i commi 2 e 3. Pertinente il comma 2: se il terzo non compare o rifiuta la dichiarazione, il credito si considera non contestato e il giudice provvede a norma degli artt. 552 o 553 c.p.c.
 - art. 548 c.p.c. (Mancata dichiarazione del terzo) — testo vigente, aggiornamento archivio n.d., versione `fce0392d5ca5326f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art548
 - art. 481 c.p.c. (Cessazione dell'efficacia del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `b51670fb94010269` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art481
 - art. 479 c.p.c. (Notificazione del titolo esecutivo e del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `1cac0925f6c5ae80` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479
@@ -81,3 +81,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti

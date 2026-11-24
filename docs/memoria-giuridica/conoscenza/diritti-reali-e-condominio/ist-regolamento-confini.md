@@ -1,6 +1,6 @@
 # Regolamento di confini
 
-- ID: `ist-regolamento-confini` · materia: diritti reali e condominio · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-regolamento-confini` · materia: diritti reali e condominio · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per regolamento di confini (o per apposizione di termini).

@@ -1,6 +1,6 @@
 # Separazione personale (giudiziale e consensuale)
 
-- ID: `ist-separazione` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-separazione` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per separazione giudiziale (o congiunto per la consensuale) al tribunale; Tribunale.

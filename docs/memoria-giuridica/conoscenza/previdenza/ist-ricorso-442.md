@@ -1,6 +1,6 @@
 # Controversie previdenziali (artt. 442-443 c.p.c.)
 
-- ID: `ist-ricorso-442` · materia: previdenza · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-ricorso-442` · materia: previdenza · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale in funzione di giudice del lavoro del luogo di residenza, dopo il ricorso amministrativo.

@@ -1,6 +1,6 @@
 # Responsabilità sanitaria (l. 24/2017)
 
-- ID: `ist-responsabilita-medica` · materia: responsabilità civile · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-responsabilita-medica` · materia: responsabilità civile · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per consulenza tecnica preventiva ex art. 696-bis c.p.c. (o mediazione), poi giudizio di merito.

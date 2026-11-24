@@ -1,6 +1,6 @@
 # Querela
 
-- ID: `ist-querela` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-querela` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** querela scritta o orale all'autorità giudiziaria o alla polizia giudiziaria entro tre mesi dalla notizia del fatto.

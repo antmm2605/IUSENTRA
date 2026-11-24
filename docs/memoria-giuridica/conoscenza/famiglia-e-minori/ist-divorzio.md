@@ -1,6 +1,6 @@
 # Divorzio (scioglimento e cessazione degli effetti civili)
 
-- ID: `ist-divorzio` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-divorzio` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per divorzio fondato sull'art. 3, n. 1, l. 898/1970 (senza separazione); Tribunale.

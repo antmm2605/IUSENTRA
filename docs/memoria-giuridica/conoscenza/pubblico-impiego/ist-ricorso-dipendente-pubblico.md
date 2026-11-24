@@ -1,6 +1,6 @@
 # Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
 
-- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: verificata · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
@@ -11,7 +11,7 @@
 - Restano al giudice amministrativo le controversie sulle procedure concorsuali per l'assunzione e quelle del personale in regime di diritto pubblico (magistrati, avvocati dello Stato, militari, forze di polizia, personale diplomatico, professori universitari e gli altri dell'art. 3). — _art. 63 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Per i dipendenti pubblici non si usa il foro dell'azienda (art. 413, secondo comma): vale l'ufficio di assegnazione. — _art. 413 c.p.c._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 413 c.p.c.: atto dedotto dalle norme citate dalla stessa regola)
 
 ## Termini
 - Prescrizione: i crediti retributivi, come tutto ciò che si paga periodicamente ad anno o in termini più brevi, si prescrivono in cinque anni da ciascuna scadenza; nessuna decadenza per il ricorso. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
@@ -71,8 +71,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
-- Avvertenza della regola pi_differenze_retributive non riportata (senza norma citata): «Per i dipendenti pubblici non si usa il foro dell'azienda (art. 413, secondo comma): vale l'ufficio di assegnazione.»
+- Sezioni senza fonte: Prove e oneri, Questioni interpretative.
 - Questione della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare l'orientamento della Cassazione ne»
 
 ## Fonti con versione
@@ -100,3 +99,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:rd1611:11
+- r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti

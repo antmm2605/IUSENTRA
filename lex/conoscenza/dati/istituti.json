@@ -757,7 +757,9 @@
      "chiave": "cpc:548",
      "citazione": "art. 548 c.p.c.",
      "rubrica": "Mancata dichiarazione del terzo",
-     "stato_biblioteca": "vigente (alcuni commi abrogati)"
+     "stato_biblioteca": "vigente (alcuni commi abrogati)",
+     "comma": "2",
+     "nota_commi": "comma 1 abrogato dal d.l. 132/2014, conv. l. 162/2014; vigenti i commi 2 e 3. Pertinente il comma 2: se il terzo non compare o rifiuta la dichiarazione, il credito si considera non contestato e il giudice provvede a norma degli artt. 552 o 553 c.p.c."
     }
    ],
    "frase_esempio": "Il debitore lavora come dipendente, possiamo pignorare lo stipendio?"
@@ -986,19 +988,22 @@
      "stato_biblioteca": "vigente"
     },
     {
-     "chiave": "l898:9",
-     "citazione": "art. 9 l. 898/1970",
-     "rubrica": "",
-     "stato_biblioteca": "vigente (alcuni commi abrogati)"
-    },
-    {
      "chiave": "cc:337quinquies",
      "citazione": "art. 337-quinquies c.c.",
      "rubrica": "",
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Il cliente ha perso il lavoro e non riesce più a pagare l'assegno: possiamo ridurlo?"
+   "frase_esempio": "Il cliente ha perso il lavoro e non riesce più a pagare l'assegno: possiamo ridurlo?",
+   "norme_abrogate": [
+    {
+     "chiave": "l898:9",
+     "citazione": "art. 9, comma 1, l. 898/1970",
+     "abrogata_da": "d.lgs. 10 ottobre 2022, n. 149, come modificato dalla l. 29 dicembre 2022, n. 197 (solo il comma 1: revisione delle condizioni del divorzio)",
+     "decorrenza": "procedimenti instaurati dopo il 28/02/2023 (art. 35, comma 1, d.lgs. 149/2022); ai pendenti a quella data le disposizioni anteriori",
+     "sede_vigente": "art. 473-bis.29 c.p.c. (revisione per giustificati motivi sopravvenuti); i commi 2-5 dell'art. 9, vigenti, riguardano la pensione di reversibilità e non questo istituto"
+    }
+   ]
   },
   {
    "id": "affidamento",
@@ -3302,9 +3307,10 @@
     {
      "chiave": "dlgs546:17bis",
      "citazione": "art. 17-bis d.lgs. 546/1992",
-     "abrogata_da": "d.lgs. 30 dicembre 2023, n. 220",
-     "decorrenza": "secondo l'art. 4, comma 2, d.lgs. 220/2023 (ricorsi notificati dopo il 01/09/2024, salvo le lettere applicabili dal giorno successivo all'entrata in vigore): la lettera che abroga l'art. 17-bis va verificata sul d.lgs. 220/2023, non presente in biblioteca",
-     "sede_vigente": "nessuna: il ricorso si propone direttamente (art. 21 d.lgs. 546/1992)"
+     "abrogata_da": "d.lgs. 30 dicembre 2023, n. 220, art. 2, comma 3, lett. a)",
+     "decorrenza": "dal 04/01/2024: l'abrogazione opera «a decorrere dalla data di entrata in vigore» del decreto (art. 2, comma 3), che entra in vigore il giorno successivo alla pubblicazione (art. 4, comma 1) nella G.U. del 03/01/2024. La decorrenza differita dell'art. 4, comma 2 (ricorsi notificati dopo il 01/09/2024) riguarda le disposizioni dell'art. 1, non l'abrogazione dell'art. 17-bis",
+     "sede_vigente": "nessuna: il ricorso si propone direttamente (art. 21 d.lgs. 546/1992)",
+     "fonte_letta": "d.lgs. 220/2023 nel testo vigente al 24/11/2026, acquisito da Normattiva nella biblioteca (pacchetto pacchetti-11/20261124)"
     }
    ]
   },

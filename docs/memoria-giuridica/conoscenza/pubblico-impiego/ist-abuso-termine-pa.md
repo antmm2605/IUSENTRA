@@ -1,6 +1,6 @@
 # Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
 
-- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: verificata · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per il risarcimento del danno da abuso (non per la conversione); Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
@@ -35,7 +35,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - ultima retribuzione di riferimento per il TFR (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- La forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e per i contratti anteriori verificare la disciplina transitoria e l'orientamento delle Sezioni Unite nell'archivio SentenzeWeb. — _art. 36 d.lgs. 165/2001_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 36 d.lgs. 165/2001: atto dedotto dalle norme citate dalla stessa regola)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - Autotrasporto, la stessa non introduceva un obbligo a carico del lavoratore tale daprecludergli il ricorso alla procedura di cui all’art. 410 c.p.c. e ad invalidarne gli esiti; hainoltre respinto, per mancanza di prova, della quale ha ritenuto onerato il lavoratore, ladoglianza con la quale questi lamentava sotto diversi profili il difetto di effettività diassistenza da parte del rappresentante sindacale presente alle due conciliazionisottoscritte, per come pacifico, presso la sede dell’aziend — _Corte di Cassazione — civile, sez. L, n. 12056/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -52,9 +52,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Questioni interpretative.
+- Sezioni senza fonte: Eccezioni e tranelli.
 - Avvertenza della regola pi_abuso_termine non riportata (senza norma citata): «Nel pubblico impiego non si chiede la conversione del rapporto: la domanda è risarcitoria.»
-- Questione della regola pi_abuso_termine non riportata (senza norma citata): «La forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e per i contratti anteriori veri»
 
 ## Fonti con versione
 - art. 36 d.lgs. 165/2001 (Personale a tempo determinato o assunto con forme di lavoro flessibile) — testo vigente, aggiornamento archivio 21/11/2026, versione `fbe5c409530384b6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art36
@@ -76,3 +75,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:rd1611:11
+- r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti

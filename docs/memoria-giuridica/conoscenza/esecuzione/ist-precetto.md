@@ -1,6 +1,6 @@
 # Atto di precetto
 
-- ID: `ist-precetto` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-precetto` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 480 c.p.c., art. 481 c.p.c., art. 479 c.p.c..

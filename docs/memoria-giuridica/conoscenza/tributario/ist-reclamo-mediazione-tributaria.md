@@ -1,6 +1,6 @@
 # Reclamo e mediazione tributaria (istituto abrogato: oggi ricorso diretto)
 
-- ID: `ist-reclamo-mediazione-tributaria` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-reclamo-mediazione-tributaria` · materia: tributario · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso diretto alla Corte di giustizia tributaria di primo grado, senza reclamo-mediazione.
@@ -47,8 +47,9 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 
 ## Norme abrogate (storico, non norme di riferimento)
-- art. 17-bis d.lgs. 546/1992: abrogato dal d.lgs. 30 dicembre 2023, n. 220; decorrenza: secondo l'art. 4, comma 2, d.lgs. 220/2023 (ricorsi notificati dopo il 01/09/2024, salvo le lettere applicabili dal giorno successivo all'entrata in vigore): la lettera che abroga l'art. 17-bis va verificata sul d.lgs. 220/2023, non presente in biblioteca; sede vigente: nessuna: il ricorso si propone direttamente (art. 21 d.lgs. 546/1992)
+- art. 17-bis d.lgs. 546/1992: abrogato dal d.lgs. 30 dicembre 2023, n. 220, art. 2, comma 3, lett. a); decorrenza: dal 04/01/2024: l'abrogazione opera «a decorrere dalla data di entrata in vigore» del decreto (art. 2, comma 3), che entra in vigore il giorno successivo alla pubblicazione (art. 4, comma 1) nella G.U. del 03/01/2024. La decorrenza differita dell'art. 4, comma 2 (ricorsi notificati dopo il 01/09/2024) riguarda le disposizioni dell'art. 1, non l'abrogazione dell'art. 17-bis; sede vigente: nessuna: il ricorso si propone direttamente (art. 21 d.lgs. 546/1992) (fonte letta: d.lgs. 220/2023 nel testo vigente al 24/11/2026, acquisito da Normattiva nella biblioteca (pacchetto pacchetti-11/20261124))
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti

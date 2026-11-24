@@ -80,12 +80,64 @@ def _voce_punto(p, provenienza: str) -> dict[str, Any] | None:
             "provenienza": provenienza}
 
 
-def _voce_testo_libero(testo: str, provenienza: str) -> tuple[dict[str, Any] | None, str]:
-    """Testo libero della regola: entra solo se cita norme e tutte esistono nell'archivio."""
+_ARTICOLO_NUDO = re.compile(r"\bartt?\.\s*(\d{1,4}(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies))?(?:\.\d{1,3})?)"
+                            r"(?:\s*(?:,\s*)?(?:e|,)\s*(\d{1,4}(?:-(?:bis|ter|quater|quinquies|sexies|septies|octies))?))?", re.I)
+_SIGLE_EXTRA = {"tui": "dlgs286", "t.u.i.": "dlgs286", "testo unico immigrazione": "dlgs286"}
+
+
+def _articolo(numero: str) -> str:
+    return numero.lower().replace("-", "").replace(".", "")
+
+
+def completa_citazioni(testo: str, chiavi_regola: set[str]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Articoli citati senza l'atto («art. 413, secondo comma»): l'atto si deduce SOLO dalle norme che la stessa
+    regola cita con l'atto (contesto certo); se nessuna o più norme della regola hanno quel numero, resta irrisolto.
+    Ogni articolo completato deve esistere nel testo vigente dell'archivio."""
+    from lex.harness.controllo import citazioni
+
+    qualificate = {m for m, _ in citazioni(testo)}
+    fonti, irrisolte = [], []
+    t = testo.lower()
+    for m in _ARTICOLO_NUDO.finditer(testo):
+        for numero in [x for x in m.groups() if x]:
+            if any(q.startswith(f"art. {numero} ") or q == f"art. {numero}" for q in qualificate):
+                continue
+            atti = {k.split(":")[0] for k in chiavi_regola}
+            atti |= {v for sigla, v in _SIGLE_EXTRA.items() if sigla in t}
+            candidati = sorted({f"{a}:{_articolo(numero)}" for a in atti} & (set(chiavi_regola) | _esistenti(atti, numero)))
+            if len(candidati) != 1:
+                irrisolte.append(f"art. {numero}")
+                continue
+            f = fonte_norma(candidati[0])
+            if f is None:
+                irrisolte.append(f"art. {numero}")
+                continue
+            da_sigla = candidati[0].split(":")[0] in {v for sigla, v in _SIGLE_EXTRA.items() if sigla in t} - \
+                {k.split(":")[0] for k in chiavi_regola}
+            f["atto_dedotto"] = ("atto indicato dalla sigla nel testo" if da_sigla
+                                 else "atto dedotto dalle norme citate dalla stessa regola")
+            if all(g["chiave"] != f["chiave"] for g in fonti):
+                fonti.append(f)
+    return fonti, irrisolte
+
+
+def _esistenti(atti: set[str], numero: str) -> set[str]:
+    from lex.harness.norme import NORME
+
+    return {f"{a}:{_articolo(numero)}" for a in atti if f"{a}:{_articolo(numero)}" in NORME}
+
+
+def _voce_testo_libero(testo: str, provenienza: str, chiavi_regola: set[str] | None = None
+                       ) -> tuple[dict[str, Any] | None, str]:
+    """Testo libero della regola: entra solo se cita norme e tutte esistono nell'archivio. Gli articoli citati senza
+    l'atto si completano solo dal contesto certo della regola (``completa_citazioni``)."""
     from lex.harness.controllo import citazioni
 
     trovate = citazioni(testo)
-    if not trovate:
+    dedotte, irrisolte = completa_citazioni(testo, chiavi_regola or set())
+    if irrisolte:
+        return None, "cita " + ", ".join(irrisolte) + " senza l'atto e il contesto della regola non basta a stabilirlo"
+    if not trovate and not dedotte:
         return None, "senza norma citata"
     fonti = []
     for citata, chiave in trovate:
@@ -94,8 +146,11 @@ def _voce_testo_libero(testo: str, provenienza: str) -> tuple[dict[str, Any] | N
             return None, f"cita {citata}, non presente nell'archivio delle norme"
         if f not in fonti:
             fonti.append(f)
-    return {"testo": testo, "fonti": fonti, "provenienza": provenienza,
-            "verifica": "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola"}, ""
+    fonti += [f for f in dedotte if all(g["chiave"] != f["chiave"] for g in fonti)]
+    verifica = "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola"
+    if dedotte:
+        verifica += "; " + "; ".join(f"{f['citazione']}: {f['atto_dedotto']}" for f in dedotte)
+    return {"testo": testo, "fonti": fonti, "provenienza": provenienza, "verifica": verifica}, ""
 
 
 # --------------------------------------------------------------------------------------------- fonti: pronunce
@@ -226,6 +281,9 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
             continue
         a = es.analisi
         prov = f"regola {regola}"
+        chiavi_regola = {r.chiave for p in a.punti() for r in p.rif}
+        scheda_r = _schede_harness().get(regola)
+        chiavi_regola |= {r.chiave for sc in (scheda_r.scadenze if scheda_r else []) for r in sc.rif}
         strumenti.append({"tipo": "regola_lex", "id": regola, "titolo": f"Regola di Lex «{regola}»", "collegamento": ""})
         for p in a.competenza + a.rito:
             _aggiungi(sez["giudice_rito"], _voce_punto(p, prov), sez)
@@ -248,14 +306,14 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
         for s in (scheda_h.scadenze if scheda_h else []):
             _aggiungi(sez["termini"], _termine_calcolabile(s, regola), sez)
         for testo in a.avvertenze:
-            v, perche = _voce_testo_libero(testo, prov)
+            v, perche = _voce_testo_libero(testo, prov, chiavi_regola)
             _aggiungi(sez["eccezioni"], v, sez)
             if v is None:
                 lacune.append(f"Avvertenza della regola {regola} non riportata ({perche}): «{testo[:140]}»")
         for testo in a.dubbi:
             if testo.startswith("Non affermato perché") or testo.startswith("Vigenza:"):
                 continue
-            v, perche = _voce_testo_libero(testo, prov)
+            v, perche = _voce_testo_libero(testo, prov, chiavi_regola)
             _aggiungi(sez["questioni"], v, sez)
             if v is None:
                 lacune.append(f"Questione della regola {regola} non riportata ({perche}): «{testo[:140]}»")
@@ -294,8 +352,10 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
             lacune.append(f"{f['citazione']} è abrogato ({f['nota_abrogazione'] or 'biblioteca: abrogato'}): non è usato come "
                           f"norma di riferimento; va tolto dal catalogo dell'istituto.")
             continue
+        if n.nota_commi:
+            f["comma_pertinente"], f["nota_commi"] = n.comma, n.nota_commi
         riferimento.append(f)
-        if n.stato_biblioteca and n.stato_biblioteca != "vigente":
+        if n.stato_biblioteca and n.stato_biblioteca != "vigente" and not n.nota_commi:
             lacune.append(f"{f['citazione']}: in biblioteca «{n.stato_biblioteca}»; verificare il comma applicabile.")
     abrogate = [dict(a) for a in ist.norme_abrogate]
 

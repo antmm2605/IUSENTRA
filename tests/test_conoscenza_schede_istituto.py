@@ -313,3 +313,23 @@ def test_nessuna_norma_abrogata_come_riferimento():
 def test_norma_abrogata_citata_e_dichiarata():
     f = generatore.fonte_norma("dlgs546:17bis")
     assert f["stato"] == "abrogata" and not f["vigente"] and "220" in f["nota_abrogazione"]
+
+
+def test_citazione_senza_atto_completata_solo_dal_contesto_della_regola():
+    fonti, irrisolte = generatore.completa_citazioni("Non vale il foro dell'azienda (art. 413, secondo comma).", {"cpc:413", "dlgs165:63"})
+    assert [f["citazione"] for f in fonti] == ["art. 413 c.p.c."] and not irrisolte
+    # Nessuna norma della regola con quel numero: non si indovina l'atto.
+    fonti, irrisolte = generatore.completa_citazioni("Termine dell'art. 55.", {"cpc:414"})
+    assert not fonti and irrisolte == ["art. 55"]
+    voce, perche = generatore._voce_testo_libero("Termine dell'art. 55.", "regola x", {"cpc:414"})
+    assert voce is None and "senza l'atto" in perche
+
+
+def test_abrogazione_17bis_con_decorrenza_letta():
+    s = consultazione.scheda("ist-reclamo-mediazione-tributaria")
+    a = s["norme_abrogate"][0]
+    assert a["decorrenza"].startswith("dal 04/01/2024") and "art. 2, comma 3" in a["abrogata_da"]
+    assert not any("verificare il comma" in x for x in consultazione.scheda("ist-pignoramento-terzi")["lacune"])
+    f548 = next(f for f in consultazione.scheda("ist-pignoramento-terzi")["fonti"] if f["chiave"] == "cpc:548")
+    assert f548["comma_pertinente"] == "2" and "comma 1 abrogato" in f548["nota_commi"]
+    assert not any(f["chiave"] == "l898:9" for f in consultazione.scheda("ist-modifica-condizioni")["fonti"])

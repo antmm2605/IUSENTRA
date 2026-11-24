@@ -1,6 +1,6 @@
 # Reclamo cautelare (art. 669-terdecies)
 
-- ID: `ist-reclamo-cautelare` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-reclamo-cautelare` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** reclamo al collegio del tribunale (o ad altra sezione della corte d'appello).

@@ -193,6 +193,8 @@ def pagina_scheda(s: dict[str, Any]) -> str:
             r.append(f"- {f['citazione']} — NORMA ABROGATA ({f.get('nota_abrogazione', '')}), versione `{f.get('versione', '')}` — "
                      f"{f.get('url', '')}")
         elif f["tipo"] == "norma":
+            if f.get("nota_commi"):
+                r.append(f"- {f['citazione']}, comma {f.get('comma_pertinente', '')} (pertinente): {f['nota_commi']}")
             r.append(f"- {f['citazione']} ({f.get('rubrica', '')}) — testo vigente, aggiornamento archivio "
                      f"{f.get('aggiornamento') or 'n.d.'}, versione `{f.get('versione', '')}` — {f.get('url', '')}")
         else:
@@ -200,7 +202,7 @@ def pagina_scheda(s: dict[str, Any]) -> str:
     if s.get("norme_abrogate"):
         r += ["", "## Norme abrogate (storico, non norme di riferimento)"]
         r += [f"- {a['citazione']}: abrogato dal {a['abrogata_da']}; decorrenza: {a['decorrenza']}; sede vigente: {a['sede_vigente']}"
-              for a in s["norme_abrogate"]]
+              + (f" (fonte letta: {a['fonte_letta']})" if a.get("fonte_letta") else "") for a in s["norme_abrogate"]]
     r += ["", "## Cronologia delle revisioni"] + [f"- r{x['revisione']} · {_data_it(x['data'])} · {x['motivo']}"
                                                   for x in s.get("storia", [])]
     return "\n".join(r) + "\n"

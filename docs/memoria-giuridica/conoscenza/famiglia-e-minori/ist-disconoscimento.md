@@ -1,6 +1,6 @@
 # Disconoscimento di paternità
 
-- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per disconoscimento di paternità; tribunale della residenza abituale del minore.

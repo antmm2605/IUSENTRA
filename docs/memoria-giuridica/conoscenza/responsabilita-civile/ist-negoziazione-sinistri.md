@@ -1,6 +1,6 @@
 # Negoziazione assistita per sinistri stradali
 
-- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: verificata · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione, attesa dei termini, poi invito alla negoziazione assistita tramite avvocato; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).

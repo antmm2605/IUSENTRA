@@ -1,6 +1,6 @@
 # Memorie integrative art. 171-ter c.p.c.
 
-- ID: `ist-memorie-171ter` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-memorie-171ter` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** deposito delle memorie integrative a quaranta, venti e dieci giorni prima dell'udienza di prima comparizione.
@@ -9,7 +9,7 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- I termini si calcolano a ritroso dalla data dell'udienza eventualmente differita con il decreto dell'art. 171-bis. — _art. 171-bis c.p.c._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 171-bis c.p.c.: atto dedotto dalle norme citate dalla stessa regola)
 
 ## Termini
 - I termini sono sospesi dal 1° al 31 agosto. — _art. 1 l. 742/1969_ (ancora letterale trovata nel testo vigente)
@@ -44,8 +44,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Avvertenza della regola civ_memorie_171ter non riportata (senza norma citata): «I termini si calcolano a ritroso dalla data dell'udienza eventualmente differita con il decreto dell'art. 171-bis.»
+- Sezioni senza fonte: Presupposti, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 171-ter c.p.c. (Memorie integrative) — testo vigente, aggiornamento archivio 05/03/2026, versione `bc58dc903cec8cd7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171ter
@@ -60,3 +59,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti

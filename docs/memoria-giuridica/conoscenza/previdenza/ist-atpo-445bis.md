@@ -1,6 +1,6 @@
 # Accertamento tecnico preventivo obbligatorio (art. 445-bis)
 
-- ID: `ist-atpo-445bis` · materia: previdenza · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-atpo-445bis` · materia: previdenza · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per accertamento tecnico preventivo obbligatorio al tribunale (giudice del lavoro) del luogo di residenza.

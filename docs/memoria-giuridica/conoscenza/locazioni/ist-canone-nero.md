@@ -1,6 +1,6 @@
 # Restituzione del canone non registrato o in nero
 
-- ID: `ist-canone-nero` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-canone-nero` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di restituzione entro sei mesi dalla riconsegna dell'immobile.

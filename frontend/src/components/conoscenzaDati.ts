@@ -15,6 +15,8 @@ export type Fonte = {
   norma?: string
   stato?: 'vigente' | 'abrogata'
   nota_abrogazione?: string
+  comma_pertinente?: string
+  nota_commi?: string
 }
 export type Voce = { testo: string; fonti: Fonte[]; provenienza: string; verifica: string; etichetta?: string; orientamento?: string; calcolo?: { quantita: number; unita: string; calcolatore: string; sospensione_feriale: boolean } }
 export type Sezione = { stato: 'compilata' | 'mancante'; voci: Voce[]; motivo?: string }

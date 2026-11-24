@@ -1,6 +1,6 @@
 # Decreto ingiuntivo per retribuzioni
 
-- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: verificata · fonti dirette: 26 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al tribunale in funzione di giudice del lavoro, con le buste paga; Tribunale in funzione di giudice del lavoro.

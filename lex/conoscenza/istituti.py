@@ -23,6 +23,8 @@ class NormaRiferimento:
     citazione: str
     rubrica: str = ""
     stato_biblioteca: str = ""
+    comma: str = ""          # comma vigente pertinente, quando l'articolo ha commi abrogati
+    nota_commi: str = ""     # quali commi sono abrogati e quali vigenti, letto dal testo della biblioteca
 
 
 @dataclass(frozen=True)
@@ -64,7 +66,8 @@ def carica(percorso: Path | None = None) -> tuple[list[str], list[Istituto]]:
     istituti = []
     for v in dati["istituti"]:
         norme = tuple(NormaRiferimento(n["chiave"], n.get("citazione", ""), n.get("rubrica", ""),
-                                       n.get("stato_biblioteca", "")) for n in v.get("norme", []))
+                                       n.get("stato_biblioteca", ""), n.get("comma", ""), n.get("nota_commi", ""))
+                      for n in v.get("norme", []))
         istituti.append(Istituto(v["id"], v["materia"], v["nome"], tuple(v.get("regole", [])), norme,
                                  v.get("frase_esempio", ""), v.get("origine", ""), tuple(v.get("norme_abrogate", []))))
     materie = list(dati.get("materie") or dict.fromkeys(i.materia for i in istituti))

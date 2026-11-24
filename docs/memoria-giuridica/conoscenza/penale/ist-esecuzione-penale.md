@@ -1,6 +1,6 @@
 # Esecuzione penale e incidente di esecuzione
 
-- ID: `ist-esecuzione-penale` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-esecuzione-penale` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza al giudice dell'esecuzione (art. 666 c.p.p.) o al tribunale di sorveglianza per le misure alternative.

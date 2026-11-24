@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "pipeline": "schede-istituto/1",
- "aggiornato_il": "2026-11-24T01:12:08+01:00",
+ "aggiornato_il": "2026-11-24T01:20:54+01:00",
  "schede": {
   "ist-abbreviato": {
    "id": "ist-abbreviato",
@@ -254,7 +254,7 @@
    "impronta": "8ac79d185861c8048f6be238b46abc3749479a230456c1fc1f7317de3f284b9f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -491,7 +491,7 @@
    "impronta": "63368be1a214db240dfba5a0d3e03dd7324576b3e817940eff59e32dbe7b15a2",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -799,9 +799,32 @@
      ]
     },
     "questioni": {
-     "stato": "mancante",
-     "voci": [],
-     "motivo": "nessuna questione interpretativa con norma citata verificata"
+     "stato": "compilata",
+     "voci": [
+      {
+       "testo": "La forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e per i contratti anteriori verificare la disciplina transitoria e l'orientamento delle Sezioni Unite nell'archivio SentenzeWeb.",
+       "fonti": [
+        {
+         "tipo": "norma",
+         "chiave": "dlgs165:36",
+         "citazione": "art. 36 d.lgs. 165/2001",
+         "rubrica": "Personale a tempo determinato o assunto con forme di lavoro flessibile",
+         "comma": "",
+         "ancora": "",
+         "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art36",
+         "aggiornamento": "21/11/2026",
+         "origine": "istantanea dell'archivio",
+         "vigente": true,
+         "stato": "vigente",
+         "nota_abrogazione": "",
+         "versione": "fbe5c409530384b6",
+         "atto_dedotto": "atto dedotto dalle norme citate dalla stessa regola"
+        }
+       ],
+       "provenienza": "regola pi_abuso_termine",
+       "verifica": "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 36 d.lgs. 165/2001: atto dedotto dalle norme citate dalla stessa regola"
+      }
+     ]
     },
     "orientamenti": {
      "stato": "compilata",
@@ -1124,17 +1147,15 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Eccezioni e tranelli, Questioni interpretative.",
-    "Avvertenza della regola pi_abuso_termine non riportata (senza norma citata): «Nel pubblico impiego non si chiede la conversione del rapporto: la domanda è risarcitoria.»",
-    "Questione della regola pi_abuso_termine non riportata (senza norma citata): «La forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e per i contratti anteriori veri»"
+    "Sezioni senza fonte: Eccezioni e tranelli.",
+    "Avvertenza della regola pi_abuso_termine non riportata (senza norma citata): «Nel pubblico impiego non si chiede la conversione del rapporto: la domanda è risarcitoria.»"
    ],
    "sintesi": "ricorso ex art. 414 c.p.c. al giudice del lavoro per il risarcimento del danno da abuso (non per la conversione); Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.",
    "norme_abrogate": [],
    "fonti_dirette": 15,
-   "sezioni_compilate": 7,
+   "sezioni_compilate": 8,
    "sezioni_mancanti": [
-    "Eccezioni e tranelli",
-    "Questioni interpretative"
+    "Eccezioni e tranelli"
    ],
    "stato_verifica": "verificata",
    "dipendenze": {
@@ -1154,10 +1175,10 @@
     "pronuncia:Corte costituzionale|50/2005": "cc1:9e4ebb9aa39e",
     "pronuncia:Corte costituzionale|29/2001": "cc1:526ba51dccec"
    },
-   "impronta": "fd296448192e9073e322abf42ab2c4f8a37d342c70dfbf27b989100c7e6f505b",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "0075e977d974d0e439a2fe97c9b874b5e8782bcafb08a2f895895afc1198f0b6",
+   "revisione": 3,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -1170,6 +1191,12 @@
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "fd296448192e9073",
      "motivo": "fonti cambiate: norma:rd1611:11"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "0075e977d974d0e4",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -1395,7 +1422,7 @@
    "impronta": "ebf315c276f371f5f9dd0471a9f0097938eed348865aa7e1d16a1ad11ccf3ee6",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -1556,7 +1583,7 @@
    "impronta": "9b2222c499e38dac3fe28d86666e0230f71bf7d006994ea93e0ded85038851c4",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -1753,7 +1780,7 @@
    "impronta": "2cfedef6329d038057a8971f80af5a0a05d207e7ca4cd6aca7c50112797cdbab",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -1928,7 +1955,7 @@
    "impronta": "ab9afee72544bcec967789ed6a8c97bc0b350414b3faed8b4bbf09e6ffd487aa",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2355,7 +2382,7 @@
    "impronta": "006324ec62d02f7959a6679f2469ef31ca3912fc5047c4809fbe0acf8f7f3dc9",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2550,7 +2577,7 @@
    "impronta": "0b470e55b33da02208c8dd2648d7c9822e19a74889d19692a75eeb4eaddc307e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2845,7 +2872,7 @@
    "impronta": "181649f3ce4e5407bca530351eb194a4594b6337b0ff8dfa09c215b3ba11033d",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -3077,7 +3104,7 @@
    "impronta": "2d9e999b421073ae06fb5f1c54e2b0984a28ba1e91f872150e8ea48f1da4536c",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -3332,7 +3359,7 @@
    "impronta": "2b1014a60deb485f3c2bb64a188a92a95575d3ec49f18a0320b66008453978b3",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -3963,7 +3990,7 @@
    "impronta": "43deff69280a43c8256a692ce7e4b74c701bbfa06bd7a1e59930cf68ddc730af",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -4484,7 +4511,7 @@
    "impronta": "05f01d2925fe554695f4ecd5e209bdab23f89dfa5894aae96b7fcf319136ee12",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -4925,7 +4952,7 @@
    "impronta": "0774f4554ac87ff73f852ae7ddc256fd6d861be22dd36daefb27cb72fa3a9c8b",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -5391,7 +5418,7 @@
    "impronta": "f14e89355ce0c147ab213d914f74029219057af666d885c59b7dbaf189daa906",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -5624,7 +5651,7 @@
    "impronta": "8f7d2d242b98627cf70b51daadbd1289696ab76d8f576719172ef3b25762ef09",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -5856,7 +5883,7 @@
    "impronta": "38838d755a67af85d098497756e28bce99d30e88c91cf853c33750f27f10be4b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -6115,7 +6142,7 @@
    "impronta": "c00c5ac97df0a934d14e9e0db6db52bc753d9d2ab039aadfac5aa52e6fe16343",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -6307,7 +6334,7 @@
    "impronta": "cda070c5676a489301d382aa5f35c319a3ab7de69b31216cd3e64963926a00a4",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -6854,7 +6881,7 @@
    "impronta": "452c03c0c3a88dc55c4a320fcf82c9c2615f61af839c22d659e59a85716b8df6",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7438,7 +7465,7 @@
    "impronta": "58ff65c176b241b0d86a856bd24eac3c68ff4483d879ae87ebfe108033555082",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7761,7 +7788,7 @@
    "impronta": "a78429a5648ccec028e82556845dd395d821445f3fc1e1d02136e30e2b686b40",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -8464,7 +8491,7 @@
    "impronta": "6c539e1488c8839945312c34ae4cdb0e2b0117bcfa0996317c3919e98f1b6f55",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -9053,7 +9080,7 @@
    "impronta": "3d9839f0bd13a8cc827c55f94592f60818cb6938b048527c898789e4105e4b3e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -9589,7 +9616,7 @@
    "impronta": "0945b3653b35b8cbb0afa392fcd86916f9905fc6d0898b21a903df2458fba4ef",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -9776,7 +9803,7 @@
    "impronta": "96ebd20c438d1c732a305e9212a0f9419b795fd03e4674078e9673c74ed5531a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -10321,7 +10348,7 @@
    "impronta": "4bc9ee578f61ab0eea6ab8cfd406cdd629fa2b8cc389b137252dd4207dc76a0f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -10572,7 +10599,7 @@
    "impronta": "afd7c8459495c9af126f7d6e2098da366560baa6943f7439173efb9000be50fe",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -11057,7 +11084,7 @@
    "impronta": "12958be9b89003451e1504b6f5c5213067e478b07cd35bd7cc6cd4725813196f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -11508,7 +11535,7 @@
    "impronta": "b9409883bf143bd4352eac4230b4faea722cf7e7cf11adbfab3dbf21474b53e6",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -11741,7 +11768,7 @@
    "impronta": "83f71a890249cafa442100208de6d155f4ebe43db646898caa8713305c897bbc",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -12342,7 +12369,7 @@
    "impronta": "9f0877b7510ba5206cbf906c3914a1886f85c36b506fd27b30f746e128ba0036",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -12560,7 +12587,7 @@
    "impronta": "617ba6e175d9e22b6406e1a757a83ca43dfea6d914fa583ef9b2b55e7ea797f1",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -12814,7 +12841,7 @@
    "impronta": "f3cb3168e133eeefba57f2f2782a5dc4185bf9e666aaa483022c4c1c942d330c",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -12996,7 +13023,7 @@
    "impronta": "8efaa0a57b502b45cda8db9a8a23cd27f07d10aa8d08f0f7b511f2a8012aff69",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -13399,7 +13426,7 @@
    "impronta": "2c8fdb5df762091a7674bfa6eff7024b0e7b12fc77e044a53928b4ef25ee8d75",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -14200,7 +14227,7 @@
    "impronta": "3958897baaec7a69662e8327a2e107f43a2ca3471569bb8c4496615563158498",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -14462,7 +14489,7 @@
    "impronta": "5154972b20984bd7842f0d42958814ad9688c9494b837c20706032d00dff55cb",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -14852,7 +14879,7 @@
    "impronta": "702660c73f16db51b33d5c9b0df92a24976941c62bab144469d327efd848d749",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -15408,7 +15435,7 @@
    "impronta": "b1945759ea933618a42bbc2b954e06c663bf527785421c7661de52580e7ee1d2",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -16689,7 +16716,7 @@
    "impronta": "9d5df7b22ee38c5a42c6ecb7420e9a0eca760626f05b4961114f75070dbe0cae",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -17172,7 +17199,7 @@
    "impronta": "a27e96afda1bbd4d480dcf2fede861e8bf94fa13df183a7a46dabe0838f695d9",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -17871,7 +17898,7 @@
    "impronta": "23393a747fce6be78592d3b11c852d4856314c40c03102bff49fb90415872f35",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -18452,7 +18479,7 @@
    "impronta": "59256e5cb26506efb2119c5ed136e00c7e87a9b7af59d98eb4640f568ffa6f48",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -19216,7 +19243,7 @@
    "impronta": "9d33b3b52812eaf966dfec290034c8a51e5b6ea9dfdee56bd7700b3398913231",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -19765,7 +19792,7 @@
    "impronta": "d13d43f33590509f19366e8b19d1011f382758878ce94cbb78bf219c2084fb43",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -20085,7 +20112,7 @@
    "impronta": "417a98a35c4de5ac76eb1564210580bc299ff00117ec78144ba1859a945dc838",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -20959,7 +20986,7 @@
    "impronta": "ef37ac55285caae744735a1ffb456a45a95a5c51bacfbb156bbdd97441a93ec2",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -21183,7 +21210,7 @@
    "impronta": "306be91fd02c3e6528ff03e4c82eff3299e430930fa5792000ab996ef40a5dd0",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -21650,7 +21677,7 @@
    "impronta": "63f339bd7d50cc6119ad0db51c8e6eab7038a64ec3b71530f7d948b78b3660b5",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -22225,7 +22252,7 @@
    "impronta": "ea7186c42be386ee61970a350ba7ed47dc544e72777ae9c6467844161f6cb1ef",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -22452,7 +22479,7 @@
    "impronta": "7b64dd3568c703ac47a4b6fd3db7470c25652c83b758e3f8678712cdded9501b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -22658,7 +22685,7 @@
    "impronta": "3544e8c183690aa54c67454ffc6ae457db2a0e40c94e74793237f805424953aa",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -23168,7 +23195,7 @@
    "impronta": "a4fab812e81f9ff8a1f7f7cfa5e2d5b11a0fc598e7ff8011b1f6719eebcf0465",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -23793,7 +23820,7 @@
    "impronta": "d62684eb8cbfff4e16e56be3f9a536f8286da5b5b6994ac71f2419a21145cc98",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -24047,7 +24074,7 @@
    "impronta": "5a681b995b7ab1d8d177e1341877f281cd6a15fc442dd096ce06a5d6e5f2e336",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -24323,7 +24350,7 @@
    "impronta": "923d26783cac18c67ef1975221ad9bee4847e58254a6f9e9d5af70a5ad8593f6",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -24557,7 +24584,7 @@
    "impronta": "8ea466068228d3654c80c4dbeb0f90c8c7e45928b4fb4a867eda237e030d1aac",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -25200,7 +25227,7 @@
    "impronta": "2bd525e8f623d43264cd98ded9d4a2bd3b18134191cf0191add1b5c77dadf891",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -25417,7 +25444,7 @@
    "impronta": "2f924a88ff09245a4d4c92eca93b1dc54617e39d988115d8bd40d8455a598460",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -25605,7 +25632,7 @@
    "impronta": "5ad9d905e29ece1573b3bfc44a1a2f3c89b011fe6138086cbf66e94a2da588e7",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -26501,7 +26528,7 @@
    "impronta": "82382609628da9479abd0ac77f51c3d71b821f31cbcacda535dec00975721c58",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -26704,7 +26731,7 @@
    "impronta": "68a3de7444c66f44f59bd254f796775a3dd51a404a0fed9f257402d9368b386b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -26874,9 +26901,32 @@
      ]
     },
     "questioni": {
-     "stato": "mancante",
-     "voci": [],
-     "motivo": "nessuna questione interpretativa con norma citata verificata"
+     "stato": "compilata",
+     "voci": [
+      {
+       "testo": "Materia non riconosciuta fra quelle dell'art. 5, comma 1: indica l'oggetto preciso della lite.",
+       "fonti": [
+        {
+         "tipo": "norma",
+         "chiave": "dlgs28:5",
+         "citazione": "art. 5 d.lgs. 28/2010",
+         "rubrica": "Condizione di procedibilità e rapporti con il processo",
+         "comma": "",
+         "ancora": "",
+         "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5",
+         "aggiornamento": "19/06/2025",
+         "origine": "istantanea dell'archivio",
+         "vigente": true,
+         "stato": "vigente",
+         "nota_abrogazione": "",
+         "versione": "0316e6a116391430",
+         "atto_dedotto": "atto dedotto dalle norme citate dalla stessa regola"
+        }
+       ],
+       "provenienza": "regola mediazione_obbligatoria",
+       "verifica": "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 5 d.lgs. 28/2010: atto dedotto dalle norme citate dalla stessa regola"
+      }
+     ]
     },
     "orientamenti": {
      "stato": "mancante",
@@ -26969,20 +27019,18 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).",
-    "Questione della regola mediazione_obbligatoria non riportata (senza norma citata): «Materia non riconosciuta fra quelle dell'art. 5, comma 1: indica l'oggetto preciso della lite.»"
+    "Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Giurisprudenza che cita le norme (orientamenti da valutare)."
    ],
    "sintesi": "domanda di mediazione all'organismo competente.",
    "norme_abrogate": [],
    "fonti_dirette": 5,
-   "sezioni_compilate": 2,
+   "sezioni_compilate": 3,
    "sezioni_mancanti": [
     "Presupposti",
     "Eccezioni e tranelli",
     "Termini",
     "Giudice e rito",
     "Prove e oneri",
-    "Questioni interpretative",
     "Giurisprudenza che cita le norme (orientamenti da valutare)"
    ],
    "stato_verifica": "lacune",
@@ -26993,10 +27041,10 @@
     "norma:dlgs28:6": "fd8899f7e387028f",
     "norma:dlgs28:12bis": "9e1770c73d60a132"
    },
-   "impronta": "8e343afe19de7b2838c5a25ccdbe00c6158e1c0a162ac11acc1e8d6a6c6868af",
-   "revisione": 3,
-   "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "d912b179508b5687e6d328566f3988329ba24629757170520e6ec1997297c695",
+   "revisione": 4,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -27015,6 +27063,12 @@
      "data": "2026-11-24T01:12:08+01:00",
      "impronta": "8e343afe19de7b28",
      "motivo": "fonti cambiate: norma:dlgs28:12bis, norma:dlgs28:6"
+    },
+    {
+     "revisione": 4,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "d912b179508b5687",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -27035,9 +27089,32 @@
      "motivo": "nessuna regola con inquadramento ancorato al testo vigente"
     },
     "eccezioni": {
-     "stato": "mancante",
-     "voci": [],
-     "motivo": "nessuna avvertenza della regola con norma citata verificata"
+     "stato": "compilata",
+     "voci": [
+      {
+       "testo": "I termini si calcolano a ritroso dalla data dell'udienza eventualmente differita con il decreto dell'art. 171-bis.",
+       "fonti": [
+        {
+         "tipo": "norma",
+         "chiave": "cpc:171bis",
+         "citazione": "art. 171-bis c.p.c.",
+         "rubrica": "Verifiche preliminari",
+         "comma": "",
+         "ancora": "",
+         "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171bis",
+         "aggiornamento": "",
+         "origine": "istantanea dell'archivio",
+         "vigente": true,
+         "stato": "vigente",
+         "nota_abrogazione": "",
+         "versione": "56e2865b2097b93a",
+         "atto_dedotto": "atto dedotto dalle norme citate dalla stessa regola"
+        }
+       ],
+       "provenienza": "regola civ_memorie_171ter",
+       "verifica": "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 171-bis c.p.c.: atto dedotto dalle norme citate dalla stessa regola"
+      }
+     ]
     },
     "termini": {
      "stato": "compilata",
@@ -27413,16 +27490,14 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.",
-    "Avvertenza della regola civ_memorie_171ter non riportata (senza norma citata): «I termini si calcolano a ritroso dalla data dell'udienza eventualmente differita con il decreto dell'art. 171-bis.»"
+    "Sezioni senza fonte: Presupposti, Giudice e rito, Prove e oneri, Questioni interpretative."
    ],
    "sintesi": "deposito delle memorie integrative a quaranta, venti e dieci giorni prima dell'udienza di prima comparizione.",
    "norme_abrogate": [],
    "fonti_dirette": 8,
-   "sezioni_compilate": 4,
+   "sezioni_compilate": 5,
    "sezioni_mancanti": [
     "Presupposti",
-    "Eccezioni e tranelli",
     "Giudice e rito",
     "Prove e oneri",
     "Questioni interpretative"
@@ -27438,10 +27513,10 @@
     "pronuncia:Corte costituzionale|96/2024": "cc1:03e12edce9ff",
     "pronuncia:Corte costituzionale|67/2023": "cc1:8b337f2b8297"
    },
-   "impronta": "9c15992c90e5b19322ed8bc05cf579c4375ac07696ca067ff34946847af56698",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "b45bfbfecbf838959c1e419a4e417ec3c3be6952f3e41126f39f5a898fd09cb2",
+   "revisione": 3,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -27453,6 +27528,12 @@
      "revisione": 2,
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "9c15992c90e5b193",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "b45bfbfecbf83895",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -27644,7 +27725,7 @@
    "impronta": "117c54e5dcac48bc934ecfc581df61fa8ddda46ec9edc79a07f8cb649a853b21",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -28007,7 +28088,7 @@
    "impronta": "675f43d208d6edd5241f008d0552c485444d442dad55171998d1659c15db6fe7",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -28188,20 +28269,6 @@
     },
     {
      "tipo": "norma",
-     "chiave": "l898:9",
-     "citazione": "art. 9 l. 898/1970",
-     "rubrica": "art. 9 l. 898/1970",
-     "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-12-01;898~art9",
-     "aggiornamento": "",
-     "origine": "istantanea dell'archivio",
-     "vigente": true,
-     "stato": "vigente",
-     "nota_abrogazione": "",
-     "versione": "dbad46810d42dcae",
-     "stato_biblioteca": "vigente (alcuni commi abrogati)"
-    },
-    {
-     "tipo": "norma",
      "chiave": "cc:337quinquies",
      "citazione": "art. 337-quinquies c.c.",
      "rubrica": "art. 337-quinquies c.c.",
@@ -28243,12 +28310,19 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).",
-    "art. 9 l. 898/1970: in biblioteca «vigente (alcuni commi abrogati)»; verificare il comma applicabile."
+    "Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare)."
    ],
    "sintesi": "ricorso per la revisione dei provvedimenti con le forme del rito unitario della famiglia, oppure accordo con negoziazione assistita.",
-   "norme_abrogate": [],
-   "fonti_dirette": 4,
+   "norme_abrogate": [
+    {
+     "chiave": "l898:9",
+     "citazione": "art. 9, comma 1, l. 898/1970",
+     "abrogata_da": "d.lgs. 10 ottobre 2022, n. 149, come modificato dalla l. 29 dicembre 2022, n. 197 (solo il comma 1: revisione delle condizioni del divorzio)",
+     "decorrenza": "procedimenti instaurati dopo il 28/02/2023 (art. 35, comma 1, d.lgs. 149/2022); ai pendenti a quella data le disposizioni anteriori",
+     "sede_vigente": "art. 473-bis.29 c.p.c. (revisione per giustificati motivi sopravvenuti); i commi 2-5 dell'art. 9, vigenti, riguardano la pensione di reversibilità e non questo istituto"
+    }
+   ],
+   "fonti_dirette": 3,
    "sezioni_compilate": 2,
    "sezioni_mancanti": [
     "Presupposti",
@@ -28262,14 +28336,13 @@
    "stato_verifica": "lacune",
    "dipendenze": {
     "norma:cpc:473bis29": "542a0d84decdbb2e",
-    "norma:l898:9": "dbad46810d42dcae",
     "norma:cc:337quinquies": "49fd8b0c8877cf28",
     "norma:dl132:6": "f93d860729b2dafa"
    },
-   "impronta": "a48ad77d94b3b8354429776c14d88e3aee1c9f0f8a9de254c17fc7d81df8472a",
-   "revisione": 3,
-   "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "8c35a39dcdc48be9039569a1cdc6dedec1d1db219d48403dc9d24437b77a6209",
+   "revisione": 4,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -28288,6 +28361,12 @@
      "data": "2026-11-24T01:12:08+01:00",
      "impronta": "a48ad77d94b3b835",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 4,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "8c35a39dcdc48be9",
+     "motivo": "fonti cambiate: norma:l898:9"
     }
    ],
    "stato_ciclo": "attiva"
@@ -28501,7 +28580,7 @@
    "impronta": "8e1e4c94592b8559f4b40e2a15cb74fd9e420454b5f80cd8eb1af32728e5929d",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -28697,7 +28776,7 @@
    "impronta": "67ffd3326866bd2fab89870217aa48c8f35bd0cee3401a7727e380011e97bb57",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -29025,7 +29104,7 @@
    "impronta": "f23f52dd3c52ec873b7f917233e08e2978fca4757d86d8b31d6f3fc3683db6e3",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -29286,7 +29365,7 @@
    "impronta": "291c9b592bca681ffcc3ec5f5a519e22fed0b9902acf8d83b085677e7b7d0885",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -29804,7 +29883,7 @@
    "impronta": "afaf439cfc8821be108d3ca180667fb18206276eb0481e76f823c9c809ba1936",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -30037,7 +30116,7 @@
    "impronta": "7c71652cde3a86e1f369b605bb3329eeaf281bb351cb70406412e2ca89baed8f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -30271,7 +30350,7 @@
    "impronta": "4394031cef5d0528c85fc0d2ea853f131a6eb6e3145dc65db878e889683d03df",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -30511,7 +30590,7 @@
    "impronta": "2e8f7b4c6515dc37aec8c46e8ad856007a2f77fcf227872266fe9d91651f1a5a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -30758,7 +30837,7 @@
    "impronta": "4a0283deeb3b3bbbec7547ceabf657394ea4893313db5551ce4c44e88499da3e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -31515,7 +31594,7 @@
    "impronta": "50f284ab411104e145249c753a2b4efbed5c5307ccb3db49a3a2c0afca030ebb",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -31736,9 +31815,32 @@
      ]
     },
     "eccezioni": {
-     "stato": "mancante",
-     "voci": [],
-     "motivo": "nessuna avvertenza della regola con norma citata verificata"
+     "stato": "compilata",
+     "voci": [
+      {
+       "testo": "La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente.",
+       "fonti": [
+        {
+         "tipo": "norma",
+         "chiave": "l392:55",
+         "citazione": "art. 55 l. 392/1978",
+         "rubrica": "Termine per il pagamento dei canoni scaduti",
+         "comma": "",
+         "ancora": "",
+         "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art55",
+         "aggiornamento": "",
+         "origine": "istantanea dell'archivio",
+         "vigente": true,
+         "stato": "vigente",
+         "nota_abrogazione": "",
+         "versione": "f73bb6aabb2fee78",
+         "atto_dedotto": "atto dedotto dalle norme citate dalla stessa regola"
+        }
+       ],
+       "provenienza": "regola opposizione_sfratto_commerciale",
+       "verifica": "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 55 l. 392/1978: atto dedotto dalle norme citate dalla stessa regola"
+      }
+     ]
     },
     "termini": {
      "stato": "compilata",
@@ -32389,17 +32491,15 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.",
-    "Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente.»",
+    "Sezioni senza fonte: Giudice e rito, Prove e oneri, Questioni interpretative.",
     "Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»",
     "Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Tentare subito un accordo con la locatrice sul piano di rientro.»"
    ],
    "sintesi": "comparsa di costituzione e opposizione alla convalida (art. 665 c.p.c.), non l'istanza di termine di grazia dell'art. 55 l. 392/1978.",
    "norme_abrogate": [],
    "fonti_dirette": 20,
-   "sezioni_compilate": 5,
+   "sezioni_compilate": 6,
    "sezioni_mancanti": [
-    "Eccezioni e tranelli",
     "Giudice e rito",
     "Prove e oneri",
     "Questioni interpretative"
@@ -32427,10 +32527,10 @@
     "pronuncia:Corte di Cassazione — civile|11406/2026": "8e574bc669a41d3f",
     "pronuncia:Corte costituzionale|448/1998": "cc1:60449d2460f3"
    },
-   "impronta": "3697e085a8a6bdf76193f9bb09d06f4f199991fc83588d0ccfdec22543e92154",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "a5204cd0750d16df795cccf8ead426cda7f6631f87e6b7ca15bea43cbc4156f3",
+   "revisione": 3,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -32442,6 +32542,12 @@
      "revisione": 2,
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "3697e085a8a6bdf7",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "a5204cd0750d16df",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -33034,7 +33140,7 @@
    "impronta": "12d11070ebaf73a2711de007cb358d0a1113d9e7dd9dff3d7aca5f9d0b802cd8",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -33896,7 +34002,7 @@
    "impronta": "f86fbcdec0676c8ca8d1bfb263496ebf5d8098042365ef14cf72641347d757ae",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -34264,7 +34370,7 @@
    "impronta": "49a84451206dfaa992e049ac76a09d807ef52410f86133961f39f499a0b7b5f3",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -34531,7 +34637,7 @@
    "impronta": "e6c9b23b17d59d26103fd3f6339aaf8e3b8ece6b73d90a823058c8b6b8d1bd7c",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -34937,7 +35043,7 @@
    "impronta": "55cb52f62f3287da359f5ae1f299859e42b9c1deeffcda15a7e4b09c66b60531",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -35228,7 +35334,7 @@
    "impronta": "10c8ec4498e647d0f77feffef32c62950131c1aa7f8b6b1ff7d82356e842588e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -35520,7 +35626,7 @@
    "impronta": "c0fa59764805865224249e1d480017ab83759b8aac525db2d37176510dded3ec",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -35705,7 +35811,7 @@
    "impronta": "7c5b1ce49dcd5983b2046208ceaf162c24c77413c36c6dfe2166bb042bea1b71",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -35865,7 +35971,7 @@
    "impronta": "02acef0191cd61ab6944573b88c950f8c7bdf47f53dac3384b48dc249f3c955f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -36120,7 +36226,7 @@
    "impronta": "aad6109380d7cf7de9c9a4baacf7322279960b3f4d8293ff1732fd901c0602ff",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -36323,7 +36429,7 @@
    "impronta": "b4f3f9ba4412fc07c23c85ab2470d4a35d13462a2f74e7b052f79f899f1ceef9",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -36357,9 +36463,32 @@
      "motivo": "nessuna regola con inquadramento ancorato al testo vigente"
     },
     "eccezioni": {
-     "stato": "mancante",
-     "voci": [],
-     "motivo": "nessuna avvertenza della regola con norma citata verificata"
+     "stato": "compilata",
+     "voci": [
+      {
+       "testo": "Per il diniego del permesso per motivi familiari è competente il giudice ordinario (art. 30, comma 6, TUI).",
+       "fonti": [
+        {
+         "tipo": "norma",
+         "chiave": "dlgs286:30",
+         "citazione": "art. 30 d.lgs. 286/1998",
+         "rubrica": "Permesso di soggiorno per motivi familiari",
+         "comma": "",
+         "ancora": "",
+         "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-07-25;286~art30",
+         "aggiornamento": "11/11/2026",
+         "origine": "istantanea dell'archivio",
+         "vigente": true,
+         "stato": "vigente",
+         "nota_abrogazione": "",
+         "versione": "c36a89f4f1ae99b3",
+         "atto_dedotto": "atto dedotto dalle norme citate dalla stessa regola"
+        }
+       ],
+       "provenienza": "regola imm_permesso_espulsione",
+       "verifica": "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 30 d.lgs. 286/1998: atto dedotto dalle norme citate dalla stessa regola"
+      }
+     ]
     },
     "termini": {
      "stato": "mancante",
@@ -36558,7 +36687,8 @@
      "vigente": true,
      "stato": "vigente",
      "nota_abrogazione": "",
-     "versione": "c36a89f4f1ae99b3"
+     "versione": "c36a89f4f1ae99b3",
+     "atto_dedotto": "atto dedotto dalle norme citate dalla stessa regola"
     },
     {
      "tipo": "norma",
@@ -36615,17 +36745,15 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).",
-    "Avvertenza della regola permesso_soggiorno non riportata (senza norma citata): «Il TAR non è il giudice di questi provvedimenti: un ricorso al TAR farebbe perdere tempo.»",
-    "Avvertenza della regola imm_permesso_espulsione non riportata (senza norma citata): «Per il diniego del permesso per motivi familiari è competente il giudice ordinario (art. 30, comma 6, TUI).»"
+    "Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).",
+    "Avvertenza della regola permesso_soggiorno non riportata (senza norma citata): «Il TAR non è il giudice di questi provvedimenti: un ricorso al TAR farebbe perdere tempo.»"
    ],
    "sintesi": "opposizione al tribunale ordinario (sezione specializzata immigrazione), non ricorso al TAR.",
    "norme_abrogate": [],
    "fonti_dirette": 6,
-   "sezioni_compilate": 2,
+   "sezioni_compilate": 3,
    "sezioni_mancanti": [
     "Presupposti",
-    "Eccezioni e tranelli",
     "Termini",
     "Giudice e rito",
     "Prove e oneri",
@@ -36641,10 +36769,10 @@
     "norma:dlgs286:6": "b99cbc0c0dcf2788",
     "norma:dlgs150:18": "da4289ea27b2c9cc"
    },
-   "impronta": "0fc823fbb0527f50cffc2be53461f9be733d6ffc8832f0ce6164f6952b0b78b1",
-   "revisione": 3,
-   "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "4300fc35085822d415e4a17256e6e91c198f90838d4fe49ab4283b7314638801",
+   "revisione": 4,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -36663,6 +36791,12 @@
      "data": "2026-11-24T01:12:08+01:00",
      "impronta": "0fc823fbb0527f50",
      "motivo": "fonti cambiate: norma:dlgs150:18, norma:dlgs286:6"
+    },
+    {
+     "revisione": 4,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "4300fc35085822d4",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -36883,7 +37017,7 @@
    "impronta": "b8077c3c50a15196bf4d2960a0e3569ff161c09b8c33c3001917e42f9eabbe8d",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -37200,7 +37334,7 @@
    "impronta": "9594ac95c251cd65e467bf648dd1ddd9a093c7371d66c695b4e877e0d568ab90",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -37510,7 +37644,7 @@
    "impronta": "645d027ee23e2b0cb82224ded6b1a85a4c9064a5a98cb9a758c06e66f09c1e07",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -38044,7 +38178,9 @@
      "stato": "vigente",
      "nota_abrogazione": "",
      "versione": "fce0392d5ca5326f",
-     "stato_biblioteca": "vigente (alcuni commi abrogati)"
+     "stato_biblioteca": "vigente (alcuni commi abrogati)",
+     "comma_pertinente": "2",
+     "nota_commi": "comma 1 abrogato dal d.l. 132/2014, conv. l. 162/2014; vigenti i commi 2 e 3. Pertinente il comma 2: se il terzo non compare o rifiuta la dichiarazione, il credito si considera non contestato e il giudice provvede a norma degli artt. 552 o 553 c.p.c."
     },
     {
      "tipo": "norma",
@@ -38216,8 +38352,7 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.",
-    "art. 548 c.p.c.: in biblioteca «vigente (alcuni commi abrogati)»; verificare il comma applicabile."
+    "Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative."
    ],
    "sintesi": "atto di pignoramento presso terzi notificato al terzo e al debitore, con citazione davanti al giudice dell'esecuzione; Tribunale del luogo di residenza, domicilio, dimora o sede del debitore.",
    "norme_abrogate": [],
@@ -38248,10 +38383,10 @@
     "pronuncia:Corte costituzionale|95/2006": "cc1:9da7c9d579c7",
     "pronuncia:Corte costituzionale|522/2002": "cc1:a47fb1b5d813"
    },
-   "impronta": "baaf662cad6e1fab34b282f2a78efa47bf615162f7168c02cba710d9eab755c6",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "0f17a8c3b6bb5feb4f6d853a6377638cb97366e6ccc0cb9584ad30ebb314a3b5",
+   "revisione": 3,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -38263,6 +38398,12 @@
      "revisione": 2,
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "baaf662cad6e1fab",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "0f17a8c3b6bb5feb",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -38479,7 +38620,7 @@
    "impronta": "313d0f80702f53a4d0700f07a877ba5754a896894a09d5789a02a1adad93dd72",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -38980,7 +39121,7 @@
    "impronta": "bf9ab81e7a1ad1a2d7a6e49d70d5d76b66d2455644775b8cd7d754f3f4f3d0e2",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -39663,7 +39804,7 @@
    "impronta": "650c330e30cd19bb4a22b8488f85edbdb1df23dfd8acbe83ff564920be2f8466",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -39852,7 +39993,7 @@
    ],
    "lacune": [
     "Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).",
-    "Questione della regola imm_protezione_internazionale non riportata (senza norma citata): «Termini ridotti ed effetto sospensivo nelle procedure accelerate e di frontiera (artt. 35-bis e 35-ter): verificare il tipo di procedura ind»"
+    "Questione della regola imm_protezione_internazionale non riportata (cita art. 35-ter senza l'atto e il contesto della regola non basta a stabilirlo): «Termini ridotti ed effetto sospensivo nelle procedure accelerate e di frontiera (artt. 35-bis e 35-ter): verificare il tipo di procedura ind»"
    ],
    "sintesi": "ricorso alla sezione specializzata immigrazione del tribunale ordinario.",
    "norme_abrogate": [],
@@ -39873,10 +40014,10 @@
     "norma:dlgs25:35bis": "568e1397b0c798ac",
     "norma:dlgs251:2": "49e0fa9123dc1388"
    },
-   "impronta": "95f82a62ca3f7da779f6916beb57da5f9cdd275aa65dc6820889518a16a6e7c3",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "a10561de135dd69cca053ed808021cb3280d564515015d0993aec6ab836adf4b",
+   "revisione": 3,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -39889,6 +40030,12 @@
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "95f82a62ca3f7da7",
      "motivo": "fonti cambiate: norma:dlgs251:2"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "a10561de135dd69c",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -40832,7 +40979,7 @@
    "impronta": "2dc45cbcc5664f3f2a65bd4d341602d422f92f041e513848b160a6f79a5659e7",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41268,7 +41415,7 @@
    "impronta": "0553715a0d9adf1721ac58aecb365fa9d1502d9f63400a2cb36e50c14ce047d3",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41456,7 +41603,7 @@
    "impronta": "e4af6cab03917b3db5fe6b763d0a4ae5f9a0b89170db9987d4078b0ee5ba2184",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41803,7 +41950,7 @@
    "impronta": "101d4aa8f854bc79bac418933db763858bfa1d483b8b016bfa83bb249b85b9c6",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42051,7 +42198,7 @@
    "impronta": "4bb538cbb33d3b703acf1706a803b7655d99837dfa576c4f19de8b607106109d",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42428,7 +42575,7 @@
    "impronta": "f3544ab8298845cfe2b9a6801b60bedc5ebb946f8fcc1b80751afaac7924a230",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42667,7 +42814,7 @@
    "impronta": "6f178795435460cc0fc2108c82bae8ccf88d21d38b026629bc7a40c9939ba83e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42863,7 +43010,7 @@
    "impronta": "3e6e42edc7a34d03abda206221099699f9b47c9a01ff37804e5aeee049dcfa07",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -43104,7 +43251,7 @@
    "impronta": "c9f842950e6728a465ec3996b55e3248ec79d9d31eb4df9bab2451271f0d7b1e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -43301,9 +43448,10 @@
     {
      "chiave": "dlgs546:17bis",
      "citazione": "art. 17-bis d.lgs. 546/1992",
-     "abrogata_da": "d.lgs. 30 dicembre 2023, n. 220",
-     "decorrenza": "secondo l'art. 4, comma 2, d.lgs. 220/2023 (ricorsi notificati dopo il 01/09/2024, salvo le lettere applicabili dal giorno successivo all'entrata in vigore): la lettera che abroga l'art. 17-bis va verificata sul d.lgs. 220/2023, non presente in biblioteca",
-     "sede_vigente": "nessuna: il ricorso si propone direttamente (art. 21 d.lgs. 546/1992)"
+     "abrogata_da": "d.lgs. 30 dicembre 2023, n. 220, art. 2, comma 3, lett. a)",
+     "decorrenza": "dal 04/01/2024: l'abrogazione opera «a decorrere dalla data di entrata in vigore» del decreto (art. 2, comma 3), che entra in vigore il giorno successivo alla pubblicazione (art. 4, comma 1) nella G.U. del 03/01/2024. La decorrenza differita dell'art. 4, comma 2 (ricorsi notificati dopo il 01/09/2024) riguarda le disposizioni dell'art. 1, non l'abrogazione dell'art. 17-bis",
+     "sede_vigente": "nessuna: il ricorso si propone direttamente (art. 21 d.lgs. 546/1992)",
+     "fonte_letta": "d.lgs. 220/2023 nel testo vigente al 24/11/2026, acquisito da Normattiva nella biblioteca (pacchetto pacchetti-11/20261124)"
     }
    ],
    "fonti_dirette": 3,
@@ -43324,10 +43472,10 @@
     "norma:dlgs546:21": "0e3a2c96f7e731ca",
     "norma:dlgs28:5": "0316e6a116391430"
    },
-   "impronta": "2eda3016e29b95a40f7f641135d499d89e733f97946968d2b2f9a28234343846",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "6924dad4bb623d25cbea2406a3c2057453065799af6908b3b5d2f1bbbc99816d",
+   "revisione": 3,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -43339,6 +43487,12 @@
      "revisione": 2,
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "2eda3016e29b95a4",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "6924dad4bb623d25",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -43604,7 +43758,7 @@
    "impronta": "31c2274597c4fe402157a79f9893663e7ce80109047048675c1c8ffd15940372",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -43837,7 +43991,7 @@
    "impronta": "0b83abbe5331f96bf3e47fcaff29dd99e85960efac9aaed87ebff0487bcbe049",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -44069,7 +44223,7 @@
    "impronta": "9535f1c3c3af2ff96ad2da0c304237ba6dd4872a949708295973f12bfa68246a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -44289,7 +44443,7 @@
    "impronta": "c3e62b418d36a973fab739669c39def9ee477c55e5892f5b2c63cf3ad4c13954",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -44528,7 +44682,7 @@
    "impronta": "b76ae2bca10a9c8168591049f707dcd91edf370a6eb2317d6a62c773d0baa0ee",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -44768,7 +44922,7 @@
    "impronta": "2ad387b31655e3a9ce7431f6515c0149ddd4b8d7964dc6b47cdf38c7a6c3d2f5",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -45237,7 +45391,7 @@
    "impronta": "7e0ae3b031d417bc4daa88802e9baceff13fc249e9647a5cb4e73824cc57bcfb",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -45498,7 +45652,7 @@
    "impronta": "d0b28a41587c933831651c9ec00079af5068a1ccc1a6bf0785ed5229fd9f90a3",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -45845,7 +45999,7 @@
    "impronta": "7b8b02a8e1d977b66de125bb626ad7123b7382d30f030d2570d7c08a865f5e09",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -46179,7 +46333,7 @@
    "impronta": "4916973dcc67a6b0ea518136e3e4de6ab3585523b6dcd0267541524fe380be61",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -47057,7 +47211,7 @@
    "impronta": "18b6147fe36626d565c2371e3a332c7a9b0520881ec8835a60cf4a3f9a6b1f57",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -47367,7 +47521,7 @@
    "impronta": "5aa22cf72827b147ab70219ddbf908b378271ae2ee9c63bf20054d969d904d09",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -47829,7 +47983,7 @@
    "impronta": "41633242b350c53becc69c67e6f5d7b7e9b5d9266d8139d3f8b1b68fb4442a9f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48112,7 +48266,7 @@
    "impronta": "e567e06912ad79d29c58bd4b9f0d0721f10c5fe40cd9ca2b939ea4ad2ba475ad",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48230,9 +48384,32 @@
      ]
     },
     "eccezioni": {
-     "stato": "mancante",
-     "voci": [],
-     "motivo": "nessuna avvertenza della regola con norma citata verificata"
+     "stato": "compilata",
+     "voci": [
+      {
+       "testo": "Per i dipendenti pubblici non si usa il foro dell'azienda (art. 413, secondo comma): vale l'ufficio di assegnazione.",
+       "fonti": [
+        {
+         "tipo": "norma",
+         "chiave": "cpc:413",
+         "citazione": "art. 413 c.p.c.",
+         "rubrica": "Giudice competente",
+         "comma": "",
+         "ancora": "",
+         "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413",
+         "aggiornamento": "05/03/2026",
+         "origine": "istantanea dell'archivio",
+         "vigente": true,
+         "stato": "vigente",
+         "nota_abrogazione": "",
+         "versione": "f3a69b5c4f2b6203",
+         "atto_dedotto": "atto dedotto dalle norme citate dalla stessa regola"
+        }
+       ],
+       "provenienza": "regola pi_differenze_retributive",
+       "verifica": "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 413 c.p.c.: atto dedotto dalle norme citate dalla stessa regola"
+      }
+     ]
     },
     "termini": {
      "stato": "compilata",
@@ -49081,16 +49258,14 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.",
-    "Avvertenza della regola pi_differenze_retributive non riportata (senza norma citata): «Per i dipendenti pubblici non si usa il foro dell'azienda (art. 413, secondo comma): vale l'ufficio di assegnazione.»",
+    "Sezioni senza fonte: Prove e oneri, Questioni interpretative.",
     "Questione della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare l'orientamento della Cassazione ne»"
    ],
    "sintesi": "ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.",
    "norme_abrogate": [],
    "fonti_dirette": 20,
-   "sezioni_compilate": 6,
+   "sezioni_compilate": 7,
    "sezioni_mancanti": [
-    "Eccezioni e tranelli",
     "Prove e oneri",
     "Questioni interpretative"
    ],
@@ -49117,10 +49292,10 @@
     "pronuncia:Corte costituzionale|212/2020": "cc1:646cd827e06c",
     "pronuncia:Corte costituzionale|66/2002": "cc1:a7ce4ecb946c"
    },
-   "impronta": "0d9de8666b3646da51985c07b12232c70f0f9a149f4efffcc7caee56c08924b9",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "9be855f59a59b4c4391303637f94620a448462905413560af838187aa60b9613",
+   "revisione": 3,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -49133,6 +49308,12 @@
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "0d9de8666b3646da",
      "motivo": "fonti cambiate: norma:rd1611:11"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "9be855f59a59b4c4",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -49425,7 +49606,7 @@
    "impronta": "a12d3730cec7113570cc738438e45cb484ab7e1bec0f8e8b36b6a40693d1ca7a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -49689,7 +49870,7 @@
    "impronta": "05f0c2e528d4dfdf7e8e561b4ec659f4c9d11c4cecbf5151795998bf28131589",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50105,7 +50286,7 @@
    "impronta": "1f87d67b8ee3c4684db3e498a9ba2ac34d8e86be61616debf5f9d33442e9f3cf",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50355,7 +50536,7 @@
    "impronta": "a28842f5eb69ef9b83c4092b9e63c8ecd2995d60778bdf8f3f008d6a9f614e26",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50764,7 +50945,7 @@
    "impronta": "5b7651e5707b98c1e2790fd663511ce96cfa888d2f875749c0bbfe8e2bdf25c5",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50986,7 +51167,7 @@
    "impronta": "b839c4406ee4d6151364b9f7f2619698b004d6e0fe2d2b59a7b1852a2c28fb18",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51271,7 +51452,7 @@
    "impronta": "738972074c534a4b194555d8b48e6095e949ac5c9ca23f55ec62edaffb2475fe",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51541,7 +51722,7 @@
    "impronta": "78389b2f70a0f47b80eea1dd6d38209f9f755ef43771bfaff763fb71ad31dfd8",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -52081,7 +52262,7 @@
    "impronta": "144e6b5d711cec303f230d2be02ce1c7f899cb11f5f408728d64b7d3b09656ba",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -52247,7 +52428,7 @@
    "impronta": "910aa0a2821e3c5b8a69fb0901955289313b4187dd2a191a166885f2e44e08da",
    "revisione": 1,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -52867,7 +53048,7 @@
    "impronta": "cc1e1b1c1d7762c422b2ce308d2eceb01875121d8da75c1dd4c5762616eea3dd",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -53171,7 +53352,7 @@
    "impronta": "2713608440406a59c6308d2289f10d43cb46adca1b8339456c221812fbd6614f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -53625,7 +53806,7 @@
    "impronta": "28b7ca91b7a579c1ac65f94f32003685750144670dd6c9de98ebc60257b6d128",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -53858,7 +54039,7 @@
    "impronta": "174b7d2ff3ceece04a7385ec00eb8de4e0b8810ffcca78213ccab76e9add7291",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54046,7 +54227,7 @@
    "impronta": "a94bb82291e4fae865aab82bfde0fd5a8aeb96a98688052255d722632abe0963",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54827,7 +55008,7 @@
    "impronta": "4e6e15417c5aca0d622e73130178f0593e28ac41f15f7e370e9d01661d20573e",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -55527,7 +55708,7 @@
    "impronta": "0d41d6876b3ca64ef197dd7e50ffe910d880dbe6dc58d587e21423e62efcb020",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -56210,7 +56391,7 @@
    "impronta": "f629591b473a3635c653e415450ecf9795153fbee5e9f68921dfdfcd217631f5",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -56748,7 +56929,7 @@
    "impronta": "a3e9fe9dddae577b4b802c1f0c00a56771be34eda67bd95eedd21e3a6a5b2935",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -57101,9 +57282,32 @@
      ]
     },
     "eccezioni": {
-     "stato": "mancante",
-     "voci": [],
-     "motivo": "nessuna avvertenza della regola con norma citata verificata"
+     "stato": "compilata",
+     "voci": [
+      {
+       "testo": "La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente.",
+       "fonti": [
+        {
+         "tipo": "norma",
+         "chiave": "l392:55",
+         "citazione": "art. 55 l. 392/1978",
+         "rubrica": "Termine per il pagamento dei canoni scaduti",
+         "comma": "",
+         "ancora": "",
+         "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art55",
+         "aggiornamento": "",
+         "origine": "istantanea dell'archivio",
+         "vigente": true,
+         "stato": "vigente",
+         "nota_abrogazione": "",
+         "versione": "f73bb6aabb2fee78",
+         "atto_dedotto": "atto dedotto dalle norme citate dalla stessa regola"
+        }
+       ],
+       "provenienza": "regola opposizione_sfratto_commerciale",
+       "verifica": "norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 55 l. 392/1978: atto dedotto dalle norme citate dalla stessa regola"
+      }
+     ]
     },
     "termini": {
      "stato": "compilata",
@@ -57727,19 +57931,17 @@
     }
    ],
    "lacune": [
-    "Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.",
+    "Sezioni senza fonte: Prove e oneri, Questioni interpretative.",
     "Avvertenza della regola negoziazione_locazione_inadatta non riportata (senza norma citata): «Il conduttore può sanare in prima udienza o chiedere il termine di grazia fino a novanta giorni: la convalida richiede che la morosità persi»",
     "Avvertenza della regola negoziazione_locazione_inadatta non riportata (senza norma citata): «Il deposito cauzionale non va imputato ai canoni nell'atto.»",
-    "Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente.»",
     "Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»",
     "Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Tentare subito un accordo con la locatrice sul piano di rientro.»"
    ],
    "sintesi": "intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.",
    "norme_abrogate": [],
    "fonti_dirette": 21,
-   "sezioni_compilate": 6,
+   "sezioni_compilate": 7,
    "sezioni_mancanti": [
-    "Eccezioni e tranelli",
     "Prove e oneri",
     "Questioni interpretative"
    ],
@@ -57767,10 +57969,10 @@
     "pronuncia:Corte costituzionale|3/1999": "cc1:78fc60d803e9",
     "pronuncia:Corte costituzionale|2/1992": "cc1:b6d6621394e5"
    },
-   "impronta": "90e1e9b7cfeda546ca1a22d12bc2e75bc6cb2bf1b5da9f8b070424afff3f6ca7",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "impronta": "e7b9d96b0b23269aebf8f7f26318a8f759c1239a9f0e1f2876faa696131f70b5",
+   "revisione": 3,
+   "generata_il": "2026-11-24T01:20:54+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -57782,6 +57984,12 @@
      "revisione": 2,
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "90e1e9b7cfeda546",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T01:20:54+01:00",
+     "impronta": "e7b9d96b0b23269a",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -58029,7 +58237,7 @@
    "impronta": "bc0e8e2f70aa305a5e9068794a8f493c4b6eda4c046a63e736df7db90c87d501",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -58589,7 +58797,7 @@
    "impronta": "517afcb6a93db5691db9d6d9dd54d46cb666331f4a0294fc027e4b7e125ba028",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -58775,7 +58983,7 @@
    "impronta": "d2b2b7cad61206484331085bf0c3415bea0b8b97197d2c93a7c5e6bba7f002de",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -59265,7 +59473,7 @@
    "impronta": "56f999395157064f2e20a5bb1b2f6b51f0ec3e0f20b3d934917294735fdb1f3a",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60286,7 +60494,7 @@
    "impronta": "deaa37aca343d0ece48f2e122c7970b034449928348613eb0450d6490b769b2e",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60583,7 +60791,7 @@
    "impronta": "0ac29b5ec9e410b1a628ac08d74b908d9119da050b99b5d235f79b71e17fe633",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60867,7 +61075,7 @@
    "impronta": "c84ae020dc6b626a01bdcbd9491799ecaddb55151079028a58cc56024a31d19a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -61144,7 +61352,7 @@
    "impronta": "b79ea9afbb91d4259e4d3107a10ee663b4c4fe94857f52be918372c31f2ee1f2",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -61774,7 +61982,7 @@
    "impronta": "8eebb9449e48a7123967d9b5df7590acf3b43f578253dfb66424144b581c4d54",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T01:12:08+01:00",
+   "ultimo_controllo": "2026-11-24T01:20:54+01:00",
    "storia": [
     {
      "revisione": 1,

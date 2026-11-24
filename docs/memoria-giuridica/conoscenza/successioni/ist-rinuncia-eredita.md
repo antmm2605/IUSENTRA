@@ -1,6 +1,6 @@
 # Rinuncia all'eredità
 
-- ID: `ist-rinuncia-eredita` · materia: successioni · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-rinuncia-eredita` · materia: successioni · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di rinuncia davanti al notaio o al cancelliere del tribunale del luogo di apertura della successione.

@@ -1,6 +1,6 @@
 # Appello nel rito del lavoro (art. 434)
 
-- ID: `ist-appello-lavoro` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-appello-lavoro` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso in appello alla corte d'appello in funzione di giudice del lavoro.

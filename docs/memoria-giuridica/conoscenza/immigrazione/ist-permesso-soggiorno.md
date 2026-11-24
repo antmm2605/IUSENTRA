@@ -1,6 +1,6 @@
 # Diniego o revoca del permesso di soggiorno ed espulsione
 
-- ID: `ist-permesso-soggiorno` · materia: immigrazione · revisione 3 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-permesso-soggiorno` · materia: immigrazione · revisione 4 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione al tribunale ordinario (sezione specializzata immigrazione), non ricorso al TAR.
@@ -9,7 +9,7 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Per il diniego del permesso per motivi familiari è competente il giudice ordinario (art. 30, comma 6, TUI). — _art. 30 d.lgs. 286/1998_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 30 d.lgs. 286/1998: atto dedotto dalle norme citate dalla stessa regola)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -42,9 +42,8 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Regola di Lex «imm_permesso_espulsione»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Avvertenza della regola permesso_soggiorno non riportata (senza norma citata): «Il TAR non è il giudice di questi provvedimenti: un ricorso al TAR farebbe perdere tempo.»
-- Avvertenza della regola imm_permesso_espulsione non riportata (senza norma citata): «Per il diniego del permesso per motivi familiari è competente il giudice ordinario (art. 30, comma 6, TUI).»
 
 ## Fonti con versione
 - art. 5 d.lgs. 286/1998 (Permesso di soggiorno (Legge 6 marzo 1998, n. 40, art. 5)) — testo vigente, aggiornamento archivio n.d., versione `861e9ba3ef13d5cd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-07-25;286~art5
@@ -58,3 +57,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:tui:13, norma:tui:5
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:dlgs150:18, norma:dlgs286:6
+- r4 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti

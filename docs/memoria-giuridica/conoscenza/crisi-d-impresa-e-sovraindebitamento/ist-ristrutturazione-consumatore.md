@@ -1,6 +1,6 @@
 # Ristrutturazione dei debiti del consumatore
 
-- ID: `ist-ristrutturazione-consumatore` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 01:12
+- ID: `ist-ristrutturazione-consumatore` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 01:20
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di ristrutturazione dei debiti tramite l'OCC al tribunale.

@@ -75,7 +75,7 @@ def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None
             testo += "\n\n" + _NOTA_LAVORO
         return _payload(domanda, testo, 0.9, "Calcolo e testo dai motori certi di IUSENTRA (termini, archivio Normattiva).",
                         [], "motori_certi")
-    if esito.regola == "chiarimento_strumento" and dal_fascicolo is None and not c.racconto:
+    if esito.regola in {"chiarimento_strumento", "fuori_materia"} and dal_fascicolo is None and not c.racconto:
         # Domanda di diritto senza fatti: se la rubrica ufficiale trova la norma, la norma vigente vale più di una scelta.
         da_rubrica = _risposta_da_rubrica(domanda, c)
         if da_rubrica is not None:

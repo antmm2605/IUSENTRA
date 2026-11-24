@@ -88,7 +88,10 @@ _OGGETTI_GIURIDICI = (r"appell|cassazione|opposizion|ricors|querel|impugn|licenz
 # Richieste sui dati dello studio (restano al percorso operativo).
 _OPERATIVA = (r"\b(?:cosa|che cosa|quali|quante|mostra\w*|elenc\w*|dammi|dimmi)\b.{0,40}\b(?:scad\w*|pec|udienz\w*|appuntament\w*|"
               r"agenda|email|messagg\w*|notific\w*|fascicol\w*|client\w*|fattur\w*|preventiv\w*|depositi|ricevut\w*)|"
-              r"^(?:pec|scadenze|udienze|agenda|notifiche|email)\b")
+              r"^(?:pec|scadenze|udienze|agenda|notifiche|email)\b|"
+              # Comandi del software («apri il fascicolo Rossi», «carica il documento»).
+              r"^(?:apri|chiudi|mostra\w*|vai|cerca|trova|aggiungi|salva|stampa|invia|carica|scarica)\b.{0,40}"
+              r"\b(?:fascicol|pratic|agenda|calendario|pec|email|document|file|client|scadenz|udienz|cartell[ae] dello studio)")
 
 
 # Ricerche nelle fonti ufficiali (allegati, questioni, riforme): restano al percorso delle fonti.
@@ -151,7 +154,10 @@ def comprendi(testo: str) -> Comprensione:
     # La comunicazione allo studio (PEC, email al cliente) resta al percorso delle comunicazioni.
     domanda = re.search(_FORMA_DOMANDA, t) is not None
     fonti_ufficiali = any(tok in t for tok in _RICERCA_FONTI) and not racconto and not termine
-    comunicazione = re.search(r"\b(?:pec|email|e-mail|mail|messaggio|whatsapp)\b", t) and not atto and not racconto
+    # Richiesta sulle comunicazioni dello studio (leggere, mandare, rispondere a PEC ed email); un fatto avvenuto «su
+    # whatsapp» o «via pec» resta un fatto.
+    comunicazione = re.search(r"\b(?:pec|email|e-mail|mail|messaggio|whatsapp)\b", t) and not atto and not racconto and not re.search(
+        r"\b(?:ha|hanno|aveva|avevano) (?:scritto|mandato|inviato|pubblicato|detto)|danni|diffam|offes|minacc|querel|risarc", t)
     if verbo and atto and not comunicazione:
         motivi.append(f"verbo di redazione e atto «{atto}»")
         return Comprensione("redazione", atto, racconto, True, motivi)
@@ -179,7 +185,19 @@ def comprendi(testo: str) -> Comprensione:
         tipo = "redazione" if verbo else ("termine" if termine else "parere")
         if _fattispecie_riconosciuta(testo, Comprensione(tipo, atto, racconto, True)):
             return Comprensione(tipo, atto, racconto, True, ["fattispecie riconosciuta dai fatti descritti"])
+        # Linguaggio comune senza parole tecniche («il vicino ha costruito un muro sul mio terreno»): entra se è vicino
+        # per significato a uno strumento delle regole.
+        if _vicino_a_uno_strumento(testo):
+            return Comprensione(tipo, atto, racconto, True, ["vicino per significato a uno strumento"])
     return Comprensione("altro", atto, racconto, bool(oggetto), motivi)
+
+
+def _vicino_a_uno_strumento(testo: str) -> bool:
+    from . import SOGLIA_SIGNIFICATO
+    from .significato import cerca
+
+    vicine = cerca(testo, 1)
+    return bool(vicine) and vicine[0][1] >= SOGLIA_SIGNIFICATO
 
 
 def _fattispecie_riconosciuta(testo: str, c: Comprensione) -> bool:

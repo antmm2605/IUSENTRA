@@ -34,7 +34,10 @@ _DECISIVI = ("non e obbligatori", "e obbligatori", "obbligatori", "condizione di
              "inadatt", "non si applica", "non e applicabile", "esclus", "competent", "per iscritto", "integralmente",
              "residenza abituale", "luogo in cui si trova", "sospensione feriale", "a pena di", "rito del lavoro",
              "rito ordinario", "rito semplificato", "semplificato di cognizione", "giudice di pace", "tribunale",
-             "perentori", "ordinatori", "camera di consiglio", "camerale", "esecutiv", "provvisori")
+             "perentori", "ordinatori", "camera di consiglio", "camerale", "esecutiv", "provvisori",
+             # Parole del testo di legge che fondano competenza e soglie: si citano alla lettera (artt. 7, 21 c.p.c.,
+             # art. 33 cod. consumo, art. 3 d.l. 132/2014).
+             "supera", "residenza o domicilio elettivo", "dove e posto", "luogo dove")
 
 
 def _piano(t: str) -> str:

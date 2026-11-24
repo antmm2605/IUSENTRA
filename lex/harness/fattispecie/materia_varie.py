@@ -190,7 +190,8 @@ PROTEZIONE_INTERNAZIONALE = Scheda(
 TRANSAZIONE = Scheda(
     regola="str_transazione", materia="stragiudiziale", nome="transazione",
     segnali=(r"transazion|accordo transattivo|chiudere (?:la lite|la causa) con un accordo|reciproche concessioni",),
-    esclusi=(r"lavorator|dipendent|datore di lavoro|vertenza", r"\(creditore|precett"), punteggio=5,
+    esclusi=(r"lavorator|dipendent|datore di lavoro|vertenza", r"\(creditore|precett",
+             r"696|\batp\b|accertamento tecnico|consulenza tecnica preventiva"), punteggio=5,
     capito="Accordo per chiudere o prevenire una lite con reciproche concessioni.",
     rimedio="contratto di transazione per iscritto",
     conclusione=[

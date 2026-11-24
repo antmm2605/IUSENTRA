@@ -25,6 +25,42 @@ _CONTESTO = re.compile(r"\b(?:tribunale|giudice|corte|pct|telematic\w*|deposit\w
 _N = (3, 4, 5)
 
 
+# Aree per le proposte: una domanda di precisazione propone solo strumenti della stessa area del più vicino.
+_AREA_PREFISSI = {"pi": "lavoro", "prev": "lavoro", "lav": "lavoro", "es": "esecuzione", "mon": "esecuzione", "civ": "processo",
+                  "cau": "processo", "pos": "diritti reali", "pen": "penale", "ban": "impresa", "soc": "impresa",
+                  "crisi": "impresa", "priv": "impresa", "con": "contratti", "rc": "responsabilita", "suc": "successioni",
+                  "dr": "diritti reali", "fam": "famiglia", "loc": "locazione", "cons": "contratti", "str": "stragiudiziale",
+                  "trib": "tributario", "imm": "amministrativo", "amm": "amministrativo", "cds": "sanzioni"}
+_AREA_REGOLE = {
+    **dict.fromkeys(("opposizione_precetto", "termini_precetto", "pignoramento_terzi", "ricerca_beni", "opposizione_atti_esecutivi",
+                     "esecuzione_contro_pa", "decreto_ingiuntivo", "notifica_decreto_ingiuntivo", "opposizione_decreto_ingiuntivo"),
+                    "esecuzione"),
+    **dict.fromkeys(("sfratto_morosita", "sfratto_finita_locazione", "rilascio", "negoziazione_locazione_inadatta",
+                     "procedibilita_locazione", "restituzione_canone_non_registrato", "sanatoria_morosita", "opposizione_convalida",
+                     "opposizione_sfratto_commerciale", "causa_locazione"), "locazione"),
+    **dict.fromkeys(("sequestro_conservativo", "sequestro_ante_causam", "comparsa_risposta", "rito_semplificato",
+                     "competenza_pagamento", "negoziazione_obbligatoria", "mediazione_obbligatoria"), "processo"),
+    **dict.fromkeys(("garanzia_conformita", "caparra_confirmatoria", "recesso_contratto", "vizi_appalto", "consumatore",
+                     "diffida_commerciale", "diffida_messa_mora", "diffida_1454"), "contratti"),
+    **dict.fromkeys(("disconoscimento_paternita", "separazione_giudiziale", "divorzio_tempi", "figlio_maggiorenne",
+                     "modifica_condizioni", "negoziazione_familiare", "ordini_protezione"), "famiglia"),
+    "chiamato_nel_possesso": "successioni", "lite_condominio": "diritti reali", "impugnazione_delibera": "diritti reali",
+    "sinistro_stradale": "responsabilita",
+    **dict.fromkeys(("impugnazione_licenziamento", "crediti_lavoro", "competenza_lavoro", "appello_lavoro",
+                     "ricorso_dipendente_pubblico"), "lavoro"),
+    **dict.fromkeys(("ricorso_tar", "motivi_aggiunti", "appalti_120", "accesso_atti", "silenzio", "ottemperanza",
+                     "permesso_soggiorno", "ricorso_straordinario"), "amministrativo"),
+    **dict.fromkeys(("ordinanza_ingiunzione", "opposizione_verbale_cds"), "sanzioni"),
+    **dict.fromkeys(("ricorso_tributario", "reclamo_mediazione_tributaria", "sospensione_tributaria", "appello_tributario"),
+                    "tributario"),
+    **dict.fromkeys(("termine_querela", "impugnazione_penale"), "penale"),
+}
+
+
+def area(regola: str) -> str:
+    return _AREA_REGOLE.get(regola) or _AREA_PREFISSI.get(regola.split("_", 1)[0], "altro")
+
+
 @dataclass(frozen=True)
 class Voce:
     regola: str
@@ -49,6 +85,36 @@ def _ngrammi(t: str) -> Counter:
     return c
 
 
+# Racconti del fatto senza il nome dell'istituto (categoria 6 della rimisura indipendente): situazioni aggiunte, scritte
+# come le scrive un cliente, per le regole che si riconoscono soprattutto dal racconto.
+SITUAZIONI_AGGIUNTE: dict[str, tuple[str, ...]] = {
+    "rc_diffamazione": ("hanno scritto falsita su di me sui social", "una recensione falsa e offensiva sul negozio online",
+                        "un post su facebook mi da del ladro", "hanno pubblicato commenti che rovinano la mia reputazione",
+                        "articolo di giornale con notizie false sul mio conto"),
+    "rc_cose_in_custodia": ("sono caduto per una buca sul marciapiede", "scivolato sul pavimento bagnato del negozio",
+                            "un ramo dell albero del comune e caduto sulla mia auto", "inciampato su un tombino sporgente",
+                            "acqua dal piano di sopra ha rovinato il soffitto"),
+    "rc_sinistro": ("mi hanno tamponato e l assicurazione non paga", "incidente con la moto, danni e lesioni",
+                    "l altro automobilista ha torto ma la compagnia non risponde"),
+    "rc_responsabilita_sanitaria": ("l intervento e andato male e ora sto peggio", "il medico non ha visto la malattia in tempo",
+                                    "in ospedale ho preso un infezione", "curato male al pronto soccorso"),
+    "suc_divisione": ("siamo fratelli e non ci accordiamo su come dividere la casa dei genitori",
+                      "un coerede non vuole vendere l immobile ereditato", "vogliamo sciogliere la comunione ereditaria"),
+    "suc_petizione_eredita": ("mio fratello occupa la casa ereditata e non ci fa entrare",
+                              "un parente si e preso tutti i beni del defunto", "la zia si tiene l eredita che spetta anche a me"),
+    "suc_riduzione": ("il testamento lascia tutto a un estraneo e noi figli niente",
+                      "papa ha donato la casa a mio fratello e a me non resta nulla",
+                      "la donazione fatta in vita lede la mia quota di figlio"),
+    "suc_rinuncia_eredita": ("l eredita e piena di debiti e non la voglio", "mio padre e morto lasciando solo debiti",
+                             "non voglio pagare i debiti del defunto"),
+    "suc_beneficio_inventario": ("voglio accettare l eredita senza rischiare il mio patrimonio",
+                                 "accettare solo fino a quanto vale l eredita", "non so se i debiti superano i beni ereditati"),
+    "diffida_messa_mora": ("voglio scrivere una lettera formale al debitore prima della causa",
+                           "mandare una pec per mettere in mora chi non paga"),
+    "str_transazione": ("vogliamo chiudere la lite con un accordo firmato", "accordo a saldo e stralcio con reciproche concessioni"),
+}
+
+
 @lru_cache(maxsize=1)
 def voci() -> tuple[Voce, ...]:
     from .fattispecie import REGOLE
@@ -69,6 +135,7 @@ def voci() -> tuple[Voce, ...]:
             out.append(Voce(x["regola"], x["nome"], x["lato"], " ".join([x["nome"], *x["sinonimi"], *x["situazioni"]])))
     except ImportError:
         pass
+    out = [Voce(v.regola, v.nome, v.lato, v.testo + " " + " ".join(SITUAZIONI_AGGIUNTE.get(v.regola, ()))) for v in out]
     return tuple(v for v in out if v.regola in nomi_attivi)
 
 

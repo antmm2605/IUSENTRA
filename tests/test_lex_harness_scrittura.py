@@ -48,3 +48,12 @@ def test_stesura_che_perde_una_norma_e_scartata():
               "- La delibera si impugna entro trenta giorni (art. 1137 c.c.).")
     assert controlla(schema, "- La delibera si impugna entro trenta giorni, come prevede l'art. 1137 c.c., "
                              "davanti al giudice competente.").startswith("norme dello schema perse")
+
+
+def test_le_parole_di_legge_su_soglie_e_fori_restano_alla_lettera():
+    from lex.harness.scrittura import elementi_persi
+
+    assert elementi_persi("la domanda supera la soglia di 50.000 euro", "la domanda eccede la soglia di 50.000 euro")
+    assert elementi_persi("giudice della residenza o domicilio elettivo del consumatore",
+                          "giudice del luogo in cui vive il consumatore")
+    assert elementi_persi("giudice del luogo dove è posto l'immobile", "giudice dell'immobile")

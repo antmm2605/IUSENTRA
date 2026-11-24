@@ -368,7 +368,7 @@ CLAUSOLE_VESSATORIE = Scheda(
     regola="cons_clausole_vessatorie", materia="consumatori", nome="clausole vessatorie",
     segnali=(r"vessatori|clausol\w*[^.]{0,30}abusiv|vieta[^.]{0,40}abusiv|abusiva\?|penale enorme|clausol\w*[^.]{0,80}(?:valid|efficac|nulla)|non (?:firmate|approvate) specificamente",),
     alcuni=(r"consumator|palestra|condizioni generali|penale|foro|abbonament|vessatori|abusiv|specificamente|venditor|cliente",),
-    esclusi=(r"edilizi|demoli|occupa|recinzion|condomin|costruzion",), punteggio=6,
+    esclusi=(r"edilizi|demoli|occupa|recinzion|condomin|costruzion", r"\blavoro\b|lavorator|mobbing|demansion|datore|collegh"), punteggio=6,
     capito="Clausole che creano a carico del consumatore un significativo squilibrio dei diritti e degli obblighi.",
     rimedio="eccezione o domanda di nullità della clausola (nullità di protezione), con il contratto che resta valido",
     conclusione=[

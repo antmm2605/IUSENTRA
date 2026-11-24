@@ -71,7 +71,7 @@ DI_RETRIBUZIONI = Scheda(
     regola="lav_decreto_ingiuntivo", materia="lavoro", nome="decreto ingiuntivo per retribuzioni non pagate",
     segnali=(r"ingiuntiv|ingiunzion|monitori|ingiunger", r"stipend|retribu|buste? paga|busta paga|mensilit|tredicesim|"
              r"quattordicesim|\btfr\b|ferie|lavorator|dipendent|datore"),
-    esclusi=(r"oppo|tardiv|ordinanza.ingiunzione|minister|pubblic\w* amministrazion|scuola",), punteggio=6,
+    esclusi=(r"pignor|oppo|tardiv|ordinanza.ingiunzione|minister|pubblic\w* amministrazion|scuola",), punteggio=7,
     capito="Lavoratore con retribuzioni documentate e non pagate che vuole un titolo esecutivo rapido.",
     rimedio="ricorso per decreto ingiuntivo al tribunale in funzione di giudice del lavoro, con le buste paga",
     conclusione=[

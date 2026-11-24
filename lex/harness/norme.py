@@ -47,6 +47,17 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("cc:1913", f"art. 1913 {_CC}", "art. 1913 c.c.", "Avviso all'assicuratore in caso di sinistro"),
     _n("cc:1917", f"art. 1917 {_CC}", "art. 1917 c.c.", "Assicurazione della responsabilità civile"),
     _n("cc:2969", f"art. 2969 {_CC}", "art. 2969 c.c.", "Rilievo d'ufficio"),
+    # Testo unico della giustizia tributaria (d.lgs. 175/2024): si applica dal 1° gennaio 2027 (art. 131)
+    _n("dlgs175:64", "art. 64 d.lgs. 175/2024", "art. 64 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Il ricorso"),
+    _n("dlgs175:67", "art. 67 d.lgs. 175/2024", "art. 67 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Termine per la proposizione del ricorso"),
+    _n("dlgs175:68", "art. 68 d.lgs. 175/2024", "art. 68 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Costituzione in giudizio del ricorrente"),
+    _n("dlgs175:87", "art. 87 d.lgs. 175/2024", "art. 87 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Sospensione del processo"),
+    _n("dlgs175:96", "art. 96 d.lgs. 175/2024", "art. 96 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Sospensione dell'atto impugnato"),
+    _n("dlgs175:105", "art. 105 d.lgs. 175/2024", "art. 105 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Termini di impugnazione"),
+    _n("dlgs175:106", "art. 106 d.lgs. 175/2024", "art. 106 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Giudice competente e legittimazione ad appellare"),
+    _n("dlgs175:107", "art. 107 d.lgs. 175/2024", "art. 107 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Termine per appellare"),
+    _n("dlgs175:130", "art. 130 d.lgs. 175/2024", "art. 130 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Abrogazioni"),
+    _n("dlgs175:131", "art. 131 d.lgs. 175/2024", "art. 131 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Decorrenza"),
     # Separazione consensuale (24/11/2026)
     _n("cpc:473bis51", f"art. 473-bis.51 {_CPC}", "art. 473-bis.51 c.p.c.", "Procedimento su domanda congiunta"),
     _n("cc:158", f"art. 158 {_CC}", "art. 158 c.c.", "Separazione consensuale"),

@@ -166,6 +166,9 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
 
     analisi.dubbi += [d for d in _coerenza(analisi, f) if d not in analisi.dubbi]
     _requisiti_bozza(analisi)
+    from .vigenza_tributaria import applica as _vigenza_tributaria
+
+    _vigenza_tributaria(analisi, f.oggi)
     esito = verifica_analisi(analisi)
     _vigenza_alla_data_dei_fatti(analisi, f, esito)
     analisi.giurisprudenza = _giurisprudenza(c, analisi)

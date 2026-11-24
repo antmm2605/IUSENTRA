@@ -475,7 +475,4 @@ def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
         "preventivo: verifica se è stata presentata.",
         [Rif("dlgs218:6", "sono sospesi per un periodo di novanta giorni dalla data di presentazione dell'istanza"),
          Rif("dlgs218:6", "per i quali non si applica il contraddittorio preventivo")]))
-    a.dubbi += ["Il testo unico della giustizia tributaria (d.lgs. 175/2024) riordina le norme del d.lgs. 546/1992 ma non è nella "
-                "biblioteca delle norme dell'harness: prima di citare gli articoli nell'atto verifica sul testo vigente da quale "
-                "data si applica."]
     return a

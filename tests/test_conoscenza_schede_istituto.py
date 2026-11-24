@@ -479,7 +479,7 @@ def test_data_di_instaurazione_dalle_letture():
     plausibile = F(campo="deposito", valore="2025-01-23", verifica="plausibile",
                    contesto="assegna la causa introdotta con il ricorso depositato in data 23/01/2025 e iscritta a ruolo in data 23/01/2025")
     incerta = data_instaurazione([plausibile])
-    assert not incerta["certa"] and incerta["data_letta"] == "2025-01-23" and "non ancora verificato" in incerta["motivo"]
+    assert not incerta["certa"] and incerta["data_letta"] == "2025-01-23" and "non ancora verificata" in incerta["motivo"]
     diverse = data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="verificata", contesto=""),
                                   F(campo="data_deposito_ricorso", valore="2023-04-01", verifica="corretta", contesto="")])
     assert not diverse["certa"] and "diverse" in diverse["motivo"]
@@ -594,3 +594,34 @@ def test_istituto_data_breach_con_norme_vigenti_e_procedura():
     assert all(v["verifica"].startswith("ancora") for sez in s["sezioni"].values() for v in sez["voci"])
     assert [x["id"] for x in s["strumenti"] if x["tipo"] == "procedura_guidata"] == ["violazione_dati_personali"]
     assert [x["id"] for x in consultazione.schede_per_procedura("violazione_dati_personali")] == ["ist-data-breach"]
+
+
+def test_data_instaurazione_campi_del_lettore_priorita_e_numero_di_ruolo():
+    from types import SimpleNamespace as F
+
+    from lex.conoscenza.applicabile import applicabilita_scheda, data_instaurazione, periodo_da_ruolo
+
+    def fatto(campo, valore, verifica="verificata", contesto=""):
+        return F(campo=campo, valore=valore, verifica=verifica, contesto=contesto)
+
+    # Ricorso: prima il deposito, poi l'iscrizione a ruolo (7E2736A4 e 5BEF516E nella prova del lettore).
+    r = data_instaurazione([fatto("data_iscrizione_ruolo", "2025-01-23"), fatto("data_deposito_ricorso", "2025-01-23")])
+    assert r["certa"] and r["campo"] == "data_deposito_ricorso" and r["data"] == "2025-01-23"
+    r = data_instaurazione([fatto("data_iscrizione_ruolo", "2023-05-31")])
+    assert r["certa"] and r["campo"] == "data_iscrizione_ruolo" and "iscrizione a ruolo" in r["motivo"]
+    # Citazione: vale la notifica, anche se c'è un'iscrizione a ruolo successiva.
+    r = data_instaurazione([fatto("data_notifica_citazione", "2023-02-20"), fatto("data_iscrizione_ruolo", "2023-03-10")])
+    assert r["certa"] and r["campo"] == "data_notifica_citazione" and r["data"] == "2023-02-20"
+    # Numero di ruolo: ≥ 2024 basta per «dopo», ≤ 2022 per «prima», il 2023 no.
+    assert periodo_da_ruolo({2024})["periodo"] == "dopo" and periodo_da_ruolo({2021})["periodo"] == "prima"
+    assert periodo_da_ruolo({2023})["periodo"] == "" and periodo_da_ruolo({2022, 2024})["periodo"] == ""
+    solo_rg = data_instaurazione([fatto("numero_ruolo", "13289/2025"), fatto("data_deposito_ricorso", "2025-11-03", "plausibile")])
+    assert not solo_rg["certa"] and solo_rg["periodo"] == "dopo" and "numero di ruolo del 2025" in solo_rg["motivo"]
+    ambiguo = data_instaurazione([fatto("numero_ruolo", "1654/2023")])
+    assert ambiguo["periodo"] == "" and "2023" in ambiguo["motivo"]
+    scheda = consultazione.scheda("ist-comparsa")
+    dopo = applicabilita_scheda(scheda, solo_rg)["cpc:167"]
+    assert dopo["versione"] == "vigente" and dopo["motivo"].startswith("numero di ruolo del 2025")
+    prima = applicabilita_scheda(scheda, data_instaurazione([fatto("numero_ruolo", "4593/2022")]))["cpc:167"]
+    assert prima["versione"] == "anteriore"
+    assert applicabilita_scheda(scheda, ambiguo)["cpc:167"]["versione"] == "entrambe"

@@ -6,7 +6,7 @@ import { Button, ButtonLink } from '../ui/Button'
 import { type Annotazione, type Fonte, type Norma, type Scheda, type StatoAttuale, type Voce, SEZIONI, STATI, chiaveFonte, dataOraIt, divisioneAncora } from './conoscenzaDati'
 
 const base = '/api/v1/ui/conoscenza'
-type Risposta = { scheda: Scheda; stato_attuale: StatoAttuale; annotazioni: Annotazione[]; annotazioni_disponibili: boolean; puo_annotare: boolean; instaurazione?: { data: string; certa: boolean; motivo: string }; applicabilita?: Record<string, { versione: string; motivo: string }> }
+type Risposta = { scheda: Scheda; stato_attuale: StatoAttuale; annotazioni: Annotazione[]; annotazioni_disponibili: boolean; puo_annotare: boolean; instaurazione?: { data: string; certa: boolean; motivo: string; periodo?: string }; applicabilita?: Record<string, { versione: string; motivo: string }> }
 const VERSIONI: Record<string, string> = { vigente: 'si applica il testo vigente', anteriore: 'si applica il testo anteriore alla riforma', entrambe: 'testo da scegliere: vedi le due versioni' }
 const ESITI = ['', 'favorevole', 'contrario', 'non pertinente', 'da approfondire']
 
@@ -95,7 +95,7 @@ export function ConoscenzaScheda({ schedaId, puoAnnotare, onClose, contesto = ''
     {s && dati ? <>
       <div className="iu-cn-badges"><Badge tone={st.tono}>{st.etichetta}</Badge><Badge tone="neutral">Vista generata dalle fonti, non fonte primaria</Badge></div>
       {dati.stato_attuale.motivi.length ? <ul className="iu-cn-motivi" role="alert">{dati.stato_attuale.motivi.map(m => <li key={m}>{m}</li>)}</ul> : null}
-      {dati.instaurazione ? <p className="iu-cn-motivi" role="status">{dati.instaurazione.certa ? `Causa instaurata il ${dataOraIt(dati.instaurazione.data).slice(0, 10)} (${dati.instaurazione.motivo}): per ogni norma toccata dalla riforma si indica il testo che si applica.` : `Data di instaurazione non certa (${dati.instaurazione.motivo}): per le norme toccate dalla riforma si mostrano le due versioni.`}</p> : null}
+      {dati.instaurazione ? <p className="iu-cn-motivi" role="status">{dati.instaurazione.certa ? `Causa instaurata il ${dataOraIt(dati.instaurazione.data).slice(0, 10)} (${dati.instaurazione.motivo}): per ogni norma toccata dalla riforma si indica il testo che si applica.` : dati.instaurazione.periodo ? `Data di instaurazione non certa, ma il numero di ruolo basta (${dati.instaurazione.motivo}): per ogni norma toccata dalla riforma si indica il testo che si applica.` : `Data di instaurazione non certa (${dati.instaurazione.motivo}): per le norme toccate dalla riforma si mostrano le due versioni.`}</p> : null}
       <p className="iu-cn-sintesi">{s.sintesi}</p>
       {SEZIONI.map(([k, titolo]) => {
         const sez = s.sezioni[k]

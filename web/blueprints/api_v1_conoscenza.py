@@ -125,7 +125,7 @@ def _applicabilita(s: dict) -> dict:
             dati = data_instaurazione(fatti_fascicolo(fascicolo), fascicolo)
         except RuntimeError:
             dati = {"data": "", "certa": False, "motivo": "archivio delle letture non disponibile"}
-    return {"instaurazione": dati, "applicabilita": applicabilita_scheda(s, dati["data"] if dati["certa"] else None)}
+    return {"instaurazione": dati, "applicabilita": applicabilita_scheda(s, dati)}
 
 
 @api_v1_conoscenza.get("/norma/<chiave>")

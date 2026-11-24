@@ -52,3 +52,14 @@ def test_racconti_senza_punto_interrogativo_entrano_e_trovano_la_regola(testo, r
                                    "apri il fascicolo Rossi"])
 def test_saluti_e_comandi_restano_fuori(testo):
     assert not comprendi(testo).per_harness
+
+
+@pytest.mark.parametrize("parola", ["prefetto", "precetto", "revoca", "revisione", "sequestro", "sequestrato", "appello",
+                                    "appalto", "querela", "quietanza"])
+def test_una_parola_del_lessico_non_si_corregge_mai_in_un_altra(parola):
+    assert correggi_refusi(f"il {parola} del cliente") == f"il {parola} del cliente"
+
+
+@pytest.mark.parametrize("scritto,atteso", [("prefeto", "prefetto"), ("preceto", "precetto"), ("appelo", "appello")])
+def test_refusi_delle_coppie_vicine_vanno_alla_parola_giusta(scritto, atteso):
+    assert correggi_refusi(f"il {scritto} del cliente") == f"il {atteso} del cliente"

@@ -91,6 +91,25 @@ from .materie import REGOLE_MATERIE  # noqa: E402
 REGOLE = REGOLE + REGOLE_MATERIE
 
 
+def _peso_della_richiesta(c: Comprensione, f: Fatti, punteggi, migliore: Regola) -> Regola:
+    """La richiesta pesa più del preambolo (richiesta.py): se la regola migliore non si riconosce nella zona della
+    richiesta, vince fra le regole riconosciute sulla sola richiesta (poi sulla zona) quella con il punteggio più alto sul
+    testo intero."""
+    from ..richiesta import fatti_parziali
+
+    attive = [(r, p) for r, p in punteggi if p > 0]
+    if len(attive) < 2:
+        return migliore
+    parziali = fatti_parziali(f)
+    if not parziali or migliore[1](c, parziali[0]) > 0:
+        return migliore                              # nessun preambolo, o la regola migliore vive già nella zona della richiesta
+    for parte in reversed(parziali):                 # prima la sola richiesta, poi la zona della richiesta
+        vive = [(r, p) for r, p in attive if r[1](c, parte) > 0]
+        if vive:
+            return max(vive, key=lambda rp: rp[1])[0]
+    return migliore
+
+
 def scegli(c: Comprensione, f: Fatti) -> Regola | None:
     from ..lato import famiglia, lato_della_parte, regole_del_lato
 
@@ -118,6 +137,7 @@ def scegli(c: Comprensione, f: Fatti) -> Regola | None:
         # Si cambia solo se la prima dell'elenco è lontana dai fatti e l'altra è chiaramente vicina.
         if vicini.get(migliore[0], 0.0) < 0.22 and vicini.get(primo[0], 0.0) >= 0.30:
             migliore = primo
+    migliore = _peso_della_richiesta(c, f, punteggi, migliore)
     # Il lato della parte assistita decide lo strumento dentro la stessa famiglia (decreto ingiuntivo o opposizione,
     # precetto o opposizione, pignoramento o difesa dell'esecutato, sfratto o difesa del conduttore).
     fam, lato = famiglia(migliore[0]), lato_della_parte(f.testo)

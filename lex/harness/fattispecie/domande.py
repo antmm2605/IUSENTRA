@@ -155,7 +155,8 @@ def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:
 # ---------------------------------------------------------------------------------- condominio
 def riconosci_delibera(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    return 3 if re.search(r"delibera|deliberazion", t) and "condomin" in t else 0
+    return 3 if (re.search(r"delibera|deliberazion", t) or re.search(
+        r"(?:l |dell |in )assemblea\b[^.]{0,120}(?:approvat|deciso|votat|stabilit)", t)) and "condomin" in t else 0
 
 
 def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
@@ -243,7 +244,13 @@ def analizza_straordinario(c: Comprensione, f: Fatti) -> Analisi:
 
 # ---------------------------------------------------------------------------------- penale
 def riconosci_querela(c: Comprensione, f: Fatti) -> int:
-    return 3 if "querel" in _t(f) and re.search(r"termin|entro|quando|tempo|mesi|parere", _t(f)) else 0
+    if "querel" not in _t(f) or not re.search(r"termin|entro|quando|tempo|mesi|parere", _t(f)):
+        return 0
+    # La domanda sul termine della querela nella richiesta prevale sul racconto della diffamazione (risarcimento civile).
+    richiesta = piano(f.richiesta)
+    if re.search(r"querel", richiesta) and re.search(r"termin|entro|quando|tempo|mesi|scad|aspett|ancora in tempo", richiesta):
+        return 7
+    return 3
 
 
 def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:

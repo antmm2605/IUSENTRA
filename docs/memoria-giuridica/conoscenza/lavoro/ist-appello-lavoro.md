@@ -1,7 +1,7 @@
 # Appello nel rito del lavoro (art. 434)
 
-- ID: `ist-appello-lavoro` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-appello-lavoro` · materia: lavoro · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso in appello alla corte d'appello in funzione di giudice del lavoro.
 
@@ -41,7 +41,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - carenza può essere superata solo se laricezione del plico sia certificata dall’agente postale come avvenuta entro iltermine di decadenza per l’impugnazione.La medesima giurisprudenza ha poi ripetutamente affermato che, nelgiudizio tributario, la prova del perfezionamento della notifica dell’atto diappello per il notificante nel termine di cui all’art. 327 cod. proc. civ. èvalidamente fornita anche dall’elenco o distinta delle raccomandaterecante il timbro datario dell’ufficio postale, non potendosi attribuire a taletimbro altro significato che quello di attestazione della consegna del plicoall’ufficio postale (Cass. — _Corte di Cassazione — civile, sez. 5, n. 29493/2026_ (passaggio letto nel testo integrale della pronuncia)
 - 119/2018, dell’art. 327 c.p.c. edell’art. — _Corte di Cassazione — civile, sez. 5, n. 29351/2026_ (passaggio letto nel testo integrale della pronuncia)
 - 24 Cost., una questione di legittimità costituzionale sollevata sull'art. 327, primo comma, del codice di procedura civile, il quale dispone che il termine (allora) annuale per l'impugnazione della sentenza decorre dalla sua pubblicazione e non - come avrebbe voluto l'allora giudice rimettente - dalla comunicazione a cura della cancelleria. — _Corte costituzionale, n. 42/2025_ (passaggio letto nel testo integrale della pronuncia)
-- L'adita Corte d'appello aveva dichiarato la domanda di equa riparazione improponibile, pronuncia confermata dalla medesima Corte d'appello in sede di opposizione, atteso che la sentenza non risultava notificata e dunque occorreva attendere il decorso del termine "lungo" di cui all'art. 327 cod. proc. civ. perché passasse in giudicato, a nulla rilevando la transazione intervenuta con una delle controparti. — _Corte costituzionale, n. 88/2018_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «appello_lavoro»
@@ -62,9 +61,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Corte di Cassazione — civile, sez. 5, n. 29493/2026 (testo integrale) — versione `d934edc9cf76115a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529493O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 5, n. 29351/2026 (testo integrale) — versione `dbe2cd2b5ced5ba8` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529351O&rows=1&wt=json
 - Corte costituzionale, n. 42/2025 (testo integrale) — versione `cc1:4ef8e6f693ab` — https://www.cortecostituzionale.it/scheda-pronuncia/2025/42
-- Corte costituzionale, n. 88/2018 (testo integrale) — versione `cc1:31f0df539930` — https://www.cortecostituzionale.it/scheda-pronuncia/2018/88
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:433
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cpc:327, pronuncia:Corte costituzionale|42/2025, pronuncia:Corte costituzionale|88/2018, pronuncia:Corte di Cassazione — civile|29351/2026, pronuncia:Corte di Cassazione — civile|29493/2026, pronuncia:Corte di Cassazione — civile|29551/2026
+- r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|88/2018

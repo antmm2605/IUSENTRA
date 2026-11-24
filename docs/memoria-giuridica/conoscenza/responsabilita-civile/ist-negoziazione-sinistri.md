@@ -1,7 +1,7 @@
 # Negoziazione assistita per sinistri stradali
 
-- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione, attesa dei termini, poi invito alla negoziazione assistita tramite avvocato; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
 
@@ -13,7 +13,10 @@
 - L'invito alla negoziazione avverte che la mancata risposta entro trenta giorni dalla ricezione o il rifiuto possono essere valutati dal giudice. — _art. 4 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Mancata negoziazione assistita obbligatoria: l'improcedibilità deve essere eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice, non oltre la prima udienza. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
+- Per il danno da circolazione dei veicoli il diritto al risarcimento si prescrive in due anni. — _art. 2947 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Il diritto al risarcimento dei danni da circolazione si prescrive in due anni. — _art. 2947 c.c._ (ancora letterale trovata nel testo vigente)
@@ -27,7 +30,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Il giudice di pace è competente per il risarcimento del danno da circolazione fino a € 25.000. — _art. 7 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Il conducente risarcisce il danno se non prova di aver fatto tutto il possibile per evitarlo; nello scontro fra veicoli si presume, fino a prova contraria, il concorso uguale dei conducenti. — _art. 2054 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - data di invio e ricezione della richiesta (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -50,7 +53,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 - Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «I termini per l'offerta e per la proponibilità decorrono dalla ricezione della richiesta, non ancora inviata.»
 - Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «La negoziazione assistita è obbligatoria per il danno da circolazione a prescindere dal valore.»
 - la regola «negoziazione_obbligatoria» richiede fatti concreti (ValueError)
@@ -63,9 +66,13 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 145 d.lgs. 209/2005 (Proponibilità dell'azione di risarcimento) — testo vigente, aggiornamento archivio 11/11/2026, versione `267647533219a352` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-07;209~art145
 - art. 4 d.l. 132/2014 (Non accettazione dell'invito) — testo vigente, aggiornamento archivio n.d., versione `18d82d2c7a37c0a7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art4
 - art. 2947 c.c. (Prescrizione del diritto al risarcimento del danno) — testo vigente, aggiornamento archivio 29/04/2026, versione `f792d4d582c83466` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2947
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
+- art. 2054 c.c. (Circolazione di veicoli) — testo vigente, aggiornamento archivio n.d., versione `9bdfb41e3dc9636f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2054
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:codass:145
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cc:2947
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2054, norma:cc:2935, norma:cc:2943

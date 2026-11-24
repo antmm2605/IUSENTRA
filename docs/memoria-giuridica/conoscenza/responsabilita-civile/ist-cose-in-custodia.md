@@ -1,7 +1,7 @@
 # Danno da cose in custodia (art. 2051) e insidia stradale
 
-- ID: `ist-cose-in-custodia` · materia: responsabilità civile · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-cose-in-custodia` · materia: responsabilità civile · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento al custode (ente proprietario della strada, esercente, condominio) e azione ex art. 2051 c.c.
 
@@ -9,7 +9,11 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- L'incompetenza per materia, valore e territorio si eccepisce, a pena di decadenza, nella comparsa di risposta tempestivamente depositata; l'eccezione di incompetenza per territorio deve indicare il giudice competente. — _art. 38 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il convenuto propone nella comparsa di risposta, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 167 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il diritto al risarcimento del danno da fatto illecito si prescrive in cinque anni dal giorno del fatto. — _art. 2947 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Prescrizione in cinque anni dal fatto. — _art. 2947 c.c._ (ancora letterale trovata nel testo vigente)
@@ -22,7 +26,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Il custode risponde del danno cagionato dalla cosa, salvo che provi il caso fortuito. — _art. 2051 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - luogo, data e dinamica (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -45,13 +50,18 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Presupposti, Giudice e rito, Questioni interpretative.
 
 ## Fonti con versione
 - art. 2051 c.c. (Danno cagionato da cosa in custodia) — testo vigente, aggiornamento archivio n.d., versione `0d8e2da95364c8e0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2051
 - art. 2043 c.c. (Risarcimento per fatto illecito) — testo vigente, aggiornamento archivio n.d., versione `d103379584946b25` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043
 - art. 2947 c.c. (Prescrizione del diritto al risarcimento del danno) — testo vigente, aggiornamento archivio 29/04/2026, versione `f792d4d582c83466` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2947
+- art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 1227 c.c. (Concorso del fatto colposo del creditore) — testo vigente, aggiornamento archivio n.d., versione `5ceeb086801914e8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1227
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - Corte di Cassazione — civile, sez. 2, n. 29413/2026 (testo integrale) — versione `d9155ed5cc156f6d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229413O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 28140/2026 (testo integrale) — versione `76c4c4a567c13b96` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328140O&rows=1&wt=json
 - Corte costituzionale, n. 115/2024 (testo integrale) — versione `cc1:076141043cdf` — https://www.cortecostituzionale.it/scheda-pronuncia/2024/115
@@ -61,3 +71,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cpc:167, norma:cpc:38

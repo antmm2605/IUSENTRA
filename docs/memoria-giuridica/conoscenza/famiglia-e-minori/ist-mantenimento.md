@@ -1,7 +1,7 @@
 # Mantenimento dei figli e del coniuge
 
-- ID: `ist-mantenimento` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-mantenimento` · materia: famiglia e minori · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di determinazione del contributo; per l'inadempimento, ordine di pagamento diretto al terzo e titolo esecutivo; Tribunale.
 
@@ -50,8 +50,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - - per avere la Corte d’appelloderogato all’ordinario regime di affidamento condiviso del minore previstodall’art. 337 ter c.c. e assente, insufficiente, contraddittoria ed illogicamotivazione non avendo il giudice del merito effettuato alcuna valutazionecritica delle allegazioni della madre e della relazione dei Servizi Psico-Sociali.13. — _Corte di Cassazione — civile, sez. 1, n. 32587/2025_ (passaggio letto nel testo integrale della pronuncia)
 - conferente rilievo che ilcontenuto dell’ordinanza qui gravata non sarebbe peggiorativo maconfermativo – è del tutto infondata.Oscuramento disposto 2.- Il primo motivo di ricorso denuncia violazione e falsa applicazionedell’art. 337 - ter c.c., art. — _Corte di Cassazione — civile, sez. 1, n. 32211/2025_ (passaggio letto nel testo integrale della pronuncia)
 - civ.) e nel «diritto di mantenere un rapporto equilibrato e continuativo con ciascuno dei genitori, di ricevere cura, educazione, istruzione e assistenza morale da entrambi e di conservare rapporti significativi con gli ascendenti e con i parenti di ciascun ramo genitoriale» (art. 337-ter cod. civ.). — _Corte costituzionale, n. 68/2025_ (passaggio letto nel testo integrale della pronuncia)
-- 154 del 2013 ha aggiunto, inoltre, l'art. 337-ter cod. civ. che prevede che entrambi i genitori, ancorché separati, restano titolari della responsabilità genitoriale, così ulteriormente valorizzando l'interesse del figlio a mantenere un rapporto equilibrato e continuativo con il padre e con la madre e a ricevere da loro cura, educazione, istruzione e assistenza morale. — _Corte costituzionale, n. 71/2024_ (passaggio letto nel testo integrale della pronuncia)
-- civ.), a prescindere dal sussistere di legami fra i genitori (art. 337-ter cod. civ.). — _Corte costituzionale, n. 79/2022_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «figlio_maggiorenne»
@@ -81,10 +79,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Corte di Cassazione — civile, sez. 1, n. 32587/2025 (testo integrale) — versione `5447d48a447d3fc7` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025132587O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 1, n. 32211/2025 (testo integrale) — versione `d455ce1c4a41fe31` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025132211O&rows=1&wt=json
 - Corte costituzionale, n. 68/2025 (testo integrale) — versione `cc1:1607b35ba704` — https://www.cortecostituzionale.it/scheda-pronuncia/2025/68
-- Corte costituzionale, n. 71/2024 (testo integrale) — versione `cc1:813e6a29ffb7` — https://www.cortecostituzionale.it/scheda-pronuncia/2024/71
-- Corte costituzionale, n. 79/2022 (testo integrale) — versione `cc1:3416ac730222` — https://www.cortecostituzionale.it/scheda-pronuncia/2022/79
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:156, norma:cpc:473bis36
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cpc:473bis37, pronuncia:Corte costituzionale|68/2025, pronuncia:Corte costituzionale|71/2024, pronuncia:Corte costituzionale|79/2022, pronuncia:Corte di Cassazione — civile|32211/2025, pronuncia:Corte di Cassazione — civile|32587/2025, pronuncia:Corte di Cassazione — civile|34143/2025, pronuncia:Corte costituzionale|1009/1988, pronuncia:Corte costituzionale|266/2014, pronuncia:Corte costituz
+- r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|71/2024, pronuncia:Corte costituzionale|79/2022

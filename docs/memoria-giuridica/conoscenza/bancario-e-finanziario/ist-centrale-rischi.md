@@ -1,6 +1,6 @@
 # Segnalazione illegittima in Centrale Rischi o CRIF
 
-- ID: `ist-centrale-rischi` · materia: bancario e finanziario · revisione 2 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-centrale-rischi` · materia: bancario e finanziario · revisione 2 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida alla banca per la cancellazione; ricorso d'urgenza o azione risarcitoria; reclamo al Garante privacy per i sistemi privati.

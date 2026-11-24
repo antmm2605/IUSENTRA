@@ -1,7 +1,7 @@
 # Contestazione degli estratti conto e richiesta documenti (art. 119 TUB)
 
-- ID: `ist-estratti-conto` · materia: bancario e finanziario · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-estratti-conto` · materia: bancario e finanziario · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta ex art. 119, comma 4, TUB; contestazione scritta degli estratti conto.
 
@@ -9,7 +9,7 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Mancata mediazione obbligatoria: l'improcedibilità è eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice non oltre la prima udienza. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -22,7 +22,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - rapporti e periodo (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -38,12 +38,15 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Regola di Lex «ban_documenti_estratti»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 119 d.lgs. 385/1993 (TUB) (Comunicazioni periodiche alla clientela) — testo vigente, aggiornamento archivio n.d., versione `056a83c20da6a6a3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1993-09-01;385~art119
 - art. 1832 c.c. (Approvazione del conto) — testo vigente, aggiornamento archivio n.d., versione `d9ea681eada7ba8d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1832
+- art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:dlgs28:5

@@ -1,7 +1,7 @@
 # Condizioni di procedibilità nelle cause di locazione
 
-- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con citazione per la convalida, senza mediazione preventiva; mediazione da avviare dopo il mutamento del rito, se il giudizio prosegue nel merito; Tribunale del luogo dell'immobile.
 
@@ -17,7 +17,7 @@
 - La negoziazione assistita non è condizione di procedibilità: la locazione rientra nei casi di mediazione obbligatoria che l'art. 3 d.l. 132/2014 esclude. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Mancata mediazione obbligatoria: l'improcedibilità è eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice non oltre la prima udienza. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -36,22 +36,22 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- 392 del 1978, norma che, per un verso, consente al conduttore di chiedere e ottenere, in deroga alla disciplina ordinaria della risoluzione del contratto mediante il meccanismo processuale della convalida di sfratto per morosità ex art. 658 del codice di procedura civile, un ulteriore termine per sanare la morosità e, per un altro, proprio in virtù della valenza eccezionale della concessione di tale termine, pretende, come costantemente ribadito nella giurisprudenza di legittimità, che, per evitare la convalida, il conduttore sani integralmente la morosità e provveda al pagamento delle spese di un procedimento inc — _Corte costituzionale, n. 79/2020_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - Con il sesto motivo viene denunciata “violazione dell'art. 658 c.p.c.come modificato dal d.lgs. — _Corte di Cassazione — civile, sez. 3, n. 11406/2026_ (passaggio letto nel testo integrale della pronuncia)
 - Con il secondo motivo il ricorrente denuncia “Improcedibilità e inammissibilità della domanda di risoluzione per inadempimento introdotta con l’intimazione di sfratto per morosità - Violazione e falsa applicazione dell’art. 658 c.p.c. - Pregressa cessazione del contratto per finita locazione - Vizio di motivazione (art. — _Corte di Cassazione — civile, sez. 3, n. 32869/2025_ (passaggio letto nel testo integrale della pronuncia)
 - in relazione al combinato disposto degli artt. 658 c.p.c., 426 c.p.c. — _Corte di Cassazione — civile, sez. 3, n. 11802/2025_ (passaggio letto nel testo integrale della pronuncia)
-- 392 del 1978, norma che, per un verso, consente al conduttore di chiedere e ottenere, in deroga alla disciplina ordinaria della risoluzione del contratto mediante il meccanismo processuale della convalida di sfratto per morosità ex art. 658 del codice di procedura civile, un ulteriore termine per sanare la morosità e, per un altro, proprio in virtù della valenza eccezionale della concessione di tale termine, pretende, come costantemente ribadito nella giurisprudenza di legittimità, che, per evitare la convalida, il conduttore sani integralmente la morosità e provveda al pagamento delle spese di un procedimento inc — _Corte costituzionale, n. 79/2020_ (passaggio letto nel testo integrale della pronuncia)
 - 392 del 1978, trovi applicazione soltanto nel procedimento per convalida di sfratto (art. 658 cod. proc. civ.), mentre nell'ordinario giudizio di risoluzione del contratto per inadempimento, applicandosi la regola generale stabilita dall' art. — _Corte costituzionale, n. 3/1999_ (passaggio letto nel testo integrale della pronuncia)
 - 392, nella parte in cui, per costante interpretazione giurisprudenziale, prevede che la sanatoria giudiziale della morosità si applichi al solo procedimento per convalida di sfratto ex art. 658 del codice di procedura civile e non anche all'ordinario giudizio di risoluzione per inadempimento (nel qual caso non sarebbe dato al conduttore di adempiere l'obbligazione dopo la proposizione della domanda ai sensi del terzo comma dell'art. — _Corte costituzionale, n. 2/1992_ (passaggio letto nel testo integrale della pronuncia)
+- montare della morosità del conduttore per canoni in misurapari ad € 675,00, così come per gli oneri condominiali; che, alla data dellanotifica dell’intimazione di sfratto, la conduttrice risultava morosa per l’importodi € 675,00, dunque eccedente una mensilità (pari ad € 650,00), sicchésussisteva il presupposto della gravità dell’inadempimento, ex art. 5 della leggen. 392/1978, essendo irrilevante il successivo pagamento di € 26,00 effettuatodalla conduttrice.Avverso detta sentenza ha proposto ricorso per cassazione Annunziata Farro,sulla base di undici motivi, cui resiste con controricorso Alfredo Somazzi. — _Corte di Cassazione — civile, sez. 3, n. 23217/2026_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «procedibilita_locazione»
 - Intimazione di sfratto per morosità con citazione per la convalida — `/template-atti?scheda=LOC_001`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Termini, Prove e oneri, Documenti e dati da verificare.
 - Avvertenza della regola procedibilita_locazione non riportata (senza norma citata): «Dopo il mutamento del rito conviene che sia il locatore, che ha interesse alla risoluzione, a depositare subito la domanda di mediazione: se»
 - Avvertenza della regola procedibilita_locazione non riportata (senza norma citata): «Una citazione ordinaria per la sola risoluzione o per i soli canoni richiede invece la mediazione prima della causa.»
 
@@ -63,13 +63,15 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 661 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `bed85335f84f3c14` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art661
 - art. 447-bis c.p.c. (Norme applicabili alle controversie in materia di locazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `9313ab26e5e36132` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art447bis
+- Corte costituzionale, n. 79/2020 (testo integrale) — versione `cc1:17b03ab6d9e5` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/79
 - Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 32869/2025 (testo integrale) — versione `aa30479390b6a68c` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025332869O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 11802/2025 (testo integrale) — versione `c12e7a4d7374785b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025311802O&rows=1&wt=json
-- Corte costituzionale, n. 79/2020 (testo integrale) — versione `cc1:17b03ab6d9e5` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/79
 - Corte costituzionale, n. 3/1999 (testo integrale) — versione `cc1:78fc60d803e9` — https://www.cortecostituzionale.it/scheda-pronuncia/1999/3
 - Corte costituzionale, n. 2/1992 (testo integrale) — versione `cc1:b6d6621394e5` — https://www.cortecostituzionale.it/scheda-pronuncia/1992/2
+- Corte di Cassazione — civile, sez. 3, n. 23217/2026 (testo integrale) — versione `6b9dffcd07047a29` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026323217O&rows=1&wt=json
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte di Cassazione — civile|23217/2026

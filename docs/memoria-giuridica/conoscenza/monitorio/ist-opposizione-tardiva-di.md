@@ -1,6 +1,6 @@
 # Opposizione tardiva a decreto ingiuntivo (art. 650)
 
-- ID: `ist-opposizione-tardiva-di` · materia: monitorio · revisione 2 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-opposizione-tardiva-di` · materia: monitorio · revisione 4 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione tardiva con atto di citazione davanti all'ufficio che ha emesso il decreto, provando l'incolpevole ignoranza.
@@ -59,3 +59,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:05 · contenuto delle regole cambiato con le stesse fonti

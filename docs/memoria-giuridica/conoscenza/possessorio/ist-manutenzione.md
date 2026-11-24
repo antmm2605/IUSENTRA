@@ -1,6 +1,6 @@
 # Azione di manutenzione
 
-- ID: `ist-manutenzione` · materia: possessorio · revisione 2 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-manutenzione` · materia: possessorio · revisione 2 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per manutenzione nel possesso al tribunale del luogo.

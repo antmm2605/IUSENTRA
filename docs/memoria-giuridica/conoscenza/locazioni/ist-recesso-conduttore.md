@@ -1,6 +1,6 @@
 # Recesso del conduttore per gravi motivi
 
-- ID: `ist-recesso-conduttore` · materia: locazioni · revisione 2 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-recesso-conduttore` · materia: locazioni · revisione 2 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** comunicazione di recesso con preavviso di sei mesi (per gravi motivi o se previsto dal contratto).

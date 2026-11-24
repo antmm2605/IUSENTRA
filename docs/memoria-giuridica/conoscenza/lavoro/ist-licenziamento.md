@@ -1,7 +1,7 @@
 # Impugnazione del licenziamento
 
-- ID: `ist-licenziamento` · materia: lavoro · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-licenziamento` · materia: lavoro · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
 
@@ -9,7 +9,7 @@
 - Il tentativo di conciliazione è facoltativo: chi intende agire «può promuovere» il tentativo previsto dall'art. 410 c.p.c.; mediazione e negoziazione assistita non sono condizioni di procedibilità per queste controversie. — _art. 410 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Ai termini a pena di decadenza non si applicano le norme sull'interruzione della prescrizione né, salvo diversa disposizione, quelle sulla sospensione. — _art. 2964 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Il licenziamento va impugnato, a pena di decadenza, entro sessanta giorni dalla ricezione della sua comunicazione in forma scritta, con qualsiasi atto scritto anche extragiudiziale; poi entro centottanta giorni va depositato il ricorso o chiesta la conciliazione o l'arbitrato. La regola vale per tutti i casi di invalidità del licenziamento. — _art. 6 l. 604/1966; art. 32 l. 183/2010_ (ancora letterale trovata nel testo vigente)
@@ -24,7 +24,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Rito del lavoro: la domanda si propone con ricorso depositato nella cancelleria del giudice competente. — _art. 414 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- L'onere di provare la giusta causa o il giustificato motivo del licenziamento spetta al datore di lavoro. — _art. 5 l. 604/1966_ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - codici fiscali e PEC delle parti (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -47,7 +48,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Questioni interpretative.
 
 ## Fonti con versione
 - art. 6 l. 604/1966 (Impugnazione del licenziamento) — testo vigente, aggiornamento archivio n.d., versione `609a2c8f440e1260` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1966-07-15;604~art6
@@ -55,11 +56,14 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 18 l. 300/1970 (Tutela del lavoratore in caso di licenziamento illegittimo) — testo vigente, aggiornamento archivio n.d., versione `91e60f87076f449a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-05-20;300~art18
 - art. 441-bis c.p.c. (Controversie in materia di licenziamento) — testo vigente, aggiornamento archivio n.d., versione `a3b138c9e66d77de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art441bis
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
+- art. 2964 c.c. (Inapplicabilità di regole della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `69c1057339253ee7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2964
 - art. 32 l. 183/2010 (Decadenze e disposizioni in materia di contratto di lavoro a tempo determinato) — testo vigente, aggiornamento archivio 10/10/2025, versione `b2b61406eb4fe21e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2010-11-04;183~art32
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 5 l. 604/1966 (Onere della prova) — testo vigente, aggiornamento archivio n.d., versione `19286ddb28fbb27f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1966-07-15;604~art5
 - Corte di Cassazione — civile, sez. L, n. 29446/2026 (testo integrale) — versione `4ee179018b5f65fc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29446O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 5, n. 29147/2026 (testo integrale) — versione `a3317a02460159dc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529147O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 29047/2026 (testo integrale) — versione `fead8d45396a9a67` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29047O&rows=1&wt=json
@@ -70,3 +74,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:441bis
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2964, norma:l604:5, pronuncia:Corte di Cassazione — civile|28948/2026
+- r4 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|28948/2026

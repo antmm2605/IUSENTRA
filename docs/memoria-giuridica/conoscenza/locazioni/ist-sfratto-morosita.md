@@ -1,7 +1,7 @@
 # Intimazione di sfratto per morosità e citazione per la convalida
 
-- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.
 
@@ -19,6 +19,11 @@
 
 ## Eccezioni e tranelli
 - La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente. — _art. 55 l. 392/1978_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 55 l. 392/1978: atto dedotto dalle norme citate dalla stessa regola)
+- Prescrizione quinquennale dei canoni e di ogni altro corrispettivo di locazione. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
+- Eccezione di inadempimento: nei contratti a prestazioni corrispettive ciascuno può rifiutarsi di adempiere se l'altro non adempie, ma non se il rifiuto è contrario alla buona fede. — _art. 1460 c.c._ (ancora letterale trovata nel testo vigente)
+- Il contratto non si risolve se l'inadempimento ha scarsa importanza, avuto riguardo all'interesse dell'altra parte. — _art. 1455 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Durata della locazione commerciale: sei anni rinnovabili. — _art. 27 l. 392/1978_ (ancora letterale trovata nel testo vigente)
@@ -32,7 +37,9 @@
 - Procedimento per convalida di sfratto (artt. 657 ss. c.p.c.); se c'è opposizione, il giudizio prosegue con il rito delle locazioni. — _art. 658 c.p.c.; art. 447-bis c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
+- Se l'intimato si oppone con eccezioni non fondate su prova scritta, il giudice, su istanza del locatore e se non vi sono gravi motivi contrari, pronuncia ordinanza di rilascio con riserva delle eccezioni. — _art. 665 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - comune e indirizzo dell'immobile (competenza del tribunale del luogo dell'immobile) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -41,15 +48,15 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - eventuale deposito cauzionale (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- 392 del 1978, norma che, per un verso, consente al conduttore di chiedere e ottenere, in deroga alla disciplina ordinaria della risoluzione del contratto mediante il meccanismo processuale della convalida di sfratto per morosità ex art. 658 del codice di procedura civile, un ulteriore termine per sanare la morosità e, per un altro, proprio in virtù della valenza eccezionale della concessione di tale termine, pretende, come costantemente ribadito nella giurisprudenza di legittimità, che, per evitare la convalida, il conduttore sani integralmente la morosità e provveda al pagamento delle spese di un procedimento inc — _Corte costituzionale, n. 79/2020_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - Con il sesto motivo viene denunciata “violazione dell'art. 658 c.p.c.come modificato dal d.lgs. — _Corte di Cassazione — civile, sez. 3, n. 11406/2026_ (passaggio letto nel testo integrale della pronuncia)
 - Con il secondo motivo il ricorrente denuncia “Improcedibilità e inammissibilità della domanda di risoluzione per inadempimento introdotta con l’intimazione di sfratto per morosità - Violazione e falsa applicazione dell’art. 658 c.p.c. - Pregressa cessazione del contratto per finita locazione - Vizio di motivazione (art. — _Corte di Cassazione — civile, sez. 3, n. 32869/2025_ (passaggio letto nel testo integrale della pronuncia)
 - in relazione al combinato disposto degli artt. 658 c.p.c., 426 c.p.c. — _Corte di Cassazione — civile, sez. 3, n. 11802/2025_ (passaggio letto nel testo integrale della pronuncia)
-- 392 del 1978, norma che, per un verso, consente al conduttore di chiedere e ottenere, in deroga alla disciplina ordinaria della risoluzione del contratto mediante il meccanismo processuale della convalida di sfratto per morosità ex art. 658 del codice di procedura civile, un ulteriore termine per sanare la morosità e, per un altro, proprio in virtù della valenza eccezionale della concessione di tale termine, pretende, come costantemente ribadito nella giurisprudenza di legittimità, che, per evitare la convalida, il conduttore sani integralmente la morosità e provveda al pagamento delle spese di un procedimento inc — _Corte costituzionale, n. 79/2020_ (passaggio letto nel testo integrale della pronuncia)
 - 392 del 1978, trovi applicazione soltanto nel procedimento per convalida di sfratto (art. 658 cod. proc. civ.), mentre nell'ordinario giudizio di risoluzione del contratto per inadempimento, applicandosi la regola generale stabilita dall' art. — _Corte costituzionale, n. 3/1999_ (passaggio letto nel testo integrale della pronuncia)
 - 392, nella parte in cui, per costante interpretazione giurisprudenziale, prevede che la sanatoria giudiziale della morosità si applichi al solo procedimento per convalida di sfratto ex art. 658 del codice di procedura civile e non anche all'ordinario giudizio di risoluzione per inadempimento (nel qual caso non sarebbe dato al conduttore di adempiere l'obbligazione dopo la proposizione della domanda ai sensi del terzo comma dell'art. — _Corte costituzionale, n. 2/1992_ (passaggio letto nel testo integrale della pronuncia)
+- creditori “perché riguarda un diritto ed un credito rinvenuto nel patrimonio del fallito”, con la conseguenza che la competenza andava individuata secondo le regole ordinarie e, trattandosi di controversia di natura locatizia, il giudice competente era stato correttamente individuato in quello de luogo ove si trova l’immobile locato, ai sensi dell’art. 661 cod.proc.civ.; la tesi prospettata è che la curatela abbia - con domanda introdotta nel giudizio a cognizione piena conseguito al mutamento del rito dopo la definizione della fase sommaria del procedimento di convalida di sfratto e fra l’altro instando uno spostamento dell’udienza come se si trattasse di una domanda riconvenzionale - chiesto la condanna al paga — _Corte di Cassazione — civile, sez. 3, n. 22105/2023_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «sfratto_morosita»
@@ -60,7 +67,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Prove e oneri, Questioni interpretative.
 - Avvertenza della regola negoziazione_locazione_inadatta non riportata (senza norma citata): «Il conduttore può sanare in prima udienza o chiedere il termine di grazia fino a novanta giorni: la convalida richiede che la morosità persi»
 - Avvertenza della regola negoziazione_locazione_inadatta non riportata (senza norma citata): «Il deposito cauzionale non va imputato ai canoni nell'atto.»
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»
@@ -79,17 +85,25 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 1578 c.c. (Vizi della cosa locata) — testo vigente, aggiornamento archivio 29/04/2026, versione `1480d3e41b44e190` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1578
 - art. 1460 c.c. (Eccezione d'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `4a69653223467c8c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1460
 - art. 1587 c.c. (Obbligazioni principali del conduttore) — testo vigente, aggiornamento archivio 29/04/2026, versione `dc85ae269c231cc5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1587
+- art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
+- art. 1455 c.c. (Importanza dell'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `d714691cc81f983a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1455
 - art. 27 l. 392/1978 (Durata della locazione non abitativa) — testo vigente, aggiornamento archivio n.d., versione `9c738325e9dc4a12` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art27
 - art. 661 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `bed85335f84f3c14` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art661
 - art. 447-bis c.p.c. (Norme applicabili alle controversie in materia di locazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `9313ab26e5e36132` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art447bis
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
+- Corte costituzionale, n. 79/2020 (testo integrale) — versione `cc1:17b03ab6d9e5` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/79
 - Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 32869/2025 (testo integrale) — versione `aa30479390b6a68c` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025332869O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 11802/2025 (testo integrale) — versione `c12e7a4d7374785b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025311802O&rows=1&wt=json
-- Corte costituzionale, n. 79/2020 (testo integrale) — versione `cc1:17b03ab6d9e5` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/79
 - Corte costituzionale, n. 3/1999 (testo integrale) — versione `cc1:78fc60d803e9` — https://www.cortecostituzionale.it/scheda-pronuncia/1999/3
 - Corte costituzionale, n. 2/1992 (testo integrale) — versione `cc1:b6d6621394e5` — https://www.cortecostituzionale.it/scheda-pronuncia/1992/2
+- Corte di Cassazione — civile, sez. 3, n. 22105/2023 (testo integrale) — versione `f9db5e0d5b2ef6ae` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023322105O&rows=1&wt=json
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1455, norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cc:2948, pronuncia:Corte di Cassazione — civile|22105/2023

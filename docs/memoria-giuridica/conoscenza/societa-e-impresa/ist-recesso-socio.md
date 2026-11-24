@@ -1,7 +1,7 @@
 # Recesso del socio
 
-- ID: `ist-recesso-socio` · materia: società e impresa · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-recesso-socio` · materia: società e impresa · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di recesso nelle forme e nei termini di legge o di statuto.
 
@@ -23,7 +23,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - tipo di società e statuto (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -40,13 +40,15 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Regola di Lex «soc_recesso_socio»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 2437 c.c. (Diritto di recesso) — testo vigente, aggiornamento archivio n.d., versione `5e07c01661a64a3a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2437
 - art. 2473 c.c. (Recesso del socio) — testo vigente, aggiornamento archivio n.d., versione `00791bd6b18f4d85` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2473
 - art. 2437-bis c.c. (Termini e modalità di esercizio del recesso) — testo vigente, aggiornamento archivio n.d., versione `f33f1877dcf8634d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2437bis
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697

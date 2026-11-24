@@ -1,7 +1,7 @@
 # Restituzione del deposito cauzionale e cause di locazione
 
-- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1590 c.c., art. 11 l. 392/1978, art. 447-bis c.p.c..
 
@@ -9,7 +9,7 @@
 - Mediazione obbligatoria: la locazione è fra le materie dell'art. 5, comma 1, d.lgs. 28/2010; per questo la negoziazione assistita non è condizione di procedibilità. — _art. 5 d.lgs. 28/2010; art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Mancata mediazione obbligatoria: l'improcedibilità è eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice non oltre la prima udienza. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -23,7 +23,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 - Rito delle locazioni: le controversie in materia di locazione di immobili urbani seguono le norme del rito del lavoro in quanto applicabili; sono nulle le clausole di deroga alla competenza. — _art. 447-bis c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Senza descrizione dello stato dell'immobile si presume che il conduttore l'abbia ricevuto in buono stato di manutenzione; non risponde del deterioramento dovuto a vetustà. — _art. 1590 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
@@ -43,7 +44,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «mediazione_obbligatoria»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Termini, Documenti e dati da verificare, Questioni interpretative.
 
 ## Fonti con versione
 - art. 1590 c.c. (art. 1590 c.c.) — testo vigente, aggiornamento archivio n.d., versione `29b0130a75f2adb5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1590
@@ -54,6 +55,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 21 c.p.c. (Foro per le cause relative a diritti reali e ad azioni possessorie) — testo vigente, aggiornamento archivio 05/03/2026, versione `a49b022144e077b5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art21
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 - art. 9 c.p.c. (Competenza del tribunale) — testo vigente, aggiornamento archivio 05/03/2026, versione `3513c78f4e954cde` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art9
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - Corte di Cassazione — civile, sez. 3, n. 28985/2026 (testo integrale) — versione `e8cd4974c151d4cf` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328985O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 28247/2026 (testo integrale) — versione `c4b908fbb0b25482` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328247O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 27991/2026 (testo integrale) — versione `019041502f9b7c7f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026327991I&rows=1&wt=json
@@ -63,3 +65,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:1590, norma:l392:11
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697

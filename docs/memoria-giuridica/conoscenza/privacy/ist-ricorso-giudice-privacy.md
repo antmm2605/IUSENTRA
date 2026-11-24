@@ -1,6 +1,6 @@
 # Ricorso al giudice per violazione dei dati personali
 
-- ID: `ist-ricorso-giudice-privacy` · materia: privacy · revisione 2 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-ricorso-giudice-privacy` · materia: privacy · revisione 2 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale (rito del lavoro) del luogo del titolare o dell'interessato.

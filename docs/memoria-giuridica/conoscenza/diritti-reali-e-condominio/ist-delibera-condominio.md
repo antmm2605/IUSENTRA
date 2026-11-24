@@ -1,7 +1,7 @@
 # Impugnazione della delibera condominiale (art. 1137)
 
-- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1137 c.c., art. 71-quater disp. att. c.c., art. 5 d.lgs. 28/2010.
 
@@ -9,7 +9,9 @@
 - Mediazione obbligatoria: la controversia in materia di condominio rientra nell'elenco dell'art. 5, comma 1, d.lgs. 28/2010; l'esperimento del procedimento di mediazione è condizione di procedibilità della domanda. — _art. 5 d.lgs. 28/2010, comma 1; art. 5 d.lgs. 28/2010, comma 2_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- L'incompetenza per materia, valore e territorio si eccepisce, a pena di decadenza, nella comparsa di risposta tempestivamente depositata; l'eccezione di incompetenza per territorio deve indicare il giudice competente. — _art. 38 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il convenuto propone nella comparsa di risposta, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 167 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Mancata mediazione obbligatoria: l'improcedibilità è eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice non oltre la prima udienza. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -21,7 +23,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
@@ -41,13 +43,16 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «impugnazione_delibera»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Termini, Giudice e rito, Documenti e dati da verificare, Questioni interpretative.
 - Questione della regola impugnazione_delibera non riportata (senza norma citata): «La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: depositala entro i trenta giorni.»
 
 ## Fonti con versione
 - art. 1137 c.c. (Impugnazione delle deliberazioni dell'assemblea) — testo vigente, aggiornamento archivio 29/04/2026, versione `b55891c7a8b508f2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1137
 - art. 71-quater disp. att. c.c. (art. 71-quater disp. att. c.c.) — testo vigente, aggiornamento archivio n.d., versione `e0408ae6b5914a61` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;318~art71quater
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - Corte di Cassazione — civile, sez. 2, n. 28134/2026 (testo integrale) — versione `7b876f209a3c6f99` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228134S&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 28135/2026 (testo integrale) — versione `ae33f4c650a43414` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228135S&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 28136/2026 (testo integrale) — versione `96796078334f683d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228136S&rows=1&wt=json
@@ -58,3 +63,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:dispattcc:71quater
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:167, norma:cpc:38

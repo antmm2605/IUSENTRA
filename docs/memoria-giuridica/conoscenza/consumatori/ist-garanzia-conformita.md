@@ -1,7 +1,7 @@
 # Garanzia legale di conformità
 
-- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta al venditore di riparazione o sostituzione gratuita; in subordine riduzione del prezzo o risoluzione del contratto.
 
@@ -29,7 +29,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Foro del consumatore: per la causa resta competente il giudice del luogo di residenza o domicilio elettivo del consumatore; è vessatoria la clausola che fissa un foro diverso. — _art. 33 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - data di consegna del bene (da essa decorrono i due anni e i ventisei mesi) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -51,7 +51,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Eccezioni e tranelli, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 128 d.lgs. 206/2005 (codice del consumo) ((( (Ambito di applicazione e definizioni). ))) — testo vigente, aggiornamento archivio n.d., versione `c9ec9ed01a293beb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art128
@@ -64,8 +64,10 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 135-bis d.lgs. 206/2005 (codice del consumo) (Rimedi per il difetto di conformità) — testo vigente, aggiornamento archivio 11/11/2026, versione `3ad7decbe6df4893` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art135bis
 - art. 135-quater d.lgs. 206/2005 (codice del consumo) (Riduzione del prezzo e risoluzione) — testo vigente, aggiornamento archivio 11/11/2026, versione `6284256586d3379b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art135quater
 - art. 33 d.lgs. 206/2005 (codice del consumo) (Clausole vessatorie nel contratto tra professionista e consumatore) — testo vigente, aggiornamento archivio 11/11/2026, versione `24dbfba1db5d9c63` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art33
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:codcons:128, norma:codcons:133, norma:codcons:135, norma:dlgs206:128, norma:dlgs206:133, norma:dlgs206:135
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697

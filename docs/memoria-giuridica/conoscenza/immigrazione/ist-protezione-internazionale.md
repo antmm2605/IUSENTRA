@@ -1,6 +1,6 @@
 # Ricorso contro il diniego di protezione internazionale
 
-- ID: `ist-protezione-internazionale` · materia: immigrazione · revisione 3 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-protezione-internazionale` · materia: immigrazione · revisione 3 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso alla sezione specializzata immigrazione del tribunale ordinario.

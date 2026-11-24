@@ -1,6 +1,6 @@
 # Revocazione della sentenza
 
-- ID: `ist-revocazione` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-revocazione` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per revocazione davanti allo stesso giudice che ha pronunciato la sentenza.

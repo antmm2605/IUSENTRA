@@ -1,7 +1,7 @@
 # Disconoscimento di paternità
 
-- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per disconoscimento di paternità; tribunale della residenza abituale del minore.
 
@@ -42,7 +42,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - cata coabitazione dei coniugi nel periodo compreso tra il trecentesimo ed il centottantesimo giorno prima della nascita, per impotenza del marito durante il tempo suddetto e per esistenza di una relazione extraconiugale della moglie - parte convenuta ha eccepito pregiudizialmente l'intervenuta decadenza dall'azione di disconoscimento ai sensi dell'art. 244 cod. civ. atteso che, fino alla pronuncia della sentenza di interdizione, l'attore era pienamente capace di agire giuridicamente. — _Corte costituzionale, n. 322/2011_ (passaggio letto nel testo integrale della pronuncia)
 - rticolare, nell'ordinanza si rileva che, «[s]tante il combinato disposto degli articoli 269, comma 1 e 253 del codice civile, la dichiarazione di filiazione fuori del matrimonio presuppone l'assenza di uno stato di figlio il quale, se presente, andrà previamente rimosso - a seconda dei casi - per mezzo delle azioni di disconoscimento di paternità (art. 243-bis del codice civile), di impugnazione del riconoscimento (articoli 263 e seguenti del codice civile) ovvero di contestazione dello stato di figlio (art. — _Corte costituzionale, n. 177/2022_ (passaggio letto nel testo integrale della pronuncia)
 - civ., sostituito dalla semplice previsione dell'art. 243-bis, secondo comma, cod. civ., secondo cui «chi esercita l'azione è ammesso a provare che non sussiste rapporto di filiazione tra il figlio e il presunto padre». — _Corte costituzionale, n. 133/2021_ (passaggio letto nel testo integrale della pronuncia)
-- 154 del 2013 deve ritenersi ora riferito all'art. 243-bis cod. civ.) e dell'impugnazione ex art. — _Corte costituzionale, n. 162/2014_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «disconoscimento_paternita»
@@ -62,9 +61,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Corte costituzionale, n. 7/2012 (testo integrale) — versione `cc1:0cf8c3ead48e` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/7
 - Corte costituzionale, n. 322/2011 (testo integrale) — versione `cc1:5ff778503614` — https://www.cortecostituzionale.it/scheda-pronuncia/2011/322
 - Corte costituzionale, n. 177/2022 (testo integrale) — versione `cc1:6a61ad4f3639` — https://www.cortecostituzionale.it/scheda-pronuncia/2022/177
-- Corte costituzionale, n. 162/2014 (testo integrale) — versione `cc1:b3f8d7eea121` — https://www.cortecostituzionale.it/scheda-pronuncia/2014/162
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|162/2014

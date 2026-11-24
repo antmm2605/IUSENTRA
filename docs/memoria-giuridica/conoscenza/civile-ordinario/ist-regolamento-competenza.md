@@ -1,6 +1,6 @@
 # Regolamento di competenza
 
-- ID: `ist-regolamento-competenza` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-regolamento-competenza` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso alla Corte di cassazione per regolamento di competenza (in alternativa: riassunzione davanti al giudice indicato).

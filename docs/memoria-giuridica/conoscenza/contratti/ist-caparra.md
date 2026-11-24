@@ -1,7 +1,7 @@
 # Caparra confirmatoria e preliminare
 
-- ID: `ist-caparra` · materia: contratti · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-caparra` · materia: contratti · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1385 c.c., art. 1386 c.c..
 
@@ -9,7 +9,12 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- L'incompetenza per materia, valore e territorio si eccepisce, a pena di decadenza, nella comparsa di risposta tempestivamente depositata; l'eccezione di incompetenza per territorio deve indicare il giudice competente. — _art. 38 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il convenuto propone nella comparsa di risposta, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 167 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Prescrizione: salvo diversa disposizione di legge, il diritto si estingue in dieci anni. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
+- Eccezione di inadempimento: nei contratti a prestazioni corrispettive ciascuno può rifiutarsi di adempiere se l'altro non adempie, ma non se il rifiuto è contrario alla buona fede. — _art. 1460 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -21,7 +26,8 @@ _Sezione mancante: nessuna conclusione verificata nelle regole dell'istituto._
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
@@ -42,12 +48,20 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Atto di citazione ordinario — `/template-atti?scheda=CIV_ORD_001`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Presupposti, Termini, Rimedi e forme, Giudice e rito, Documenti e dati da verificare, Questioni interpretative.
 - Questione della regola caparra_confirmatoria non riportata (senza norma citata): «Manca l'importo della caparra: senza di esso non si calcolano domanda, valore e procedibilità.»
 
 ## Fonti con versione
 - art. 1385 c.c. (Caparra confirmatoria) — testo vigente, aggiornamento archivio 29/04/2026, versione `3e763c13b54d075f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1385
 - art. 1386 c.c. (Caparra penitenziale) — testo vigente, aggiornamento archivio 29/04/2026, versione `0523ea41d54b18d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1386
+- art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
+- art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
+- art. 1460 c.c. (Eccezione d'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `4a69653223467c8c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1460
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
 - Corte di Cassazione — penale, sez. 5, n. 40367/2026 (testo integrale) — versione `8fe407c580f9fc4e` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2026540367S&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 29148/2026 (testo integrale) — versione `ca593440a87857e7` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229148O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 27237/2026 (testo integrale) — versione `a6f22713cf9e86ae` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026227237O&rows=1&wt=json
@@ -58,3 +72,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1460, norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cc:2946, norma:cpc:167, norma:cpc:38
+- r4 · 24/11/2026 04:05 · contenuto delle regole cambiato con le stesse fonti

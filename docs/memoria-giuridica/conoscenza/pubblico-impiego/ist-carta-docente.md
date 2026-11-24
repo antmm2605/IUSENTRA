@@ -1,7 +1,7 @@
 # Carta del docente per i supplenti
 
-- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per l'accertamento del diritto alla carta per gli anni scolastici indicati e la condanna del Ministero all'attribuzione o al risarcimento per equivalente; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
 
@@ -28,7 +28,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Gli atti introduttivi contro un'amministrazione dello Stato si notificano, a pena di nullità, presso l'ufficio dell'Avvocatura dello Stato nel cui distretto ha sede il giudice adito. — _art. 11 r.d. 1611/1933_ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - anni scolastici e tipo di contratto per ciascuno (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -54,7 +54,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Eccezioni e tranelli, Questioni interpretative.
 - Questione della regola pi_carta_docente non riportata (senza norma citata): «Prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio SentenzeWeb prima di indicarli al cl»
 
 ## Fonti con versione
@@ -68,6 +68,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 417-bis c.p.c. (Difesa delle pubbliche amministrazioni) — testo vigente, aggiornamento archivio n.d., versione `4be8ad6c1a8ece93` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art417bis
 - art. 9 d.P.R. 115/2002 (Contributo unificato) — testo vigente, aggiornamento archivio 21/11/2026, versione `eef544e027a4f323` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art9
 - art. 11 r.d. 1611/1933 (Notificazioni alle Amministrazioni dello Stato) — testo vigente, aggiornamento archivio 23/11/2026, versione `acb9a3053a3dc4b5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1933-10-30;1611~art11
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - Corte di Cassazione — civile, sez. L, n. 12056/2026 (testo integrale) — versione `af4afda2304cef9d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L12056O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 7759/2026 (testo integrale) — versione `490601e1d2324fde` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026307759O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 7556/2026 (testo integrale) — versione `1bf9aa81747796bf` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L07556O&rows=1&wt=json
@@ -78,3 +79,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:l107_2015:1, norma:rd1611:11, norma:l107:1
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697

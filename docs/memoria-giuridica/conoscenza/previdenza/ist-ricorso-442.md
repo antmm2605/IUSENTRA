@@ -1,7 +1,7 @@
 # Controversie previdenziali (artt. 442-443 c.p.c.)
 
-- ID: `ist-ricorso-442` · materia: previdenza · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ricorso-442` · materia: previdenza · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale in funzione di giudice del lavoro del luogo di residenza, dopo il ricorso amministrativo.
 
@@ -23,7 +23,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - prestazione e provvedimento (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -41,7 +41,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 442 c.p.c. (Controversie in materia di previdenza e di assistenza obbligatorie) — testo vigente, aggiornamento archivio 05/03/2026, versione `644451029812121f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art442
@@ -49,7 +49,9 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 444 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `db19ec1abaaffa49` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art444
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 47 d.P.R. 639/1970 (Azione giudiziaria e decadenza) — testo vigente, aggiornamento archivio n.d., versione `5ac0253f553aca1a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1970-04-30;639~art47
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697

@@ -67,8 +67,15 @@ Legenda: **esiste** = funziona ed è usato; **parziale** = c'è un pezzo, non il
 
 ## 4. Limiti dichiarati
 
-- «Prove e oneri» e «Eccezioni» sono quasi sempre mancanti: le regole non hanno ancora affermazioni ancorate su questi
-  punti. Restano dichiarate, non riempite.
+- «Prove e oneri» ed «Eccezioni» si compilano da `lex/conoscenza/trasversali.py`: 24 voci di norme generali e speciali
+  (artt. 2697, 1218, 2051, 2054, 1590 c.c.; art. 5 l. 604/1966; art. 665 c.p.c.; prescrizione artt. 2935, 2943, 2946-2948
+  c.c.; decadenza artt. 2964 e 2113 c.c.; incompetenza e preclusioni artt. 38 e 167 c.p.c.; improcedibilità art. 5
+  d.lgs. 28/2010 e art. 3 d.l. 132/2014; artt. 1455 e 1460 c.c.), ciascuna con l'ancora controllata e applicata solo
+  agli istituti indicati per materia e rito. Mancano nel registro delle norme di Lex, e quindi non sono usati: artt.
+  2729, 2050, 2934, 2938 c.c.; artt. 37, 112, 115, 116, 345, 416, 420, 421, 437 c.p.c. (eccezioni e prove nel rito del
+  lavoro e in appello): vanno aggiunti dall'agente delle regole.
+- «Questioni interpretative» dalle pronunce: solo passaggi con formule della motivazione («questa Corte», «principio di
+  diritto», «giurisprudenza di legittimità»…) e senza formule di narrazione delle difese o dell'ordinanza di rimessione.
 - Le norme di riferimento del catalogo presenti in biblioteca ma non nel registro delle norme di Lex sono elencate fra
   le lacune: vanno aggiunte a `lex/harness/norme_materie.py` (lavoro del branch delle regole).
 - L'indice delle pronunce per norma nasce da una ricerca testuale (citazione + rubrica): delle 827 pronunce

@@ -1,7 +1,7 @@
 # Comparsa di costituzione e risposta
 
-- ID: `ist-comparsa` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-comparsa` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 166 c.p.c., art. 167 c.p.c., art. 171-ter c.p.c..
 
@@ -11,7 +11,8 @@
 - Seguono le memorie integrative almeno quaranta, venti e dieci giorni prima dell'udienza. — _art. 171-ter c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- L'incompetenza per materia, valore e territorio si eccepisce, a pena di decadenza, nella comparsa di risposta tempestivamente depositata; l'eccezione di incompetenza per territorio deve indicare il giudice competente. — _art. 38 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il convenuto propone nella comparsa di risposta, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 167 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -23,13 +24,13 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- civ., in quanto finalizzata al perseguimento di esigenze di certezza essenziali, in presenza di termini stabiliti a pena di decadenza (art. 167 cod. proc. civ.), per assicurare il carattere effettivo del diritto di difesa; che la Corte ha, altresì, negato ogni contrasto con l'art. — _Corte costituzionale, n. 174/2013_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - ni specie di competenza — anche territoriale inderogabile -, è onere del convenuto stesso eccepirel'incompetenza, a pena di decadenza, nella comparsa di costituzionetempestivamente depositata, cioè nel termine di cui all'art. 166 c.p.c.,cosicché qualora il convenuto abbia sollevato un'eccezione di incompetenzaterritoriale inderogabile nella comparsa di risposta depositata direttamenteall'udienza di prima comparizione ai sensi dell'art. — _Corte di Cassazione — civile, sez. 1, n. 28023/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -38,28 +39,28 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - a pronunciato la seguente nel giudizio di legittimità costituzionale dell'art. 166 codice di procedura civile, promosso con ordinanza del 1° ottobre 2004 dal Tribunale di Milano, in composizione monocratica, nel procedimento civile vertente tra M.P. — _Corte costituzionale, n. 57/2006_ (passaggio letto nel testo integrale della pronuncia)
 - , quando l'attoreallega in modo puntuale e dettagliato i fatti costitutivi della propriapretesa, il convenuto ha l'onere di prendere posizione in modochiaro e specifico su ciascuna di tali allegazioni; la contestazionegenerica e onnicomprensiva – mediante formule quali «si contestatutto quanto dedotto ex adverso» – non soddisfa l'onere impostodall'art. 167 c.p.c. e produce l'effetto della relevatio ab onereprobandi a favore dell'attore, dovendosi i fatti non specificamentecontestati ritenere ammessi senza necessità di prova (Cass., Sez.3, Sentenza n. — _Corte di Cassazione — civile, sez. 2, n. 29526/2026_ (passaggio letto nel testo integrale della pronuncia)
 - ffermi erede in forza della scheda, non puòessere veicolata mediante mero disconoscimento o semplicerichiesta di rigetto della domanda attorea ovvero con una solaeccezione, ma deve assumere la forma di una domanda diaccertamento negativo della provenienza della scrittura, daproporre, per il convenuto, in via riconvenzionale e nei termini dicui all’art. 167 c.p.c.».3. — _Corte di Cassazione — civile, sez. 2, n. 29577/2026_ (passaggio letto nel testo integrale della pronuncia)
-- ziale - premesso che il coniuge convenuto aveva reiterato tardivamente, in detta seconda fase, la domanda riconvenzionale, volta all'ottenimento di un assegno divorzile, proposta con la comparsa di risposta innanzi al Presidente, e considerato che ciò avrebbe comportato, a suo avviso, l'inammissibilità di tale domanda, per intervenuta decadenza ex art. 167 del codice di procedura civile - ha reputato di conseguenza rilevante, ed ha perciò sollevato, con l'ordinanza in epigrafe, questione di legittimità costituzionale dell'art. — _Corte costituzionale, n. 97/2017_ (passaggio letto nel testo integrale della pronuncia)
-- civ., in quanto finalizzata al perseguimento di esigenze di certezza essenziali, in presenza di termini stabiliti a pena di decadenza (art. 167 cod. proc. civ.), per assicurare il carattere effettivo del diritto di difesa; che la Corte ha, altresì, negato ogni contrasto con l'art. — _Corte costituzionale, n. 174/2013_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «comparsa_risposta»
 - Comparsa di costituzione e risposta — `/template-atti?scheda=CIV_ORD_009`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Termini, Giudice e rito, Documenti e dati da verificare.
 
 ## Fonti con versione
 - art. 166 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `20145a71a75a4ffa` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art166
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
 - art. 171-ter c.p.c. (Memorie integrative) — testo vigente, aggiornamento archivio 05/03/2026, versione `bc58dc903cec8cd7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171ter
-- Corte di Cassazione — civile, sez. 1, n. 28023/2026 (testo integrale) — versione `41bb68a29ef32843` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026128023O&rows=1&wt=json
+- art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - Corte costituzionale, n. 174/2013 (testo integrale) — versione `cc1:a0b78ba97cb1` — https://www.cortecostituzionale.it/scheda-pronuncia/2013/174
+- Corte di Cassazione — civile, sez. 1, n. 28023/2026 (testo integrale) — versione `41bb68a29ef32843` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026128023O&rows=1&wt=json
 - Corte costituzionale, n. 134/2009 (testo integrale) — versione `cc1:b3a201dd08ba` — https://www.cortecostituzionale.it/scheda-pronuncia/2009/134
 - Corte costituzionale, n. 57/2006 (testo integrale) — versione `cc1:f5d237557e83` — https://www.cortecostituzionale.it/scheda-pronuncia/2006/57
 - Corte di Cassazione — civile, sez. 2, n. 29526/2026 (testo integrale) — versione `943bb8e43c6a3fee` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229526O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 29577/2026 (testo integrale) — versione `40aaf6d37fe27b79` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229577S&rows=1&wt=json
-- Corte costituzionale, n. 97/2017 (testo integrale) — versione `cc1:983c21b9c2c9` — https://www.cortecostituzionale.it/scheda-pronuncia/2017/97
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:38, pronuncia:Corte costituzionale|97/2017

@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from .istituti import DATI, Istituto
+from .trasversali import e_motivazione, voci_per
 
 PIPELINE = "schede-istituto/1"
 RADICE = Path(__file__).resolve().parents[2]
@@ -372,11 +373,31 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
                     "fonti": [{"tipo": "pronuncia", "chiave": f"{p['organo']}|{p['numero']}/{p['anno']}",
                                "citazione": p["estremi"], "url": p.get("url", ""), "tipo_testo": p.get("tipo_testo", ""),
                                "data": p.get("data", ""), "versione": p.get("versione", ""), "norma": chiave}]}
-            _aggiungi(sez["orientamenti"], voce)
+            if p.get("tipo_testo") != "massima" and e_motivazione(p["passaggio"]):
+                # Passaggio della motivazione della Corte: questione interpretativa affrontata dalla pronuncia.
+                if len(sez["questioni"]) < 6:
+                    voce["provenienza"] = f"motivazione di una pronuncia che applica {p.get('citazione_norma') or chiave}"
+                    voce["etichetta"] = "Questione affrontata dalla pronuncia"
+                    _aggiungi(sez["questioni"], voce)
+                continue
+            if len(sez["orientamenti"]) < 6:
+                _aggiungi(sez["orientamenti"], voce)
             if p.get("tipo_testo") == "massima":
                 lacune.append(f"{p['estremi']}: disponibile solo la massima; fatti e motivazione non letti.")
-        if len(sez["orientamenti"]) >= 6:
+        if len(sez["orientamenti"]) >= 6 and len(sez["questioni"]) >= 6:
             break
+
+    # Prove, oneri ed eccezioni dalle norme generali e speciali (lex/conoscenza/trasversali.py), ancorate al testo
+    # vigente con il controllore di Lex: entrano solo negli istituti indicati per materia e rito.
+    from lex.harness.controllo import _verifica_punto
+
+    for v, punto in voci_per(ist.id):
+        _verifica_punto(punto)
+        if not punto.verificato:
+            lacune.append(f"Voce «{v.id}» esclusa dal controllore: {punto.motivo}")
+            continue
+        _aggiungi(sez[v.sezione], _voce_punto(punto, f"norma {'generale' if len(v.istituti) > 3 else 'speciale'} "
+                                                     f"dell'istituto (voce «{v.id}»)"), sez)
 
     motivi = {
         "presupposti": "nessuna regola con inquadramento ancorato al testo vigente",

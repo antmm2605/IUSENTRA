@@ -1,7 +1,7 @@
 # TFR (trattamento di fine rapporto)
 
-- ID: `ist-tfr` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-tfr` · materia: lavoro · revisione 5 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 27 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida, poi decreto ingiuntivo o ricorso al giudice del lavoro; con datore insolvente domanda al Fondo di garanzia INPS; Tribunale in funzione di giudice del lavoro.
 
@@ -15,7 +15,10 @@
 - Né mediazione né negoziazione assistita sono condizioni di procedibilità del ricorso per decreto ingiuntivo: entrambe le discipline escludono i procedimenti per ingiunzione. — _art. 3 d.l. 132/2014; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Prescrizione quinquennale delle indennità spettanti per la cessazione del rapporto di lavoro. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
+- Rinunce e transazioni del lavoratore su diritti inderogabili: invalide, ma l'impugnazione va proposta, a pena di decadenza, entro sei mesi dalla cessazione del rapporto o dalla rinuncia o transazione successiva. — _art. 2113 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Il decreto va notificato entro sessanta giorni dalla pronuncia (novanta se all'estero), altrimenti diventa inefficace. — _art. 644 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -35,7 +38,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Competente è il giudice di pace o il tribunale che sarebbe competente per la domanda proposta in via ordinaria. — _art. 637 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - importo del credito (fatture e somme già pagate) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -44,7 +47,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - eventuale procedura concorsuale del datore (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- civ., che riconoscono efficacia probatoria alle scritture dell'imprenditore solo "contro" di lui, e di cui all'art. 634 cod. proc. civ. in materia di procedimento di ingiunzione, che attribuisce alle scritture contabili in favore dell'imprenditore rilevanza solo ai fini di una tutela sommaria; 2) la norma si risolverebbe nell'attribuzione alla banca di un potere di attestazione, attraverso l'annotazione, in contrasto con la marcata natura privatistica che la più recente legislazio — _Corte costituzionale, n. 78/2012_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - secondo cui il provvedimento che ammette o nega la chiamata del terzo costituisceesercizio di potere discrezionale del giudice di merito e non è sindacabile in sededi impugnazione.Infine, è stata respinta l'eccezione di decadenza probatoria ex art. 414 c.p.c.,ritenendosi che la documentazione fosse stata adeguatamente indicata nel ricorsointroduttivo e già depositata presso la cancelleria nell'ambito del precedenteprocedimento cautelare tra le stesse parti; in ogni caso, la Corte ha osservato cheil giudice del lavoro avrebbe potuto acquisirla mediante esercizio dei poteriistruttori officiosi di cui agl — _Corte di Cassazione — civile, sez. L, n. 29446/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -63,7 +66,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 2120 c.c. (Disciplina del trattamento di fine rapporto) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f1c918000c14f0b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2120
@@ -75,6 +77,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 642 c.p.c. (Esecuzione provvisoria) — testo vigente, aggiornamento archivio 05/03/2026, versione `736050f30d4d71ef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art642
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
+- art. 2113 c.c. (Rinunzie e transazioni) — testo vigente, aggiornamento archivio n.d., versione `9a8d998cda986c85` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2113
 - art. 644 c.p.c. (Mancata notificazione del decreto) — testo vigente, aggiornamento archivio 05/03/2026, versione `5e162b8609e86369` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art644
 - art. 641 c.p.c. (Accoglimento della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `257353832d5720c4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art641
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
@@ -82,6 +87,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 637 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `3798af16206abf88` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art637
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- Corte costituzionale, n. 78/2012 (testo integrale) — versione `cc1:546f2629ef64` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/78
 - Corte di Cassazione — civile, sez. L, n. 29446/2026 (testo integrale) — versione `4ee179018b5f65fc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29446O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 5, n. 29147/2026 (testo integrale) — versione `a3317a02460159dc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529147O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 29047/2026 (testo integrale) — versione `fead8d45396a9a67` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29047O&rows=1&wt=json
@@ -93,3 +100,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:l742:3
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2113, norma:cc:2697, norma:cc:2935, norma:cc:2943, pronuncia:Corte costituzionale|78/2012, pronuncia:Corte di Cassazione — civile|27991/2026
+- r5 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27991/2026

@@ -1,7 +1,7 @@
 # Licenza e sfratto per finita locazione
 
-- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di licenza (prima della scadenza) o di sfratto (dopo la scadenza) per finita locazione, con citazione per la convalida; Tribunale del luogo dell'immobile.
 
@@ -23,7 +23,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 - È competente il tribunale del luogo in cui si trova la cosa locata. — _art. 661 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Se l'intimato si oppone con eccezioni non fondate su prova scritta, il giudice, su istanza del locatore e se non vi sono gravi motivi contrari, pronuncia ordinanza di rilascio con riserva delle eccezioni. — _art. 665 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - data di scadenza del contratto e disdetta inviata (data e modalità) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -50,7 +51,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «loc_disdetta»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Questioni interpretative.
 
 ## Fonti con versione
 - art. 657 c.p.c. (Intimazione di licenza e di sfratto) — testo vigente, aggiornamento archivio 05/03/2026, versione `a4fa9dd73b8b85e2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art657
@@ -59,6 +60,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 29 l. 392/1978 (Diniego di rinnovazione alla prima scadenza) — testo vigente, aggiornamento archivio 21/11/2026, versione `e9cf9ab3d2032cfb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art29
 - art. 661 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `bed85335f84f3c14` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art661
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 665 c.p.c. (Opposizione e provvedimenti del giudice) — testo vigente, aggiornamento archivio 05/03/2026, versione `9fbf736ad8a2171f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art665
 - Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29253/2024 (testo integrale) — versione `84a43c2b77894d4c` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024329253S&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 25286/2024 (testo integrale) — versione `a9bfc3ae2af13df3` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024325286O&rows=1&wt=json
@@ -70,3 +73,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:l392:28
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:l392:29
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:665

@@ -1,7 +1,7 @@
 # Provvisoria esecuzione del decreto (artt. 642 e 648)
 
-- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
 
@@ -42,7 +42,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - somme contestate e non contestate (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- civ., che riconoscono efficacia probatoria alle scritture dell'imprenditore solo "contro" di lui, e di cui all'art. 634 cod. proc. civ. in materia di procedimento di ingiunzione, che attribuisce alle scritture contabili in favore dell'imprenditore rilevanza solo ai fini di una tutela sommaria; 2) la norma si risolverebbe nell'attribuzione alla banca di un potere di attestazione, attraverso l'annotazione, in contrasto con la marcata natura privatistica che la più recente legislazio — _Corte costituzionale, n. 78/2012_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - o-loso» in quanto:− fin dalla prima formulazione della richiesta di pagamento della cau-zione, la Provincia era consapevole che le problematiche emerse nell'esecu-zione dell'appalto non erano riconducibili a un inadempimento dell'appalta-trice, ma a «difetti di progettazione dell'intervento»;− sia al momento del deposito del ricorso per decreto ex art. 633 c.p.c.che al momento della costituzione nel giudizio di opposizione a decreto in-giuntivo, la Provincia aveva taciuto il già avvenuto rinvio a giudizio del pro-gettista dell'opera e del direttore dei lavori (assolti, va ricordato, dal Tribu-nale di Camerino con sentenza 19 novembre 2012 n. — _Corte di Cassazione — civile, sez. 1, n. 29102/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -51,9 +51,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - rimane nella disponibilità del giudice stesso, anche se i presupposti che giustificano la concessione dei due provvedimenti sono entrambi individuabili nell'art. 633 cod. proc. civ. Infatti l'art. — _Corte costituzionale, n. 65/1996_ (passaggio letto nel testo integrale della pronuncia)
 - civ., rispettivamente sul foro generale delle persone fisiche(concernente la residenza e il domicilio nonché, ove sconosciuti, la dimora delconvenuto) e sul foro facoltativo per le cause relative a diritti di obbligazione– e dopo aver evocato, sempre in linea generale, l’art.637 cod. proc. civ. (sulforo facoltativo per i crediti degli avvocati e dei notai), ha aggiunto che «nelcaso di specie, qualora si volesse prendere in considerazione il foro generaledelle persone fisiche, alla luce della residenza della sig.ra Virna Cecchini,sarebbe competente a decidere il Giudice di pace di Roma» (pag.2 dell’atto dicitazione in opposizione, cit.), — _Corte di Cassazione — civile, sez. 3, n. 19040/2026_ (passaggio letto nel testo integrale della pronuncia)
 - L’opponente sostenne, in particolare, che ilTribunale adito non fosse territorialmente competente, non essendoapplicabile alla specie il foro previsto dall’art. 637 c.p.c.; che fosseinesistente il titolo fatto valere, nulla la convenzione alla data delconferimento dell’incarico e inammissibile il ricorso per decreto ingiuntivo;che mancasse l’impegno di spesa e la copertura finanziaria ai sensidell’art. — _Corte di Cassazione — civile, sez. 2, n. 12660/2026_ (passaggio letto nel testo integrale della pronuncia)
-- a pronunciato la seguente nei giudizi di legittimità costituzionale dell'art. 637, terzo comma, del codice di procedura civile promossi dalla Corte di cassazione, con due ordinanze del 30 gennaio 2009, iscritte ai nn. — _Corte costituzionale, n. 50/2010_ (passaggio letto nel testo integrale della pronuncia)
-- a pronunciato la seguente nel giudizio di legittimità costituzionale dell'art. 637, primo comma, del codice di procedura civile, promosso con ordinanza del 27 luglio 2004 dal Tribunale di Genova, nel procedimento civile vertente tra s.p.a. — _Corte costituzionale, n. 410/2005_ (passaggio letto nel testo integrale della pronuncia)
-- a pronunciato la seguente nei giudizi riuniti di legittimità costituzionale dell'art. 637, terzo comma, del codice di procedura civile, promossi con ordinanze emesse il 12 giugno 1973 dal pretore di Ferrara in due procedimenti civili vertenti tra Forniti Giorgio e Minerbi Alberto, iscritte ai nn. — _Corte costituzionale, n. 137/1975_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «decreto_ingiuntivo»
@@ -64,7 +61,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri.
 
 ## Fonti con versione
 - art. 642 c.p.c. (Esecuzione provvisoria) — testo vigente, aggiornamento archivio 05/03/2026, versione `736050f30d4d71ef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art642
@@ -78,16 +75,15 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 644 c.p.c. (Mancata notificazione del decreto) — testo vigente, aggiornamento archivio 05/03/2026, versione `5e162b8609e86369` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art644
 - art. 637 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `3798af16206abf88` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art637
 - art. 649 c.p.c. (Sospensione dell'esecuzione provvisoria) — testo vigente, aggiornamento archivio n.d., versione `b030b5e8f30a3e16` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art649
+- Corte costituzionale, n. 78/2012 (testo integrale) — versione `cc1:546f2629ef64` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/78
 - Corte di Cassazione — civile, sez. 1, n. 29102/2026 (testo integrale) — versione `e2a228abfdb5a872` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026129102O&rows=1&wt=json
 - Corte costituzionale, n. 96/2008 (testo integrale) — versione `cc1:28b7f4a445f5` — https://www.cortecostituzionale.it/scheda-pronuncia/2008/96
 - Corte costituzionale, n. 299/2003 (testo integrale) — versione `cc1:95706fadab4b` — https://www.cortecostituzionale.it/scheda-pronuncia/2003/299
 - Corte costituzionale, n. 65/1996 (testo integrale) — versione `cc1:4d8661524750` — https://www.cortecostituzionale.it/scheda-pronuncia/1996/65
 - Corte di Cassazione — civile, sez. 3, n. 19040/2026 (testo integrale) — versione `fa27630e6a2bc93a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026319040O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 12660/2026 (testo integrale) — versione `22e41421ba5d5a99` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026212660O&rows=1&wt=json
-- Corte costituzionale, n. 50/2010 (testo integrale) — versione `cc1:11fe518330b9` — https://www.cortecostituzionale.it/scheda-pronuncia/2010/50
-- Corte costituzionale, n. 410/2005 (testo integrale) — versione `cc1:2b1bc09a7e6e` — https://www.cortecostituzionale.it/scheda-pronuncia/2005/410
-- Corte costituzionale, n. 137/1975 (testo integrale) — versione `cc1:baeb736d6330` — https://www.cortecostituzionale.it/scheda-pronuncia/1975/137
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|78/2012, pronuncia:Corte costituzionale|137/1975, pronuncia:Corte costituzionale|410/2005, pronuncia:Corte costituzionale|50/2010

@@ -1,7 +1,7 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al giudice competente per valore.
 
@@ -12,7 +12,9 @@
 - Né mediazione né negoziazione assistita sono condizioni di procedibilità del ricorso per decreto ingiuntivo: entrambe le discipline escludono i procedimenti per ingiunzione. — _art. 3 d.l. 132/2014; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Prescrizione: salvo diversa disposizione di legge, il diritto si estingue in dieci anni. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Il decreto va notificato entro sessanta giorni dalla pronuncia (novanta se all'estero), altrimenti diventa inefficace. — _art. 644 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -28,7 +30,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Competente è il giudice di pace o il tribunale che sarebbe competente per la domanda proposta in via ordinaria. — _art. 637 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - importo del credito (fatture e somme già pagate) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -37,7 +39,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - sede del debitore (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- civ., che riconoscono efficacia probatoria alle scritture dell'imprenditore solo "contro" di lui, e di cui all'art. 634 cod. proc. civ. in materia di procedimento di ingiunzione, che attribuisce alle scritture contabili in favore dell'imprenditore rilevanza solo ai fini di una tutela sommaria; 2) la norma si risolverebbe nell'attribuzione alla banca di un potere di attestazione, attraverso l'annotazione, in contrasto con la marcata natura privatistica che la più recente legislazio — _Corte costituzionale, n. 78/2012_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - o-loso» in quanto:− fin dalla prima formulazione della richiesta di pagamento della cau-zione, la Provincia era consapevole che le problematiche emerse nell'esecu-zione dell'appalto non erano riconducibili a un inadempimento dell'appalta-trice, ma a «difetti di progettazione dell'intervento»;− sia al momento del deposito del ricorso per decreto ex art. 633 c.p.c.che al momento della costituzione nel giudizio di opposizione a decreto in-giuntivo, la Provincia aveva taciuto il già avvenuto rinvio a giudizio del pro-gettista dell'opera e del direttore dei lavori (assolti, va ricordato, dal Tribu-nale di Camerino con sentenza 19 novembre 2012 n. — _Corte di Cassazione — civile, sez. 1, n. 29102/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -46,9 +48,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - rimane nella disponibilità del giudice stesso, anche se i presupposti che giustificano la concessione dei due provvedimenti sono entrambi individuabili nell'art. 633 cod. proc. civ. Infatti l'art. — _Corte costituzionale, n. 65/1996_ (passaggio letto nel testo integrale della pronuncia)
 - civ., rispettivamente sul foro generale delle persone fisiche(concernente la residenza e il domicilio nonché, ove sconosciuti, la dimora delconvenuto) e sul foro facoltativo per le cause relative a diritti di obbligazione– e dopo aver evocato, sempre in linea generale, l’art.637 cod. proc. civ. (sulforo facoltativo per i crediti degli avvocati e dei notai), ha aggiunto che «nelcaso di specie, qualora si volesse prendere in considerazione il foro generaledelle persone fisiche, alla luce della residenza della sig.ra Virna Cecchini,sarebbe competente a decidere il Giudice di pace di Roma» (pag.2 dell’atto dicitazione in opposizione, cit.), — _Corte di Cassazione — civile, sez. 3, n. 19040/2026_ (passaggio letto nel testo integrale della pronuncia)
 - L’opponente sostenne, in particolare, che ilTribunale adito non fosse territorialmente competente, non essendoapplicabile alla specie il foro previsto dall’art. 637 c.p.c.; che fosseinesistente il titolo fatto valere, nulla la convenzione alla data delconferimento dell’incarico e inammissibile il ricorso per decreto ingiuntivo;che mancasse l’impegno di spesa e la copertura finanziaria ai sensidell’art. — _Corte di Cassazione — civile, sez. 2, n. 12660/2026_ (passaggio letto nel testo integrale della pronuncia)
-- a pronunciato la seguente nei giudizi di legittimità costituzionale dell'art. 637, terzo comma, del codice di procedura civile promossi dalla Corte di cassazione, con due ordinanze del 30 gennaio 2009, iscritte ai nn. — _Corte costituzionale, n. 50/2010_ (passaggio letto nel testo integrale della pronuncia)
-- a pronunciato la seguente nel giudizio di legittimità costituzionale dell'art. 637, primo comma, del codice di procedura civile, promosso con ordinanza del 27 luglio 2004 dal Tribunale di Genova, nel procedimento civile vertente tra s.p.a. — _Corte costituzionale, n. 410/2005_ (passaggio letto nel testo integrale della pronuncia)
-- a pronunciato la seguente nei giudizi riuniti di legittimità costituzionale dell'art. 637, terzo comma, del codice di procedura civile, promossi con ordinanze emesse il 12 giugno 1973 dal pretore di Ferrara in due procedimenti civili vertenti tra Forniti Giorgio e Minerbi Alberto, iscritte ai nn. — _Corte costituzionale, n. 137/1975_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «decreto_ingiuntivo»
@@ -58,7 +57,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 633 c.p.c. (Condizioni di ammissibilità) — testo vigente, aggiornamento archivio 05/03/2026, versione `650f7095d9bfba54` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art633
@@ -68,18 +66,21 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 642 c.p.c. (Esecuzione provvisoria) — testo vigente, aggiornamento archivio 05/03/2026, versione `736050f30d4d71ef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art642
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 637 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `3798af16206abf88` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art637
+- art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
+- Corte costituzionale, n. 78/2012 (testo integrale) — versione `cc1:546f2629ef64` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/78
 - Corte di Cassazione — civile, sez. 1, n. 29102/2026 (testo integrale) — versione `e2a228abfdb5a872` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026129102O&rows=1&wt=json
 - Corte costituzionale, n. 96/2008 (testo integrale) — versione `cc1:28b7f4a445f5` — https://www.cortecostituzionale.it/scheda-pronuncia/2008/96
 - Corte costituzionale, n. 299/2003 (testo integrale) — versione `cc1:95706fadab4b` — https://www.cortecostituzionale.it/scheda-pronuncia/2003/299
 - Corte costituzionale, n. 65/1996 (testo integrale) — versione `cc1:4d8661524750` — https://www.cortecostituzionale.it/scheda-pronuncia/1996/65
 - Corte di Cassazione — civile, sez. 3, n. 19040/2026 (testo integrale) — versione `fa27630e6a2bc93a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026319040O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 12660/2026 (testo integrale) — versione `22e41421ba5d5a99` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026212660O&rows=1&wt=json
-- Corte costituzionale, n. 50/2010 (testo integrale) — versione `cc1:11fe518330b9` — https://www.cortecostituzionale.it/scheda-pronuncia/2010/50
-- Corte costituzionale, n. 410/2005 (testo integrale) — versione `cc1:2b1bc09a7e6e` — https://www.cortecostituzionale.it/scheda-pronuncia/2005/410
-- Corte costituzionale, n. 137/1975 (testo integrale) — versione `cc1:baeb736d6330` — https://www.cortecostituzionale.it/scheda-pronuncia/1975/137
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2935, norma:cc:2943, norma:cc:2946, pronuncia:Corte costituzionale|78/2012, pronuncia:Corte costituzionale|137/1975, pronuncia:Corte costituzionale|410/2005, pronuncia:Corte costituzionale|50/2010

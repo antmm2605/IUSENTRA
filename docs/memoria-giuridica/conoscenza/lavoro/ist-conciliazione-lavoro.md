@@ -1,7 +1,7 @@
 # Conciliazione in materia di lavoro (artt. 410-412-ter)
 
-- ID: `ist-conciliazione-lavoro` · materia: lavoro · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-conciliazione-lavoro` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** conciliazione in sede protetta (commissione presso l'Ispettorato, sede sindacale o prevista dai contratti collettivi); impugnazione scritta delle rinunce invalide entro sei mesi; Tribunale in funzione di giudice del lavoro.
 
@@ -9,7 +9,8 @@
 - Il tentativo di conciliazione è facoltativo. — _art. 410 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Ai termini a pena di decadenza non si applicano le norme sull'interruzione della prescrizione né, salvo diversa disposizione, quelle sulla sospensione. — _art. 2964 c.c._ (ancora letterale trovata nel testo vigente)
+- Rinunce e transazioni del lavoratore su diritti inderogabili: invalide, ma l'impugnazione va proposta, a pena di decadenza, entro sei mesi dalla cessazione del rapporto o dalla rinuncia o transazione successiva. — _art. 2113 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - La sospensione feriale non si applica alle controversie di lavoro e di previdenza. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
@@ -48,13 +49,14 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
 - art. 411 c.p.c. (Processo verbale di conciliazione) — testo vigente, aggiornamento archivio n.d., versione `8cd40c2a90da396b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art411
 - art. 412-ter c.p.c. (Altre modalità di conciliazione e arbitrato previste dalla contrattazione collettiva) — testo vigente, aggiornamento archivio n.d., versione `60dee8fab9f858e1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art412ter
 - art. 2113 c.c. (Rinunzie e transazioni) — testo vigente, aggiornamento archivio n.d., versione `9a8d998cda986c85` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2113
+- art. 2964 c.c. (Inapplicabilità di regole della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `69c1057339253ee7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2964
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
 - art. 414 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e10ab5081c2b964` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art414
@@ -68,3 +70,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2964

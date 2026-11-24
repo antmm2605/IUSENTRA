@@ -333,3 +333,67 @@ def test_abrogazione_17bis_con_decorrenza_letta():
     f548 = next(f for f in consultazione.scheda("ist-pignoramento-terzi")["fonti"] if f["chiave"] == "cpc:548")
     assert f548["comma_pertinente"] == "2" and "comma 1 abrogato" in f548["nota_commi"]
     assert not any(f["chiave"] == "l898:9" for f in consultazione.scheda("ist-modifica-condizioni")["fonti"])
+
+
+# ------------------------------------------------------------------------------------------------ prove, eccezioni, questioni
+def test_voci_trasversali_tutte_ancorate_al_testo_vigente():
+    from lex.conoscenza import trasversali
+    from lex.harness.controllo import _verifica_punto
+    from lex.harness.modello import Punto
+
+    _, istituti = carica()
+    ids = {i.id for i in istituti}
+    for v in trasversali.VOCI:
+        p = Punto(v.testo, list(v.rif))
+        _verifica_punto(p)
+        assert p.verificato, (v.id, p.motivo)
+        assert v.istituti <= ids, (v.id, v.istituti - ids)  # nessun istituto inesistente
+        assert v.sezione in ("prove_oneri", "eccezioni")
+
+
+def test_norma_inventata_nelle_voci_trasversali_esclusa(monkeypatch):
+    from lex.conoscenza import trasversali
+    from lex.harness.modello import Punto, Rif
+
+    finta = trasversali.Voce("inventata", "prove_oneri", "Il conduttore prova sempre tutto.",
+                             (Rif("cc:2697", "il conduttore prova sempre tutto"),), frozenset({"carta_docente"}))
+    falsa = trasversali.Voce("norma_falsa", "eccezioni", "Prescrizione in tre giorni.",
+                             (Rif("cc:9999", "tre giorni"),), frozenset({"carta_docente"}))
+    monkeypatch.setattr(generatore, "voci_per", lambda i: [(v, Punto(v.testo, list(v.rif))) for v in (finta, falsa)])
+    _passaggi(monkeypatch, {})
+    s = generatore.genera_scheda(_istituto("carta_docente"))
+    testi = [v["testo"] for sez in s["sezioni"].values() for v in sez["voci"]]
+    assert "Il conduttore prova sempre tutto." not in testi and "Prescrizione in tre giorni." not in testi
+    assert sum("esclusa dal controllore" in x for x in s["lacune"]) == 2
+
+
+def test_questioni_solo_dalla_motivazione_non_dalle_difese(monkeypatch):
+    from lex.conoscenza.trasversali import e_motivazione
+
+    assert e_motivazione("Secondo la giurisprudenza di questa Corte il termine è perentorio.")
+    assert not e_motivazione("Il ricorrente lamenta che questa Corte avrebbe errato.")
+    assert not e_motivazione("Il giudice rimettente rammenta che questa Corte ha affermato il principio.")
+    _passaggi(monkeypatch, {"dl669:14": [
+        _pronuncia("400", "Secondo la giurisprudenza di questa Corte il termine dell'art. 14 d.l. 669/1996 è dilatorio."),
+        _pronuncia("500", "Il ricorrente deduce la violazione dell'art. 14 d.l. 669/1996."),
+    ]})
+    s = generatore.genera_scheda(_istituto("esecuzione_contro_pa"))
+    q = [v for v in s["sezioni"]["questioni"]["voci"] if v.get("etichetta")]
+    o = s["sezioni"]["orientamenti"]["voci"]
+    assert [v["fonti"][0]["citazione"].split("n. ")[1] for v in q] == ["400/2025"]
+    assert [v["fonti"][0]["citazione"].split("n. ")[1] for v in o] == ["500/2025"]
+    assert all("nessuna prevalenza" in v["orientamento"] for v in q + o)
+
+
+def test_campione_pubblico_impiego_lavoro_locazioni():
+    s = consultazione.scheda
+    prove = lambda i: {f["citazione"] for v in s(i)["sezioni"]["prove_oneri"]["voci"] for f in v["fonti"]}
+    ecc = lambda i: {f["citazione"] for v in s(i)["sezioni"]["eccezioni"]["voci"] for f in v["fonti"]}
+    assert "art. 5 l. 604/1966" in prove("ist-licenziamento") and "art. 2964 c.c." in ecc("ist-licenziamento")
+    assert {"art. 2948 c.c.", "art. 2935 c.c.", "art. 2943 c.c."} <= ecc("ist-ricorso-dipendente-pubblico")
+    assert "art. 2697 c.c." in prove("ist-ricorso-dipendente-pubblico")
+    assert {"art. 2948 c.c.", "art. 1455 c.c.", "art. 1460 c.c."} <= ecc("ist-sfratto-morosita")
+    assert "art. 665 c.p.c." in prove("ist-sfratto-morosita")
+    assert "art. 2113 c.c." in ecc("ist-conciliazione-lavoro")
+    # Regole del rito ordinario non entrano nel rito del lavoro né nel pubblico impiego.
+    assert "art. 38 c.p.c." not in ecc("ist-ricorso-dipendente-pubblico") and "art. 167 c.p.c." not in ecc("ist-licenziamento")

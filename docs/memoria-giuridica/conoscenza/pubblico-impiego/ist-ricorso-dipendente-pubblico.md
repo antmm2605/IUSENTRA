@@ -1,7 +1,7 @@
 # Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
 
-- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 5 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 24 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
 
@@ -12,6 +12,9 @@
 
 ## Eccezioni e tranelli
 - Per i dipendenti pubblici non si usa il foro dell'azienda (art. 413, secondo comma): vale l'ufficio di assegnazione. — _art. 413 c.p.c._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 413 c.p.c.: atto dedotto dalle norme citate dalla stessa regola)
+- Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni). — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Prescrizione: i crediti retributivi, come tutto ciò che si paga periodicamente ad anno o in termini più brevi, si prescrivono in cinque anni da ciascuna scadenza; nessuna decadenza per il ricorso. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
@@ -35,7 +38,8 @@
 - Si applica il rito del lavoro, che riguarda anche i rapporti di lavoro dei dipendenti di enti pubblici. — _art. 409 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - amministrazione datrice e ufficio di assegnazione (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -71,7 +75,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Questioni interpretative.
 - Questione della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare l'orientamento della Cassazione ne»
 
 ## Fonti con versione
@@ -82,6 +86,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 16 l. 412/1991 (Disposizioni varie in materia previdenziale (comma 6: interessi e rivalutazione)) — testo vigente, aggiornamento archivio 23/11/2026, versione `4865fcf12899e02e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1991-12-30;412~art16
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 45 d.lgs. 165/2001 (Trattamento economico) — testo vigente, aggiornamento archivio 21/11/2026, versione `b1a2356ad0f1ad00` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art45
 - art. 485 d.lgs. 297/1994 (Personale docente: riconoscimento del servizio non di ruolo) — testo vigente, aggiornamento archivio 23/11/2026, versione `9c3f1008097a14ec` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1994-04-16;297~art485
@@ -89,6 +95,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 9 d.P.R. 115/2002 (Contributo unificato) — testo vigente, aggiornamento archivio 21/11/2026, versione `eef544e027a4f323` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art9
 - art. 11 r.d. 1611/1933 (Notificazioni alle Amministrazioni dello Stato) — testo vigente, aggiornamento archivio 23/11/2026, versione `acb9a3053a3dc4b5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1933-10-30;1611~art11
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
 - Corte di Cassazione — civile, sez. L, n. 28948/2026 (testo integrale) — versione `bb491cf7c19b0fb3` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L28948O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 28745/2026 (testo integrale) — versione `9060d3cb4b531dc7` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L28745O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 28345/2026 (testo integrale) — versione `2d057bb66b43778f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L28345O&rows=1&wt=json
@@ -100,3 +108,5 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:rd1611:11
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2697, norma:cc:2935, norma:cc:2943
+- r5 · 24/11/2026 04:05 · contenuto delle regole cambiato con le stesse fonti

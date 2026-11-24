@@ -1,7 +1,7 @@
 # Azione di responsabilità contro gli amministratori
 
-- ID: `ist-responsabilita-amministratori` · materia: società e impresa · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-responsabilita-amministratori` · materia: società e impresa · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione sociale di responsabilità (delibera assembleare o, nella s.r.l., anche del singolo socio); azione dei creditori sociali.
 
@@ -23,7 +23,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - tipo di società (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -41,13 +41,15 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Regola di Lex «soc_responsabilita_amministratori»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 2393 c.c. (Azione sociale di responsabilità) — testo vigente, aggiornamento archivio n.d., versione `d3e28787f3bd994a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2393
 - art. 2394 c.c. (Responsabilità verso i creditori sociali) — testo vigente, aggiornamento archivio n.d., versione `c220991743149b18` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2394
 - art. 2476 c.c. (Responsabilità degli amministratori e controllo dei soci) — testo vigente, aggiornamento archivio n.d., versione `ac86fb9f8dbb3711` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2476
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697

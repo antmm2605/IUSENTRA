@@ -1,7 +1,7 @@
 # Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
 
-- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per il risarcimento del danno da abuso (non per la conversione); Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
 
@@ -27,6 +27,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Prove e oneri
 - Per l'abuso nella successione di contratti a termine il giudice liquida un'indennità fra quattro e ventiquattro mensilità dell'ultima retribuzione utile per il TFR, secondo la gravità della violazione, il numero dei contratti e la durata complessiva, salva la prova del maggior danno. — _art. 36 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - elenco dei contratti con date e sede (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -65,6 +66,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - art. 417-bis c.p.c. (Difesa delle pubbliche amministrazioni) — testo vigente, aggiornamento archivio n.d., versione `4be8ad6c1a8ece93` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art417bis
 - art. 9 d.P.R. 115/2002 (Contributo unificato) — testo vigente, aggiornamento archivio 21/11/2026, versione `eef544e027a4f323` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art9
 - art. 11 r.d. 1611/1933 (Notificazioni alle Amministrazioni dello Stato) — testo vigente, aggiornamento archivio 23/11/2026, versione `acb9a3053a3dc4b5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1933-10-30;1611~art11
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - Corte di Cassazione — civile, sez. L, n. 12056/2026 (testo integrale) — versione `af4afda2304cef9d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L12056O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 7759/2026 (testo integrale) — versione `490601e1d2324fde` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026307759O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 7556/2026 (testo integrale) — versione `1bf9aa81747796bf` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L07556O&rows=1&wt=json
@@ -76,3 +78,4 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:rd1611:11
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697

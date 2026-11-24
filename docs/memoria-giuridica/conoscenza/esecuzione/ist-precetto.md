@@ -1,7 +1,7 @@
 # Atto di precetto
 
-- ID: `ist-precetto` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-precetto` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 480 c.p.c., art. 481 c.p.c., art. 479 c.p.c..
 
@@ -38,9 +38,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - a pronunciato la seguente nel giudizio di legittimità costituzionale dell'art. 480 del codice di procedura civile, promosso con ordinanza emessa il 29 gennaio 1977 dal Giudice conciliatore di Palermo nel procedimento civile vertente tra Alia Giuseppe e s.p.a. — _Corte costituzionale, n. 62/1985_ (passaggio letto nel testo integrale della pronuncia)
 - La sentenza impugnata ha, poi, ritenuto sussistente la scientiadecoctionis in base a una serie di elementi indiziari (formulazione diistanza immediata di esecuzione forzata ex art. 482 cod. proc. civ.,n. — _Corte di Cassazione — civile, sez. 1, n. 26007/2026_ (passaggio letto nel testo integrale della pronuncia)
 - a dimora oppure (per glienti) la sede, verificata la regolarità dell’istanza, munito deltitolo esecutivo e del precetto, procede alla ricerca con modalitàtelematiche dei beni da pignorare.Nel caso in cui la richiesta di ricerca telematica preceda lanotifica del precetto o quando ancora non sia spirato il terminedilatorio di dieci giorni di cui all’art. 482 c.p.c., è mantenuta laprevisione relativa alla necessità dell’autorizzazione da parte delPresidente del Tribunale, posto che in tali casi occorre valutareanche il presupposto dell’urgenza.5. — _Corte di Cassazione — civile, sez. L, n. 24518/2026_ (passaggio letto nel testo integrale della pronuncia)
-- edito fatto valere - ricollegata ad una serie di atti privilegiati oppure alla positiva valutazione in ordine all'esistenza del «pericolo di grave pregiudizio nel ritardo» - risulta altresì confermata dalla possibilità ulteriore, prevista dall'ultimo comma dello stesso articolo, di autorizzare l'esecuzione senza l'osservanza del termine di cui all'art. 482 cod. proc. civ. Tale esigenza cautelare, una volta instauratosi il giudizio di opposizione, trova il suo logico limite nella possibilità che ai sensi del denunciato art. — _Corte costituzionale, n. 200/1996_ (passaggio letto nel testo integrale della pronuncia)
-- La norma, d'altro canto, trova rispondenza nell'art. 482 c.p.c. Cadono così le censure sub b) e sub c), mentre per quella sub d) basta ricordare essere comunemente ammessa nella giurisprudenza della Corte di cassazione la possibilità di opposizioni ex artt. — _Corte costituzionale, n. 37/1973_ (passaggio letto nel testo integrale della pronuncia)
-- 641 o dieci giorni come indicato dall'art. 482 Cod. proc. civile). — _Corte costituzionale, n. 159/1969_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «termini_precetto»
@@ -60,10 +57,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Corte costituzionale, n. 62/1985 (testo integrale) — versione `cc1:6c3f910f6d08` — https://www.cortecostituzionale.it/scheda-pronuncia/1985/62
 - Corte di Cassazione — civile, sez. 1, n. 26007/2026 (testo integrale) — versione `cf4538666957a816` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026126007O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 24518/2026 (testo integrale) — versione `c0ba528f61df423b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L24518O&rows=1&wt=json
-- Corte costituzionale, n. 200/1996 (testo integrale) — versione `cc1:380b06721f55` — https://www.cortecostituzionale.it/scheda-pronuncia/1996/200
-- Corte costituzionale, n. 37/1973 (testo integrale) — versione `cc1:6720354c0846` — https://www.cortecostituzionale.it/scheda-pronuncia/1973/37
-- Corte costituzionale, n. 159/1969 (testo integrale) — versione `cc1:ae326d972da3` — https://www.cortecostituzionale.it/scheda-pronuncia/1969/159
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|159/1969, pronuncia:Corte costituzionale|200/1996, pronuncia:Corte costituzionale|37/1973

@@ -1,7 +1,7 @@
 # Risoluzione per inadempimento
 
-- ID: `ist-risoluzione` · materia: contratti · revisione 2 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-risoluzione` · materia: contratti · revisione 3 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda giudiziale di risoluzione per inadempimento con risarcimento del danno (o diffida ad adempiere prima).
 
@@ -9,7 +9,13 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- L'incompetenza per materia, valore e territorio si eccepisce, a pena di decadenza, nella comparsa di risposta tempestivamente depositata; l'eccezione di incompetenza per territorio deve indicare il giudice competente. — _art. 38 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il convenuto propone nella comparsa di risposta, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 167 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Prescrizione: salvo diversa disposizione di legge, il diritto si estingue in dieci anni. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
+- Eccezione di inadempimento: nei contratti a prestazioni corrispettive ciascuno può rifiutarsi di adempiere se l'altro non adempie, ma non se il rifiuto è contrario alla buona fede. — _art. 1460 c.c._ (ancora letterale trovata nel testo vigente)
+- Il contratto non si risolve se l'inadempimento ha scarsa importanza, avuto riguardo all'interesse dell'altra parte. — _art. 1455 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Prescrizione ordinaria decennale. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
@@ -23,7 +29,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - contratto e prestazioni (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -32,7 +39,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - danni (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- 1453, ultimo comma, del codice civile (secondo cui dalla data della domanda di risoluzione l'inadempiente non può più adempiere la propria obbligazione), se entro il termine il conduttore non ha provveduto a sanare la mora, al giudice non è concessa la possibilità di valutare la gravità o meno dell'inadempimento, a norma dell'art. 1455 cod. civ. 9.- Nel merito la questione di legittimità costituzionale sollevata dal Tribunale ordinario di Roma non è fondata. — _Corte costituzionale, n. 192/2014_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - il rigetto della domanda espiegando domanda riconvenzionale per ottenere, a sua volta, larisoluzione del contratto per inadempimento del Calabrò.Il Tribunale respinse entrambe le domande; tuttavia, poiché lascelta risolutoria di entrambi i contraenti rendeva impossibile dareesecuzione al contratto, ne pronunziò comunque la risoluzione aisensi dell’art. 1453, secondo comma, c.c.Condannò quindi Francesco Mudanò a restituire al promissarioacquirente la somma ricevuta a titolo di caparra e a rimborsargli unaparte della somma che questi aveva anticipato per l’acquisto e laposa in opera di materiali.2. — _Corte di Cassazione — civile, sez. 2, n. 29536/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -47,13 +54,21 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Presupposti, Giudice e rito.
 
 ## Fonti con versione
 - art. 1453 c.c. (Risolubilità del contratto per inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `8e702835c384a338` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1453
 - art. 1455 c.c. (Importanza dell'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `d714691cc81f983a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1455
 - art. 1458 c.c. (Effetti della risoluzione) — testo vigente, aggiornamento archivio n.d., versione `346cc29af88afcdc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1458
+- art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
 - art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
+- art. 1460 c.c. (Eccezione d'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `4a69653223467c8c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1460
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
+- Corte costituzionale, n. 192/2014 (testo integrale) — versione `cc1:fa0f9bc6d576` — https://www.cortecostituzionale.it/scheda-pronuncia/2014/192
 - Corte di Cassazione — civile, sez. 2, n. 29536/2026 (testo integrale) — versione `08fbbe15bd85f305` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229536O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 29413/2026 (testo integrale) — versione `d9155ed5cc156f6d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229413O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 1, n. 29257/2026 (testo integrale) — versione `20bdc2484aeeec0f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026129257O&rows=1&wt=json
@@ -64,3 +79,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1460, norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cpc:167, norma:cpc:38, pronuncia:Corte costituzionale|192/2014

@@ -1,7 +1,7 @@
 # Opposizione alla convalida di sfratto e termine di grazia
 
-- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: lacune · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: lacune · fonti dirette: 23 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** comparsa di costituzione e opposizione alla convalida (art. 665 c.p.c.), non l'istanza di termine di grazia dell'art. 55 l. 392/1978.
 
@@ -14,6 +14,11 @@
 
 ## Eccezioni e tranelli
 - La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente. — _art. 55 l. 392/1978_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 55 l. 392/1978: atto dedotto dalle norme citate dalla stessa regola)
+- Prescrizione quinquennale dei canoni e di ogni altro corrispettivo di locazione. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
+- La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
+- Eccezione di inadempimento: nei contratti a prestazioni corrispettive ciascuno può rifiutarsi di adempiere se l'altro non adempie, ma non se il rifiuto è contrario alla buona fede. — _art. 1460 c.c._ (ancora letterale trovata nel testo vigente)
+- Il contratto non si risolve se l'inadempimento ha scarsa importanza, avuto riguardo all'interesse dell'altra parte. — _art. 1455 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Durata della locazione commerciale: sei anni rinnovabili. — _art. 27 l. 392/1978_ (ancora letterale trovata nel testo vigente)
@@ -29,7 +34,9 @@
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
+- Se l'intimato si oppone con eccezioni non fondate su prova scritta, il giudice, su istanza del locatore e se non vi sono gravi motivi contrari, pronuncia ordinanza di rilascio con riserva delle eccezioni. — _art. 665 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - interessi e spese per la somma da versare in udienza (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -45,10 +52,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - L'opposizione, quale essa sia, non consente la convalida dell'intimazione di sfratto, ma comporta - salva la possibilità che il giudice emetta, ricorrendone i presupposti, ordinanza provvisoria di rilascio con riserva delle eccezioni del convenuto (art. 665 cod. proc. civ.) - il mutamento di rito ai sensi dell'art. — _Corte costituzionale, n. 79/2020_ (passaggio letto nel testo integrale della pronuncia)
 - 551 del 1988, da un lato sospende l'esecuzione dei provvedimenti (sentenze, convalide di licenza o di sfratto, ordinanze di rilascio di cui all'art. 665 c.p.c.), indicati dall'art. — _Corte costituzionale, n. 142/1990_ (passaggio letto nel testo integrale della pronuncia)
 - 665 c.p.c., ilSomazzi chiese disporsi ex art. 667 c.p.c. il mutamento del rito per il prosieguodel giudizio di merito, onde ottenere declaratoria di risoluzione del contratto perinadempimento del conduttore, con sua condanna al pagamento dei canoni edelle somme accessorie, oltre accessori e spese.Si costituì Annunziata Farro, contestando l’intimato sfratto e deducendo chesussisteva grave inadempimento d — _Corte di Cassazione — civile, sez. 3, n. 23217/2026_ (passaggio letto nel testo integrale della pronuncia)
-- 392/1978.Il Tribunale di Cassino, con ordinanza del 24.02.2022, non ha convalidatolo sfratto; ha disposto il mutamento del rito, ex art. 667 c.p.c. e haconcesso, alle parti, termine per il deposito di memorie integrative deirispettivi atti difensivi.Con sentenza del 3/5/2022 il Tribunale, ritenuta fondata l’intimazione disfratto per finita locazione e dichiarato cessato il contratto di locazionestipulato inter-partes alla sua iniziale, prevista scadenza biennale -condannava la Pastificio Dome — _Corte di Cassazione — civile, sez. 3, n. 11783/2026_ (passaggio letto nel testo integrale della pronuncia)
-- Con l’ottavo motivo viene denunciata “violazione dell’art. 667 c.p.c.e dei principi sul mutamento del rito – incompatibilità tra mediazione earbitrato”;viene censurata la statuizione con cui, rigettata la richiesta delprovvedimento interinale di rilascio, il giudice della fase sommaria, dopo averedisposto la prosecuzione della causa con rito locatizio, ha assegnato alle partiil termine per promuovere la mediazione o — _Corte di Cassazione — civile, sez. 3, n. 11406/2026_ (passaggio letto nel testo integrale della pronuncia)
-- civ.) - il mutamento di rito ai sensi dell'art. 667 cod. proc. civ. e il giudizio prosegue nelle forme ordinarie del processo locatizio. — _Corte costituzionale, n. 79/2020_ (passaggio letto nel testo integrale della pronuncia)
-- civ.), e che in tale procedimento non sono previste preclusioni o decadenze, le quali si verificano solo nell'eventuale giudizio di cognizione che segue in caso di opposizione (art. 667 cod. proc. civ.); che la seconda questione di legittimità costituzionale - relativa all'art. — _Corte costituzionale, n. 448/1998_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «opposizione_sfratto_commerciale»
@@ -58,7 +61,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Giudice e rito, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Giudice e rito, Questioni interpretative.
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Tentare subito un accordo con la locatrice sul piano di rientro.»
 
@@ -74,17 +77,21 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 1460 c.c. (Eccezione d'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `4a69653223467c8c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1460
 - art. 1587 c.c. (Obbligazioni principali del conduttore) — testo vigente, aggiornamento archivio 29/04/2026, versione `dc85ae269c231cc5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1587
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
+- art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
+- art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
+- art. 1455 c.c. (Importanza dell'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `d714691cc81f983a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1455
 - art. 27 l. 392/1978 (Durata della locazione non abitativa) — testo vigente, aggiornamento archivio n.d., versione `9c738325e9dc4a12` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art27
+- art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
 - Corte di Cassazione — civile, sez. 3, n. 25727/2026 (testo integrale) — versione `b9ee8da77c469255` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026325727O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 23217/2026 (testo integrale) — versione `6b9dffcd07047a29` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026323217O&rows=1&wt=json
 - Corte costituzionale, n. 205/2021 (testo integrale) — versione `cc1:5651109f55f8` — https://www.cortecostituzionale.it/scheda-pronuncia/2021/205
 - Corte costituzionale, n. 79/2020 (testo integrale) — versione `cc1:17b03ab6d9e5` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/79
 - Corte costituzionale, n. 142/1990 (testo integrale) — versione `cc1:d859afabe4fd` — https://www.cortecostituzionale.it/scheda-pronuncia/1990/142
-- Corte di Cassazione — civile, sez. 3, n. 11783/2026 (testo integrale) — versione `fd9ef9b3a45ea526` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311783O&rows=1&wt=json
-- Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
-- Corte costituzionale, n. 448/1998 (testo integrale) — versione `cc1:60449d2460f3` — https://www.cortecostituzionale.it/scheda-pronuncia/1998/448
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1455, norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cc:2948, pronuncia:Corte costituzionale|448/1998, pronuncia:Corte di Cassazione — civile|11406/2026, pronuncia:Corte di Cassazione — civile|11783/2026

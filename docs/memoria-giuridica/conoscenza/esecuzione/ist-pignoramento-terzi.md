@@ -1,7 +1,7 @@
 # Pignoramento presso terzi
 
-- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 01:20
-- Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 4 · ultimo controllo 24/11/2026 04:05
+- Stato: verificata · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di pignoramento presso terzi notificato al terzo e al debitore, con citazione davanti al giudice dell'esecuzione; Tribunale del luogo di residenza, domicilio, dimora o sede del debitore.
 
@@ -45,9 +45,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - civ.), bensì il pignoramento ai sensi dell'art. 543 cod. proc. civ., che segna l'inizio del procedimento esecutivo. — _Corte costituzionale, n. 12/2019_ (passaggio letto nel testo integrale della pronuncia)
 - riscossione delle imposte sul reddito), il quale, all'alinea del comma 1, prevede che «Salvo che per i crediti pensionistici e fermo restando quanto previsto dall'articolo 545, commi quarto, quinto e sesto, del codice di procedura civile, l'atto di pignoramento dei crediti del debitore verso terzi può contenere, in luogo della citazione di cui all'articolo 543, secondo comma, numero 4, dello stesso codice di procedura civile, l'ordine al terzo di pagare il credito direttamente al concessionario, fino a concorrenza del credito per cui si procede»; che il giudice rimettente premette che: a) il giudizio a quo si trova nella fase cautelare «prevista dall'art. — _Corte costituzionale, n. 393/2008_ (passaggio letto nel testo integrale della pronuncia)
 - 602/1973, la notificazione dellacartella di pagamento assolve alla funzione riservata dall’art. 479 c.p.c.alla notificazione del titolo esecutivo e contemporaneamente allafunzione riservata dall’art. — _Corte di Cassazione — civile, sez. 3, n. 27670/2026_ (passaggio letto nel testo integrale della pronuncia)
-- pari delle altre statuizioni contenute nella sentenza definitiva, è soggettoall'esecuzione nelle forme previste da codice di procedura penale, avendo natura diprovvedimento giurisdizionale, ancorché applicativo di sanzione amministrativa.Non è, quindi, necessaria una preventiva notificazione all’obbligato del titolo esecutivo,siccome imposto dall’art. 479 cod. proc. civ..L’ingiunzione a demolire, inoltre, è preordinata a consentire al condannato lo spontaneoadempimento dell'obbligo senza ulteriori aggravi di spese a suo carico sicché quella adottata,prevedendo la demolizione di entrambi i manufatti abusivi, ha raggiunto il suo scopo, rendendoedotto il destinatario della portata dell’intervento demolitorio necessar — _Corte di Cassazione — penale, sez. 3, n. 35868/2026_ (passaggio letto nel testo integrale della pronuncia)
-- 385 del 1993, in relazione all'art. 479 del codice di procedura civile. — _Corte costituzionale, n. 95/2006_ (passaggio letto nel testo integrale della pronuncia)
-- In ragione dei limiti di tale previsione derogatoria, chi intenda procedere ad esecuzione forzata - la quale, ai sensi dell'articolo 479 cod. proc. civ., deve essere preceduta dalla notificazione del titolo in forma esecutiva - ha l'onere del preventivo assolvimento della relativa imposta di registro, quale condizione per ottenere il rilascio dell'atto da notificare, non potendo - del resto - l'esecuzione forzata considerarsi prosecuzione del giudizio. — _Corte costituzionale, n. 522/2002_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «es_pignoramento_terzi»
@@ -74,11 +71,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Corte costituzionale, n. 12/2019 (testo integrale) — versione `cc1:0a75af18927c` — https://www.cortecostituzionale.it/scheda-pronuncia/2019/12
 - Corte costituzionale, n. 393/2008 (testo integrale) — versione `cc1:55327a98a5b1` — https://www.cortecostituzionale.it/scheda-pronuncia/2008/393
 - Corte di Cassazione — civile, sez. 3, n. 27670/2026 (testo integrale) — versione `ebe0e5a9f4f3b125` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026327670O&rows=1&wt=json
-- Corte di Cassazione — penale, sez. 3, n. 35868/2026 (testo integrale) — versione `d168dc537e978ffc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2026335868S&rows=1&wt=json
-- Corte costituzionale, n. 95/2006 (testo integrale) — versione `cc1:9da7c9d579c7` — https://www.cortecostituzionale.it/scheda-pronuncia/2006/95
-- Corte costituzionale, n. 522/2002 (testo integrale) — versione `cc1:a47fb1b5d813` — https://www.cortecostituzionale.it/scheda-pronuncia/2002/522
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|522/2002, pronuncia:Corte costituzionale|95/2006, pronuncia:Corte di Cassazione — penale|35868/2026

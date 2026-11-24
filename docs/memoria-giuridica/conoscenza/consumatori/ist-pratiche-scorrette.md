@@ -1,6 +1,6 @@
 # Pratiche commerciali scorrette
 
-- ID: `ist-pratiche-scorrette` · materia: consumatori · revisione 2 · ultimo controllo 24/11/2026 01:20
+- ID: `ist-pratiche-scorrette` · materia: consumatori · revisione 2 · ultimo controllo 24/11/2026 04:05
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** segnalazione all'Autorità garante della concorrenza e del mercato; azione civile per i danni.

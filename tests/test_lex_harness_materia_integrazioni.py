@@ -111,3 +111,17 @@ def test_verifiche_di_giurisprudenza_chiuse_con_pronunce_lette():
         for e in estremi:
             assert e in r.testo, (frase, e)
         assert "verificare l'orientamento" not in r.testo
+
+
+def test_protezione_disciplina_secondo_la_data_della_domanda():
+    prima = risposta("Ho presentato domanda di asilo in questura il 10/03/2025 e la Commissione territoriale l'ha respinta: "
+                     "entro quando ricorro?")
+    assert "Disciplina anteriore" in prima.testo and "Disciplina vigente" not in prima.testo
+    assert "ridotti della metà" in prima.testo
+    dopo = risposta("Richiedente asilo, domanda presentata il 3 settembre 2026, diniego della Commissione territoriale: termini?")
+    assert "Disciplina vigente" in dopo.testo and "Disciplina anteriore" not in dopo.testo
+    senza = risposta("Il cliente ha ricevuto il rigetto della Commissione territoriale: entro quando va fatto il ricorso?")
+    assert "Disciplina vigente" in senza.testo and "Disciplina anteriore" in senza.testo
+    assert "Manca la data della domanda di protezione" in senza.testo
+    for r in (prima, dopo, senza):
+        assert not r.citazioni_non_verificate and not r.affermazioni_tolte

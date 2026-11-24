@@ -57,8 +57,20 @@ def main() -> int:
     db = Path(sys.argv[1])
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     norme, mancanti = {}, {}
+    anteriori_file = Path(__file__).resolve().parents[1] / "lex" / "harness" / "dati" / "testi_anteriori_materie.json"
+    anteriori = json.loads(anteriori_file.read_text(encoding="utf-8"))["norme"] if anteriori_file.is_file() else {}
     for voce in NORME_MATERIE:
         chiave, _estremi, citazione, _rubrica, urn, numero = voce[:6]
+        if chiave in anteriori:   # testo anteriore a una riforma, scaricato da Normattiva in multivigenza
+            a = anteriori[chiave]
+            if a.get("stato") != "testo anteriore":
+                mancanti[chiave] = a.get("stato", "testo anteriore non registrato")
+                continue
+            norme[chiave] = {"citazione": citazione, "testo": a["testo"], "url": a["url"], "titolo_atto": "",
+                             "aggiornamento": a["vigente_al"], "vigente": False,
+                             "origine": f"testo anteriore vigente al {a['vigente_al']} (Normattiva, multivigenza)",
+                             "sha256": hashlib.sha256(a["testo"].encode()).hexdigest()}
+            continue
         estratto = voce[6] if len(voce) > 6 else None   # (inizio, fine): solo i commi utili di un articolo molto lungo
         doc = _documento(conn, urn)
         if doc is None:

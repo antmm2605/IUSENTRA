@@ -38,6 +38,10 @@ ATTI = {
     "ccii": ("d.lgs. 14/2019", "d.lgs. 14/2019 (CCII)", "decreto.legislativo:2019-01-12;14"),
     "privacy": ("d.lgs. 196/2003", "d.lgs. 196/2003", "decreto.legislativo:2003-06-30;196"),
     "reg1348": ("Reg. UE 2024/1348", "Reg. UE 2024/1348", "unione.europea:regolamento:2024-05-14;1348"),
+    # Testo anteriore al d.l. 100/2026 (scripts/lex_harness_testi_anteriori_materie.py): si applica alle domande di
+    # protezione presentate prima del 12/06/2026 (art. 17, comma 4, d.l. 100/2026).
+    "dlgs25_ante2026": ("d.lgs. 25/2008 (testo all'11/06/2026)", "d.lgs. 25/2008 (testo all'11/06/2026)",
+                        "decreto.legislativo:2008-01-28;25"),
     "dl100_2026": ("d.l. 100/2026", "d.l. 100/2026", "decreto.legge:2026-06-12;100"),
     "gdpr": ("Reg. UE 2016/679", "Reg. UE 2016/679", "unione.europea:regolamento:2016-04-27;679"),
     "dlgs150": ("d.lgs. 150/2011", "d.lgs. 150/2011", "decreto.legislativo:2011-09-01;150"),
@@ -485,4 +489,6 @@ NORME_MATERIE: tuple[tuple[str, str, str, str, str, str], ...] = (
     _v("reg1348", "67", "Diritto a un ricorso effettivo"),
     _v("reg1348", "68", "Effetto sospensivo dell'impugnazione"),
     _v("dl100_2026", "17", "Disposizioni transitorie e applicazione"),
+    _v("dlgs25_ante2026", "35-bis", "Controversie in materia di protezione internazionale (testo all'11/06/2026)"),
+    _v("dlgs25_ante2026", "35-ter", "Procedura in frontiera (testo all'11/06/2026)"),
 )

@@ -9,6 +9,9 @@ art. 2 l. 247/2012.
 """
 from __future__ import annotations
 
+import re
+from datetime import date
+
 from .schede import R, Scheda, p
 
 AFFIDAMENTO = Scheda(
@@ -171,6 +174,76 @@ RATEIZZAZIONE = Scheda(
     dati=["importo complessivo a ruolo", "anno della richiesta", "situazione economica documentabile"],
 )
 
+_RIFORMA_ASILO = date(2026, 6, 12)   # art. 17, comma 4, d.l. 100/2026
+_MESI = {m: i for i, m in enumerate(("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
+                                     "settembre", "ottobre", "novembre", "dicembre"), 1)}
+_DOMANDA = r"(?:domanda|richiesta|istanza|chiest\w*|presentat\w*|manifestat\w*|formalizzat\w*)(?:[^.;?]{0,80}?)"
+
+
+def _data_domanda(testo: str) -> date | str | None:
+    """Data (o almeno il lato rispetto al 12/06/2026) della domanda di protezione, se il racconto la dice."""
+    t = " ".join(str(testo or "").lower().split())
+    if re.search(r"prima del 12(?:/0?6/| giugno )2026", t):
+        return "anteriore"
+    if re.search(r"dopo il 12(?:/0?6/| giugno )2026|dal 12(?:/0?6/| giugno )2026", t):
+        return "nuova"
+    if not re.search(r"asilo|protezione|commissione territoriale|questura", t):
+        return None
+    m = re.search(_DOMANDA + r"\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", t)
+    if m:
+        try:
+            return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+        except ValueError:
+            return None
+    m = re.search(_DOMANDA + r"\b(\d{1,2}) (" + "|".join(_MESI) + r") (\d{4})", t)
+    if m:
+        return date(int(m.group(3)), _MESI[m.group(2)], int(m.group(1)))
+    m = re.search(_DOMANDA + r"\b(?:nel|del|a \w+ del|di \w+ del|nell'anno) (20\d\d)\b", t)
+    if m and int(m.group(1)) != 2026:
+        return "anteriore" if int(m.group(1)) < 2026 else "nuova"
+    return None
+
+
+_TERMINI_ANTERIORI = [
+    p("Disciplina anteriore (art. 35-bis, comma 2, d.lgs. 25/2008 nel testo all'11/06/2026): ricorso entro trenta giorni "
+      "dalla notificazione, a pena di inammissibilità, o sessanta se il ricorrente è in un Paese terzo.",
+      R("dlgs25_ante2026:35bis", "entro trenta giorni dalla notificazione del provvedimento, ovvero entro sessanta giorni")),
+    p("Disciplina anteriore, comma 2-bis: termini ridotti della metà nei casi dell'art. 28-bis, commi 1 e 2, lettere a), "
+      "d) ed e), e quando il ricorrente è trattenuto.",
+      R("dlgs25_ante2026:35bis", "i termini previsti dal comma 2 sono ridotti della meta'")),
+    p("Disciplina anteriore, comma 2-ter: sette giorni dalla notificazione nei casi dell'art. 28-bis, comma 2-bis "
+      "(procedura in frontiera), anche per chi è trattenuto; il ricorso non sospende e l'istanza di sospensione va "
+      "proposta con il ricorso, a pena di inammissibilità (art. 35-ter, comma 1, testo anteriore).",
+      R("dlgs25_ante2026:35bis", "il termine per il deposito del ricorso e' di sette giorni"),
+      R("dlgs25_ante2026:35ter", "non sospende l'efficacia esecutiva del provvedimento impugnato")),
+    p("Disciplina anteriore, comma 3: il ricorso sospende l'efficacia esecutiva, tranne nelle ipotesi elencate "
+      "(trattenuti, inammissibilità, manifesta infondatezza e casi dell'art. 28-bis indicati).",
+      R("dlgs25_ante2026:35bis", "tranne che nelle ipotesi in cui il ricorso viene proposto")),
+]
+_TRANSITORIA = p("Quale disciplina: alle domande di protezione presentate prima del 12/06/2026 continua ad applicarsi "
+                 "la disciplina previgente fino alla conclusione dei procedimenti (art. 17, comma 4, d.l. 100/2026); "
+                 "alle domande successive si applica il testo vigente.",
+                 R("dl100_2026:17", "continua ad applicarsi la disciplina previgente fino alla conclusione dei procedimenti medesimi"))
+_DATO_DOMANDA = "data di presentazione della domanda di protezione (prima o dal 12/06/2026: cambia la disciplina dei termini)"
+
+
+def _extra_protezione(a, c, f) -> None:
+    quando = _data_domanda(getattr(f, "testo", "") or getattr(c, "racconto", ""))
+    if isinstance(quando, date):
+        quando = "anteriore" if quando < _RIFORMA_ASILO else "nuova"
+    vigenti = [x for x in a.termini if x is not _TRANSITORIA]
+    if quando == "anteriore":
+        a.termini = [_TRANSITORIA, *_TERMINI_ANTERIORI]
+        a.dati_mancanti = [d for d in a.dati_mancanti if d != _DATO_DOMANDA]
+    elif quando == "nuova":
+        a.termini = [_TRANSITORIA, *vigenti]
+        a.dati_mancanti = [d for d in a.dati_mancanti if d != _DATO_DOMANDA]
+    else:
+        a.termini = [_TRANSITORIA, *vigenti, *_TERMINI_ANTERIORI]
+        a.dubbi.insert(0, "Manca la data della domanda di protezione: indicarla, perché dal 12/06/2026 i termini sono "
+                          "quelli vigenti, prima quelli della disciplina anteriore (entrambi riportati sopra).")
+
+
 PROTEZIONE_INTERNAZIONALE = Scheda(
     regola="imm_protezione_internazionale", materia="immigrazione", nome="ricorso contro le decisioni della Commissione territoriale",
     segnali=(r"commissione territoriale|asilo|protezione (?:internazionale|sussidiaria|speciale)|rifugiat|sezione immigrazione|decisione della commissione|manifestamente infondata",), punteggio=7,
@@ -184,35 +257,30 @@ PROTEZIONE_INTERNAZIONALE = Scheda(
           "ricorrente è in un Paese terzo).", R("dlgs25:35bis", "entro trenta giorni dalla notificazione del provvedimento")),
     ],
     termini=[
-        p("Termine ordinario (art. 35-bis, comma 2, d.lgs. 25/2008): trenta giorni dalla notificazione, a pena di "
+        p("Disciplina vigente — termine ordinario (art. 35-bis, comma 2, d.lgs. 25/2008): trenta giorni dalla notificazione, a pena di "
           "inammissibilità; sessanta giorni se il ricorrente si trova in un Paese terzo quando propone il ricorso.",
           R("dlgs25:35bis", "entro sessanta giorni se il ricorrente si trova in un Paese terzo al momento della proposizione del ricorso")),
-        p("Termine ridotto (art. 35-bis, comma 2-bis): sette giorni dalla notificazione, a pena di inammissibilità, nei casi "
+        p("Disciplina vigente — termine ridotto (art. 35-bis, comma 2-bis): sette giorni dalla notificazione, a pena di inammissibilità, nei casi "
           "dell'art. 67, paragrafo 7, lettera a), del Reg. UE 2024/1348, cioè rigetto per inammissibilità, per ritiro "
           "implicito, per infondatezza o manifesta infondatezza quando la domanda è esaminata con procedura accelerata "
           "(art. 42, paragrafi 1 o 3, del regolamento).",
           R("dlgs25:35bis", "entro sette giorni dalla notificazione del provvedimento"),
           R("reg1348:67", "per ritiro implicito, per infondatezza o per manifesta infondatezza")),
-        p("Procedura di frontiera (art. 35-ter, comma 1): cinque giorni dalla notificazione contro la decisione adottata nel "
+        p("Disciplina vigente — procedura di frontiera (art. 35-ter, comma 1): cinque giorni dalla notificazione contro la decisione adottata nel "
           "caso dell'art. 68, paragrafo 3, lettera a), ii), del Reg. UE 2024/1348; il ricorso non sospende da solo la decisione.",
           R("dlgs25:35ter", "e' ammesso ricorso entro cinque giorni decorrenti dalla notificazione"),
           R("reg1348:68", "il richiedente è soggetto alla procedura di frontiera")),
-        p("Effetto sospensivo (art. 35-bis, comma 3): il ricorso sospende l'efficacia esecutiva del provvedimento, salvo i casi "
+        p("Disciplina vigente — effetto sospensivo (art. 35-bis, comma 3): il ricorso sospende l'efficacia esecutiva del provvedimento, salvo i casi "
           "dell'art. 68, paragrafo 3, del Reg. UE 2024/1348; in quei casi l'istanza per essere autorizzati a rimanere va "
           "proposta con il ricorso introduttivo, a pena di inammissibilità (comma 4).",
           R("dlgs25:35bis", "la proposizione del ricorso sospende l'efficacia esecutiva del provvedimento impugnato"),
           R("dlgs25:35bis", "con istanza da proporsi a pena di inammissibilita' con il ricorso introduttivo")),
-        p("Regime transitorio: ai procedimenti avviati dopo una domanda di protezione presentata prima del 12/06/2026 continua "
-          "ad applicarsi la disciplina previgente (art. 17, comma 4, d.l. 100/2026).",
-          R("dl100_2026:17", "continua ad applicarsi la disciplina previgente fino alla conclusione dei procedimenti medesimi")),
     ],
     dubbi=["Consiglio operativo: verificare nel provvedimento quale procedura è stata applicata (ordinaria, accelerata, di "
-           "frontiera) e la data della domanda di protezione.",
-           "Consiglio operativo: per le domande presentate prima del 12/06/2026 vale il testo dell'art. 35-bis in vigore "
-           "all'11/06/2026 (Normattiva): commi 2-bis (termini del comma 2 ridotti della metà nei casi dell'art. 28-bis, "
-           "commi 1 e 2, lettere a), d) ed e), e per il ricorrente trattenuto) e 2-ter (sette giorni nei casi dell'art. 28-bis, "
-           "comma 2-bis)."],
-    dati=["provvedimento e data di notifica", "tipo di procedura (ordinaria, accelerata, di frontiera)", "paese di origine"],
+           "frontiera) e la data della domanda di protezione."],
+    dati=[_DATO_DOMANDA, "provvedimento e data di notifica", "tipo di procedura (ordinaria, accelerata, di frontiera)",
+          "paese di origine"],
+    extra=_extra_protezione,
 )
 
 TRANSAZIONE = Scheda(

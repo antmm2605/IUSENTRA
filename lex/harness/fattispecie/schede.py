@@ -19,6 +19,14 @@ from ..norme import piano
 from ..termini import data_breve, termine_anni, termine_giorni, termine_mesi
 
 
+_IMPORTO = re.compile(r"(?:\b(?:euro|eur)\s*|€\s*)\d[\d.,]*|\b\d[\d.,]*\s*(?:euro|eur\b|€|mila\b)")
+
+
+def senza_importi(t: str) -> str:
+    """Il testo con gli importi resi neutri: «650 euro» non è l'art. 650 c.p.c. nei segnali delle schede."""
+    return _IMPORTO.sub(" [importo] ", t)
+
+
 @dataclass(frozen=True)
 class Scadenza:
     """Termine calcolato dalla data scritta dopo l'evento («notificato il 04/12/2026»)."""
@@ -85,7 +93,7 @@ class Scheda:
     def riconosci(self, c: Comprensione, f: Fatti) -> int:
         if c.tipo not in self.tipi:
             return 0
-        t = piano(f.testo)
+        t = senza_importi(piano(f.testo))
         if not all(re.search(s, t) for s in self.segnali):
             return 0
         if self.alcuni and not any(re.search(s, t) for s in self.alcuni):

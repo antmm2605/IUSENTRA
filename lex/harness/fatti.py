@@ -142,6 +142,13 @@ IMPORTI_MASSIMI = 200
 EVENTI_MASSIMI = 200
 
 
+# Formule della richiesta in qualunque punto della frase («la cliente vuole sapere…», «voglio fare ricorso»).
+_CHIEDE_OVUNQUE = re.compile(
+    r"\b(?:voglio|vogliamo|vorrei|vorremmo|vuole (?:sapere|fare|chiedere|presentare|proporre|impugnare|opporsi|agire|"
+    r"aspettare|querelare|denunciare)|posso|possiamo|devo|dobbiamo|come faccio|come facciamo|come procedo|mi chiede|"
+    r"ci chiede|chiede se|intendo|intendiamo|e possibile|si puo)\b")
+
+
 def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
     testo = str(testo or "")[:TESTO_MASSIMO]
     grezzo = " ".join(testo.split())
@@ -249,6 +256,6 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
             frasi_testo = re.split(r"(?<=[.?!])\s+(?=[A-ZÀ-Ý])", grezzo)
             chieste = [x for x in frasi_testo if "?" in x or re.match(
                 r"(?i)(?:prepar|redig|scriv|predispon|stend|fammi|mi serve|vorrei|valuta|dimmi|indica|cosa|come|quale|"
-                r"possiamo|devo|dobbiamo)", x.strip())]
+                r"possiamo|devo|dobbiamo)", x.strip()) or _CHIEDE_OVUNQUE.search(piano(x))]
             f.richiesta = piano(" ".join(chieste))
     return f

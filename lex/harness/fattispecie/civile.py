@@ -186,9 +186,14 @@ def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
     a.dubbi.append("Luogo di conclusione del preliminare [da completare]: serve solo per il foro alternativo dell'art. 20 c.p.c.")
     a.dati_mancanti = ["codice fiscale e PEC del convenuto (pubblici elenchi)", "data di notifica e calendario delle udienze",
                        "procura alle liti"]
-    a.avvertenze = ["La data dell'udienza va indicata rispettando i 120 giorni liberi dalla notifica e l'invito a costituirsi "
-                    "70 giorni prima, con gli avvertimenti dell'art. 163, comma 3, n. 7, c.p.c.",
-                    "Interessi legali sul doppio della caparra dalla domanda al saldo: non quantificati nell'atto."]
+    a.avvertenze = [Punto("La data dell'udienza va indicata rispettando i 120 giorni liberi dalla notifica e l'invito a "
+                          "costituirsi 70 giorni prima, con gli avvertimenti sulle decadenze, sulla difesa tecnica e sul "
+                          "patrocinio a spese dello Stato.",
+                          [Rif("cpc:163bis", "centoventi giorni"),
+                           Rif("cpc:163", "l'invito al convenuto a costituirsi nel termine di settanta giorni prima dell'udienza"),
+                           Rif("cpc:163", "con l'avvertimento che la costituzione oltre i suddetti termini implica le decadenze")]),
+                    "Consiglio operativo: gli interessi legali sul doppio della caparra dalla domanda al saldo non sono "
+                    "quantificati nell'atto."]
     if c.tipo == "redazione":
         from ..bozze import citazione_caparra
 

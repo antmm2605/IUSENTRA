@@ -190,10 +190,13 @@ def analizza_sfratto_commerciale(c: Comprensione, f: Fatti) -> Analisi:
                            "sulla base della PEC e delle foto dei vizi, il mutamento del rito e nel merito la riduzione del "
                            "canone e le riparazioni" + ("; " + "; ".join(righe) if righe else "") + ".",
                            [Rif("cpc:665", "prova scritta"), Rif("cpc:667", "mutamento")])]
-    a.avvertenze = ["La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va "
-                    "detto espressamente al cliente.",
-                    "L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.",
-                    "Tentare subito un accordo con la locatrice sul piano di rientro."]
+    a.avvertenze = [Punto("La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione "
+                          "commerciale: la sanatoria riguarda la morosità «di cui all'articolo 5», cioè la locazione abitativa; "
+                          "va detto espressamente al cliente.", [Rif("l392:55", "di cui all'articolo 5")]),
+                    Punto("La convalida per morosità richiede che la morosità persista all'udienza: l'unico modo per evitarla "
+                          "con certezza è pagare integralmente canoni, interessi e spese entro l'udienza.",
+                          [Rif("cpc:663", "la morosita' persiste")]),
+                    "Consiglio operativo: tentare subito un accordo con la locatrice sul piano di rientro."]
     a.dati_mancanti = ["interessi e spese per la somma da versare in udienza", "eventuale deposito cauzionale"]
     a.termini = [Punto("Durata della locazione commerciale: sei anni rinnovabili.", [Rif("l392:27", "sei anni")])]
     if c.tipo == "redazione":
@@ -228,8 +231,16 @@ def analizza_negoziazione_locazione(c: Comprensione, f: Fatti) -> Analisi:
         "locazione, che rientra nei casi di mediazione obbligatoria esclusi dall'art. 3 d.l. 132/2014; e la mediazione non "
         "si applica al procedimento di convalida fino al mutamento del rito.",
         [Rif("dl132:3", "articolo 5, comma 1-bis"), Rif("dlgs28:5", "locazione"), Rif("dlgs28:5", "convalida di licenza o sfratto")]))
-    a.avvertenze = ["Il conduttore può sanare in prima udienza o chiedere il termine di grazia fino a novanta giorni: la "
-                    "convalida richiede che la morosità persista.", "Il deposito cauzionale non va imputato ai canoni nell'atto."]
+    if re.search(r"commercial|uso diverso|\bbar\b|negozio|ufficio|capannone|locale commerciale", piano(f.testo)):
+        a.avvertenze = [Punto("La convalida richiede che la morosità persista all'udienza; per la locazione ad uso diverso "
+                              "non c'è il termine di grazia, che riguarda la morosità «di cui all'articolo 5» (abitativa).",
+                              [Rif("cpc:663", "la morosita' persiste"), Rif("l392:55", "di cui all'articolo 5")])]
+    else:
+        a.avvertenze = [Punto("Il conduttore può sanare in prima udienza o chiedere il termine di grazia fino a novanta "
+                              "giorni: la convalida richiede che la morosità persista.",
+                              [Rif("l392:55", "alla prima udienza versa l'importo dovuto"),
+                               Rif("l392:55", "termine non superiore a giorni novanta"), Rif("cpc:663", "la morosita' persiste")])]
+    a.avvertenze.append("Consiglio operativo: il deposito cauzionale non va imputato ai canoni nell'atto.")
     if not f.luogo_immobile:
         a.dati_mancanti.append("comune e indirizzo dell'immobile (competenza del tribunale del luogo dell'immobile)")
     a.dati_mancanti.append("pagamento o meno dell'ultimo canone scaduto")
@@ -284,10 +295,12 @@ def analizza_procedibilita_locazione(c: Comprensione, f: Fatti) -> Analisi:
                            "mutamento del rito.",
                            [Rif("cpc:658", "mancato pagamento del canone"),
                             Rif("dlgs28:5", "convalida di licenza o sfratto, fino al mutamento del rito")])]
-    a.avvertenze = ["Dopo il mutamento del rito conviene che sia il locatore, che ha interesse alla risoluzione, a depositare "
-                    "subito la domanda di mediazione: senza mediazione la domanda di merito diventa improcedibile.",
-                    "Una citazione ordinaria per la sola risoluzione o per i soli canoni richiede invece la mediazione prima "
-                    "della causa."]
+    a.avvertenze = [Punto("Dopo il mutamento del rito conviene che sia il locatore, che ha interesse alla risoluzione, a "
+                          "depositare subito la domanda di mediazione: senza mediazione la domanda di merito diventa "
+                          "improcedibile.", [Rif("dlgs28:5", "dichiara l'improcedibilita' della domanda giudiziale")]),
+                    Punto("Una citazione ordinaria per la sola risoluzione o per i soli canoni richiede invece la mediazione "
+                          "prima della causa.",
+                          [Rif("dlgs28:5", "e' tenuto preliminarmente a esperire il procedimento di mediazione")])]
     return a
 
 

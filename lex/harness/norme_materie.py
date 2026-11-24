@@ -478,4 +478,6 @@ NORME_MATERIE: tuple[tuple[str, str, str, str, str, str], ...] = (
     _v("cpc", "420", "Udienza di discussione della causa"),
     _v("cpc", "421", "Poteri istruttori del giudice"),
     _v("cpc", "437", "Udienza di discussione"),
+    _v("l742", "2", "Sospensione dei termini in materia penale"),
+    _v("dlgs25", "35-ter", "Controversie nella procedura di frontiera"),
 )

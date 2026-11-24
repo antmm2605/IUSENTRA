@@ -269,7 +269,9 @@ OPPOSIZIONE_TARDIVA = Scheda(
     scadenze=[Scadenza("opposizione tardiva al più tardi entro", 10, "giorni",
                        r"(?:primo atto di esecuzione|pignoramento|precetto)[^0-9]{0,30}(?:notificat\w*|eseguit\w*)?(?: il)?",
                        (R("cpc:650", "non e' piu' ammessa decorsi dieci giorni dal primo atto di esecuzione"),))],
-    avvertenze=["Il termine di dieci giorni dal primo atto esecutivo è un limite finale: se l'esecuzione è iniziata, agire subito."],
+    inquadramento=[p("Il termine di dieci giorni dal primo atto di esecuzione è un limite finale: iniziata l'esecuzione, "
+                     "l'opposizione tardiva va proposta subito.",
+                     R("cpc:650", "non e' piu' ammessa decorsi dieci giorni dal primo atto di esecuzione"))],
     cosa_fare=["Ricostruire come e dove è stato notificato il decreto (relata) e quando se ne è avuta conoscenza.",
                "Raccogliere la prova dell'impedimento (certificati di ricovero, residenza diversa, vizio della notifica).",
                "Citazione in opposizione con istanza di sospensione dell'esecutorietà."],

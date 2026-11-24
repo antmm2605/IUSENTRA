@@ -155,7 +155,7 @@ CARTA_DOCENTE = Scheda(
                "Interrompere la prescrizione con diffida al Ministero per gli anni più vecchi."],
     dati=["anni scolastici e tipo di contratto per ciascuno", "scuola e ufficio di assegnazione", "servizio attuale (in ruolo, supplente, cessato)",
           "eventuali carte già ricevute"],
-    dubbi=["Prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio "
+    dubbi=["Consiglio operativo: prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio "
            "SentenzeWeb prima di indicarli al cliente."],
     bozza=Bozza("Ricorso ex art. 414 c.p.c.", "accertamento del diritto alla carta elettronica del docente",
                 ["Servizi prestati dal ricorrente negli anni scolastici [da completare] con contratti [da completare].",
@@ -196,10 +196,11 @@ ABUSO_TERMINE = Scheda(
                "Calcolare l'ultima retribuzione di riferimento per il TFR."],
     dati=["elenco dei contratti con date e sede", "posto vacante e disponibile o supplenza temporanea",
           "eventuale immissione in ruolo e data", "ultima retribuzione di riferimento per il TFR"],
-    dubbi=["La forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e "
+    dubbi=["Consiglio operativo: la forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e "
            "per i contratti anteriori verificare la disciplina transitoria e l'orientamento delle Sezioni Unite "
            "nell'archivio SentenzeWeb."],
-    avvertenze=["Nel pubblico impiego non si chiede la conversione del rapporto: la domanda è risarcitoria."],
+    inquadramento=[p("Nel pubblico impiego non si chiede la conversione del rapporto a tempo indeterminato: la domanda è "
+                     "risarcitoria.", R("dlgs165:36", "non puo' comportare la costituzione di rapporti di lavoro a tempo indeterminato"))],
     extra=_extra_termine,
 )
 
@@ -230,7 +231,7 @@ RICOSTRUZIONE = Scheda(
                "Verificare la data di immissione in ruolo (prima o dopo l'a.s. 2023/2024)."],
     dati=["data di immissione e conferma in ruolo", "ordine di scuola", "servizi pre-ruolo con date",
           "decreto di ricostruzione già emesso"],
-    dubbi=["Regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare "
+    dubbi=["Consiglio operativo: regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare "
            "l'orientamento della Cassazione nell'archivio prima di indicarli al cliente."],
     extra=_extra_carriera,
 )
@@ -274,7 +275,8 @@ ESECUZIONE_PA = Scheda(
                "Con l'ottemperanza chiedere anche la nomina del commissario ad acta e la penalità di mora."],
     dati=["titolo (sentenza, decreto ingiuntivo) e data di notificazione all'amministrazione", "passaggio in giudicato",
           "importo dovuto e pagamenti parziali", "residenza del creditore (foro dell'Avvocatura)"],
-    avvertenze=["Il precetto notificato prima dei 120 giorni è inefficace come atto di esecuzione: si espone a opposizione."],
+    inquadramento=[p("Il precetto notificato prima dei 120 giorni viola il divieto di legge ed è esposto a opposizione.",
+                     R("dl669:14", "il creditore non puo' procedere ad esecuzione forzata ne' alla notifica di atto di precetto"))],
     extra=_extra_esecuzione,
 )
 

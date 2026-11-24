@@ -37,7 +37,7 @@ RINUNCIA_EREDITA = Scheda(
     termini=[p("Il diritto di accettare si prescrive in dieci anni dall'apertura della successione; chi è nel possesso di beni "
                "ereditari ha invece tre mesi per l'inventario, altrimenti è erede puro e semplice.",
                R("cc:480", "si prescrive in dieci anni"), R("cc:485", "entro tre mesi dal giorno dell'apertura della successione"))],
-    avvertenze=["Se nessuno degli eredi vuole i debiti, conviene che rinuncino anche i figli del rinunciante, o che i minori "
+    avvertenze=["Consiglio operativo: se nessuno degli eredi vuole i debiti, conviene che rinuncino anche i figli del rinunciante, o che i minori "
                 "accettino con beneficio d'inventario."],
     dati=["data del decesso", "atti compiuti sui beni del defunto", "possesso di beni ereditari", "figli del chiamato"],
 )
@@ -95,9 +95,9 @@ def _extra_definizione(a: Analisi, c: Comprensione, f: Fatti) -> None:
     from datetime import date
 
     if f.oggi > date(2026, 4, 30):
-        a.avvertenze.append("Nel testo vigente della l. 199/2025 (Normattiva, vigente al 23/11/2026) il termine per la "
-                            "dichiarazione di adesione era il 30/04/2026 ed è scaduto: per carichi non dichiarati entro quella "
-                            "data la definizione non è più disponibile, salvo una nuova legge.")
+        a.termini.append(p("Il termine per la dichiarazione di adesione era il 30/04/2026 ed è scaduto: per i carichi non "
+                           "dichiarati entro quella data la definizione non è più disponibile, salvo una nuova legge.",
+                           R("l199:1", "entro il 30 aprile 2026")))
 
 
 DEFINIZIONE_AGEVOLATA = Scheda(
@@ -136,7 +136,7 @@ RIMESSIONE_TERMINI = Scheda(
           R("cpc:153", "i termini perentori non possono essere abbreviati o prorogati"),
           R("cpc:153", "per causa ad essa non imputabile")),
     ],
-    avvertenze=["L'istanza va proposta tempestivamente, appena cessato l'impedimento, e con la prova documentale della causa."],
+    avvertenze=["Consiglio operativo: l'istanza va proposta tempestivamente, appena cessato l'impedimento, e con la prova documentale della causa."],
     dati=["termine scaduto e atto mancato", "causa dell'impedimento e prove", "data in cui l'impedimento è cessato"],
 )
 

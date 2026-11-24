@@ -4,6 +4,8 @@ Uso:
   python scripts/conoscenza_schede_istituto.py genera     # rigenera dalle fonti, nuova revisione se cambia qualcosa
   python scripts/conoscenza_schede_istituto.py viste      # solo index.md, log.md e pagine (proiezioni dei record)
   python scripts/conoscenza_schede_istituto.py verifica   # stato di oggi: schede da riesaminare (fonte cambiata)
+  python scripts/conoscenza_schede_istituto.py lint [--registra]  # controllo della wiki (rapporto nel registro)
+  python scripts/conoscenza_schede_istituto.py notturno   # riconvalida notturna nella cartella dei dati
 
 La generazione legge solo fonti già canoniche del software (regole dell'harness, norme vigenti, passaggi delle
 pronunce, modelli d'atto, calcolatori); non chiama modelli linguistici né la rete.
@@ -46,6 +48,22 @@ def main(argv: list[str]) -> int:
                 da_rivedere.append({"id": s["id"], "motivi": st["motivi"]})
         print(json.dumps({"schede": len(schede()), "da_riesaminare": da_rivedere}, ensure_ascii=False, indent=1))
         return 1 if da_rivedere else 0
+    elif passo == "lint":
+        from lex.conoscenza.lint import controlla, registra
+
+        rapporto = controlla(viste=deposito.VISTE)
+        if "--registra" in argv:
+            registra(rapporto)
+        print(json.dumps({k: rapporto[k] for k in ("eseguito_il", "schede", "conteggi")}, ensure_ascii=False))
+        for x in rapporto["segnalazioni"]:
+            print(f"- [{x['gravita']}] {x['categoria']} {x['scheda']} {x['oggetto']}: {x['descrizione']}")
+        return 1 if rapporto["segnalazioni"] else 0
+    elif passo == "notturno":
+        from lex.conoscenza.notturno import riconvalida_notturna
+
+        esito = riconvalida_notturna()
+        print(json.dumps(esito, ensure_ascii=False, indent=1))
+        return 0 if esito.get("ok") else 1
     else:
         print(__doc__)
         return 2

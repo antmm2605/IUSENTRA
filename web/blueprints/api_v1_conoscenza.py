@@ -153,11 +153,11 @@ def registro():
     negato = _lettura_negata()
     if negato is not None:
         return negato
-    from lex.conoscenza import deposito
+    from lex.conoscenza import consultazione, deposito
 
     operazione = str(request.args.get("operazione", "") or "")
     materia = str(request.args.get("materia", "") or "")
-    eventi = [e for e in deposito.leggi_registro()
+    eventi = [e for e in deposito.leggi_registro(consultazione.registro_attivo())
               if (not operazione or e["operazione"] == operazione) and (not materia or e.get("materia") == materia)]
     eventi.reverse()
     return jsonify(ok=True, eventi=eventi[:300], totale=len(eventi))

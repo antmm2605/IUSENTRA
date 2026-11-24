@@ -537,3 +537,36 @@ def test_lint_trova_gli_errori_introdotti(tmp_path):
     assert ev["operazione"] == "lint" and ev["senza_fonti"] == 1 and ev["segnalazioni"]
     # Nessuna correzione automatica: l'archivio non è stato toccato.
     assert json.loads(archivio.read_text(encoding="utf-8")) == dati
+
+
+# ------------------------------------------------------------------ riconvalida notturna
+def test_riconvalida_notturna_rigenera_solo_le_schede_con_fonti_cambiate(tmp_path, monkeypatch):
+    from lex.conoscenza import notturno
+    from lex.harness import norme as h
+
+    cartella = tmp_path / "conoscenza"
+    primo = notturno.riconvalida_notturna(cartella, ora="2026-11-24T04:50:00+01:00")
+    assert primo["ok"] and primo["ripartita_dal_prodotto"] and primo["rigenerate"] == [] and primo["schede"] >= 150
+    assert notturno.percorsi_attivi(cartella)[0] == cartella / "schede_istituto.json"
+    # Il testo vigente dell'art. 14 d.l. 669/1996 cambia: solo le schede che lo citano si rigenerano.
+    originale = h.testo_norma
+
+    def cambiato(chiave):
+        t = originale(chiave)
+        return t if t is None or chiave != "dl669:14" else h.TestoNorma(t.chiave, t.citazione, t.testo + " Comma nuovo.",
+                                                                         t.url, t.aggiornamento, t.vigente, t.origine)
+
+    monkeypatch.setattr(h, "testo_norma", cambiato)
+    secondo = notturno.riconvalida_notturna(cartella, ora="2026-11-25T04:50:00+01:00")
+    usano = {s["id"] for s in deposito.leggi_archivio(cartella / "schede_istituto.json")["schede"].values()
+             if "norma:dl669:14" in s["dipendenze"]}
+    assert set(secondo["rigenerate"]) == usano and "ist-esecuzione-contro-pa" in usano
+    rec = deposito.leggi_archivio(cartella / "schede_istituto.json")["schede"]["ist-esecuzione-contro-pa"]
+    assert rec["revisione"] >= 2 and rec["storia"][-1]["motivo"].startswith("fonti cambiate: norma:dl669:14")
+    eventi = deposito.leggi_registro(cartella / "registro_conoscenza.jsonl")
+    assert [e["operazione"] for e in eventi[-2:]] == ["controllo", "lint"]
+    assert any(e["operazione"] == "aggiornamento" and e["scheda"] == "ist-esecuzione-contro-pa" for e in eventi)
+    # I record del prodotto non si toccano; la notte dopo, con la fonte invariata, non si rigenera nulla.
+    prodotto = deposito.leggi_archivio()["schede"]["ist-esecuzione-contro-pa"]
+    assert prodotto["impronta"] != rec["impronta"]
+    assert notturno.riconvalida_notturna(cartella, ora="2026-11-26T04:50:00+01:00")["rigenerate"] == []

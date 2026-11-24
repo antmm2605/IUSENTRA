@@ -17,8 +17,21 @@ def _archivio(percorso: str, mtime: float) -> dict[str, Any]:
     return deposito.leggi_archivio(Path(percorso))
 
 
+def archivio_attivo() -> Path:
+    """I record da mostrare: la copia riconvalidata di notte, se parte dai record del prodotto installati."""
+    from .notturno import percorsi_attivi
+
+    return percorsi_attivi()[0]
+
+
+def registro_attivo() -> Path:
+    from .notturno import percorsi_attivi
+
+    return percorsi_attivi()[1]
+
+
 def schede(percorso: Path | None = None, *, anche_ritirate: bool = False) -> list[dict[str, Any]]:
-    p = percorso or deposito.ARCHIVIO
+    p = percorso or archivio_attivo()
     try:
         mtime = p.stat().st_mtime
     except OSError:
@@ -42,12 +55,12 @@ def versione_attuale(dipendenza: str) -> str | None:
         f = fonte_norma(chiave)
         return f["versione"] if f else None
     if tipo == "pronuncia":
+        # La stessa pronuncia può essere letta per più norme (testo integrale per una, massima per un'altra): vale
+        # ogni versione letta oggi.
         organo, _, estremi = chiave.partition("|")
-        for norma_p in _norme_delle_pronunce().get(chiave, []):
-            for p in pronunce_per_norma(norma_p):
-                if p["organo"] == organo and f"{p['numero']}/{p['anno']}" == estremi:
-                    return p.get("versione", "")
-        return None
+        versioni = {p.get("versione", "") for norma_p in _norme_delle_pronunce().get(chiave, [])
+                    for p in pronunce_per_norma(norma_p) if p["organo"] == organo and f"{p['numero']}/{p['anno']}" == estremi}
+        return tuple(sorted(versioni)) or None
     return None
 
 
@@ -70,7 +83,7 @@ def stato_attuale(s: dict[str, Any], versioni=versione_attuale) -> dict[str, Any
         ora = versioni(dip)
         if ora is None:
             sparite.append(dip)
-        elif vers and ora != vers:
+        elif vers and (vers not in ora if isinstance(ora, tuple) else ora != vers):
             cambiate.append(dip)
     motivi = [f"fonte cambiata dopo la revisione {s.get('revisione')}: {d.split(':', 1)[1]}" for d in cambiate]
     motivi += [f"fonte non più leggibile nell'archivio: {d.split(':', 1)[1]}" for d in sparite]
@@ -91,7 +104,7 @@ def catalogo(percorso: Path | None = None) -> dict[str, Any]:
     return {"materie": [{"materia": m, "schede": sorted(per[m], key=lambda x: x["titolo"].lower()),
                          "conteggi": _conteggi(per[m])} for m in materie],
             "totale": len(elenco), "conteggi": _conteggi([voce_indice(s) for s in elenco]),
-            "aggiornato_il": deposito.leggi_archivio(percorso).get("aggiornato_il", "")}
+            "aggiornato_il": deposito.leggi_archivio(percorso or archivio_attivo()).get("aggiornato_il", "")}
 
 
 def _conteggi(voci: list[dict[str, Any]]) -> dict[str, int]:

@@ -1,6 +1,6 @@
 # Esecuzione per rilascio dell'immobile
 
-- ID: `ist-rilascio` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-rilascio` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** precetto per rilascio, poi avviso di sloggio dell'ufficiale giudiziario almeno dieci giorni prima dell'accesso.
@@ -53,6 +53,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 605 c.p.c. (Precetto per consegna o rilascio) — testo vigente, aggiornamento archivio 05/03/2026, versione `87c7d12a33697385` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art605
 - art. 608 c.p.c. (Modo dell'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `2a7c60ac181b44e1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art608
 - art. 610 c.p.c. (Provvedimenti temporanei) — testo vigente, aggiornamento archivio n.d., versione `9b939a9ef87905ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art610
+- art. 479 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `3a20435aa2acf9cf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479!vig=2022-10-17
 - art. 479 c.p.c. (Notificazione del titolo esecutivo e del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `1cac0925f6c5ae80` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479
 - art. 480 c.p.c. (Forma del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `8d05fb17defb2bf1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art480
 - art. 609 c.p.c. (Provvedimenti circa i mobili estranei all'esecuzione) — testo vigente, aggiornamento archivio n.d., versione `7d8a9c58394799f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art609
@@ -68,3 +69,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:610
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cpc:609
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1590, pronuncia:Corte costituzionale|36/1988, pronuncia:Corte costituzionale|62/1985
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

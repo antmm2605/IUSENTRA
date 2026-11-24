@@ -1,6 +1,6 @@
 # Pignoramento immobiliare
 
-- ID: `ist-pignoramento-immobiliare` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-pignoramento-immobiliare` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di pignoramento immobiliare notificato e trascritto, iscrizione a ruolo, istanza di vendita con la documentazione.
@@ -48,6 +48,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Fonti con versione
 - art. 555 c.p.c. (Forma del pignoramento immobiliare) — testo vigente, aggiornamento archivio n.d., versione `c9fd4f7925e6b374` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art555
 - art. 557 c.p.c. (Deposito dell'atto di pignoramento) — testo vigente, aggiornamento archivio n.d., versione `8986d18ef8eec42a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art557
+- art. 567 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `1dc530f90543b36f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art567!vig=2022-10-17
 - art. 567 c.p.c. (Istanza di vendita) — testo vigente, aggiornamento archivio n.d., versione `0382d2ce9338c49c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art567
 - art. 481 c.p.c. (Cessazione dell'efficacia del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `b51670fb94010269` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art481
 - art. 497 c.p.c. (Cessazione dell'efficacia del pignoramento) — testo vigente, aggiornamento archivio n.d., versione `0243d50b16d61f1d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art497
@@ -55,3 +56,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

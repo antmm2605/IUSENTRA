@@ -193,6 +193,10 @@ def pagina_scheda(s: dict[str, Any]) -> str:
             r.append(f"- {f['citazione']} — NORMA ABROGATA ({f.get('nota_abrogazione', '')}), versione `{f.get('versione', '')}` — "
                      f"{f.get('url', '')}")
         elif f["tipo"] == "norma":
+            if f.get("testo_anteriore"):
+                ta = f["testo_anteriore"]
+                r.append(f"- {f['citazione']} — testo anteriore al d.lgs. 149/2022 (vigente al {ta['vigente_al']}): "
+                         f"{ta['stato']}" + (f", versione `{ta['versione']}` — {ta['url']}" if ta.get("versione") else ""))
             if f.get("nota_commi"):
                 r.append(f"- {f['citazione']}, comma {f.get('comma_pertinente', '')} (pertinente): {f['nota_commi']}")
             r.append(f"- {f['citazione']} ({f.get('rubrica', '')}) — testo vigente, aggiornamento archivio "

@@ -1,6 +1,6 @@
 # Azione di reintegrazione (spoglio)
 
-- ID: `ist-reintegrazione` · materia: possessorio · revisione 2 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-reintegrazione` · materia: possessorio · revisione 2 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per reintegrazione nel possesso al tribunale del luogo.

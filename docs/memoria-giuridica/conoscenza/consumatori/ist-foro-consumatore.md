@@ -1,6 +1,6 @@
 # Foro del consumatore e competenza
 
-- ID: `ist-foro-consumatore` · materia: consumatori · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-foro-consumatore` · materia: consumatori · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** eccezione di incompetenza per territorio se la causa è proposta fuori dal foro del consumatore; Giudice di pace.
@@ -58,9 +58,13 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 33 d.lgs. 206/2005 (codice del consumo) (Clausole vessatorie nel contratto tra professionista e consumatore) — testo vigente, aggiornamento archivio n.d., versione `e874a59c9d01b386` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art33
 - art. 66-bis d.lgs. 206/2005 (codice del consumo) (((Foro competente))) — testo vigente, aggiornamento archivio n.d., versione `2c3b990f5d42b733` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art66bis
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 13 d.P.R. 115/2002 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `b0639ca206ca6b0a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art13!vig=2022-10-17
 - art. 13 d.P.R. 115/2002 (Contributo unificato) — testo vigente, aggiornamento archivio 12/11/2026, versione `9a51effd6ca10720` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art13
+- art. 30 d.P.R. 115/2002 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `4f8252d729c4cca0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art30!vig=2022-10-17
 - art. 30 d.P.R. 115/2002 (Anticipazione forfettaria) — testo vigente, aggiornamento archivio 12/11/2026, versione `e3f685eb096bf57e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art30
+- art. 7 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c211f95d1bd2c950` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7!vig=2022-10-17
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 - Corte di Cassazione — civile, sez. 3, n. 29616/2026 (testo integrale) — versione `8a588945a9d7de5f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329616O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29671/2026 (testo integrale) — versione `01032293a8927ff5` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329671O&rows=1&wt=json
@@ -74,3 +78,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:codcons:33, norma:codcons:66bis, norma:dlgs206:33
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

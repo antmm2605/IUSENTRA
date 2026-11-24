@@ -1,6 +1,6 @@
 # Aggiornamento ISTAT del canone
 
-- ID: `ist-aggiornamento-canone` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-aggiornamento-canone` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta del locatore; contestazione delle somme non dovute.
@@ -54,6 +54,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
 - art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
 - art. 2934 c.c. (Estinzione dei diritti) — testo vigente, aggiornamento archivio n.d., versione `2ee6bf29315198c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2934
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
 - art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
@@ -69,3 +70,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cc:2948, norma:dlgs28:5
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r5 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

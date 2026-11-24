@@ -1,6 +1,6 @@
 # Comparsa di costituzione e risposta
 
-- ID: `ist-comparsa` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-comparsa` · materia: civile ordinario · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 166 c.p.c., art. 167 c.p.c., art. 171-ter c.p.c..
@@ -51,8 +51,11 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - Sezioni senza fonte: Termini, Giudice e rito, Documenti e dati da verificare.
 
 ## Fonti con versione
+- art. 166 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `d63b69086fa614a3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art166!vig=2022-10-17
 - art. 166 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `20145a71a75a4ffa` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art166
+- art. 167 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `bd6d7602771dbd96` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167!vig=2022-10-17
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
+- art. 171-ter c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 171-ter c.p.c. (Memorie integrative) — testo vigente, aggiornamento archivio 05/03/2026, versione `bc58dc903cec8cd7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171ter
 - art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
@@ -71,3 +74,4 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:38, pronuncia:Corte costituzionale|97/2017
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

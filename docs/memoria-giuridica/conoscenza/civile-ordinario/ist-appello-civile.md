@@ -1,6 +1,6 @@
 # Atto di appello civile
 
-- ID: `ist-appello-civile` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-appello-civile` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in appello con motivi specifici per capo.
@@ -53,12 +53,16 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Fonti con versione
 - art. 339 c.p.c. (Appellabilità delle sentenze) — testo vigente, aggiornamento archivio n.d., versione `0d89355652eae1fb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art339
+- art. 342 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `689efb0f7dc26d26` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art342!vig=2022-10-17
 - art. 342 c.p.c. (Forma dell'appello) — testo vigente, aggiornamento archivio n.d., versione `c964ed32fdb6e1aa` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art342
 - art. 325 c.p.c. (Termini per le impugnazioni) — testo vigente, aggiornamento archivio 05/03/2026, versione `a8a512cd9b78ba36` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art325
 - art. 327 c.p.c. (Decadenza dall'impugnazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `3e877539f1fa0e9a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art327
+- art. 348-bis c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `b09dd923ce3107d1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art348bis!vig=2022-10-17
 - art. 348-bis c.p.c. (Inammissibilità e manifesta infondatezza dell'appello) — testo vigente, aggiornamento archivio n.d., versione `cd06750c2ddea34f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art348bis
+- art. 434 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `fda001614907cf6a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art434!vig=2022-10-17
 - art. 434 c.p.c. (Deposito del ricorso in appello) — testo vigente, aggiornamento archivio 05/03/2026, versione `db27e1a9dede2312` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art434
 - art. 345 c.p.c. (Domande ed eccezioni nuove) — testo vigente, aggiornamento archivio n.d., versione `7ccb87194880d055` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art345
+- art. 326 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `9a730eb1317f53ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326!vig=2022-10-17
 - art. 326 c.p.c. (Decorrenza dei termini) — testo vigente, aggiornamento archivio n.d., versione `358eb8a805aa88ab` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 - art. 341 c.p.c. (Giudice dell'appello) — testo vigente, aggiornamento archivio n.d., versione `d3a70ba21106f7a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art341
@@ -73,3 +77,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:348bis
 - r3 · 24/11/2026 04:24 · fonti cambiate: norma:cpc:345
+- r4 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

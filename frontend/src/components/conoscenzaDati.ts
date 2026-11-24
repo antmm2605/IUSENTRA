@@ -17,6 +17,7 @@ export type Fonte = {
   nota_abrogazione?: string
   comma_pertinente?: string
   nota_commi?: string
+  testo_anteriore?: { stato: string; vigente_al: string; versione: string; url: string; decorrenza_letta: string }
 }
 export type Voce = { testo: string; fonti: Fonte[]; provenienza: string; verifica: string; etichetta?: string; orientamento?: string; calcolo?: { quantita: number; unita: string; calcolatore: string; sospensione_feriale: boolean } }
 export type Sezione = { stato: 'compilata' | 'mancante'; voci: Voce[]; motivo?: string }
@@ -31,7 +32,7 @@ export type Catalogo = { materie: { materia: string; schede: VoceIndice[]; conte
 export type StatoAttuale = { stato: string; motivi: string[] }
 export type Annotazione = { id: string; sezione: string; voce: string; testo: string; esito: string; attore: string; creato_il: string; revisione_scheda: number; voce_presente: boolean; scheda_cambiata_dopo: boolean }
 export type Evento = { evento_id: string; ts: string; operazione: string; scheda: string; titolo: string; materia: string; esito: string; revisione?: number; revisione_precedente?: number; motivo?: string; generate?: number; aggiornate?: number; invariate?: number; rinominate?: number; ritirate?: number }
-export type Norma = { citazione: string; rubrica: string; testo: string; inizio: number; fine: number; url: string; aggiornamento: string }
+export type Norma = { citazione: string; rubrica: string; testo: string; inizio: number; fine: number; url: string; aggiornamento: string; stato?: string; vigente_al?: string; decorrenza_letta?: string[] }
 
 export const SEZIONI: [string, string][] = [
   ['presupposti', 'Presupposti'], ['eccezioni', 'Eccezioni e tranelli'], ['termini', 'Termini'], ['rimedi', 'Rimedi e forme'],

@@ -1,6 +1,6 @@
 # Decreto ingiuntivo per retribuzioni
 
-- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 10 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 11 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al tribunale in funzione di giudice del lavoro, con le buste paga; Tribunale in funzione di giudice del lavoro.
@@ -87,6 +87,7 @@
 - art. 642 c.p.c. (Esecuzione provvisoria) — testo vigente, aggiornamento archivio 05/03/2026, versione `736050f30d4d71ef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art642
 - art. 634 c.p.c. (Prova scritta) — testo vigente, aggiornamento archivio 05/03/2026, versione `1c95e3d4a35eafef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art634
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 429 c.p.c. (Pronuncia della sentenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `bd356badf417fb65` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art429
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
@@ -129,3 +130,4 @@
 - r8 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r9 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r10 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r11 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

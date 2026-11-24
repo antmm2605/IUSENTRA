@@ -12,18 +12,24 @@ const ESITI = ['', 'favorevole', 'contrario', 'non pertinente', 'da approfondire
 function PassaggioNorma({ fonte }: { fonte: Fonte }) {
   const [norma, setNorma] = useState<Norma | null>(null)
   const [errore, setErrore] = useState('')
+  const [anteriore, setAnteriore] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
-    ensureJson<{ norma: Norma }>(`${base}/norma/${encodeURIComponent(fonte.chiave)}?${new URLSearchParams({ ancora: fonte.ancora || '' })}`, { signal: controller.signal })
+    setNorma(null); setErrore('')
+    const query: Record<string, string> = anteriore ? { versione: 'anteriore' } : { ancora: fonte.ancora || '' }
+    ensureJson<{ norma: Norma }>(`${base}/norma/${encodeURIComponent(fonte.chiave)}?${new URLSearchParams(query)}`, { signal: controller.signal })
       .then(d => { if (!controller.signal.aborted) setNorma(d.norma) })
       .catch(() => { if (!controller.signal.aborted) setErrore('Testo della norma non disponibile nell’archivio.') })
     return () => controller.abort()
-  }, [fonte.chiave, fonte.ancora])
+  }, [fonte.chiave, fonte.ancora, anteriore])
   if (errore) return <p role="alert">{errore}</p>
   if (!norma) return <p>Caricamento del testo vigente…</p>
   const [prima, passaggio, dopo] = divisioneAncora(norma)
   return <div className="iu-cn-norma">
-    <p><strong>{norma.citazione}</strong>{norma.rubrica ? ` — ${norma.rubrica}` : ''} · testo vigente{norma.aggiornamento ? `, aggiornamento dell’archivio ${norma.aggiornamento}` : ''}{fonte.versione ? ` · versione ${fonte.versione}` : ''}</p>
+    <p><strong>{norma.citazione}</strong>{norma.rubrica ? ` — ${norma.rubrica}` : ''} · {anteriore ? `testo anteriore al d.lgs. 149/2022, vigente al ${norma.vigente_al}` : `testo vigente${norma.aggiornamento ? `, aggiornamento dell’archivio ${norma.aggiornamento}` : ''}`}{!anteriore && fonte.versione ? ` · versione ${fonte.versione}` : ''}</p>
+    {fonte.testo_anteriore ? <Button tone="neutral" aria-pressed={anteriore} onClick={() => setAnteriore(!anteriore)}>{anteriore ? 'Mostra il testo vigente' : 'Testo anteriore alla riforma (cause col rito anteriore)'}</Button> : null}
+    {anteriore && norma.decorrenza_letta?.length ? <small>Decorrenza del testo nuovo (nota Normattiva): {norma.decorrenza_letta[norma.decorrenza_letta.length - 1]}</small> : null}
+    {anteriore && norma.stato && norma.stato !== 'testo anteriore' ? <p>{norma.stato}.</p> : null}
     <blockquote>{prima}{passaggio ? <mark>{passaggio}</mark> : null}{dopo}</blockquote>
     {norma.url ? <a href={norma.url} target="_blank" rel="noreferrer">Apri su Normattiva <ExternalLink size={14} aria-hidden="true" /></a> : null}
   </div>

@@ -1,6 +1,6 @@
 # Esecuzione degli obblighi di fare e non fare; misure coercitive (artt. 612 e 614-bis)
 
-- ID: `ist-obblighi-fare` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-obblighi-fare` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** precetto e ricorso al giudice dell'esecuzione per le modalità dell'esecuzione; misura coercitiva per ogni giorno di ritardo.
@@ -45,9 +45,11 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Fonti con versione
 - art. 612 c.p.c. (Esecuzione degli obblighi di fare e non fare: provvedimento) — testo vigente, aggiornamento archivio n.d., versione `b1dfc092176839dd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art612
+- art. 614-bis c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `e3f2b8f1c5a307bc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art614bis!vig=2022-10-17
 - art. 614-bis c.p.c. (Misure di coercizione indiretta) — testo vigente, aggiornamento archivio n.d., versione `542193a52b5c07f4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art614bis
 - art. 2931 c.c. (Esecuzione forzata degli obblighi di fare) — testo vigente, aggiornamento archivio n.d., versione `ab0598d254ae86d1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2931
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

@@ -175,10 +175,11 @@ VOCI: tuple[Voce, ...] = (
           R("cpc:37", "Nei giudizi di impugnazione puo' essere rilevato solo se oggetto di specifico motivo"),
           R("cpc:37", "hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data")),
          _PUBBLICO_IMPIEGO,
-         "Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i "
-         "procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e "
-         "nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da "
-         "verificare per le cause anteriori."),
+         "Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023). Per "
+         "i procedimenti pendenti a quella data vale il testo anteriore, registrato fra le fonti (vigente al 17/10/2022): "
+         "il difetto di giurisdizione verso la pubblica amministrazione o i giudici speciali è rilevato, anche d'ufficio, "
+         "«in qualunque stato e grado del processo», senza la regola dello specifico motivo. I limiti posti dalla "
+         "giurisprudenza a quel testo (giudicato implicito sulla giurisdizione) non sono nell'archivio delle pronunce lette."),
     Voce("prescrizione_non_rilevabile", "eccezioni",
          "La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata "
          "alle parti.",

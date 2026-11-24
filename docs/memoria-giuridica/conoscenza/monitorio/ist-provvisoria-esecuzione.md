@@ -1,6 +1,6 @@
 # Provvisoria esecuzione del decreto (artt. 642 e 648)
 
-- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 7 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 8 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
@@ -71,6 +71,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 633 c.p.c. (Condizioni di ammissibilità) — testo vigente, aggiornamento archivio 05/03/2026, versione `650f7095d9bfba54` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art633
 - art. 634 c.p.c. (Prova scritta) — testo vigente, aggiornamento archivio 05/03/2026, versione `1c95e3d4a35eafef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art634
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 641 c.p.c. (Accoglimento della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `257353832d5720c4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art641
 - art. 645 c.p.c. (Opposizione) — testo vigente, aggiornamento archivio 05/03/2026, versione `7ef93b76460dece9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art645
@@ -92,3 +93,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r5 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r6 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r7 · 24/11/2026 04:21 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

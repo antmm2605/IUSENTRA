@@ -1,6 +1,6 @@
 # Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
 
-- ID: `ist-sinistro-stradale` · materia: responsabilità civile · revisione 6 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-sinistro-stradale` · materia: responsabilità civile · revisione 7 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione (diretto o del responsabile), poi negoziazione assistita e causa; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
@@ -86,10 +86,12 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
 - art. 2934 c.c. (Estinzione dei diritti) — testo vigente, aggiornamento archivio n.d., versione `2ee6bf29315198c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2934
 - art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 167 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `bd6d7602771dbd96` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167!vig=2022-10-17
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
 - art. 2947 c.c. (Prescrizione del diritto al risarcimento del danno) — testo vigente, aggiornamento archivio 29/04/2026, versione `f792d4d582c83466` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2947
 - art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
+- art. 7 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c211f95d1bd2c950` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7!vig=2022-10-17
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
@@ -109,3 +111,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cpc:167, norma:cpc:38
 - r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|157/2011, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|32152/2024, pronuncia:Corte di Cassazione — penale|25009/2026
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+- r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

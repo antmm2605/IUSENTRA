@@ -1,6 +1,6 @@
 # Procedimento semplificato di cognizione (art. 281-decies)
 
-- ID: `ist-rito-semplificato` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-rito-semplificato` · materia: civile ordinario · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 281-decies c.p.c., art. 281-undecies c.p.c., art. 281-duodecies c.p.c..
@@ -42,8 +42,11 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
+- art. 281-decies c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 281-decies c.p.c. (Procedimento semplificato di cognizione) — testo vigente, aggiornamento archivio 05/03/2026, versione `fa60b5d07f29aa5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art281decies
+- art. 281-undecies c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 281-undecies c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `981c5b5c10967d9e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art281undecies
+- art. 281-duodecies c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 281-duodecies c.p.c. (Procedimento) — testo vigente, aggiornamento archivio n.d., versione `59bc51f822d9e1d0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art281duodecies
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
@@ -55,3 +58,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:281duodecies
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

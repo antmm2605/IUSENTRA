@@ -1,6 +1,6 @@
 # Negoziazione assistita (d.l. 132/2014)
 
-- ID: `ist-negoziazione-assistita` · materia: stragiudiziale · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-negoziazione-assistita` · materia: stragiudiziale · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** invito a stipulare la convenzione di negoziazione assistita firmato dall'avvocato.
@@ -53,8 +53,10 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Fonti con versione
 - art. 2 d.l. 132/2014 (Convenzione di negoziazione assistita) — testo vigente, aggiornamento archivio n.d., versione `b36262dd59e294b1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art2
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 4 d.l. 132/2014 (Non accettazione dell'invito) — testo vigente, aggiornamento archivio n.d., versione `18d82d2c7a37c0a7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art4
+- art. 2-ter d.l. 132/2014 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 2-ter d.l. 132/2014 (Negoziazione assistita nelle controversie di lavoro) — testo vigente, aggiornamento archivio n.d., versione `7db2b670f7d4ff6f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art2ter
 - Corte di Cassazione — civile, sez. 3, n. 28758/2026 (testo integrale) — versione `c4b82ee6e6157bad` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328758O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 26412/2026 (testo integrale) — versione `38b6979e36d4ae6b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026326412O&rows=1&wt=json
@@ -68,3 +70,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:dl132:2ter, norma:dl132:4
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|162/2016, pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|3268/2026
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

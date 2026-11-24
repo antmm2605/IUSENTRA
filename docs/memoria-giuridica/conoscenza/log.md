@@ -4582,3 +4582,559 @@ rinominate: 0
 invariate: 152
 ritirate: 0
 schede: 155
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Atto di citazione (rito ordinario di cognizione)
+event_id: ba6f1bab139d0b011ef9
+scheda: ist-citazione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Comparsa di costituzione e risposta
+event_id: 177d5ede0243454c630f
+scheda: ist-comparsa
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Memorie integrative art. 171-ter c.p.c.
+event_id: 96eb196fe6c5cd4b219e
+scheda: ist-memorie-171ter
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Atto di appello civile
+event_id: 74b59f7d375c6eec5743
+scheda: ist-appello-civile
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Ricorso per cassazione civile
+event_id: 18d1ba500a9cd2e32377
+scheda: ist-cassazione-civile
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Revocazione della sentenza
+event_id: 79e5ecebce4dea1b30c5
+scheda: ist-revocazione
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Opposizione di terzo
+event_id: daec70aac01787a6c9e5
+scheda: ist-opposizione-terzo
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Regolamento di competenza
+event_id: 5d35f61795d9326d9dd0
+scheda: ist-regolamento-competenza
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Procedimento semplificato di cognizione (art. 281-decies)
+event_id: 94bbf47e2a56296abd54
+scheda: ist-rito-semplificato
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Provvedimento d'urgenza (art. 700 c.p.c.)
+event_id: 4dc478a250cb026c74ab
+scheda: ist-ricorso-700
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Sequestro conservativo e giudiziario
+event_id: 2bfb809eb0bd6d892984
+scheda: ist-sequestro
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Ricorso per decreto ingiuntivo
+event_id: 1cf8f23abe3c61418f0c
+scheda: ist-decreto-ingiuntivo
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Provvisoria esecuzione del decreto (artt. 642 e 648)
+event_id: 5746eab246dd7c4e3210
+scheda: ist-provvisoria-esecuzione
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Opposizione a decreto ingiuntivo
+event_id: 8f51d7e711f947da5dd1
+scheda: ist-opposizione-di
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Atto di precetto
+event_id: c2b3092af7f339cd3b75
+scheda: ist-precetto
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Pignoramento immobiliare
+event_id: 0dc979acb7d6ef0b0172
+scheda: ist-pignoramento-immobiliare
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Pignoramento presso terzi
+event_id: 157cf4f64e656391cc14
+scheda: ist-pignoramento-terzi
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Opposizione all'esecuzione (art. 615)
+event_id: fb55caf7026fcffe4757
+scheda: ist-opposizione-esecuzione
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Opposizione agli atti esecutivi (art. 617)
+event_id: 020f852feccc410a3e5c
+scheda: ist-opposizione-atti-esecutivi
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Ricerca telematica dei beni (art. 492-bis)
+event_id: c48e5e7abbb6ff241d39
+scheda: ist-ricerca-beni
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Esecuzione degli obblighi di fare e non fare; misure coercitive (artt. 612 e 614-bis)
+event_id: f777641d04bfec41476f
+scheda: ist-obblighi-fare
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Separazione personale (giudiziale e consensuale)
+event_id: 85bd6bd4e8932848ddff
+scheda: ist-separazione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Divorzio (scioglimento e cessazione degli effetti civili)
+event_id: f4bc9231d920348481f7
+scheda: ist-divorzio
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Modifica delle condizioni di separazione o divorzio
+event_id: e892cd08240f6a17d3a0
+scheda: ist-modifica-condizioni
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Affidamento e collocamento dei figli (anche nati fuori dal matrimonio)
+event_id: 24c0988d36452e8b5ebb
+scheda: ist-affidamento
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Mantenimento dei figli e del coniuge
+event_id: 1d552ca86945b6ef70b4
+scheda: ist-mantenimento
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Ordini di protezione contro gli abusi familiari
+event_id: 6ab64571c423df4b8bf4
+scheda: ist-ordini-protezione
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Disconoscimento di paternità
+event_id: 9361278bd9e18d5d03c8
+scheda: ist-disconoscimento
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Petizione di eredità
+event_id: 929a9986292f071167ad
+scheda: ist-petizione-eredita
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Divisione ereditaria (e scioglimento della comunione)
+event_id: c30abdbc9c3bd9689cc2
+scheda: ist-divisione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Azione di riduzione (lesione di legittima)
+event_id: 0af899f104fa64e7a4aa
+scheda: ist-riduzione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Impugnazione della delibera condominiale (art. 1137)
+event_id: fd52990475aeaaa917a2
+scheda: ist-delibera-condominio
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Revoca giudiziale dell'amministratore di condominio
+event_id: c87d6a1ebb0b59bf07c4
+scheda: ist-revoca-amministratore
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Danni da parti comuni e liti condominiali
+event_id: 194676a65200ea9b37db
+scheda: ist-lite-condominio
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Azione negatoria
+event_id: b8b35cf1eaa3cff598da
+scheda: ist-negatoria
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Azione confessoria (servitù)
+event_id: 6cc8ecaad8e85a19649a
+scheda: ist-confessoria
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Usucapione
+event_id: 264aca07463ca0ffd81c
+scheda: ist-usucapione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Regolamento di confini
+event_id: e62f8057aa6a550d2516
+scheda: ist-regolamento-confini
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Risoluzione per inadempimento
+event_id: 3d72306d3e122ce3aa79
+scheda: ist-risoluzione
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Caparra confirmatoria e preliminare
+event_id: e4df496bae8375e14313
+scheda: ist-caparra
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Rescissione del contratto
+event_id: 6ffc2c71e2738671084d
+scheda: ist-rescissione
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Annullamento del contratto (vizi del consenso, incapacità)
+event_id: caf810111a09219a46e8
+scheda: ist-annullamento
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Nullità del contratto
+event_id: a64570d15fa51a248e16
+scheda: ist-nullita
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Esecuzione in forma specifica dell'obbligo di concludere il contratto (art. 2932)
+event_id: f56fd5bb1bc1a09a3f31
+scheda: ist-esecuzione-2932
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Risarcimento del danno da inadempimento
+event_id: f3feb74a38a01e05205e
+scheda: ist-risarcimento-contrattuale
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Vizi e difformità nell'appalto
+event_id: 0b9bfaadc55c0ba7b5d4
+scheda: ist-vizi-appalto
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
+event_id: caa6e19d78467fc62f50
+scheda: ist-sinistro-stradale
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Negoziazione assistita per sinistri stradali
+event_id: d53584b992edfd8d87cf
+scheda: ist-negoziazione-sinistri
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Responsabilità sanitaria (l. 24/2017)
+event_id: 393c01fb795a1e6648e4
+scheda: ist-responsabilita-medica
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Danno da cose in custodia (art. 2051) e insidia stradale
+event_id: 0cf02873a5f8570abe4a
+scheda: ist-cose-in-custodia
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Diffamazione: risarcimento civile
+event_id: b16be8810b24cdddabd1
+scheda: ist-diffamazione-civile
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Impugnazione del licenziamento
+event_id: 8c3cda6246d89c21e988
+scheda: ist-licenziamento
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: c7ab76d3bcc2ca1e3bb1
+scheda: ist-tfr
+status: completato
+revision: 11 -> 12
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Decreto ingiuntivo per retribuzioni
+event_id: 2a02937e76e1e6274c09
+scheda: ist-di-retribuzioni
+status: completato
+revision: 10 -> 11
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Appello nel rito del lavoro (art. 434)
+event_id: 635c79e74f2d89a4340f
+scheda: ist-appello-lavoro
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
+event_id: 9e0da03c97f092e17a3e
+scheda: ist-ricorso-dipendente-pubblico
+status: completato
+revision: 9 -> 10
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Carta del docente per i supplenti
+event_id: cc1a82817fa5b95f1716
+scheda: ist-carta-docente
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
+event_id: 632629bc9ccc6c423847
+scheda: ist-abuso-termine-pa
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Intimazione di sfratto per morosità e citazione per la convalida
+event_id: b2f5e3ad825bf5eb7b0d
+scheda: ist-sfratto-morosita
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Licenza e sfratto per finita locazione
+event_id: 90f2498fd81478db5cd0
+scheda: ist-sfratto-finita-locazione
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Opposizione alla convalida di sfratto e termine di grazia
+event_id: 9087e3948d725f99a793
+scheda: ist-opposizione-convalida
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Esecuzione per rilascio dell'immobile
+event_id: 0933804e8bfad894ce9b
+scheda: ist-rilascio
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Aggiornamento ISTAT del canone
+event_id: 9f1eb2c6cbf918d8f174
+scheda: ist-aggiornamento-canone
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Restituzione del deposito cauzionale e cause di locazione
+event_id: b8bf713cf1157c60b10d
+scheda: ist-deposito-cauzionale
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Restituzione del canone non registrato o in nero
+event_id: fb29182ba85cbeef0328
+scheda: ist-canone-nero
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Garanzia legale di conformità
+event_id: 1289724863599099b501
+scheda: ist-garanzia-conformita
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Foro del consumatore e competenza
+event_id: 843a4cdd7f31a730b6c2
+scheda: ist-foro-consumatore
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Usura bancaria
+event_id: 2cafc29f5bbdb4fded15
+scheda: ist-usura
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Anatocismo e ripetizione di indebito bancario
+event_id: 778e9dfd249117ed60bd
+scheda: ist-anatocismo
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Contestazione degli estratti conto e richiesta documenti (art. 119 TUB)
+event_id: 74575628d060560afbfd
+scheda: ist-estratti-conto
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Reclamo e mediazione tributaria (istituto abrogato: oggi ricorso diretto)
+event_id: 013a0f8f2259856b687b
+scheda: ist-reclamo-mediazione-tributaria
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Diniego o revoca del permesso di soggiorno ed espulsione
+event_id: 1a35042513adeb5508e8
+scheda: ist-permesso-soggiorno
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Mediazione civile e commerciale (d.lgs. 28/2010)
+event_id: b6a7d83f1bb437301e86
+scheda: ist-mediazione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Negoziazione assistita (d.l. 132/2014)
+event_id: 8018c8c3245ccc0f7ad6
+scheda: ist-negoziazione-assistita
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Condizioni di procedibilità nelle cause di locazione
+event_id: 0766c77a39792c15fc4c
+scheda: ist-procedibilita-locazione
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Sequestro ante causam: efficacia e inizio del giudizio di merito
+event_id: c87ccadfef4ebde11908
+scheda: ist-sequestro-ante-causam
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Competenza per territorio nelle cause di pagamento
+event_id: 4bb602b3e0f0108faee0
+scheda: ist-competenza-pagamento
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] aggiornamento | Danno da attività pericolose (art. 2050 c.c.)
+event_id: 48f71522ec650db441a2
+scheda: ist-attivita-pericolose
+status: completato
+revision: 1 -> 2
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:34:33+01:00] controllo | passaggio di controllo
+event_id: 4d747f3e390821db21c1
+status: completato
+generate: 0
+aggiornate: 78
+rinominate: 0
+invariate: 77
+ritirate: 0
+schede: 155

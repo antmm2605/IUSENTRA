@@ -1,6 +1,6 @@
 # Diffida e messa in mora
 
-- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 5 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** lettera di diffida e messa in mora via PEC o raccomandata, con termine per adempiere.

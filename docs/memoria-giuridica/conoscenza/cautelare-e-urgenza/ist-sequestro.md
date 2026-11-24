@@ -1,6 +1,6 @@
 # Sequestro conservativo e giudiziario
 
-- ID: `ist-sequestro` · materia: cautelare e urgenza · revisione 6 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-sequestro` · materia: cautelare e urgenza · revisione 7 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per sequestro al giudice competente per il merito.
@@ -56,8 +56,10 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - art. 671 c.p.c. (Sequestro conservativo) — testo vigente, aggiornamento archivio 05/03/2026, versione `f2d2a0674576a1f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art671
 - art. 670 c.p.c. (Sequestro giudiziario) — testo vigente, aggiornamento archivio n.d., versione `7f8bdd808f93f988` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art670
 - art. 675 c.p.c. (Termine per l'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `18289231a916778c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art675
+- art. 669-novies c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `be340f142af15f76` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669novies!vig=2022-10-17
 - art. 669-novies c.p.c. (Inefficacia del provvedimento cautelare) — testo vigente, aggiornamento archivio 05/03/2026, versione `c05987d8de540927` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669novies
 - art. 2905 c.c. (art. 2905 c.c.) — testo vigente, aggiornamento archivio n.d., versione `703049fdd6d3f341` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2905
+- art. 669-octies c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `4de89fa541ef9aa8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669octies!vig=2022-10-17
 - art. 669-octies c.p.c. (Provvedimento di accoglimento) — testo vigente, aggiornamento archivio 05/03/2026, versione `ffd546d7e00fe088` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669octies
 - art. 669-ter c.p.c. (Competenza anteriore alla causa) — testo vigente, aggiornamento archivio 05/03/2026, versione `9b0478d3ab076db9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669ter
 - Corte di Cassazione — penale, sez. 5, n. 43389/2023 (testo integrale) — versione `a3fcb999398085ec` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2023543389S&rows=1&wt=json
@@ -75,3 +77,4 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte di Cassazione — penale|43389/2023, pronuncia:Corte costituzionale|109/2026, pronuncia:Corte costituzionale|116/2011, pronuncia:Corte costituzionale|26/2010, pronuncia:Corte di Cassazione — civile|5984/2026
 - r5 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte di Cassazione — penale|43389/2023
 - r6 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte di Cassazione — penale|43389/2023
+- r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

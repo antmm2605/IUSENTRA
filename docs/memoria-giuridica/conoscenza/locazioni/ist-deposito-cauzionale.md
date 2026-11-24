@@ -1,6 +1,6 @@
 # Restituzione del deposito cauzionale e cause di locazione
 
-- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1590 c.c., art. 11 l. 392/1978, art. 447-bis c.p.c..
@@ -55,9 +55,11 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 1590 c.c. (art. 1590 c.c.) — testo vigente, aggiornamento archivio n.d., versione `29b0130a75f2adb5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1590
 - art. 11 l. 392/1978 (Deposito cauzionale) — testo vigente, aggiornamento archivio 21/11/2026, versione `4e993de977c5ceda` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art11
 - art. 447-bis c.p.c. (Norme applicabili alle controversie in materia di locazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `9313ab26e5e36132` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art447bis
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 21 c.p.c. (Foro per le cause relative a diritti reali e ad azioni possessorie) — testo vigente, aggiornamento archivio 05/03/2026, versione `a49b022144e077b5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art21
+- art. 7 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c211f95d1bd2c950` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7!vig=2022-10-17
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 - art. 9 c.p.c. (Competenza del tribunale) — testo vigente, aggiornamento archivio 05/03/2026, versione `3513c78f4e954cde` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art9
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
@@ -77,3 +79,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026, pronuncia:Corte costituzionale|135/2016, pronuncia:Corte costituzionale|45/2018, pronuncia:Corte di Cassazione — civile|27991/2026, pronuncia:Corte di Cassazione — civ
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+- r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

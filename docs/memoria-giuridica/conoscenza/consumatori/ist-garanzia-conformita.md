@@ -1,6 +1,6 @@
 # Garanzia legale di conformità
 
-- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 6 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 7 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta al venditore di riparazione o sostituzione gratuita; in subordine riduzione del prezzo o risoluzione del contratto.
@@ -69,6 +69,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - art. 129 d.lgs. 206/2005 (codice del consumo) (Conformità dei beni al contratto) — testo vigente, aggiornamento archivio 11/11/2026, versione `16d525f747ef74d5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art129
 - art. 135-ter d.lgs. 206/2005 (codice del consumo) (Modalità di ripristino della conformità) — testo vigente, aggiornamento archivio 11/11/2026, versione `7c6e3af937f16056` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art135ter
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 135-bis d.lgs. 206/2005 (codice del consumo) (Rimedi per il difetto di conformità) — testo vigente, aggiornamento archivio 11/11/2026, versione `3ad7decbe6df4893` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art135bis
 - art. 135-quater d.lgs. 206/2005 (codice del consumo) (Riduzione del prezzo e risoluzione) — testo vigente, aggiornamento archivio 11/11/2026, versione `6284256586d3379b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art135quater
@@ -92,3 +93,4 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697
 - r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|10445/2025, pronuncia:Corte di Cassazione — civile|14390/2024, pronuncia:Corte di Cassazione — civile|19979/2024, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26202/2024, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+- r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

@@ -108,6 +108,11 @@ def norma(chiave: str):
         return negato
     from lex.conoscenza import consultazione
 
+    if request.args.get("versione") == "anteriore":
+        dati = consultazione.testo_anteriore(chiave)
+        if dati is None:
+            return jsonify(ok=False, message="Nessun testo anteriore registrato per questa norma."), 404
+        return jsonify(ok=True, norma=dati)
     dati = consultazione.passaggio_norma(chiave, str(request.args.get("ancora", "") or "")[:600])
     if dati is None:
         return jsonify(ok=False, message="Testo della norma non disponibile nell'archivio."), 404

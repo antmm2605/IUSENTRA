@@ -1,6 +1,6 @@
 # Regolamento di competenza
 
-- ID: `ist-regolamento-competenza` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-regolamento-competenza` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso alla Corte di cassazione per regolamento di competenza (in alternativa: riassunzione davanti al giudice indicato).
@@ -45,9 +45,11 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Fonti con versione
 - art. 42 c.p.c. (Regolamento necessario di competenza) — testo vigente, aggiornamento archivio n.d., versione `4334630d2940b3cd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art42
 - art. 43 c.p.c. (Regolamento facoltativo di competenza) — testo vigente, aggiornamento archivio n.d., versione `366fb4d2650e6172` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art43
+- art. 47 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `528e9c03e06bffa5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art47!vig=2022-10-17
 - art. 47 c.p.c. (Procedimento del regolamento di competenza) — testo vigente, aggiornamento archivio n.d., versione `c28e4ec7f97e5933` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art47
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:43
+- r3 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

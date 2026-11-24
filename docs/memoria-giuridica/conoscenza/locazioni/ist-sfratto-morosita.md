@@ -1,6 +1,6 @@
 # Intimazione di sfratto per morosità e citazione per la convalida
 
-- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 7 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 8 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.
@@ -80,9 +80,11 @@
 
 ## Fonti con versione
 - art. 658 c.p.c. (Intimazione di sfratto per morosità) — testo vigente, aggiornamento archivio 05/03/2026, versione `720ffdd98a2bb29a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art658
+- art. 663 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `fa21078be5b5ada1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art663!vig=2022-10-17
 - art. 663 c.p.c. (Mancata comparizione o mancata opposizione dell'intimato) — testo vigente, aggiornamento archivio 05/03/2026, versione `5d116dc8ca3a10ab` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art663
 - art. 5 l. 392/1978 (Inadempimento del conduttore) — testo vigente, aggiornamento archivio n.d., versione `707ef74e020da11a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art5
 - art. 55 l. 392/1978 (Termine per il pagamento dei canoni scaduti) — testo vigente, aggiornamento archivio n.d., versione `f73bb6aabb2fee78` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1978-07-27;392~art55
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 665 c.p.c. (Opposizione e provvedimenti del giudice) — testo vigente, aggiornamento archivio 05/03/2026, versione `9fbf736ad8a2171f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art665
@@ -122,3 +124,4 @@
 - r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

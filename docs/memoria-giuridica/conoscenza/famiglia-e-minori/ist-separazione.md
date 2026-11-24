@@ -1,6 +1,6 @@
 # Separazione personale (giudiziale e consensuale)
 
-- ID: `ist-separazione` · materia: famiglia e minori · revisione 5 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-separazione` · materia: famiglia e minori · revisione 6 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per separazione giudiziale (o congiunto per la consensuale) al tribunale; Tribunale.
@@ -58,12 +58,19 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Fonti con versione
 - art. 151 c.c. (Separazione giudiziale) — testo vigente, aggiornamento archivio 29/04/2026, versione `36a8e7b216b18181` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art151
+- art. 473-bis.12 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis.12 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `a434907c6fd0499d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.12
+- art. 473-bis.51 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis.51 c.p.c. (Procedimento su domanda congiunta) — testo vigente, aggiornamento archivio n.d., versione `d62f1478b4baea50` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.51
+- art. 473-bis.11 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
+- art. 337-ter c.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `1380e26aab2dfcb7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337ter!vig=2022-10-17
 - art. 337-ter c.c. (Provvedimenti riguardo ai figli) — testo vigente, aggiornamento archivio 29/04/2026, versione `b22492dba36fe097` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337ter
+- art. 473-bis.49 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis.49 c.p.c. (Cumulo di domande di separazione e divorzio) — testo vigente, aggiornamento archivio 05/03/2026, versione `0fc6c49e1123a6df` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.49
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 473-bis c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis c.p.c. (Ambito di applicazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `d2c209461fe64ceb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis
 - Corte di Cassazione — civile, sez. 1, n. 27890/2026 (testo integrale) — versione `b35d1f873838f50b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026127890O&rows=1&wt=json
 - Corte costituzionale, n. 266/2014 (testo integrale) — versione `cc1:c14d23597acb` — https://www.cortecostituzionale.it/scheda-pronuncia/2014/266
@@ -78,3 +85,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|68/2025, pronuncia:Corte costituzionale|71/2024, pronuncia:Corte costituzionale|79/2022, pronuncia:Corte di Cassazione — civile|32211/2025
 - r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

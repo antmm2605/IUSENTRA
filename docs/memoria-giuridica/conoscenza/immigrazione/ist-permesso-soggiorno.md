@@ -1,6 +1,6 @@
 # Diniego o revoca del permesso di soggiorno ed espulsione
 
-- ID: `ist-permesso-soggiorno` · materia: immigrazione · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-permesso-soggiorno` · materia: immigrazione · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione al tribunale ordinario (sezione specializzata immigrazione), non ricorso al TAR.
@@ -49,8 +49,10 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 5 d.lgs. 286/1998 (Permesso di soggiorno (Legge 6 marzo 1998, n. 40, art. 5)) — testo vigente, aggiornamento archivio n.d., versione `861e9ba3ef13d5cd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-07-25;286~art5
 - art. 13 d.lgs. 286/1998 (Espulsione amministrativa (Legge 6 marzo 1998, n. 40, art. 11)) — testo vigente, aggiornamento archivio n.d., versione `5406f2feadc56a99` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-07-25;286~art13
 - art. 30 d.lgs. 286/1998 (Permesso di soggiorno per motivi familiari) — testo vigente, aggiornamento archivio 11/11/2026, versione `c36a89f4f1ae99b3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-07-25;286~art30
+- art. 20 d.lgs. 150/2011 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `cceb189ddeba0cf9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art20!vig=2022-10-17
 - art. 20 d.lgs. 150/2011 (Delle controversie in materia di unità familiare) — testo vigente, aggiornamento archivio 19/06/2025, versione `01d43294774f21bf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art20
 - art. 6 d.lgs. 286/1998 (Facoltà ed obblighi inerenti al soggiorno) — testo vigente, aggiornamento archivio 11/11/2026, versione `b99cbc0c0dcf2788` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-07-25;286~art6
+- art. 18 d.lgs. 150/2011 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `31acaeec5d8e14bf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art18!vig=2022-10-17
 - art. 18 d.lgs. 150/2011 (Controversie in materia di espulsione) — testo vigente, aggiornamento archivio n.d., versione `da4289ea27b2c9cc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art18
 
 ## Cronologia delle revisioni
@@ -58,3 +60,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:tui:13, norma:tui:5
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:dlgs150:18, norma:dlgs286:6
 - r4 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

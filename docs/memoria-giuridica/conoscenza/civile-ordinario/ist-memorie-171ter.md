@@ -1,6 +1,6 @@
 # Memorie integrative art. 171-ter c.p.c.
 
-- ID: `ist-memorie-171ter` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-memorie-171ter` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 8 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** deposito delle memorie integrative a quaranta, venti e dieci giorni prima dell'udienza di prima comparizione.
@@ -47,6 +47,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Sezioni senza fonte: Presupposti, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
+- art. 171-ter c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 171-ter c.p.c. (Memorie integrative) — testo vigente, aggiornamento archivio 05/03/2026, versione `bc58dc903cec8cd7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171ter
 - art. 171-bis c.p.c. (Verifiche preliminari) — testo vigente, aggiornamento archivio n.d., versione `56e2865b2097b93a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171bis
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
@@ -60,3 +61,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

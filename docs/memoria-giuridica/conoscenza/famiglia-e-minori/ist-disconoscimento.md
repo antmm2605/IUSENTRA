@@ -1,6 +1,6 @@
 # Disconoscimento di paternità
 
-- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per disconoscimento di paternità; tribunale della residenza abituale del minore.
@@ -54,7 +54,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 243-bis c.c. (Disconoscimento di paternità) — testo vigente, aggiornamento archivio 29/04/2026, versione `723d49d6d0cea8fe` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art243bis
 - art. 244 c.c. (Termini dell'azione di disconoscimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `f882396eede90c1b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art244
 - art. 247 c.c. (Legittimazione passiva) — testo vigente, aggiornamento archivio 29/04/2026, versione `5437008404b4cacb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art247
+- art. 473-bis.12 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis.12 c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `a434907c6fd0499d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.12
+- art. 473-bis.11 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis.11 c.p.c. (Competenza per territorio) — testo vigente, aggiornamento archivio 05/03/2026, versione `b135ed38f56a250c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.11
 - Corte di Cassazione — civile, sez. 1, n. 12245/2025 (testo integrale) — versione `cbc59fa481a8e491` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025112245O&rows=1&wt=json
 - Corte costituzionale, n. 133/2021 (testo integrale) — versione `cc1:4c969c5f3fba` — https://www.cortecostituzionale.it/scheda-pronuncia/2021/133
@@ -67,3 +69,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|162/2014
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

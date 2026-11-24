@@ -1,6 +1,6 @@
 # Impugnazione della delibera condominiale (art. 1137)
 
-- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 5 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1137 c.c., art. 71-quater disp. att. c.c., art. 5 d.lgs. 28/2010.
@@ -51,10 +51,14 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
+- art. 1137 c.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c5a34de58d8757ce` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1137!vig=2022-10-17
 - art. 1137 c.c. (Impugnazione delle deliberazioni dell'assemblea) — testo vigente, aggiornamento archivio 29/04/2026, versione `b55891c7a8b508f2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1137
+- art. 71-quater disp. att. c.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `1cc37a56526dd498` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;318~art71quater!vig=2022-10-17
 - art. 71-quater disp. att. c.c. (art. 71-quater disp. att. c.c.) — testo vigente, aggiornamento archivio n.d., versione `e0408ae6b5914a61` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;318~art71quater
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 167 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `bd6d7602771dbd96` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167!vig=2022-10-17
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
@@ -73,3 +77,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:167, norma:cpc:38
 - r4 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+- r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

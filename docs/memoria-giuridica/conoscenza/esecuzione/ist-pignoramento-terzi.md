@@ -1,6 +1,6 @@
 # Pignoramento presso terzi
 
-- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-pignoramento-terzi` · materia: esecuzione · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di pignoramento presso terzi notificato al terzo e al debitore, con citazione davanti al giudice dell'esecuzione; Tribunale del luogo di residenza, domicilio, dimora o sede del debitore.
@@ -62,6 +62,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 548 c.p.c., comma 2 (pertinente): comma 1 abrogato dal d.l. 132/2014, conv. l. 162/2014; vigenti i commi 2 e 3. Pertinente il comma 2: se il terzo non compare o rifiuta la dichiarazione, il credito si considera non contestato e il giudice provvede a norma degli artt. 552 o 553 c.p.c.
 - art. 548 c.p.c. (Mancata dichiarazione del terzo) — testo vigente, aggiornamento archivio n.d., versione `fce0392d5ca5326f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art548
 - art. 481 c.p.c. (Cessazione dell'efficacia del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `b51670fb94010269` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art481
+- art. 479 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `3a20435aa2acf9cf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479!vig=2022-10-17
 - art. 479 c.p.c. (Notificazione del titolo esecutivo e del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `1cac0925f6c5ae80` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479
 - art. 480 c.p.c. (Forma del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `8d05fb17defb2bf1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art480
 - art. 26-bis c.p.c. (Foro relativo all'espropriazione forzata di crediti) — testo vigente, aggiornamento archivio n.d., versione `e7c563125f1ba732` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art26bis
@@ -77,3 +78,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|522/2002, pronuncia:Corte costituzionale|95/2006, pronuncia:Corte di Cassazione — penale|35868/2026
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

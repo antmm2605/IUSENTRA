@@ -60,11 +60,28 @@ def fonte_norma(chiave: str, *, comma: str = "", ancora: str = "") -> dict[str, 
     if n is None or t is None:
         return None
     abrogazione = _ABROGATO.search(t.testo[:400])
-    return {"tipo": "norma", "chiave": chiave, "citazione": n.citazione, "rubrica": n.rubrica, "comma": comma,
+    anteriore = _anteriori().get(chiave)
+    extra = {}
+    if anteriore:
+        extra["testo_anteriore"] = {k: anteriore.get(k, "") for k in ("stato", "vigente_al", "versione", "url")}
+        extra["testo_anteriore"]["decorrenza_letta"] = (anteriore.get("decorrenza_letta") or [""])[-1][:600]
+    return {**extra, "tipo": "norma", "chiave": chiave, "citazione": n.citazione, "rubrica": n.rubrica, "comma": comma,
             "ancora": ancora, "url": t.url, "aggiornamento": t.aggiornamento, "origine": t.origine,
             "vigente": t.vigente and not abrogazione, "stato": "abrogata" if abrogazione else "vigente",
             "nota_abrogazione": " ".join(abrogazione.group(0).strip("() ").split()).capitalize() if abrogazione else "",
             "versione": hashlib.sha256(t.testo.encode()).hexdigest()[:16]}
+
+
+TESTI_ANTERIORI = DATI / "testi_anteriori.json"
+
+
+@lru_cache(maxsize=1)
+def _anteriori() -> dict[str, Any]:
+    """Testi anteriori al d.lgs. 149/2022 (scripts/conoscenza_testi_anteriori.py): per le cause col rito anteriore."""
+    try:
+        return json.loads(TESTI_ANTERIORI.read_text(encoding="utf-8")).get("norme", {})
+    except (OSError, ValueError):
+        return {}
 
 
 # Nota di Normattiva sull'articolo abrogato per intero («((ARTICOLO ABROGATO DAL D.LGS. …))»).

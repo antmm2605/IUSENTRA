@@ -1,6 +1,6 @@
 # Sospensione del procedimento con messa alla prova
 
-- ID: `ist-messa-alla-prova` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-messa-alla-prova` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di sospensione con messa alla prova e programma predisposto con l'UEPE.

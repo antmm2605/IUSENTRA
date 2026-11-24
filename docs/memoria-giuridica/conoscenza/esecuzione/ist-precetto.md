@@ -1,6 +1,6 @@
 # Atto di precetto
 
-- ID: `ist-precetto` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-precetto` · materia: esecuzione · revisione 4 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 480 c.p.c., art. 481 c.p.c., art. 479 c.p.c..
@@ -49,6 +49,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Fonti con versione
 - art. 480 c.p.c. (Forma del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `8d05fb17defb2bf1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art480
 - art. 481 c.p.c. (Cessazione dell'efficacia del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `b51670fb94010269` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art481
+- art. 479 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `3a20435aa2acf9cf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479!vig=2022-10-17
 - art. 479 c.p.c. (Notificazione del titolo esecutivo e del precetto) — testo vigente, aggiornamento archivio 05/03/2026, versione `1cac0925f6c5ae80` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479
 - art. 482 c.p.c. (Termine ad adempiere) — testo vigente, aggiornamento archivio 05/03/2026, versione `62387a1db3f006bf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art482
 - Corte di Cassazione — civile, sez. 3, n. 27788/2026 (testo integrale) — versione `29d5fac98c9704a9` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026327788O&rows=1&wt=json
@@ -62,3 +63,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|159/1969, pronuncia:Corte costituzionale|200/1996, pronuncia:Corte costituzionale|37/1973
+- r4 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

@@ -1,6 +1,6 @@
 # Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
 
-- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 8 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 9 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 23 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per il risarcimento del danno da abuso (non per la conversione); Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
@@ -61,13 +61,14 @@
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023); per i procedimenti pendenti a quella data vale il testo anteriore, non presente nel registro delle norme, e nell'archivio delle pronunce lette non c'è giurisprudenza sul giudicato implicito sulla giurisdizione: da verificare per le cause anteriori.
+- Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023). Per i procedimenti pendenti a quella data vale il testo anteriore, registrato fra le fonti (vigente al 17/10/2022): il difetto di giurisdizione verso la pubblica amministrazione o i giudici speciali è rilevato, anche d'ufficio, «in qualunque stato e grado del processo», senza la regola dello specifico motivo. I limiti posti dalla giurisprudenza a quel testo (giudicato implicito sulla giurisdizione) non sono nell'archivio delle pronunce lette.
 
 ## Fonti con versione
 - art. 36 d.lgs. 165/2001 (Personale a tempo determinato o assunto con forme di lavoro flessibile) — testo vigente, aggiornamento archivio 21/11/2026, versione `fbe5c409530384b6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art36
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
 - art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
 - art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
+- art. 37 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `510bf49202afe7a8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37!vig=2022-10-17
 - art. 37 c.p.c. (Difetto di giurisdizione) — testo vigente, aggiornamento archivio n.d., versione `f1bb0e5c6533e2d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 63 d.lgs. 165/2001 (Controversie relative ai rapporti di lavoro) — testo vigente, aggiornamento archivio 11/11/2026, versione `de186351b585f541` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art63
@@ -97,3 +98,4 @@
 - r6 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r7 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

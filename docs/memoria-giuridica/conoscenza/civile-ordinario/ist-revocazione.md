@@ -1,6 +1,6 @@
 # Revocazione della sentenza
 
-- ID: `ist-revocazione` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-revocazione` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per revocazione davanti allo stesso giudice che ha pronunciato la sentenza.
@@ -48,6 +48,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 396 c.p.c. (Revocazione delle sentenze per le quali è scaduto il termine per l'appello) — testo vigente, aggiornamento archivio n.d., versione `5f395f5c32f4ee43` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art396
 - art. 398 c.p.c. (Proposizione della domanda di revocazione) — testo vigente, aggiornamento archivio n.d., versione `da8d3862ee038f7d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art398
 - art. 325 c.p.c. (Termini per le impugnazioni) — testo vigente, aggiornamento archivio 05/03/2026, versione `a8a512cd9b78ba36` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art325
+- art. 326 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `9a730eb1317f53ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326!vig=2022-10-17
 - art. 326 c.p.c. (Decorrenza dei termini) — testo vigente, aggiornamento archivio n.d., versione `358eb8a805aa88ab` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326
 - art. 327 c.p.c. (Decadenza dall'impugnazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `3e877539f1fa0e9a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art327
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
@@ -55,3 +56,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:396
+- r3 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

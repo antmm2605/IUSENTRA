@@ -1,6 +1,6 @@
 # Sequestro ante causam: efficacia e inizio del giudizio di merito
 
-- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 3 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 4 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per sequestro conservativo ante causam al giudice competente per il merito; poi esecuzione entro trenta giorni e inizio del merito nel termine perentorio; Tribunale competente per territorio sul merito.
@@ -55,10 +55,13 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Fonti con versione
 - art. 671 c.p.c. (Sequestro conservativo) — testo vigente, aggiornamento archivio 05/03/2026, versione `f2d2a0674576a1f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art671
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 675 c.p.c. (Termine per l'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `18289231a916778c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art675
+- art. 669-octies c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `4de89fa541ef9aa8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669octies!vig=2022-10-17
 - art. 669-octies c.p.c. (Provvedimento di accoglimento) — testo vigente, aggiornamento archivio 05/03/2026, versione `ffd546d7e00fe088` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669octies
+- art. 669-novies c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `be340f142af15f76` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669novies!vig=2022-10-17
 - art. 669-novies c.p.c. (Inefficacia del provvedimento cautelare) — testo vigente, aggiornamento archivio 05/03/2026, versione `c05987d8de540927` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669novies
 - art. 669-ter c.p.c. (Competenza anteriore alla causa) — testo vigente, aggiornamento archivio 05/03/2026, versione `9b0478d3ab076db9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669ter
 - art. 18 c.p.c. (Foro generale delle persone fisiche) — testo vigente, aggiornamento archivio 05/03/2026, versione `edfe283095fec60d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art18
@@ -75,3 +78,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+- r4 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

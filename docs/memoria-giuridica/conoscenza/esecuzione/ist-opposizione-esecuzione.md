@@ -1,6 +1,6 @@
 # Opposizione all'esecuzione (art. 615)
 
-- ID: `ist-opposizione-esecuzione` · materia: esecuzione · revisione 6 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-opposizione-esecuzione` · materia: esecuzione · revisione 7 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a precetto (art. 615, comma 1, c.p.c.) con istanza di sospensione dell'efficacia esecutiva del titolo per gravi motivi; giudice del luogo dell'esecuzione.
@@ -65,12 +65,15 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 624 c.p.c. (Sospensione per opposizione all'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `158a7a6ded98357b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art624
 - art. 1965 c.c. (Nozione della transazione) — testo vigente, aggiornamento archivio 29/04/2026, versione `05d0a906e6bbe9c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1965
 - art. 1199 c.c. (Diritto del debitore alla quietanza) — testo vigente, aggiornamento archivio 29/04/2026, versione `8a28f2c2f0fb7a05` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1199
+- art. 96 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `51846ea6ddad0e1f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art96!vig=2022-10-17
 - art. 96 c.p.c. (Responsabilità aggravata) — testo vigente, aggiornamento archivio 05/03/2026, versione `7499cd86deae610d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art96
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 617 c.p.c. (Forma dell'opposizione agli atti esecutivi) — testo vigente, aggiornamento archivio 05/03/2026, versione `79b4302774c6396a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art617
 - art. 27 c.p.c. (Competenza per le opposizioni all'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `81d6ecb19fa3446b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art27
 - art. 616 c.p.c. (Provvedimenti sul giudizio di cognizione introdotto dall'opposizione) — testo vigente, aggiornamento archivio n.d., versione `c2c601aa0e94726f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art616
+- art. 163 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `d0066c2ef3cd3b9e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art163!vig=2022-10-17
 - art. 163 c.p.c. (Contenuto della citazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `77209d0b61dd6ee9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art163
 - Corte di Cassazione — civile, sez. 3, n. 29522/2026 (testo integrale) — versione `ce959e6b73a870d9` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329522O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29404/2026 (testo integrale) — versione `7a4117ecae67c197` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329404O&rows=1&wt=json
@@ -86,3 +89,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27788/2026
 - r5 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte costituzionale|271/2017
 - r6 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

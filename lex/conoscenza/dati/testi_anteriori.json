@@ -1,0 +1,1183 @@
+{
+ "metodo": "Molto contenzioso pendente segue ancora il rito anteriore: per ogni norma delle schede il cui testo vigente porta la nota Normattiva del d.lgs. 10 ottobre 2022, n. 149, si scarica da Normattiva (Akoma Ntoso, multivigenza) il testo vigente al 17/10/2022, il giorno prima dell'entrata in vigore del decreto, e lo si registra in ``lex/conoscenza/dati/testi_anteriori.json`` con URL, data di vigenza e impronta. La decorrenza del testo nuovo non si presume: si riporta la nota di aggiornamento letta nel testo vigente dell'articolo. Un articolo che al 17/10/2022 non esisteva (introdotto dalla riforma) si registra come tale.",
+ "vigenza": "20221017",
+ "acquisito_il": "2026-11-24",
+ "esiti": [
+  {
+   "urn": "urn:nir:stato:regio.decreto:1942-03-16;262",
+   "chiavi": [
+    "cc:1137",
+    "cc:156",
+    "cc:2652",
+    "cc:337ter"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 3260
+  },
+  {
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "chiavi": [
+    "cpc:163",
+    "cpc:163bis",
+    "cpc:165",
+    "cpc:166",
+    "cpc:167",
+    "cpc:171ter",
+    "cpc:281decies",
+    "cpc:281duodecies",
+    "cpc:281undecies",
+    "cpc:326",
+    "cpc:342",
+    "cpc:348bis",
+    "cpc:360",
+    "cpc:366",
+    "cpc:369",
+    "cpc:37",
+    "cpc:380bis",
+    "cpc:434",
+    "cpc:437",
+    "cpc:441bis",
+    "cpc:47",
+    "cpc:473bis",
+    "cpc:473bis.51",
+    "cpc:473bis11",
+    "cpc:473bis12",
+    "cpc:473bis29",
+    "cpc:473bis36",
+    "cpc:473bis37",
+    "cpc:473bis49",
+    "cpc:473bis69",
+    "cpc:473bis70",
+    "cpc:479",
+    "cpc:492bis",
+    "cpc:567",
+    "cpc:614bis",
+    "cpc:657",
+    "cpc:663",
+    "cpc:669novies",
+    "cpc:669octies",
+    "cpc:7",
+    "cpc:96"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 955
+  },
+  {
+   "urn": "urn:nir:stato:regio.decreto:1942-03-30;318",
+   "chiavi": [
+    "dispattcc:71quater"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 313
+  },
+  {
+   "urn": "urn:nir:stato:regio.decreto:1941-12-18;1368",
+   "chiavi": [
+    "dispattcpc:155quinquies"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 281
+  },
+  {
+   "urn": "urn:nir:stato:decreto.legge:2014-09-12;132",
+   "chiavi": [
+    "dl132:2ter"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 25
+  },
+  {
+   "urn": "urn:nir:stato:decreto.legislativo:2017-07-13;116",
+   "chiavi": [
+    "dlgs116:32"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 35
+  },
+  {
+   "urn": "urn:nir:stato:decreto.legislativo:2011-09-01;150",
+   "chiavi": [
+    "dlgs150:18",
+    "dlgs150:20"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 38
+  },
+  {
+   "urn": "urn:nir:stato:decreto.legislativo:2010-03-04;28",
+   "chiavi": [
+    "dlgs28:12",
+    "dlgs28:12bis",
+    "dlgs28:5",
+    "dlgs28:5bis",
+    "dlgs28:8"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 24
+  },
+  {
+   "urn": "urn:nir:presidente.repubblica:decreto:2002-05-30;115",
+   "chiavi": [
+    "dpr115:13",
+    "dpr115:30"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 313
+  },
+  {
+   "urn": "urn:nir:stato:legge:1970-12-01;898",
+   "chiavi": [
+    "l898:5"
+   ],
+   "esito": "scaricato",
+   "articoli_atto": 18
+  }
+ ],
+ "norme": {
+  "cc:1137": {
+   "citazione": "art. 1137 c.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1942-03-16;262",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (321) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (322) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-delibera-condominio"
+   ],
+   "sha256_akn": "342fe288061d06f8ab6427b5428a5acd9b694bc06d9602d6115bf224557daed7",
+   "stato": "testo anteriore",
+   "testo": "Art. 1137. (( (Impugnazione delle deliberazioni dell'assemblea). )) ((Le deliberazioni prese dall'assemblea a norma degli articoli precedenti sono obbligatorie per tutti i condomini. Contro le deliberazioni contrarie alla legge o al regolamento di condominio ogni condomino assente, dissenziente o astenuto puo' adire l'autorita' giudiziaria chiedendone l'annullamento nel termine perentorio di trenta giorni, che decorre dalla data della deliberazione per i dissenzienti o astenuti e dalla data di comunicazione della deliberazione per gli assenti. L'azione di annullamento non sospende l'esecuzione della deliberazione, salvo che la sospensione sia ordinata dall'autorita' giudiziaria. L'istanza per ottenere la sospensione proposta prima dell'inizio della causa di merito non sospende ne' interrompe il termine per la proposizione dell'impugnazione della deliberazione. Per quanto non espressamente previsto, la sospensione e' disciplinata dalle norme di cui al libro IV, titolo I, capo III, sezione I, con l'esclusione dell'articolo 669-octies, sesto comma, del codice di procedura civile)) .",
+   "versione": "c5a34de58d8757ce",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1137!vig=2022-10-17"
+  },
+  "cc:156": {
+   "citazione": "art. 156 c.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1942-03-16;262",
+   "decorrenza_letta": [],
+   "schede": [
+    "ist-mantenimento"
+   ],
+   "sha256_akn": "342fe288061d06f8ab6427b5428a5acd9b694bc06d9602d6115bf224557daed7",
+   "stato": "testo anteriore",
+   "testo": "Art. 156. Effetti della separazione sui rapporti patrimoniali tra i coniugi. Il giudice, pronunziando la separazione, stabilisce a vantaggio del coniuge cui non sia addebitabile la separazione il diritto di ricevere dall'altro coniuge quanto e' necessario al suo mantenimento, qualora egli non abbia adeguati redditi propri. L'entita' di tale somministrazione e' determinata in relazione alle circostanze e ai redditi dell'obbligato. Resta fermo l'obbligo di prestare gli alimenti di cui agli articoli 433 e seguenti. Il giudice che pronunzia la separazione puo' imporre al coniuge di prestare idonea garanzia reale o personale se esiste il pericolo che egli possa sottrarsi all'adempimento degli obblighi previsti dai precedenti commi e dall'articolo 155. La sentenza costituisce titolo per l'iscrizione dell'ipoteca giudiziale ai sensi dell'articolo 2818. In caso di inadempienza, su richiesta dell'avente diritto, il giudice puo' disporre il sequestro di parte dei beni del coniuge obbligato e ordinare ai terzi, tenuti a corrispondere anche periodicamente somme di danaro all'obbligato, che una parte di esse venga versata direttamente agli aventi diritto. (58) (64) (99) ((104)) Qualora sopravvengano giustificati motivi il giudice, su istanza di parte, puo' disporre la revoca o la modifica dei provvedimenti di cui ai commi precedenti. ------------- AGGIORNAMENTO (8) La Corte Costituzionale, con sentenza 4 - 23 maggio 1966, n. 46 (in G.U. 1a s.s. 28/5/1966, n. 131), ha dichiarato \"l'illegittimita' costituzionale dell' art. 156, primo comma, del Codice civile , nella parte in cui pone a carico del marito, in regime di separazione consensuale senza colpa di nessuno dei coniugi, l'obbligo di somministrare alla moglie tutto cio' che e' necessario ai bisogni della vita, indipendentemente dalle condizioni economiche di costei\". ------------- AGGIORNAMENTO (18) La Corte Costituzionale, con sentenza 24 giugno-13 luglio 1970, n. 128 (in G.U. 1a s.s. 15/7/1970, n. 177), ha dichiarato \"illegittimita' costituzionale dell' art. 156, quinto comma, del codice civile , nella parte in cui esclude la pretesa della moglie a non usare il cognome del marito, in regime di separazione per colpa di quest'ultimo, nel caso che da quell'uso possa derivarle un pregiudizio\". ------------- AGGIORNAMENTO (36) La Corte Costituzionale, con sentenza 4 - 18 aprile 1974, n. 99 (in G.U. 1a s.s. 24/4/1974, n. 107), ha dichiarato \"l'illegittimita' costituzionale dell' art. 156, primo comma, del codice civile nella parte in cui, disponendo che per i coniugi consensualmente separati perduri l'obbligo reciproco di fedelta', non limita quest'ultimo al dovere di astenersi da quei comportamenti che, per il concorso di determinate circostanze, siano idonei a costituire ingiuria grave all'altro coniuge\". ------------- AGGIORNAMENTO (58) La Corte Costituzionale, con sentenza 12 - 31 maggio 1983, n. 144 (in G.U. 1a s.s. 8/6/1983, n. 156), ha dichiarato \"l'illegittimita' costituzionale dell' art. 156, sesto comma del Codice Civile , nella parte in cui non prevede che le disposizioni ivi contenute si applichino a favore dei figli di coniugi consensualmente separati\". ------------- AGGIORNAMENTO (64) La Corte Costituzionale, con sentenza 14 - 19 gennaio 1987, n. 5 (in G.U. 1a s.s. 28/1/1987, n. 5), ha dichiarato \"l'illegittimita' costituzionale dell' art. 156, sesto comma, del codice civile , nella parte in cui non prevede che le disposizioni ivi contenute si applichino ai coniugi separati consensualmente\". ------------- AGGIORNAMENTO (99) La Corte Costituzionale, con sentenza 23 giugno-6 luglio 1994, n. 278 (in G.U. 1a s.s. 13/7/1994, n. 29), ha dichiarato \"l'illegittimita' costituzionale dell' art. 156, sesto comma, del codice civile , nella parte in cui non prevede che il giudice istruttore possa adottare nel corso della causa di separazione il provvedimento di ordinare ai terzi debitori del coniuge obbligato al mantenimento di versare una parte delle somme direttamente agli aventi diritto\". ------------- AGGIORNAMENTO (104) La Corte Costituzionale, con sentenza 10-19 luglio 1996, n. 258 (in G.U. 1a s.s.s 24/7/1996, n. 30), ha dichiarato \"l'illegittimita' costituzionale dell' art. 156, sesto comma, del codice civile , nella parte in cui non prevede che il giudice istruttore possa adottare, nel corso della causa di separazione, il provvedimento di sequestro di parte dei beni del coniuge obbligato al mantenimento\".",
+   "versione": "ad357a57b5b512cf",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art156!vig=2022-10-17"
+  },
+  "cc:2652": {
+   "citazione": "art. 2652 c.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1942-03-16;262",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (321) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (322) Il D.Lgs. 10 ottobre 2022, n. 149 , come modificato dalla L. 29 dicembre 2022, n. 197 , ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-esecuzione-2932"
+   ],
+   "sha256_akn": "342fe288061d06f8ab6427b5428a5acd9b694bc06d9602d6115bf224557daed7",
+   "stato": "testo anteriore",
+   "testo": "Art. 2652. (Domande riguardanti atti soggetti a trascrizione. Effetti delle relative trascrizioni rispetto ai terzi). Si devono trascrivere, qualora si riferiscano ai diritti menzionati nell'art. 2643, le domande giudiziali indicate dai numeri seguenti, agli effetti per ciascuna di esse previsti: 1) le domande di risoluzione dei contratti e quelle indicate dal secondo comma dell'art. 648 e dall'ultimo comma dell'art. 793, le domande di rescissione, le domande di revocazione delle donazioni, nonche' quelle indicate dall'art. 524. Le sentenze che accolgono tali domande non pregiudicano i diritti acquistati dai terzi in base a un atto trascritto o iscritto anteriormente alla trascrizione della domanda; 2) le domande dirette a ottenere l'esecuzione in forma specifica dell'obbligo a contrarre. La trascrizione della sentenza che accoglie la domanda prevale sulle trascrizioni e iscrizioni eseguite contro il convenuto dopo la trascrizione della domanda; 3) le domande dirette a ottenere l'accertamento giudiziale della sottoscrizione di scritture private in cui si contiene un atto soggetto a trascrizione o a iscrizione. La trascrizione o l'iscrizione dell'atto contenuto nella scrittura produce effetto dalla data in cui e' stata trascritta la domanda; 4) le domande dirette all'accertamento della simulazione di atti soggetti a trascrizione. La sentenza che accoglie la domanda non pregiudica i diritti acquistati dai terzi di buona fede in base a un atto trascritto o iscritto anteriormente alla trascrizione della domanda; 5) le domande di revoca degli atti soggetti a trascrizione, che siano stati compiuti in pregiudizio dei creditori. La sentenza che accoglie la domanda non pregiudica i diritti acquistati a titolo oneroso dai terzi di buona fede in base a un atto trascritto o iscritto anteriormente alla trascrizione della domanda; 6) le domande dirette a far dichiarare la nullita' o a far pronunziare l'annullamento di atti soggetti a trascrizione e le domande dirette a impugnare la validita' della trascrizione. Se la domanda e' trascritta dopo cinque anni dalla data della trascrizione dell'atto impugnato, la sentenza che l'accoglie non pregiudica i diritti acquistati a qualunque titolo dai terzi di buona fede in base a un atto trascritto o iscritto anteriormente alla trascrizione della domanda. Se pero' la domanda e' diretta a far pronunziare l'annullamento per una causa diversa dall'incapacita' legale, la sentenza che raccoglie non pregiudica i diritti acquistati dai terzi di buona fede in base a un atto trascritto o iscritto anteriormente alla trascrizione della domanda, anche se questa e' stata trascritta prima che siano decorsi cinque anni dalla data della trascrizione dell'atto impugnato, purche' in questo caso i terzi abbiano acquistato a titolo oneroso; 7) le domande con le quali si contesta il fondamento di un acquisto a causa di morte. Salvo quanto e' disposto dal secondo e dal terzo comma dell'art. 534, se la trascrizione della domanda e' eseguita dopo cinque anni dalla data della trascrizione dell'acquisto, la sentenza che accoglie la domanda non pregiudica, i terzi di buona fede che, in base a un atto trascritto o iscritto anteriormente alla trascrizione della domanda, hanno a qualunque titolo acquistato diritti da chi appare erede o legatario; 8) le domande di riduzione delle donazioni e delle disposizioni testamentarie per lesione di legittima. Se la trascrizione e' eseguita dopo dieci anni dall'apertura della successione, la sentenza che accoglie la domanda non pregiudica i terzi che hanno acquistato a titolo oneroso diritti in base a un atto trascritto o iscritto anteriormente alla trascrizione della domanda; 9) le domande di revocazione e quelle di opposizione di terzo contro le sentenze soggette a trascrizione per le cause previste dai numeri 1 , 2 , 3 e 6 dell'art. 395 del codice di procedura civile e dal secondo comma dell'art. 404 dello stesso codice. Se la domanda e' trascritta dopo cinque anni dalla trascrizione della sentenza impugnata, la sentenza che l'accoglie non pregiudica i diritti acquistati dai terzi di buona fede in base a un atto trascritto o iscritto anteriormente alla trascrizione della domanda. ((Alla domanda giudiziale e' equiparato l'atto notificato con il quale la parte, in presenza di compromesso o di clausola compromissoria, dichiara all'altra la propria intenzione di promuovere il procedimento arbitrale, propone la domanda e procede, per quanto le spetta, alla nomina degli arbitri)) .",
+   "versione": "272234d669f8158e",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2652!vig=2022-10-17"
+  },
+  "cc:337ter": {
+   "citazione": "art. 337-ter c.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1942-03-16;262",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (321) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (322) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-affidamento",
+    "ist-divorzio",
+    "ist-mantenimento",
+    "ist-separazione"
+   ],
+   "sha256_akn": "342fe288061d06f8ab6427b5428a5acd9b694bc06d9602d6115bf224557daed7",
+   "stato": "testo anteriore",
+   "testo": "Art. 337-ter. ((Provvedimenti riguardo ai figli)) ((Il figlio minore ha il diritto di mantenere un rapporto equilibrato e continuativo con ciascuno dei genitori, di ricevere cura, educazione, istruzione e assistenza morale da entrambi e di conservare rapporti significativi con gli ascendenti e con i parenti di ciascun ramo genitoriale. Per realizzare la finalita' indicata dal primo comma, nei procedimenti di cui all'articolo 337-bis, il giudice adotta i provvedimenti relativi alla prole con esclusivo riferimento all'interesse morale e materiale di essa. Valuta prioritariamente la possibilita' che i figli minori restino affidati a entrambi i genitori oppure stabilisce a quale di essi i figli sono affidati, determina i tempi e le modalita' della loro presenza presso ciascun genitore, fissando altresi' la misura e il modo con cui ciascuno di essi deve contribuire al mantenimento, alla cura, all'istruzione e all'educazione dei figli. Prende atto, se non contrari all'interesse dei figli, degli accordi intervenuti tra i genitori. Adotta ogni altro provvedimento relativo alla prole, ivi compreso, in caso di temporanea impossibilita' di affidare il minore ad uno dei genitori, l'affidamento familiare. All'attuazione dei provvedimenti relativi all'affidamento della prole provvede il giudice del merito e, nel caso di affidamento familiare, anche d'ufficio. A tal fine copia del provvedimento di affidamento e' trasmessa, a cura del pubblico ministero, al giudice tutelare. La responsabilita' genitoriale e' esercitata da entrambi i genitori. Le decisioni di maggiore interesse per i figli relative all'istruzione, all'educazione, alla salute e alla scelta della residenza abituale del minore sono assunte di comune accordo tenendo conto delle capacita', dell'inclinazione naturale e delle aspirazioni dei figli. In caso di disaccordo la decisione e' rimessa al giudice. Limitatamente alle decisioni su questioni di ordinaria amministrazione, il giudice puo' stabilire che i genitori esercitino la responsabilita' genitoriale separatamente. Qualora il genitore non si attenga alle condizioni dettate, il giudice valutera' detto comportamento anche al fine della modifica delle modalita' di affidamento. Salvo accordi diversi liberamente sottoscritti dalle parti, ciascuno dei genitori provvede al mantenimento dei figli in misura proporzionale al proprio reddito; il giudice stabilisce, ove necessario, la corresponsione di un assegno periodico al fine di realizzare il principio di proporzionalita', da determinare considerando: 1) le attuali esigenze del figlio. 2) il tenore di vita goduto dal figlio in costanza di convivenza con entrambi i genitori. 3) i tempi di permanenza presso ciascun genitore. 4) le risorse economiche di entrambi i genitori. 5) la valenza economica dei compiti domestici e di cura assunti da ciascun genitore. L'assegno e' automaticamente adeguato agli indici ISTAT in difetto di altro parametro indicato dalle parti o dal giudice. Ove le informazioni di carattere economico fornite dai genitori non risultino sufficientemente documentate, il giudice dispone un accertamento della polizia tributaria sui redditi e sui beni oggetto della contestazione, anche se intestati a soggetti diversi.))",
+   "versione": "1380e26aab2dfcb7",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337ter!vig=2022-10-17"
+  },
+  "cpc:163": {
+   "citazione": "art. 163 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-citazione",
+    "ist-opposizione-atti-esecutivi",
+    "ist-opposizione-esecuzione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 163. (Contenuto della citazione). La domanda si propone mediante citazione a comparire a udienza fissa. Il presidente del tribunale stabilisce al principio dell'anno giudiziario, con decreto approvato dal primo presidente della corte di appello, i giorni della settimana e le ore delle udienze destinate esclusivamente alla prima comparizione delle parti. L'atto di citazione deve contenere: 1° l'indicazione del tribunale davanti al quale la domanda e' proposta; 2° il nome, ((il cognome, la residenza e il codice fiscale dell'attore)) , ((il nome, il cognome, il codice fiscale, la residenza o il domicilio o la dimora del convenuto e delle persone che rispettivamente li rappresentano o li assistono)) . Se attore o convenuto e' una persona giuridica, un'associazione non riconosciuta o un comitato, la citazione deve contenere la denominazione o la ditta, con l'indicazione dell'organo o ufficio che ne ha la rappresentanza in giudizio; 3° la determinazione della cosa oggetto della domanda; 4° l'esposizione dei fatti e degli elementi di diritto costituenti le ragioni della domanda, con le relative conclusioni; 5° l'indicazione specifica dei mezzi di prova dei quali l'attore intende valersi e in particolare dei documenti che offre in comunicazione; 6° il nome e il cognome del procuratore e l'indicazione della procura, qualora questa sia stata gia' rilasciata; 7) l'indicazione del giorno dell'udienza di comparizione; l'invito al convenuto a costituirsi nel termine di venti giorni prima dell'udienza indicata ai sensi e nelle forme stabilite dall'articolo 166, ovvero di dieci giorni prima in caso di abbreviazione dei termini, e a comparire, nell'udienza indicata, dinanzi al giudice designato ai sensi dell'articolo 168-bis, con l'avvertimento che la costituzione oltre i suddetti termini implica le decadenze di cui agli articoli 38 e 167. (67) (72) L'atto di citazione, sottoscritto a norma dell'art. 125, e' consegnato dalla parte o dal procuratore all'ufficiale giudiziario, il quale lo notifica a norma degli articoli 137 e seguenti. -------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 , come modificata dalla L. 4 dicembre 1992, n. 477 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 2 gennaio 1994.\" -------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 , come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 30 aprile 1995.\"",
+   "versione": "d0066c2ef3cd3b9e",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art163!vig=2022-10-17"
+  },
+  "cpc:163bis": {
+   "citazione": "art. 163-bis c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-citazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 163-bis. (Termini per comparire). Tra il giorno della notificazione della citazione e quello dell'udienza di comparizione debbono intercorrere termini liberi non minori di ((novanta giorni)) se il luogo della notificazione si trova in Italia e di ((centocinquanta giorni)) se si trova all'estero.(67)(72) ((116)) Nelle cause che richiedono pronta spedizione il presidente puo', su istanza dell'attore e con decreto motivato in calce dell'atto originale e delle copie della citazione, abbreviare fino alla meta' i termini indicati dal primo comma. Se il termine assegnato dall'attore ecceda il minimo indicato dal primo comma, il convenuto, costituendosi prima della scadenza del termine minimo, puo' chiedere al presidente del tribunale che, sempre osservata la misura di quest'ultimo termine, l'udienza per la comparizione delle parti sia fissata con congruo anticipo su quella indicata dall'attore. Il presidente provvede con decreto, che deve essere comunicato dal cancelliere all'attore, almeno cinque giorni liberi prima dell'udienza fissata dal presidente. --------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 , come modificata dalla L. 4 dicembre 1992, n. 477 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 2 gennaio 1994.\" --------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 , come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 30 aprile 1995.\" --------------- AGGIORNAMENTO (116) La L. 28 dicembre 2005, n. 263 , come modificata dal D.L. 30 dicembre 2005, n. 273 convertito, con modificazioni, dalla L. 23 febbraio 2006, n. 51 , ha disposto (con l'art. 2, comma 4) che \"Le disposizioni dei commi 1, 2 e 3 entrano in vigore il 1° marzo 2006 e si applicano ai procedimenti instaurati successivamente a tale data di entrata in vigore.\".",
+   "versione": "e868f276a2f80bea",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art163bis!vig=2022-10-17"
+  },
+  "cpc:165": {
+   "citazione": "art. 165 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-citazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 165. (Costituzione dell'attore). L'attore, entro dieci giorni dalla notificazione della citazione al convenuto, ovvero entro cinque giorni nel caso di abbreviazione di termini a norma del secondo comma dell'art. 163 bis, deve costituirsi in giudizio a mezzo del procuratore, o personalmente nei casi consentiti dalla legge, depositando in cancelleria la nota d'iscrizione a ruolo e il proprio fascicolo contenente l'originale della citazione, la procura e i documenti offerti in comunicazione. Se si costituisce personalmente, deve dichiarare la residenza o eleggere domicilio nel comune ove ha sede il tribunale. ((131)) Se la citazione e' notificata a piu' persone, l'originale della citazione deve essere inserito nel fascicolo entro dieci giorni dall'ultima notificazione. ----------------- AGGIORNAMENTO (131) La L. 29 dicembre 2011, n. 218 ha disposto (con l'art. 2, comma 1) che \"Nei procedimenti pendenti alla data di entrata in vigore della presente legge, l' articolo 165, primo comma, del codice di procedura civile si interpreta nel senso che la riduzione del termine di costituzione dell'attore ivi prevista si applica, nel caso di opposizione a decreto ingiuntivo, solo se l'opponente abbia assegnato all'opposto un termine di comparizione inferiore a quello di cui all'articolo 163-bis, primo comma, del medesimo codice.\".",
+   "versione": "0b24b910c4532a4d",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art165!vig=2022-10-17"
+  },
+  "cpc:166": {
+   "citazione": "art. 166 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-comparsa"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 166. (Costituzione del convenuto). Il convenuto deve costituirsi a mezzo del procuratore, o personalmente nei casi consentiti dalla legge, almeno venti giorni prima dell'udienza di comparizione fissata nell'atto di citazione, o almeno dieci giorni prima nel caso di abbreviazione di termini a norma del secondo comma dell'articolo 163-bis ovvero almeno venti giorni prima dell'udienza fissata a norma dell'articolo 168-bis, quinto comma, depositando in cancelleria il proprio fascicolo contenente la comparsa di cui all'articolo 167 con la copia della citazione notificata, la procura e i documenti che offre in comunicazione.(67) ((72)) --------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 , come modificata dalla L. 4 dicembre 1992, n. 477 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 2 gennaio 1994.\" --------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 , come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 30 aprile 1995.\"",
+   "versione": "d63b69086fa614a3",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art166!vig=2022-10-17"
+  },
+  "cpc:167": {
+   "citazione": "art. 167 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-anatocismo",
+    "ist-annullamento",
+    "ist-attivita-pericolose",
+    "ist-caparra",
+    "ist-citazione",
+    "ist-comparsa",
+    "ist-competenza-pagamento",
+    "ist-confessoria",
+    "ist-cose-in-custodia",
+    "ist-delibera-condominio",
+    "ist-diffamazione-civile",
+    "ist-divisione",
+    "ist-esecuzione-2932",
+    "ist-lite-condominio",
+    "ist-negatoria",
+    "ist-nullita",
+    "ist-opposizione-di",
+    "ist-petizione-eredita",
+    "ist-regolamento-confini",
+    "ist-rescissione",
+    "ist-responsabilita-medica",
+    "ist-riduzione",
+    "ist-risarcimento-contrattuale",
+    "ist-risoluzione",
+    "ist-sinistro-stradale",
+    "ist-usucapione",
+    "ist-usura",
+    "ist-vizi-appalto"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 167. (Comparsa di risposta) Nella comparsa di risposta il convenuto deve proporre tutte le sue difese prendendo posizione sui fatti posti dall'attore a fondamento della domanda, indicare ((le proprie generalita' e il codice fiscale,)) i mezzi di prova di cui intende valersi e i documenti che offre in comunicazione, formulare le conclusioni. A pena di decadenza deve proporre le eventuali domande riconvenzionali e le eccezioni processuali e di merito che non siano rilevabili d'ufficio. Se e' omesso o risulta assolutamente incerto l'oggetto o il titolo della domanda riconvenzionale, il giudice, rilevata la nullita', fissa al convenuto un termine perentorio per integrarla. Restano ferme le decadenze maturate e salvi i diritti acquisiti anteriormente alla integrazione. (113a) (115) (116) Se intende chiamare un terzo in causa, deve farne dichiarazione nella stessa comparsa e provvedere ai sensi dell'articolo 269. (67) (72) -------------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 , come modificata dalla L. 4 dicembre 1992, n. 477 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 2 gennaio 1994.\" -------------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 , come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 30 aprile 1995. --------------- AGGIORNAMENTO (113a) Il D.L. 14 marzo 2005, n. 35 , convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dal D.L. 30 giugno 2005, n. 115 , convertito con modificazioni dalla L. 17 agosto 2005, n. 168 , ha disposto: - (con l'art. 2, comma 3-quater) che la modifica di cui al presente articolo ha effetto a decorrere dal 1° gennaio 2006. - (con l'art. 2, comma 3-quinquies) che \"Le disposizioni di cui ai commi 3, lettere b-bis), b-ter), c-bis), c-ter), e-bis) ed e-ter), 3-bis e 3-ter non si applicano ai giudizi civili pendenti alla data del 1° gennaio 2006\". -------------------- AGGIORNAMENTO (115) Il D.L. 14 marzo 2005, n. 35 , convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dalla L. 28 dicembre 2005, n. 263 , ha disposto (con l'art. 2, comma 3-quinquies) che \"Le disposizioni di cui ai commi 3, lettere b-bis), b-ter), c-bis), c-ter), c-quater), c-quinquies), e-bis) ed e-ter), 3-bis, e 3-ter, lettera a), entrano in vigore il 1° gennaio 2006 e si applicano ai procedimenti instaurati successivamente a tale data di entrata in vigore\". -------------------- AGGIORNAMENTO (116) Il D.L. 14 marzo 2005, n. 35 , convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dal D.L. 30 dicembre 2005, n. 273 , convertito con modificazioni dalla L. 23 febbraio 2006, n. 51 , ha disposto (con l'art. 2, comma 3-quinquies) che \"Le disposizioni di cui ai commi 3, lettere b-bis), b-ter), c-bis), c-ter), c-quater), c-quinquies), e-bis) ed e-ter), 3-bis, e 3-ter, lettera a), entrano in vigore il 1° marzo 2006 e si applicano ai procedimenti instaurati successivamente a tale data di entrata in vigore\".",
+   "versione": "bd6d7602771dbd96",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167!vig=2022-10-17"
+  },
+  "cpc:171ter": {
+   "citazione": "art. 171-ter c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizio",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-citazione",
+    "ist-comparsa",
+    "ist-memorie-171ter"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:281decies": {
+   "citazione": "art. 281-decies c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-rito-semplificato"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:281duodecies": {
+   "citazione": "art. 281-duodecies c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-rito-semplificato"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:281undecies": {
+   "citazione": "art. 281-undecies c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-rito-semplificato"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:326": {
+   "citazione": "art. 326 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". Ha inoltre disposto (con l'art. 35, comma 5) che \"Le norme di cui ai capi I e II del titolo III del libro secondo del codice di procedura civile, come modificate dal presente decreto, si applicano alle impugnazioni proposte avverso le sentenze depositate successivamente al 30 giugno 2023\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-appello-civile",
+    "ist-opposizione-terzo",
+    "ist-revocazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 326. (Decorrenza dei termini). I termini stabiliti nell'articolo precedente sono perentori e decorrono dalla notificazione della sentenza, tranne per i casi previsti nei numeri 1, 2, 3 e 6 dell'articolo 395 e negli articoli 397 e 404 secondo comma, riguardo ai quali il termine decorre dal giorno in cui e' stato scoperto il dolo o la falsita' o la collusione o e' stato recuperato il documento o e' passata in giudicato la sentenza di cui al numero 6 dell'articolo 395, o il pubblico ministero ha avuto conoscenza della sentenza. Nel caso previsto nell'articolo 332, l'impugnazione proposta contro una parte fa decorrere nei confronti dello stesso soccombente il termine per proporla contro le altre parti.",
+   "versione": "9a730eb1317f53ed",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326!vig=2022-10-17"
+  },
+  "cpc:342": {
+   "citazione": "art. 342 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". Ha inoltre disposto (con l'art. 35, comma 5) che \"Le norme di cui ai capi I e II del titolo III del libro secondo del codice di procedura civile, come modificate dal presente decreto, si applicano alle impugnazioni proposte avverso le sentenze depositate successivamente al 30 giugno 2023\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-appello-civile"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 342. (Forma d'appello) ((L'appello si propone con citazione contenente le indicazioni prescritte dall'articolo 163. L'appello deve essere motivato. La motivazione dell'appello deve contenere, a pena di inammissibilita': 1) l'indicazione delle parti del provvedimento che si intende appellare e delle modifiche che vengono richieste alla ricostruzione del fatto compiuta dal giudice di primo grado; 2) l'indicazione delle circostanze da cui deriva la violazione della legge e della loro rilevanza ai fini della decisione impugnata)) . ((136)) Tra il giorno della citazione e quello della prima udienza di trattazione devono intercorrere termini liberi non minori di quelli previsti dall'articolo 163 bis. (67) (72) --------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 , come modificata dalla L. 4 dicembre 1992, n. 477 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 2 gennaio 1994.\" -------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 , come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 , ha disposto: - (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\"; - (con l'art. 92, comma 2) che \"Le disposizioni di cui agli articoli 3; 4; da 7 a 15; da 17 a 19; da 22 a 32; da 36 a 47; da 50 a 58; 70; 73; da 78 a 83 e 88 hanno efficacia a partire dal 30 aprile 1995.\" -------------- AGGIORNAMENTO (136) Il D.L. 22 giugno 2012, n. 83 , convertito con modificazioni dalla L. 7 agosto 2012, n. 134 , ha disposto (con l'art. 54, comma 2) che la presente modifica si applica ai giudizi di appello introdotti con ricorso depositato o con citazione di cui sia stata richiesta la notificazione dal trentesimo giorno successivo a quello di entrata in vigore della legge di conversione del decreto medesimo.",
+   "versione": "689efb0f7dc26d26",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art342!vig=2022-10-17"
+  },
+  "cpc:348bis": {
+   "citazione": "art. 348-bis c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". Ha inoltre disposto (con l'art. 35, comma 5) che \"Le norme di cui ai capi I e II del titolo III del libro secondo del codice di procedura civile, come modificate dal presente decreto, si applicano alle impugnazioni proposte avverso le sentenze depositate successivamente al 30 giugno 2023\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-appello-civile"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 348-bis (( Inammissibilita' dell'appello. )) ((Fuori dei casi in cui deve essere dichiarata con sentenza l'inammissibilita' o l'improcedibilita' dell'appello, l'impugnazione e' dichiarata inammissibile dal giudice competente quando non ha una ragionevole probabilita' di essere accolta. Il primo comma non si applica quando: a) l'appello e' proposto relativamente a una delle cause di cui all'articolo 70, primo comma; b) l'appello e' proposto a norma dell'articolo 702-quater.)) ((136)) -------------- AGGIORNAMENTO (136) Il D.L. 22 giugno 2012, n. 83 , convertito con modificazioni dalla L. 7 agosto 2012, n. 134 , ha disposto (con l'art. 54, comma 2) che l'introduzione del presente articolo si applica ai giudizi di appello introdotti con ricorso depositato o con citazione di cui sia stata richiesta la notificazione dal trentesimo giorno successivo a quello di entrata in vigore della legge di conversione del decreto medesimo.",
+   "versione": "b09dd923ce3107d1",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art348bis!vig=2022-10-17"
+  },
+  "cpc:360": {
+   "citazione": "art. 360 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". Ha inoltre disposto (con l'art. 35, comma 6) che \"Salvo quanto disposto dal comma 7, le norme di cui al capo III del titolo III del libro secondo del codice di procedura civile e di cui al capo IV delle disposizioni per l'attuazione del codice di procedura civile e disposizioni transitorie, di cui al regio decreto 18 dicembre 1941, n. 1368, come modificate dal presente decreto, si applicano ai giudizi introdotti con ricorso notificato a decorrere dal 1° gennaio 2023\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-cassazione-civile"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 360. (Sentenze impugnabili e motivi di ricorso). Le sentenze pronunciate in grado d'appello o in unico grado possono essere impugnate con ricorso per cassazione: 1) per motivi attinenti alla giurisdizione; 2) per violazione delle norme sulla competenza, quando non e' prescritto il regolamento di competenza; 3) per violazione o falsa applicazione di norme di diritto e dei contratti e accordi collettivi nazionali di lavoro; 4) per nullita' della sentenza o del procedimento; ((5) per omesso esame circa un fatto decisivo per il giudizio che e' stato oggetto di discussione tra le parti.)) ((136)) Puo' inoltre essere impugnata con ricorso per cassazione una sentenza appellabile del tribunale, se le parti sono d'accordo per omettere l'appello; ma in tale caso l'impugnazione puo' proporsi soltanto a norma del primo comma, n. 3. Non sono immediatamente impugnabili con ricorso per cassazione le sentenze che decidono di questioni insorte senza definire, neppure parzialmente, il giudizio. Il ricorso per cassazione avverso tali sentenze puo' essere proposto, senza necessita' di riserva, allorche' sia impugnata la sentenza che definisce, anche parzialmente, il giudizio. Le disposizioni di cui al primo comma e terzo comma si applicano alle sentenze ed ai provvedimenti diversi dalla sentenza contro i quali e' ammesso il ricorso per cassazione per violazione di legge. --------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 , come modificata dalla L. 4 dicembre 1992, n. 477 , ha disposto (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\" -------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 , come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 , ha disposto (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\" -------------- AGGIORNAMENTO (136) Il D.L. 22 giugno 2012, n. 83 , convertito con modificazioni dalla L. 7 agosto 2012, n. 134 , ha disposto (con l'art. 54, comma 3) che la presente modifica si applica alle sentenze pubblicate dal trentesimo giorno successivo a quello di entrata in vigore della legge di conversione del decreto medesimo.",
+   "versione": "b70919a477b4f68f",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art360!vig=2022-10-17"
+  },
+  "cpc:366": {
+   "citazione": "art. 366 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". Ha inoltre disposto (con l'art. 35, comma 6) che \"Salvo quanto disposto dal comma 7, le norme di cui al capo III del titolo III del libro secondo del codice di procedura civile e di cui al capo IV delle disposizioni per l'attuazione del codice di procedura civile e disposizioni transitorie, di cui al regio decreto 18 dicembre 1941, n. 1368, come modificate dal presente decreto, si applicano ai giudizi introdotti con ricorso notificato a decorrere dal 1° gennaio 2023\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197 ha disposto:"
+   ],
+   "schede": [
+    "ist-cassazione-civile"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 366. (Contenuto del ricorso). Il ricorso deve contenere, a pena di inammissibilita': 1) l'indicazione delle parti; 2) l'indicazione della sentenza o decisione impugnata; 3) l'esposizione sommaria dei fatti della causa; 4) i motivi per i quali si chiede la cassazione, con l'indicazione delle norme di diritto su cui si fondano, secondo quanto previsto dall'articolo 366-bis; 5) l'indicazione della procura, se conferita con atto separato e, nel caso di ammissione al gratuito patrocinio, del relativo decreto. 6) la specifica indicazione degli atti processuali, dei documenti e dei contratti o accordi collettivi sui quali il ricorso si fonda. Se il ricorrente non ha eletto domicilio in Roma ((ovvero non ha indicato l'indirizzo di posta elettronica certificata comunicato al proprio ordine)) , le notificazioni gli sono fatte presso la cancelleria della Corte di cassazione. ((134)) Nel caso previsto nell'articolo 360, secondo comma, l'accordo delle parti deve risultare mediante visto apposto sul ricorso dalle altre parti o dai loro difensori muniti di procura speciale, oppure mediante atto separato, anche anteriore alla sentenza impugnata, da unirsi al ricorso stesso. ((Le comunicazioni della cancelleria e le notificazioni tra i difensori di cui agli articoli 372 e 390 sono effettuate ai sensi dell'articolo 136, secondo e terzo comma.)) ((134)) --------------- AGGIORNAMENTO (134) La L. 12 novembre 2011, n. 183 ha disposto (con l'art. 25, comma 5) che le presenti modifiche si applicano decorsi trenta giorni dalla data di entrata in vigore della legge medesima.",
+   "versione": "8bc60a617c0348e7",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art366!vig=2022-10-17"
+  },
+  "cpc:369": {
+   "citazione": "art. 369 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". Ha inoltre disposto (con l'art. 35, comma 6) che \"Salvo quanto disposto dal comma 7, le norme di cui al capo III del titolo III del libro secondo del codice di procedura civile e di cui al capo IV delle disposizioni per l'attuazione del codice di procedura civile e disposizioni transitorie, di cui al regio decreto 18 dicembre 1941, n. 1368, come modificate dal presente decreto, si applicano ai giudizi introdotti con ricorso notificato a decorrere dal 1° gennaio 2023\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-cassazione-civile"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 369. (Deposito del ricorso). Il ricorso deve essere depositato nella cancelleria della corte, a pena d'improcedibilita', nel termine di giorni venti dall'ultima notificazione alle parti contro le quali e' proposto. Insieme col ricorso debbono essere depositati, sempre a pena d'improcedibilita': 1) il decreto di concessione del gratuito patrocinio; 2) copia autentica della sentenza o della decisione impugnata con la relazione di notificazione, se questa e' avvenuta, tranne che nei casi di cui ai due articoli precedenti; oppure copia autentica dei provvedimenti dai quali risulta il conflitto nei casi di cui ai numeri 1 e 2 dell'articolo 362; 3) la procura speciale, se questa e' conferita con atto separato ; ((4. Gli atti processuali, i documenti, i contratti o accordi collettivi sui quali il ricorso si fonda.)) Il ricorrente deve chiedere alla cancelleria del giudice che ha pronunciato la sentenza impugnata o del quale si contesta la giurisdizione la trasmissione alla cancelleria della corte di cassazione del fascicolo d'ufficio; tale richiesta e' restituita dalla cancelleria al richiedente munita di visto, e deve essere depositata insieme col ricorso.",
+   "versione": "3513a200994cd9dc",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art369!vig=2022-10-17"
+  },
+  "cpc:37": {
+   "citazione": "art. 37 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-abuso-termine-pa",
+    "ist-carta-docente",
+    "ist-ricorso-dipendente-pubblico"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 37. (Difetto di giurisdizione). Il difetto di giurisdizione del giudice ordinario nei confronti della pubblica amministrazione o dei giudici speciali e' rilevato, anche d'ufficio, in qualunque stato e grado del processo. ((COMMA ABROGATO DALLA L. 31 MAGGIO 1995, N. 218)) .",
+   "versione": "510bf49202afe7a8",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37!vig=2022-10-17"
+  },
+  "cpc:380bis": {
+   "citazione": "art. 380-bis c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\". Ha inoltre disposto (con l'art. 35, comma 7) che \"Gli articoli 372, 375, 376, 377, 378, 379, 380, 380",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-cassazione-civile"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 380-bis (( (Procedimento per la decisione in camera di consiglio sull'inammissibilita' o sulla manifesta fondatezza o infondatezza del ricorso). )) ((Nei casi previsti dall'articolo 375, primo comma, numeri 1) e 5), su proposta del relatore della sezione indicata nell'articolo 376, primo comma, il presidente fissa con decreto l'adunanza della Corte indicando se e' stata ravvisata un'ipotesi di inammissibilita', di manifesta infondatezza o di manifesta fondatezza del ricorso. Almeno venti giorni prima della data stabilita per l'adunanza, il decreto e' notificato agli avvocati delle parti, i quali hanno facolta' di presentare memorie non oltre cinque giorni prima. Se ritiene che non ricorrano le ipotesi previste dall'articolo 375, primo comma, numeri 1) e 5), la Corte in camera di consiglio rimette la causa alla pubblica udienza della sezione semplice)) . ((152)) ------------ AGGIORNAMENTO (140) Il D.L. 21 giugno 2013, n. 69 convertito con modificazioni dalla L. 9 agosto 2013, n. 98 ha disposto (con l'art. 75, comma 2) che \"Le disposizioni di cui al presente articolo si applicano ai giudizi dinanzi alla Corte di cassazione nei quali il decreto di fissazione dell'udienza o dell'adunanza in camera di consiglio sia adottato a partire dal giorno successivo alla data di entrata in vigore della legge di conversione del presente decreto\". --------------- AGGIORNAMENTO (152) Il D.L. 31 agosto 2016, n. 168 , convertito con modificazioni dalla L. 25 ottobre 2016, n. 197 , ha disposto (con l'art. 1-bis, comma 2) che \"Le disposizioni di cui al comma 1 si applicano ai ricorsi depositati successivamente alla data di entrata in vigore della legge di conversione del presente decreto, nonche' a quelli gia' depositati alla medesima data per i quali non e' stata fissata udienza o adunanza in camera di consiglio\".",
+   "versione": "f93794b40c608b73",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art380bis!vig=2022-10-17"
+  },
+  "cpc:434": {
+   "citazione": "art. 434 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-appello-civile",
+    "ist-appello-lavoro"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 434. (Deposito del ricorso in appello). ((Il ricorso deve contenere le indicazioni prescritte dall'articolo 414. L'appello deve essere motivato. La motivazione dell'appello deve contenere, a pena di inammissibilita': 1) l'indicazione delle parti del provvedimento che si intende appellare e delle modifiche che vengono richieste alla ricostruzione del fatto compiuta dal giudice di primo grado; 2) l'indicazione delle circostanze da cui deriva la violazione della legge e della loro rilevanza ai fini della decisione impugnata)) . ((136)) Il ricorso deve essere depositato nella cancelleria della corte di appello entro trenta giorni dalla notificazione della sentenza, oppure entro quaranta giorni nel caso in cui la notificazione abbia dovuto effettuarsi allo estero. (88) (90) --------------- AGGIORNAMENTO (88) Il D.Lgs. 19 febbraio 1998, n. 51 ha disposto (con l'art. 247, comma 1) che \"Il presente decreto legislativo entra in vigore il giorno successivo alla sua pubblicazione nella Gazzetta Ufficiale della Repubblica italiana e diventa efficace decorso il termine stabilito dall' articolo 1, comma 1, lettera r), della legge 16 luglio 1997, n. 254 , fatta eccezione per le disposizioni previste dagli articoli 17, 33, comma 1, 38, comma 1 e 40, commi 1 e 3\". --------------- AGGIORNAMENTO (90) Il D.Lgs. 19 febbraio 1998, n. 51 , come modificato dalla L. 16 giugno 1998, n. 188 , ha disposto (con l'art. 247, comma 1) che \"Il presente decreto legislativo entra in vigore il giorno successivo alla sua pubblicazione nella Gazzetta Ufficiale della Repubblica italiana e diventa efficace a decorrere dal 2 giugno 1999, fatta eccezione per le disposizioni previste dagli articoli 17, 33, comma 1, 38, comma 1 e 40, commi 1 e 3\". -------------- AGGIORNAMENTO (136) Il D.L. 22 giugno 2012, n. 83 , convertito con modificazioni dalla L. 7 agosto 2012, n. 134 , ha disposto (con l'art. 54, comma 2) che la presente modifica si applica ai giudizi di appello introdotti con ricorso depositato o con citazione di cui sia stata richiesta la notificazione dal trentesimo giorno successivo a quello di entrata in vigore della legge di conversione del decreto medesimo.",
+   "versione": "fda001614907cf6a",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art434!vig=2022-10-17"
+  },
+  "cpc:437": {
+   "citazione": "art. 437 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-appello-lavoro"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 437. (( (Udienza di discussione). )) ((Nell'udienza il giudice incaricato fa la relazione orale della causa. Il collegio, sentiti i difensori delle parti, pronuncia sentenza dando lettura del dispositivo nella stessa udienza. Non sono ammesse nuove domande ed eccezioni. Non sono ammessi nuovi mezzi di prova, tranne il giuramento estimatorio, salvo che il collegio, anche d'ufficio, li ritenga indispensabili ai fini della decisione della causa. E' salva la facolta' delle parti di deferire il giuramento decisorio in qualsiasi momento della causa. Qualora ammetta le nuove prove, il collegio fissa, entro venti giorni, l'udienza nella quale esse debbono essere assunte e deve essere pronunciata la sentenza. In tal caso il collegio con la stessa ordinanza puo' adottare i provvedimenti di cui all'articolo 423. Sono applicabili le disposizioni di cui ai commi secondo e terzo dell'articolo 429.))",
+   "versione": "dc6f75c8d83d6f94",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art437!vig=2022-10-17"
+  },
+  "cpc:441bis": {
+   "citazione": "art. 441-bis c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-licenziamento"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:47": {
+   "citazione": "art. 47 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-regolamento-competenza"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 47. (Procedimento del regolamento di competenza). L'istanza di regolamento di competenza si propone alla corte di cassazione con ricorso sottoscritto dal procuratore o dalla parte, se questa si e' costituita personalmente. Il ricorso deve essere notificato alle parti che non vi hanno aderito entro il termine perentorio di trenta giorni dalla comunicazione della ((ordinanza)) che abbia pronunciato sulla competenza o dalla notificazione dell'impugnazione ordinaria nel caso previsto nell'art. 43, secondo comma. L'adesione delle parti puo' risultare anche dalla sottoscrizione del ricorso.(6) La parte che propone l'istanza, nei cinque giorni successivi all'ultima notificazione del ricorso alle parti, deve chiedere ai cancellieri degli uffici davanti ai quali pendono i processi che i relativi fascicoli siano rimessi alla cancelleria della corte di cassazione. Nel termine perentorio di venti giorni dalla stessa notificazione deve depositare nella cancelleria il ricorso con i documenti necessari. Il regolamento d'ufficio e' richiesto con ordinanza dal giudice, il quale dispone la rimessione del fascicolo di ufficio alla cancelleria della corte di cassazione. Le parti alle quali e' notificato il ricorso o comunicata l'ordinanza del giudice, possono, nei venti giorni successivi, depositare nella cancelleria della corte di cassazione scritture difensive e documenti. -------------- AGGIORNAMENTO (6) Il D.P.R. 17 ottobre 1950, n. 857 ha disposto (con l'art. 40, comma 1) che \" Il termine di venti giorni stabilite dall' art. 47 secondo comma del Codice di procedura civile del 1940, e' sostituito da quello di trenta giorni stabilito dall' art. 2 della legge 14 luglio 1950, n. 581 , se all'entrata in vigore della stessa legge e' ancora in corso.\"",
+   "versione": "528e9c03e06bffa5",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art47!vig=2022-10-17"
+  },
+  "cpc:473bis": {
+   "citazione": "art. 473-bis c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-divorzio",
+    "ist-mantenimento",
+    "ist-separazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis.51": {
+   "citazione": "art. 473-bis.51 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-separazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis11": {
+   "citazione": "art. 473-bis.11 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-affidamento",
+    "ist-disconoscimento",
+    "ist-divorzio",
+    "ist-mantenimento",
+    "ist-separazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis12": {
+   "citazione": "art. 473-bis.12 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-affidamento",
+    "ist-disconoscimento",
+    "ist-divorzio",
+    "ist-mantenimento",
+    "ist-separazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis29": {
+   "citazione": "art. 473-bis.29 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-modifica-condizioni"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis36": {
+   "citazione": "art. 473-bis.36 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-mantenimento"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis37": {
+   "citazione": "art. 473-bis.37 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-mantenimento"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis49": {
+   "citazione": "art. 473-bis.49 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-divorzio",
+    "ist-mantenimento",
+    "ist-separazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis69": {
+   "citazione": "art. 473-bis.69 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-ordini-protezione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:473bis70": {
+   "citazione": "art. 473-bis.70 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-ordini-protezione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "cpc:479": {
+   "citazione": "art. 479 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto:"
+   ],
+   "schede": [
+    "ist-pignoramento-terzi",
+    "ist-precetto",
+    "ist-rilascio"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 479. (Notificazione del titolo esecutivo e del precetto). Se la legge non dispone altrimenti, l'esecuzione forzata deve essere preceduta dalla notificazione del titolo in forma esecutiva e del precetto. La notificazione del titolo esecutivo deve essere fatta alla parte personalmente a norma degli articoli 137 e seguenti; ((...)) . ((113a)) ((115)) ((116)) Il precetto puo' essere redatto di seguito al titolo esecutivo ed essere notificato insieme con questo, purche' la notificazione sia fatta alla parte personalmente. --------------- AGGIORNAMENTO (113a) Il D.L. 14 marzo 2005, n. 35 , convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dal D.L. 30 giugno 2005, n. 115 , convertito con modificazioni dalla L. 17 agosto 2005, n. 168 , ha disposto (con l'art. 2, comma 3-quater) che la modifica del comma 2 ha effetto a decorrere dal 1° gennaio 2006. --------------- AGGIORNAMENTO (115) Il D.L. 14 marzo 2005, n. 35 , convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dalla L. 28 dicembre 2005, n. 263 , ha disposto (con l'art. 2, comma 3-sexies) che \"Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis), b), c), c-bis), d), e) ed f), entrano in vigore il 1° gennaio 2006 e si applicano anche alle procedure esecutive pendenti a tale data di entrata in vigore. Quando tuttavia e' gia' stata ordinata la vendita, la stessa ha luogo con l'osservanza delle norme precedentemente in vigore. L'intervento dei creditori non muniti di titolo esecutivo conserva efficacia se avvenuto prima del 1° gennaio 2006\". --------------- AGGIORNAMENTO (116) Il D.L. 14 marzo 2005, n. 35 , convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dal D.L. 30 dicembre 2005, n. 273 , convertito con modificazioni dalla L. 23 febbraio 2006, n. 51 , ha disposto (con l'art. 2, comma 3-sexies) che \"Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis), b), c), c-bis), d), e) ed f), entrano in vigore il 1° marzo 2006 e si applicano anche alle procedure esecutive pendenti a tale data di entrata in vigore. Quando tuttavia e' gia' stata ordinata la vendita, la stessa ha luogo con l'osservanza delle norme precedentemente in vigore. L'intervento dei creditori non muniti di titolo esecutivo conserva efficacia se avvenuto prima del 1° marzo 2006\".",
+   "versione": "3a20435aa2acf9cf",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art479!vig=2022-10-17"
+  },
+  "cpc:492bis": {
+   "citazione": "art. 492-bis c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-ricerca-beni"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 492-bis. (Ricerca con modalita' telematiche dei beni da pignorare). Su istanza del creditore ((...)) , il presidente del tribunale del luogo in cui il debitore ha la residenza, il domicilio, la dimora o la sede, verificato il diritto della parte istante a procedere ad esecuzione forzata, autorizza la ricerca con modalita' telematiche dei beni da pignorare. L'istanza deve contenere l'indicazione dell'indirizzo di posta elettronica ordinaria ed il numero di fax del difensore nonche', ai fini dell'articolo 547, dell'indirizzo di posta elettronica certificata. ((L'istanza non puo' essere proposta prima che sia decorso il termine di cui all'articolo 482. Se vi e' pericolo nel ritardo, il presidente del tribunale autorizza la ricerca telematica dei beni da pignorare prima della notificazione del precetto)) . ((148)) Fermo quanto previsto dalle disposizioni in materia di accesso ai dati e alle informazioni degli archivi automatizzati del Centro elaborazione dati istituito presso il Ministero dell'interno ai sensi dell' articolo 8 della legge 1° aprile 1981, n. 121 , con l'autorizzazione di cui al primo comma il presidente del tribunale o un giudice da lui delegato dispone che l'ufficiale giudiziario acceda mediante collegamento telematico diretto ai dati contenuti nelle banche dati delle pubbliche amministrazioni ((...)) e, in particolare, nell'anagrafe tributaria, compreso l'archivio dei rapporti finanziari, ((...)) e in quelle degli enti previdenziali, per l'acquisizione di tutte le informazioni rilevanti per l'individuazione di cose e crediti da sottoporre ad esecuzione, comprese quelle relative ai rapporti intrattenuti dal debitore con istituti di credito e datori di lavoro o committenti. Terminate le operazioni l'ufficiale giudiziario redige un unico processo verbale nel quale indica tutte le banche dati interrogate e le relative risultanze. ((L'ufficiale giudiziario procede a pignoramento munito del titolo esecutivo e del precetto, anche acquisendone copia dal fascicolo informatico. Nel caso di cui al primo comma, quarto periodo, il precetto e' consegnato o trasmesso all'ufficiale giudiziario prima che si proceda al pignoramento.)) ((148)) Se l'accesso ha consentito di individuare cose che si trovano in luoghi appartenenti al debitore compresi nel territorio di competenza dell'ufficiale giudiziario, quest'ultimo accede agli stessi per provvedere d'ufficio agli adempimenti di cui agli articoli 517, 518 e 520. Se i luoghi non sono compresi nel territorio di competenza di cui al periodo precedente, copia autentica del verbale e' rilasciata al creditore che, entro quindici giorni dal rilascio a pena d'inefficacia della richiesta, la presenta, unitamente all'istanza per gli adempimenti di cui agli articoli 517, 518 e 520, all'ufficiale giudiziario territorialmente competente. L'ufficiale giudiziario, quando non rinviene una cosa individuata mediante l'accesso nelle banche dati di cui al secondo comma, intima al debitore di indicare entro quindici giorni il luogo in cui si trova, avvertendolo che l'omessa o la falsa comunicazione e' punita a norma dell' articolo 388, sesto comma, del codice penale . Se l'accesso ha consentito di individuare crediti del debitore o cose di quest'ultimo che sono nella disponibilita' di terzi, l'ufficiale giudiziario notifica d'ufficio, ove possibile a norma dell'articolo 149-bis o a mezzo telefax, al debitore e al terzo il verbale, che dovra' anche contenere l'indicazione del credito per cui si procede, del titolo esecutivo e del precetto, dell'indirizzo di posta elettronica certificata di cui al primo comma, del luogo in cui il creditore ha eletto domicilio o ha dichiarato di essere residente, dell'ingiunzione, dell'invito e dell'avvertimento al debitore di cui all'articolo 492, primo, secondo e terzo comma, nonche' l'intimazione al terzo di non disporre delle cose o delle somme dovute, nei limiti di cui all'articolo 546. Il verbale di cui al presente comma e' notificato al terzo per estratto, contenente esclusivamente i dati a quest'ultimo riferibili. Quando l'accesso ha consentito di individuare piu' crediti del debitore o piu' cose di quest'ultimo che sono nella disponibilita' di terzi l'ufficiale giudiziario sottopone ad esecuzione i beni scelti dal creditore. Quando l'accesso ha consentito di individuare sia cose di cui al terzo comma che crediti o cose di cui al quinto comma, l'ufficiale giudiziario sottopone ad esecuzione i beni scelti dal creditore. (144) ------------- AGGIORNAMENTO (144) Il D.L. 12 settembre 2014, n. 132 , convertito con modificazioni dalla L. 10 novembre 2014, n. 162 , ha disposto (con l'art. 19, comma 6-bis) che la presente modifica si applica ai procedimenti iniziati a decorrere dal trentesimo giorno successivo alla data di entrata in vigore della legge di conversione del D.L. medesimo. ------------- AGGIORNAMENTO (148) Il D.L. 27 giugno 2015, n. 83 , convertito con modificazioni dalla L. 6 agosto 2015, n. 132 , ha disposto (con l'art. 23, comma 9) che \"Le disposizioni di cui all'articolo 13, diverse da quelle indicate nel presente articolo, si applicano anche ai procedimenti pendenti alla data di entrata in vigore del presente decreto. Quando e' gia' stata disposta la vendita, la stessa ha comunque luogo con l'osservanza delle norme precedentemente in vigore e le disposizioni di cui al presente decreto si applicano quando il giudice o il professionista delegato dispone una nuova vendita\".",
+   "versione": "de0fba3aaa0a58e7",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art492bis!vig=2022-10-17"
+  },
+  "cpc:567": {
+   "citazione": "art. 567 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-pignoramento-immobiliare"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 567. (Istanza di vendita). Decorso il termine di cui all'articolo 501, il creditore pignorante e ognuno dei creditori intervenuti muniti di titolo esecutivo possono chiedere la vendita dell'immobile pignorato. Il creditore che richiede la vendita deve provvedere, entro ((sessanta)) giorni dal deposito del ricorso, ad allegare allo stesso l'estratto del catasto, nonche' i certificati delle iscrizioni e trascrizioni relative all'immobile pignorato effettuate nei venti anni anteriori alla trascrizione del pignoramento; tale documentazione puo' essere sostituita da un certificato notarile attestante le risultanze delle visure catastali e dei registri immobiliari. (115) (116) ((148)) Il termine di cui al secondo comma puo' essere prorogato una sola volta su istanza dei creditori o dell'esecutato, per giusti motivi e per una durata non superiore ad ulteriori ((sessanta)) giorni. Un termine di ((sessanta)) giorni e' inoltre assegnato al creditore dal giudice, quando lo stesso ritiene che la documentazione da questi depositata debba essere completata. Se la proroga non e' richiesta o non e' concessa, oppure se la documentazione non e' integrata nel termine assegnato ai sensi di quanto previsto nel periodo precedente, il giudice dell'esecuzione, anche d'ufficio, dichiara l'inefficacia del pignoramento relativamente all'immobile per il quale non e' stata depositata la prescritta documentazione. L'inefficacia e' dichiarata con ordinanza, sentite le parti. Il giudice, con l'ordinanza, dispone la cancellazione della trascrizione del pignoramento. Si applica l'articolo 562, secondo comma. Il giudice dichiara altresi' l'estinzione del processo esecutivo se non vi sono altri beni pignorati. (113a) (115) (116) ((148)) ------------ AGGIORNAMENTO (92) La L. 3 agosto 1998, n. 302 , come modificata dal D.L. 21 settembre 1998, n. 328 , convertito con modificazioni dalla L. 19 novembre 1998, n. 399 , ha disposto (con l'art. 13-bis) che \"Per i procedimenti esecutivi nei quali sia gia' stata presentata istanza di vendita alla data di entrata in vigore della presente legge, il termine per l'allegazione della documentazione prevista dal secondo comma dell'articolo 567 del codice di procedura civile , come sostituito dall'articolo 1 della presente legge, e' di quattro mesi per le procedure esecutive immobiliari nelle quali il ricorso di cui al primo comma dell'articolo 567 del codice di procedura civile e' stato depositato entro il 31 dicembre 1995, di sei mesi se il ricorso e' stato depositato entro il 31 dicembre 1996, di nove mesi se il ricorso e' stato depositato entro il 31 dicembre 1997 e di dodici mesi se il ricorso e' stato depositato entro la data di entrata in vigore della presente legge\". Il D.L. 21 settembre 1998, n. 328 , convertito con modificazioni dalla L. 19 novembre 1998, n. 399 , nel modificare l' art. 13-bis della L. 3 agosto 1998, n. 302 , ha conseguentemente disposto (con l'art. 4, comma 2) che il suddetto termine decorre dalla data di entrata in vigore della L. 19 novembre 1998, n. 399 . ------------ AGGIORNAMENTO (95) La L. 3 agosto 1998, n. 302 , come modificata dal D.L. 17 marzo 1999, n. 64 , convertito con modificazioni dalla L. 14 maggio 1999, n. 134 , ha disposto (con l'art. 13-bis, comma 1) che \"1. Il termine per l'allegazione della documentazione prescritta dal secondo comma dell'articolo 567 del codice di procedura civile , come sostituito dall'articolo 1 della presente legge, ha le seguenti scadenze: a) 21 dicembre 1999, quando l'istanza di vendita risulta depositata entro il 31 dicembre 1995; b) 21 aprile 2000, quando l'istanza di vendita risulta depositata entro il 31 dicembre 1997; c) 21 luglio 2000, quando l'istanza di vendita risulta depositata entro il 31 dicembre 1998; d) 21 ottobre 2000, quando l'istanza di vendita risulta depositata entro il 31 dicembre 1999.\" ------------ AGGIORNAMENTO (96) La L. 3 agosto 1998, n. 302 , come modificata dal D.L. 17 dicembre 1999, n. 480 , convertito con modificazioni dalla L. 16 febbraio 2000, n. 25 , ha disposto (con l'art. 13-bis, comma 1) che \"Il termine per l'allegazione della documentazione prescritta dal secondocomma dell'articolo 567 del codice di procedura civile , come sostituito dall'articolo 1 della presente legge, scade il 21 ottobre 2000 per tutte le procedure esecutive nelle quali l'istanza di vendita risulta depositata entro il 31 dicembre 1999, e il 21 dicembre 2000 per tutte le procedure esecutive nelle quali l'istanza di vendita risulta depositata tra il 1 gennaio e il 21 ottobre 2000.\" ------------ AGGIORNAMENTO (97) La L. 3 agosto 1998, n. 302 , come modificata dal D.L. 18 ottobre 2000, n. 291 , convertito con modificazioni dalla L. 14 dicembre 2000, n. 372 , ha disposto (con l'art. 13-bis, comma 1) che \"Il termine per l'allegazione della documentazione prescritta dall' articolo 567 del codice di procedura civile , come modificato dall'articolo 1 della presente legge, scade il 30 giugno 2001 per tutte le procedure esecutive nelle quali l'istanza di vendita risulta depositata entro il 30 aprile 2001.\" ------------ AGGIORNAMENTO (113a) Il D.L. 14 marzo 2005, n. 35 , convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dal D.L. 30 giugno 2005, n. 115 , convertito con modificazioni dalla L. 17 agosto 2005, n. 168 , ha disposto (con l'art. 2, comma 3-quater) che la presente modifica ha effetto a decorrere dal 1 gennaio 2006. ------------- AGGIORNAMENTO (115) Il D.L.14 marzo 2005, n. 35 ,convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dalla L. 28 dicembre 2005, n. 263 , ha disposto (con l'art. 2, comma 3-sexies) che \"Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis), b), c), c-bis), d), e) ed f), entrano in vigore il 1° gennaio 2006 e si applicano anche alle procedure esecutive pendenti a tale data di entrata in vigore. Quando tuttavia e' gia' stata ordinata la vendita, la stessa ha luogo con l'osservanza delle norme precedentemente in vigore. L'intervento dei creditori non muniti di titolo esecutivo conserva efficacia se avvenuto prima del 1° gennaio 2006.\" ------------ AGGIORNAMENTO (116) Il D.L.14 marzo 2005, n. 35 ,convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dal D.L.30 dicembre 2005, n. 273 , convertito con modificazioni dalla L. 23 febbraio 2006, n. 51 , ha disposto (con l'art. 2, comma 3-sexies) che \"Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis), b), c), c-bis), d), e) ed f), entrano in vigore il 1° marzo 2006 e si applicano anche alle procedure esecutive pendenti a tale data di entrata in vigore. Quando tuttavia e' gia' stata ordinata la vendita, la stessa ha luogo con l'osservanza delle norme precedentemente in vigore. L'intervento dei creditori non muniti di titolo esecutivo conserva efficacia se avvenuto prima del 1° marzo 2006.\" -------------- AGGIORNAMENTO (148) Il D.L. 27 giugno 2015, n. 83 , convertito con modificazioni dalla L. 6 agosto 2015, n. 132 , ha disposto (con l'art. 23, comma 6) che \"Le disposizioni di cui agli articoli 12 e 13, comma 1, lettere d), l), m), n), si applicano esclusivamente alle procedure esecutive iniziate successivamente alla data di entrata in vigore del presente decreto\".",
+   "versione": "1dc530f90543b36f",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art567!vig=2022-10-17"
+  },
+  "cpc:614bis": {
+   "citazione": "art. 614-bis c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-obblighi-fare"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 614-bis. (( (Misure di coercizione indiretta). )) ((Con il provvedimento di condanna all'adempimento di obblighi diversi dal pagamento di somme di denaro il giudice, salvo che cio' sia manifestamente iniquo, fissa, su richiesta di parte, la somma di denaro dovuta dall'obbligato per ogni violazione o inosservanza successiva ovvero per ogni ritardo nell'esecuzione del provvedimento. Il provvedimento di condanna costituisce titolo esecutivo per il pagamento delle somme dovute per ogni violazione o inosservanza. Le disposizioni di cui al presente comma non si applicano alle controversie di lavoro subordinato pubblico o privato e ai rapporti di collaborazione coordinata e continuativa di cui all'articolo 409. Il giudice determina l'ammontare della somma di cui al primo comma tenuto conto del valore della controversia, della natura della prestazione, del danno quantificato o prevedibile e di ogni altra circostanza utile)) . ((148)) --------------- AGGIORNAMENTO (148) Il D.L. 27 giugno 2015, n. 83 , convertito con modificazioni dalla L. 6 agosto 2015, n. 132 , ha disposto (con l'art. 23, comma 9) che \"Le disposizioni di cui all'articolo 13, diverse da quelle indicate nel presente articolo, si applicano anche ai procedimenti pendenti alla data di entrata in vigore del presente decreto. Quando e' gia' stata disposta la vendita, la stessa ha comunque luogo con l'osservanza delle norme precedentemente in vigore e le disposizioni di cui al presente decreto si applicano quando il giudice o il professionista delegato dispone una nuova vendita\".",
+   "versione": "e3f2b8f1c5a307bc",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art614bis!vig=2022-10-17"
+  },
+  "cpc:657": {
+   "citazione": "art. 657 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-sfratto-finita-locazione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 657. (Intimazione di licenza e di sfratto per finita locazione). ((Il locatore o il concedente puo' intimare al conduttore, all'affittuario coltivatore diretto, al mezzadro o al colono licenza per finita locazione, prima della scadenza del contratto, con la contestuale citazione per la convalida, rispettando i termini prescritti dal contratto, dalla legge o dagli usi locali)) . Puo' altresi' intimare lo sfratto, con la contestuale citazione per la convalida, dopo la scadenza del contratto, se, in virtu' del contratto stesso o per effetto di atti o intimazioni precedenti, e' esclusa la tacita riconduzione.",
+   "versione": "16fe1e288baae6f2",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art657!vig=2022-10-17"
+  },
+  "cpc:663": {
+   "citazione": "art. 663 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-opposizione-convalida",
+    "ist-sfratto-morosita"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 663. (Mancata comparizione o mancata opposizione dell'intimato). Se l'intimato non comparisce o comparendo non si oppone, il giudice convalida la licenza o lo sfratto e dispone con ordinanza in calce alla citazione l'apposizione su di essa della formula esecutiva; ma il giudice deve ordinare che sia rinnovata la citazione, se risulta o appare probabile che l'intimato non abbia avuto conoscenza della citazione stessa o non sia potuto comparire per caso fortuito o forza maggiore. ((Nel caso che l'intimato non sia comparso, la formula esecutiva ha effetto dopo trenta giorni dalla data della apposizione)) . Se lo sfratto e' stato intimato per mancato pagamento del canone, la convalida e' subordinata all'attestazione in giudizio del locatore o del suo procuratore che la morosita' persiste. In tale caso il giudice puo' ordinare al locatore di prestare una cauzione.",
+   "versione": "fa21078be5b5ada1",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art663!vig=2022-10-17"
+  },
+  "cpc:669novies": {
+   "citazione": "art. 669-novies c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-sequestro",
+    "ist-sequestro-ante-causam"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 669-novies. (Inefficacia del provvedimento cautelare) Se il procedimento di merito non e' iniziato nel termine perentorio di cui all'articolo 669 octies, ovvero se successivamente al suo inizio si estingue, il provvedimento cautelare perde la sua efficacia. In entrambi i casi, il giudice che ha emesso il provvedimento su ricorso della parte interessata, convocate le parti con decreto in calce al ricorso, dichiara, se non c'e' contestazione, con ordinanza avente efficacia esecutiva, che il provvedimento e' divenuto inefficace e da le disposizioni necessarie per ripristinare la situazione precedente. In caso di contestazione l'ufficio giudiziario al quale appartiene il giudice che ha emesso il provvedimento cautelare decide con sentenza provvisoriamente esecutiva, salva la possibilita' di emanare in corso di causa i provvedimenti di cui all'articolo 669-decies. Il provvedimento cautelare perde altrei' efficacia se non e' stata versata la cauzione di cui all'articolo 669-undecies, ovvero se con sentenza, anche non passata in giuidicato, e' dichiarato inesistente il diritto a cautela del quale era stato concesso. In tal caso i provvedimenti di cui al comma precedente sono pronunciati nella stessa sentenza o, in mancanza, con ordinanza a seguito del ricorso al giudice che ha emesso il provvedimento. Se la causa di merito e' devoluta alla giurisdizione di un giudice straniero o ad un arbitrato italiano o estero, il provvedimento cautelare, oltre che nei casi previsti nel primo e nel terzo comma, perde altresi' efficacia: 1) se la parte che l'aveva richiesto non presenta domanda di esecutorieta' in Italia della sentenza straniera e del lodo arbitrale entro i termini ed eventualmente previsti a pena di decadenza dalla legge o dalle convenzioni internazionali; 2) se sono pronunciati sentenza straniera, anche non passata in giudicato, o lodo arbitrale che dichiarino inesistente il diritto per il quale il provvedimento era stato concesso. Per la dichiarazione di inefficacia del provvedimento cautelare per le disposizioni di ripristino si applica il secondo comma del presente articolo. (67) ((72)) --------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 , come modificata dalla L. 4 dicembre 1992, n. 477 , ha disposto (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\" --------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 , come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 , ha disposto (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\" Il D.L. 7 ottobre 1994, n. 571 convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 nel modificare l' art. 74, comma 2 della L. 26 novembre 1990, n. 353 ha conseguentemente disposto (con l'art. 4, comma 5) che \"Gli articoli 74 , 75 , 76 , 77 , 85 e 86 della legge 26 novembre 1990, n. 353 , e successive modifiche ed integrazioni, si applicano, in quanto compatibili, ai giudizi pendenti alla data di entrata in vigore del presente decreto; tutti i sequestri anteriormente autorizzati perdono la loro efficacia se con sentenza, anche non passata in giudicato, e' rigettata l'istanza di convalida ovvero e' dichiarato inesistente il diritto a cautela del quale erano stati concessi.\".",
+   "versione": "be340f142af15f76",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669novies!vig=2022-10-17"
+  },
+  "cpc:669octies": {
+   "citazione": "art. 669-octies c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-ricorso-700",
+    "ist-sequestro",
+    "ist-sequestro-ante-causam"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 669-octies. (Provvedimento di accoglimento) L'ordinanza di accoglimento, ove la domanda sia stata proposta prima dell'inizio della causa di merito, deve fissare un termine perentorio non superiore a sessanta giorni per l'inizio del giudizio di merito, salva l'applicazione dell'ultimo comma dell'articolo 669 novies. (113a) (115) (116) In mancanza di fissazione del termine da parte del giudice, la causa di merito deve essere iniziata entro il termine perentorio di sessanta giorni. (113a) (115) (116) Il termine decorre dalla pronuncia dell'ordinanza se avvenuta in udienza o altrimenti dalla sua comunicazione. Per le controversie individuali relative ai rapporti di lavoro alle dipendenze delle pubbliche amministrazioni, escluse quelle devolute alla giurisdizione del giudice amministrativo, il termine decorre dal momento in cui la domanda giudiziale e' divenuta procedibile o, in caso di mancata presentazione della richiesta di espletamento del tentativo di conciliazione, decorsi trenta giorni. Nel caso in cui la controversia sia oggetto di compromesso o di clausola compromissoria, la parte, nei termini di cui ai commi precedenti, deve notificare all'altra un atto nel quale dichiara la propria intenzione di promuovere il procedimento arbitrale, propone la domanda e procede, per quanto le spetta, alla nomina degli arbitri. Le disposizioni di cui al presente articolo e al primo comma dell'articolo 669-novies non si applicano ai provvedimenti di urgenza emessi ai sensi dell'articolo 700 e agli altri provvedimenti cautelari idonei ad anticipare gli effetti della sentenza di merito, previsti dal codice civile o da leggi speciali, nonche' ai provvedimenti emessi a seguito di denunzia di nuova opera o di danno temuto ai sensi dell'articolo 688, ma ciascuna parte puo' iniziare il giudizio di merito. (113a) (115) (116) ((Il giudice, quando emette uno dei provvedimenti di cui al sesto comma prima dell'inizio della causa di merito, provvede sulle spese del procedimento cautelare)) . L'estinzione del giudizio di merito non determina l'inefficacia dei provvedimenti di cui al ((sesto comma)) , anche quando la relativa domanda e' stata proposta in corso di causa. (113a) (115) (116) L'autorita' del provvedimento cautelare non e' invocabile in un diverso processo. (113a) (115) (116) (67) (72) --------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 , come modificata dalla L. 4 dicembre 1992, n. 477 , ha disposto (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\" --------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 , come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 , ha disposto (con l'art. 92, comma 1) che \"Fatta eccezione per la disposizione di cui all'articolo 1, la presente legge entra in vigore il 1 gennaio 1993. Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\" Il D.L. 7 ottobre 1994, n. 571 convertito con modificazioni dalla L. 6 dicembre 1994, n. 673 nel modificare l' art. 74, comma 2 della L. 26 novembre 1990, n. 353 ha conseguentemente disposto (con l'art. 4, comma 5) che \"Gli articoli 74 , 75 , 76 , 77 , 85 e 86 della legge 26 novembre 1990, n. 353 , e successive modifiche ed integrazioni, si applicano, in quanto compatibili, ai giudizi pendenti alla data di entrata in vigore del presente decreto; tutti i sequestri anteriormente autorizzati perdono la loro efficacia se con sentenza, anche non passata in giudicato, e' rigettata l'istanza di convalida ovvero e' dichiarato inesistente il diritto a cautela del quale erano stati concessi.\". --------------- AGGIORNAMENTO (113a) Il D.L. 14 marzo 2005, n. 35 convertito con modificazioni dalla L. 14 maggio 2005, n. 80 come modificato dal D.L. 30 giugno 2005, n. 115 convertito con modificazioni dalla L. 17 agosto 2005, n. 168 ha disposto (con l'art. 2, comma 3-quater) che le presenti modifiche decorrono dal 1° gennaio 2006. Ha inoltre disposto (con l'art. 2, comma 3-quinquies) che \"Le disposizioni di cui ai commi 3, lettere b-bis), b-ter), c-bis), c-ter), e-bis) ed e-ter), 3-bis e 3-ter non si applicano ai giudizi civili pendenti alla data del 1° gennaio 2006.\" --------------- AGGIORNAMENTO (115) Il D.L. 14 marzo 2005, n. 35 convertito con modificazioni dalla L. 14 maggio 2005, n. 80 come modificato dalla L. 28 dicembre 2005, n. 263 ha disposto (con l'art. 2, comma 3-quinquies) che \"Le disposizioni di cui ai commi 3, lettere b-bis), b-ter), c-bis), c-ter), c-quater), c-quinquies), e-bis) ed e-ter), 3-bis, e 3-ter, lettera a), entrano in vigore il 1° gennaio 2006 e si applicano ai procedimenti instaurati successivamente a tale data di entrata in vigore.\" -------------- AGGIORNAMENTO (116) Il D.L. 14 marzo 2005, n. 35 convertito con modificazioni dalla L. 14 maggio 2005, n. 80 come modificato dal D.L. 30 dicembre 2005, n. 273 convertito con modificazioni dalla L. 23 febbraio 2006, n. 51 ha disposto (con l'art. 2, comma 3-quinquies) che \"Le disposizioni di cui ai commi 3, lettere b-bis), b-ter), c-bis), c-ter), c-quater), c-quinquies), e-bis) ed e-ter), 3-bis, e 3-ter, lettera a), entrano in vigore il 1° marzo 2006 e si applicano ai procedimenti instaurati successivamente a tale data di entrata in vigore.\"",
+   "versione": "4de89fa541ef9aa8",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669octies!vig=2022-10-17"
+  },
+  "cpc:7": {
+   "citazione": "art. 7 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-competenza-pagamento",
+    "ist-deposito-cauzionale",
+    "ist-foro-consumatore",
+    "ist-negoziazione-sinistri",
+    "ist-sinistro-stradale"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 7. (Competenza del giudice di pace). Il giudice di pace e' competente per le cause relative a beni mobili di valore non superiore a ((cinquemila euro)) , quando dalla legge non sono attribuite alla competenza di altro giudice. Il giudice di pace e' altresi' competente per le cause di risarcimento del danno prodotto dalla circolazione di veicoli e di natanti, purche' il valore della controversia non superi ((ventimila euro)) . COMMA ABROGATO DAL D.L. 18 OTTOBRE 1995, N. 432 , CONVERTITO CON MODIFICAZIONI DALLA L. 20 DICEMBRE 1995, N. 534 . E' competente qualunque ne sia il valore: 1) per le cause relative ad apposizione di termini ed osservanza delle distanze stabilite dalla legge, dai regolamenti o dagli usi riguardo al piantamento degli alberi e delle siepi; 2) per le cause relative alla misura ed alle modalita' d'uso dei servizi di condominio di case; 3) per le cause relative a rapporti tra proprietari o detentori di immobili adibiti a civile abitazione in materia di immissioni di fumo o di calore, esalazioni, rumori, scuotimenti e simili propagazioni che superino la nomale tollerabilita'; ((3-bis) per le cause relative agli interessi o accessori da ritardato pagamento di prestazioni previdenziali o assistenziali)) ; 4) NUMERO ABROGATO DAL D.L. 18 OTTOBRE 1995, N. 432 , CONVERTITO CON MODIFICAZIONI DALLA L. 20 DICEMBRE 1995, N. 534 . (72) -------------- AGGIORNAMENTO (67) La L. 26 novembre 1990, n. 353 come modificata dalla L. 4 dicembre 1992, n. 477 ha disposto: - (con l'art. 89, comma 1) la proroga dell'entrata in vigore dell'abrogazione del presente comma dal 1° gennaio 1993 al 2 gennaio 1994; - (con l'art. 92, comma 1) che \"Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\" -------------- AGGIORNAMENTO (72) La L. 26 novembre 1990, n. 353 come modificata dal D.L. 7 ottobre 1994, n. 571 , convertito con modificazioni, dalla L. 6 dicembre 1994, n. 673 ha disposto (con l'art. 92, comma 1) che \"Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\"",
+   "versione": "c211f95d1bd2c950",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7!vig=2022-10-17"
+  },
+  "cpc:96": {
+   "citazione": "art. 96 c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1940-10-28;1443",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (171) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (173) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-opposizione-atti-esecutivi",
+    "ist-opposizione-esecuzione"
+   ],
+   "sha256_akn": "ad5cbd4ec5c0edf478f5136ec0f32c6930c69b04bf1fde0af0cd46601d12e54a",
+   "stato": "testo anteriore",
+   "testo": "Art. 96. (Responsabilita' aggravata). Se risulta che la parte soccombente ha agito o resistito in giudizio con mala fede o colpa grave, il giudice, su istanza dell'altra parte, la condanna, oltre che alle spese, al risarcimento dei danni, che liquida, anche di ufficio, nella sentenza. Il giudice che accerta l'inesistenza del diritto per cui e' stato eseguito un provvedimento cautelare, o trascritta domanda giudiziale, o iscritta ipoteca giudiziale, oppure iniziata o compiuta l'esecuzione forzata, su istanza della parte danneggiata condanna al risarcimento dei danni l'attore o il creditore procedente, che ha agito senza la normale prudenza. La liquidazione dei danni e' fatta a norma del comma precedente. ((In ogni caso, quando pronuncia sulle spese ai sensi dell'articolo 91, il giudice, anche d'ufficio, puo' altresi' condannare la parte soccombente al pagamento, a favore della controparte, di una somma equitativamente determinata)) .",
+   "versione": "51846ea6ddad0e1f",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art96!vig=2022-10-17"
+  },
+  "dispattcc:71quater": {
+   "citazione": "art. 71-quater disp. att. c.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1942-03-30;318",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (50) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (51) Il D.Lgs. 10 ottobre 2022, n. 149 , come modificato dalla L. 29 dicembre 2022, n. 197 , ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (52) Il D.Lgs. 10 ottobre 2022, n. 149 , come modificato dal D.L. 24 febbraio 2023, n. 13 , ha disposto (con l'art. 41, comma 1) che le disposizioni dell'art. 2, comma 3 del medesimo D.Lgs. si applicano a decorrere dal 30 giugno 2023 e che l' efficacia dell'abrogazione dei commi 2, 4, 5 e 6 del presente articolo e' prorogata dal 28 febbraio 2023 al 30 giugno 2023."
+   ],
+   "schede": [
+    "ist-delibera-condominio"
+   ],
+   "sha256_akn": "c59976284a55cb42313b3de6971174cdf64b38fb21997a0caebb1cd9f4b62a63",
+   "stato": "testo anteriore",
+   "testo": "Art. 71-quater. ((Per controversie in materia di condominio, ai sensi dell'articolo 5, comma 1, del decreto legislativo 4 marzo 2010, n. 28, si intendono quelle derivanti dalla violazione o dall'errata applicazione delle disposizioni del libro III, titolo VII, capo II, del codice e degli articoli da 61 a 72 delle presenti disposizioni per l'attuazione del codice. La domanda di mediazione deve essere presentata, a pena di inammissibilita', presso un organismo di mediazione ubicato nella circoscrizione del tribunale nella quale il condominio e' situato. Al procedimento e' legittimato a partecipare l'amministratore, previa delibera assembleare da assumere con la maggioranza di cui all'articolo 1136, secondo comma, del codice. Se i termini di comparizione davanti al mediatore non consentono di assumere la delibera di cui al terzo comma, il mediatore dispone, su istanza del condominio, idonea proroga della prima comparizione. La proposta di mediazione deve essere approvata dall'assemblea con la maggioranza di cui all'articolo 1136, secondo comma, del codice. Se non si raggiunge la predetta maggioranza, la proposta si deve intendere non accettata. Il mediatore fissa il termine per la proposta di conciliazione di cui all'articolo 11 del decreto legislativo 4 marzo 2010, n. 28, tenendo conto della necessita' per l'amministratore di munirsi della delibera assembleare)) .",
+   "versione": "1cc37a56526dd498",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;318~art71quater!vig=2022-10-17"
+  },
+  "dispattcpc:155quinquies": {
+   "citazione": "art. 155-quinquies disp. att. c.p.c.",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:regio.decreto:1941-12-18;1368",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (54) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (55) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-ricerca-beni"
+   ],
+   "sha256_akn": "9d3f98afd5da2334603495a69e1af22b1ecfefd42f152c853daaebfa5ce87d1b",
+   "stato": "testo anteriore",
+   "testo": "Art. 155-quinquies. (Accesso alle banche dati tramite i gestori). Quando le strutture tecnologiche, necessarie a consentire l'accesso diretto da parte dell'ufficiale giudiziario alle banche dati di cui all'articolo 492-bis del codice e a quelle individuate con il decreto di cui all'articolo 155-quater, primo comma, non sono funzionanti, il creditore ((...)) , previa autorizzazione a norma dell'articolo 492-bis, primo comma, del codice, puo' ottenere dai gestori delle banche dati previste dal predetto articolo e dall'articolo 155-quater di queste disposizioni le informazioni nelle stesse contenute. ((La disposizione di cui al primo comma si applica, limitatamente a ciascuna delle banche dati comprese nell'anagrafe tributaria, ivi incluso l'archivio dei rapporti finanziari, nonche' a quelle degli enti previdenziali, sino all'inserimento di ognuna di esse nell'elenco di cui all'articolo 155-quater, primo comma.)) (38) ------------- AGGIORNAMENTO (38) Il D.L. 12 settembre 2014, n. 132 , convertito con modificazioni dalla L. 10 novembre 2014, n. 162 , ha disposto (con l'art. 19, comma 6) che \"L'articolo 155-quinquies delle disposizioni per l'attuazione del codice di procedura civile , di cui al regio decreto 18 dicembre 1941, n. 1368 , introdotto dal comma 2, lettera a), del presente articolo, si applica anche ai procedimenti di cui al comma 5\". Ha inoltre disposto (con l'art. 19, comma 6-bis) che la presente modifica si applica ai procedimenti iniziati a decorrere dal trentesimo giorno successivo alla data di entrata in vigore della legge di conversione del D.L. medesimo.",
+   "versione": "042ba316115baf5d",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-12-18;1368~art155quinquies!vig=2022-10-17"
+  },
+  "dl132:2ter": {
+   "citazione": "art. 2-ter d.l. 132/2014",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legge:2014-09-12;132",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (7) Il D.Lgs. 10 ottobre 2022, n. 149, ha disposto (con l'art. 41, comma 4) che \"Le disposizioni di cui all'articolo 9 si applicano a decorrere dal 30 giugno 2023\".",
+    "AGGIORNAMENTO (8) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, non prevede più (con l'art. 41, comma 4) che la modifica di cui al presente articolo si applica a decorrere dal 30 giugno 2023."
+   ],
+   "schede": [
+    "ist-negoziazione-assistita"
+   ],
+   "sha256_akn": "981de8cc6368cd946d6619fc84c01e6f902c9d301e96b5df711059b4dc7d8e9e",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "dlgs116:32": {
+   "citazione": "art. 32 d.lgs. 116/2017",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legislativo:2017-07-13;116",
+   "decorrenza_letta": [],
+   "schede": [
+    "ist-revoca-amministratore"
+   ],
+   "sha256_akn": "79350d14d04ef8f24e31c828e9e9ccff07931e152c715941310df118a9e0e2bc",
+   "stato": "testo anteriore",
+   "testo": "Art. 32. Disposizioni transitorie e abrogazioni 1. ((COMMA ABROGATO DALLA L. 30 DICEMBRE 2021, N. 234)) . 2. Dell'organico dei giudici onorari di pace e dei vice procuratori onorari, determinato con il decreto di cui all'articolo 3, comma 1, primo periodo, entrano a far parte i magistrati onorari in servizio alla data di entrata in vigore del decreto del Ministro della giustizia di cui al predetto articolo. I predetti magistrati sono assegnati, con decreto del Ministro della giustizia, all'ufficio dove prestano servizio alla data di pubblicazione nella Gazzetta Ufficiale della Repubblica Italiana del decreto di cui all'articolo 3, comma 1, secondo periodo, a condizione che quest'ultimo decreto preveda il corrispondente posto in pianta organica, anche con riferimento all'individuazione prevista dal comma 7 del predetto articolo. Quando con il decreto di cui all'articolo 3, comma 1, secondo periodo, e' disposta la riduzione dell'organico di un ufficio, i magistrati onorari in servizio ai quali e' stato conferito l'incarico da minor tempo che risultino in soprannumero sono riassegnati ad altro analogo ufficio dello stesso distretto. 3. Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2025. 4. Le disposizioni dell'articolo 28 entrano in vigore il 31 ottobre 2025. 5. A decorrere dal 31 ottobre 2025 ai procedimenti civili contenziosi, di volontaria giurisdizione e di espropriazione forzata introdotti dinanzi al giudice di pace a norma dell'articolo 27 si applicano le disposizioni, anche regolamentari, in materia di processo civile telematico per i procedimenti di competenza del tribunale vigenti alla medesima data. PERIODO SOPPRESSO DAL D.L. 9 GIUGNO 2021, N. 80 , CONVERTITO CON MODIFICAZIONI DALLA L. 6 AGOSTO 2021, N. 113 . 6. Ai fini del computo di cui all'articolo 4, comma 2, lettera e), si considera anche lo svolgimento di funzioni giudiziarie onorarie in epoca anteriore alla data di entrata in vigore del presente decreto. La disposizione di cui al presente comma si applica anche ai fini del computo di cui all'articolo 18, comma 2. 7. Il Consiglio superiore della magistratura adotta la delibera di cui all'articolo 6, comma 1, entro sei mesi dalla pubblicazione nella Gazzetta Ufficiale della Repubblica italiana del decreto del Ministro della giustizia di cui all'articolo 3, comma 1, secondo periodo. 8. L'incarico dei magistrati onorari nominati successivamente all'entrata in vigore del decreto legislativo 31 maggio 2016, n. 92 , e prima dell'entrata in vigore del presente decreto ha durata quadriennale con decorrenza dalla nomina. La nomina e il tirocinio dei magistrati onorari di cui al presente comma sono regolati dalle disposizioni vigenti prima della data di entrata in vigore del presente decreto. 9. Fermo quanto disposto dall' articolo 6 della legge 28 aprile 2016, n. 57 , dalla data di entrata in vigore del presente decreto i giudici di pace e i giudici onorari di tribunale in servizio a tale data possono essere destinati in supplenza o in applicazione, anche parziale, in un ufficio del giudice di pace del circondario dove prestano servizio, ove ricorrano presupposti di cui all'articolo 14 e con le modalita' indicate nella stessa disposizione. Nel corso del periodo di supplenza o di applicazione la liquidazione delle indennita' ha luogo in conformita' ai criteri previsti per le funzioni e i compiti effettivamente svolti. 10. In attesa dell'adozione del decreto del Ministro della giustizia di cui all'articolo 3, comma 1, secondo periodo, entro tre mesi dalla data di entrata in vigore del presente decreto il Consiglio superiore della magistratura adotta per l'anno 2017 la delibera di cui all'articolo 6, comma 1, individuando, nei limiti delle risorse disponibili, i posti da pubblicare, sulla base delle piante organiche degli uffici del giudice di pace e delle ripartizioni numeriche per ufficio dei giudici onorari di tribunale e dei vice procuratori onorari. 11. I procedimenti disciplinari pendenti nei confronti di magistrati onorari in servizio alla data di entrata in vigore del presente decreto continuano ad essere regolati dalle disposizioni vigenti prima della predetta data. 12. Fermo quanto disposto dal comma 11, non possono essere promosse nuove azioni disciplinari a carico di magistrati onorari gia' in servizio alla data di entrata in vigore del presente decreto per fatti commessi prima della medesima data; in relazione ai predetti fatti si applicano le disposizioni di cui all'articolo 21, commi da 3 a 10.",
+   "versione": "d137590dfec6e75c",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2017-07-13;116~art32!vig=2022-10-17"
+  },
+  "dlgs150:18": {
+   "citazione": "art. 18 d.lgs. 150/2011",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legislativo:2011-09-01;150",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (12) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (13) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-permesso-soggiorno"
+   ],
+   "sha256_akn": "b6090ea59abc021f950121b89680d4d1c66a20682416cc865ee2dd5404285846",
+   "stato": "testo anteriore",
+   "testo": "Art. 18. Delle controversie in materia di espulsione dei cittadini di Stati che non sono membri dell'Unione europea 1. Le controversie aventi ad oggetto l'impugnazione del decreto di espulsione pronunciato dal prefetto ai sensi del decreto legislativo 25 luglio 1998, n. 286 , sono regolate dal rito sommario di cognizione, ove non diversamente disposto dal presente articolo. 2. E' competente il giudice di pace del luogo in cui ha sede l'autorita' che ha disposto l'espulsione. 3. Il ricorso e' proposto, a pena di inammissibilita', entro trenta giorni dalla notificazione del provvedimento, ovvero entro sessanta giorni se il ricorrente risiede all'estero, e puo' essere depositato anche a mezzo del servizio postale ovvero per il tramite di una rappresentanza diplomatica o consolare italiana. In tal caso l'autenticazione della sottoscrizione e l'inoltro all'autorita' giudiziaria italiana sono effettuati dai funzionari della rappresentanza e le comunicazioni relative al procedimento sono effettuate presso la medesima rappresentanza. La procura speciale al difensore e' rilasciata altresi' dinanzi all'autorita' consolare. 4. Il ricorrente e' ammesso al gratuito patrocinio a spese dello Stato, e, qualora sia sprovvisto di un difensore, e' assistito da un difensore designato dal giudice nell'ambito dei soggetti iscritti nella tabella di cui all'articolo 29 delle norme di attuazione, di coordinamento e transitorie del codice di procedura penale , di cui al decreto legislativo 28 luglio 1989, n. 271 , nonche', ove necessario, da un interprete. 5. Il ricorso, unitamente al decreto di fissazione dell'udienza, deve essere notificato a cura della cancelleria all'autorita' che ha emesso il provvedimento almeno cinque giorni prima della medesima udienza. 6. L'autorita' che ha emesso il provvedimento impugnato puo' costituirsi fino alla prima udienza e puo' stare in giudizio personalmente o avvalersi di funzionari appositamente delegati. 7. Il giudizio e' definito, in ogni caso, entro venti giorni dalla data di deposito del ricorso. 8. Gli atti del procedimento e la decisione sono esenti da ogni tassa e imposta. 9. L'ordinanza che definisce il giudizio non e' appellabile. Note all' art. 18: - Il decreto legislativo 25 luglio 1998, n. 286 reca: «Testo unico delle disposizioni concernenti la disciplina dell'immigrazione e norme sulla condizione dello straniero.». - Si riporta il testo dell' articolo 29 del decreto legislativo 28 luglio 1989, n. 271 (Norme di attuazione, di coordinamento e transitorie del codice di procedura penale ): «Art. 29 (Elenchi e tabelle dei difensori di ufficio). - 1. Il consiglio dell'ordine forense predispone e aggiorna almeno ogni tre mesi l'elenco alfabetico degli iscritti negli albi disponibili ad assumere le difese di ufficio. 1-bis. Per l'iscrizione nell'elenco di cui all'articolo 97 del codice, e' necessario il conseguimento di attestazione di idoneita' rilasciata dall'ordine forense di appartenenza al termine della frequenza di corsi di aggiornamento professionale organizzati dagli ordini medesimi o, ove costituita, dalla camera penale territoriale ovvero dall'unione delle camere penali. I difensori possono, tuttavia, essere iscritti nell'elenco, a prescindere dal requisito di cui al periodo precedente, dimostrando di aver esercitato la professione in sede penale per almeno due anni, mediante la produzione di idonea documentazione. 2. E' istituito presso l'ordine forense di ciascun capoluogo del distretto di corte d'appello un apposito ufficio con recapito centralizzato che, mediante linee telefoniche dedicate, fornisce i nominativi dei difensori d'ufficio a richiesta dell'autorita' giudiziaria o della polizia giudiziaria. Non si ricorre al sistema informatizzato se il procedimento concerne materie che riguardano competenze specifiche. 3. L'ufficio di cui al comma 2 gestisce separatamente gli elenchi dei difensori d'ufficio di ciascun ordine forense esistente nel distretto di corte d'appello. 4. Il sistema informatizzato di cui al comma 2 deve garantire: a) che l'indicazione dei nominativi rispetti un criterio di rotazione automatico tra gli iscritti nell'elenco di cui al comma 1; b) che sia evitata l'attribuzione contestuale di nomine, ad un unico difensore, per procedimenti pendenti innanzi ad autorita' giudiziarie e di polizia distanti tra di loro e, comunque, dislocate in modo da non permettere l'effettivita' della difesa; c) l'istituzione di un turno differenziato, per gli indagati e gli imputati detenuti, che assicuri, attraverso un criterio di rotazione giornaliera dei nominativi, la reperibilita' di un numero di difensori d'ufficio corrispondente alle esigenze. 5. L'autorita' giudiziaria e, nei casi previsti, la polizia giudiziaria, individuano il difensore richiedendone il nominativo all'ufficio di cui al comma 2. 6. Il presidente del consiglio dell'ordine forense o un componente da lui delegato vigila sul rispetto dei criteri per l'individuazione e la designazione del difensore d'ufficio. 7. I difensori inseriti nei turni giornalieri di cui al comma 4, lettera c), hanno l'obbligo della reperibilita'. 8. 9.».",
+   "versione": "31acaeec5d8e14bf",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art18!vig=2022-10-17"
+  },
+  "dlgs150:20": {
+   "citazione": "art. 20 d.lgs. 150/2011",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legislativo:2011-09-01;150",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (12) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (13) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-permesso-soggiorno"
+   ],
+   "sha256_akn": "b6090ea59abc021f950121b89680d4d1c66a20682416cc865ee2dd5404285846",
+   "stato": "testo anteriore",
+   "testo": "Art. 20. Dell'opposizione al diniego del nulla osta al ricongiungimento familiare e del permesso di soggiorno per motivi familiari, nonche' agli altri provvedimenti dell'autorita' amministrativa in materia di diritto all'unita' familiare 1. Le controversie previste dall' articolo 30, comma 6, del decreto legislativo 25 luglio 1998, n. 286 , sono regolate dal rito sommario di cognizione, ove non diversamente disposto dal presente articolo. 2. E' competente il tribunale ((sede della sezione specializzata in materia di immigrazione protezione internazionale e libera circolazione dei cittadini dell'Unione europea, del luogo in cui ha sede l'autorita' che ha adottato il provvedimento impugnato)) . ((5)) 3. L'ordinanza che accoglie il ricorso puo' disporre il rilascio del visto anche in assenza del nulla osta. 4. Gli atti del procedimento sono esenti da imposta di bollo e di registro e da ogni altra tassa. ------------- AGGIORNAMENTO (5) Il D.L. 17 febbraio 2017, n. 13 , convertito con modificazioni dalla L. 13 aprile 2017, n. 46 , ha disposto (con l'art. 21, comma 1) che la presente modifica si applica alle cause e ai procedimenti giudiziari sorti dopo il centottantesimo giorno dalla data di entrata in vigore del suindicato D.L. Alle cause e ai procedimenti giudiziari introdotti anteriormente alla scadenza del termine di cui al periodo precedente si continuano ad applicare le disposizioni vigenti prima dell'entrata in vigore del medesimo D.L.",
+   "versione": "cceb189ddeba0cf9",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art20!vig=2022-10-17"
+  },
+  "dlgs28:12": {
+   "citazione": "art. 12 d.lgs. 28/2010",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legislativo:2010-03-04;28",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (10) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, non prevede più (con l'art. 41, comma 1) che le modifiche di cui ai commi 1, 1",
+    "AGGIORNAMENTO (9) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 41, comma 1) che \"Le disposizioni di cui all'articolo 7 si applicano a decorrere dal 30 giugno 2023\"."
+   ],
+   "schede": [
+    "ist-mediazione"
+   ],
+   "sha256_akn": "a90bfb0390e708c1e2b92691557fc872eb29255e4bf272f9a2f9ce70e2abcd25",
+   "stato": "testo anteriore",
+   "testo": "Art. 12. Efficacia esecutiva ed esecuzione 1. Ove tutte le parti aderenti alla mediazione siano assistite da un avvocato, l'accordo che sia stato sottoscritto dalle parti e dagli stessi avvocati costituisce titolo esecutivo per l'espropriazione forzata, l'esecuzione per consegna e rilascio, l'esecuzione degli obblighi di fare e non fare, nonche' per l'iscrizione di ipoteca giudiziale. Gli avvocati attestano e certificano la conformita' dell'accordo alle norme imperative e all'ordine pubblico. ((L'accordo di cui al periodo precedente deve essere integralmente trascritto nel precetto ai sensi dell'articolo 480, secondo comma, del codice di procedura civile)) . In tutti gli altri casi l'accordo allegato al verbale e' omologato, su istanza di parte, con decreto del presidente del tribunale, previo accertamento della regolarita' formale e del rispetto delle norme imperative e dell'ordine pubblico. Nelle controversie transfrontaliere di cui all' articolo 2 della direttiva 2008/52/CE del Parlamento europeo e del Consiglio, del 21 maggio 2008 , il verbale e' omologato dal presidente del tribunale nel cui circondario l'accordo deve avere esecuzione.(4) 2. Il verbale di cui al comma 1 costituisce titolo esecutivo per l'espropriazione forzata, per l'esecuzione in forma specifica e per l'iscrizione di ipoteca giudiziale. ------------- AGGIORNAMENTO (4) Il D.L. 21 giugno 2013, n. 69 , convertito con modificazioni dalla L. 9 agosto 2013, n. 98 ha disposto (con l'art. 84, comma 2) che \"Le disposizioni di cui al comma 1 si applicano decorsi trenta giorni dall'entrata in vigore della legge di conversione del presente decreto.\"",
+   "versione": "f70a0f3c9b53d35c",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art12!vig=2022-10-17"
+  },
+  "dlgs28:12bis": {
+   "citazione": "art. 12-bis d.lgs. 28/2010",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legislativo:2010-03-04;28",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (10) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, non prevede più (con l'art. 41, comma 1) che la modifica di cui al presente articolo si applica a decorrere dal 30 giugno 2023.",
+    "AGGIORNAMENTO (9) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 41, comma 1) che \"Le disposizioni di cui all'articolo 7 si applicano a decorrere dal 30 giugno 2023\"."
+   ],
+   "schede": [
+    "ist-mediazione"
+   ],
+   "sha256_akn": "a90bfb0390e708c1e2b92691557fc872eb29255e4bf272f9a2f9ce70e2abcd25",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "dlgs28:5": {
+   "citazione": "art. 5 d.lgs. 28/2010",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legislativo:2010-03-04;28",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (10) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197 ha disposto (con l'art. 41, comma 1) che \"Le disposizioni di cui all'articolo 7, comma l, lettere c), numero 3), d), e), f), g), h), t), u), v), z), aa) e bb), si applicano a decorrere dal 30 giugno 2023\".",
+    "AGGIORNAMENTO (9) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 41, comma 1) che \"Le disposizioni di cui all'articolo 7 si applicano a decorrere dal 30 giugno 2023\"."
+   ],
+   "schede": [
+    "ist-aggiornamento-canone",
+    "ist-anatocismo",
+    "ist-canone-nero",
+    "ist-citazione",
+    "ist-confessoria",
+    "ist-decreto-ingiuntivo",
+    "ist-delibera-condominio",
+    "ist-deposito-cauzionale",
+    "ist-di-retribuzioni",
+    "ist-diffamazione-civile",
+    "ist-divisione",
+    "ist-divorzio",
+    "ist-esecuzione-2932",
+    "ist-estratti-conto",
+    "ist-foro-consumatore",
+    "ist-garanzia-conformita",
+    "ist-lite-condominio",
+    "ist-mantenimento",
+    "ist-mediazione",
+    "ist-negatoria",
+    "ist-negoziazione-assistita",
+    "ist-opposizione-atti-esecutivi",
+    "ist-opposizione-convalida",
+    "ist-opposizione-di",
+    "ist-opposizione-esecuzione",
+    "ist-petizione-eredita",
+    "ist-procedibilita-locazione",
+    "ist-provvisoria-esecuzione",
+    "ist-reclamo-mediazione-tributaria",
+    "ist-regolamento-confini",
+    "ist-responsabilita-medica",
+    "ist-riduzione",
+    "ist-separazione",
+    "ist-sequestro-ante-causam",
+    "ist-sfratto-finita-locazione",
+    "ist-sfratto-morosita",
+    "ist-tfr",
+    "ist-usucapione",
+    "ist-usura",
+    "ist-vizi-appalto"
+   ],
+   "sha256_akn": "a90bfb0390e708c1e2b92691557fc872eb29255e4bf272f9a2f9ce70e2abcd25",
+   "stato": "testo anteriore",
+   "testo": "Art. 5. Condizione di procedibilita' e rapporti con il processo 1. Chi intende esercitare in giudizio un'azione relativa ad una controversia in materia di condominio, diritti reali, divisione, successioni ereditarie, patti di famiglia, locazione, comodato, affitto di aziende, risarcimento del danno derivante dalla circolazione di veicoli e natanti, da responsabilita' medica e da diffamazione con il mezzo della stampa o con altro mezzo di pubblicita', contratti assicurativi, bancari e finanziari, e' tenuto preliminarmente a esperire il procedimento di mediazione ai sensi del presente decreto ovvero il procedimento di conciliazione previsto dal decreto legislativo 8 ottobre 2007, n. 179 , ovvero il procedimento istituito in attuazione dell'articolo 128-bis del testo unico delle leggi in materia bancaria e creditizia di cui al decreto legislativo 1° settembre 1993, n. 385 , e successive modificazioni, per le materie ivi regolate. L'esperimento del procedimento di mediazione e' condizione di procedibilita' della domanda giudiziale. L'improcedibilita' deve essere eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice, non oltre la prima udienza. Il giudice ove rilevi che la mediazione e' gia' iniziata, ma non si e' conclusa, fissa la successiva udienza dopo la scadenza del termine di cui all'articolo 6. Allo stesso modo provvede quando la mediazione non e' stata esperita, assegnando contestualmente alle parti il termine di quindici giorni per la presentazione della domanda di mediazione. Il presente comma non si applica alle azioni previste dagli articoli 37 , 140 e 140-bis del codice del consumo di cui al decreto legislativo 6 settembre 2005, n. 206 , e successive modificazioni. (3) 1-bis. Chi intende esercitare in giudizio un'azione relativa a una controversia in materia di condominio, diritti reali, divisione, successioni ereditarie, patti di famiglia, locazione, comodato, affitto di aziende, risarcimento del danno derivante da responsabilita' medica e sanitaria e da diffamazione con il mezzo della stampa o con altro mezzo di pubblicita', contratti assicurativi, bancari e finanziari, e' tenuto, assistito dall'avvocato, preliminarmente a esperire il procedimento di mediazione ai sensi del presente decreto ovvero i procedimenti previsti dal decreto legislativo 8 ottobre 2007, n. 179 , e dai rispettivi regolamenti di attuazione ovvero il procedimento istituito in attuazione dell'articolo 128-bis del testo unico delle leggi in materia bancaria e creditizia di cui al decreto legislativo 1° settembre 1993, n. 385 , e successive modificazioni, ((ovvero il procedimento istituito in attuazione dell'articolo 187-ter del Codice delle assicurazioni private di cui al decreto legislativo 7 settembre 2005, n. 209,)) per le materie ivi regolate. L'esperimento del procedimento di mediazione e' condizione di procedibilita' della domanda giudiziale. A decorrere dall'anno 2018, il Ministro della giustizia riferisce annualmente alle Camere sugli effetti prodotti e sui risultati conseguiti dall'applicazione delle disposizioni del presente comma. L'improcedibilita' deve essere eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice, non oltre la prima udienza. Il giudice ove rilevi che la mediazione e' gia' iniziata, ma non si e' conclusa, fissa la successiva udienza dopo la scadenza del termine di cui all'articolo 6. Allo stesso modo provvede quando la mediazione non e' stata esperita, assegnando contestualmente alle parti il termine di quindici giorni per la presentazione della domanda di mediazione. Il presente comma non si applica alle azioni previste dagli articoli 37 , 140 e 140-bis del codice del consumo di cui al decreto legislativo 6 settembre 2005, n. 206 , e successive modificazioni.(4) (6) ((8)) 2. Fermo quanto previsto dal comma 1-bis e salvo quanto disposto dai commi 3 e 4, il giudice, anche in sede di giudizio di appello, valutata la natura della causa, lo stato dell'istruzione e il comportamento delle parti, puo' disporre l'esperimento del procedimento di mediazione; in tal caso, l'esperimento del procedimento di mediazione e' condizione di procedibilita' della domanda giudiziale anche in sede di appello. Il provvedimento di cui al periodo precedente e' adottato prima dell'udienza di precisazione delle conclusioni ovvero, quando tale udienza non e' prevista, prima della discussione della causa. Il giudice fissa la successiva udienza dopo la scadenza del termine di cui all'articolo 6 e, quando la mediazione non e' gia' stata avviata, assegna contestualmente alle parti il termine di quindici giorni per la presentazione della domanda di mediazione.(4) 2-bis. Quando l'esperimento del procedimento di mediazione e' condizione di procedibilita' della domanda giudiziale la condizione si considera avverata se il primo incontro dinanzi al mediatore si conclude senza l'accordo.(4) 3. Lo svolgimento della mediazione non preclude in ogni caso la concessione dei provvedimenti urgenti e cautelari, ne' la trascrizione della domanda giudiziale. 4. I commi 1-bis e 2 non si applicano: a) nei procedimenti per ingiunzione, inclusa l'opposizione, fino alla pronuncia sulle istanze di concessione e sospensione della provvisoria esecuzione; b) nei procedimenti per convalida di licenza o sfratto, fino al mutamento del rito di cui all' articolo 667 del codice di procedura civile ; c) nei procedimenti di consulenza tecnica preventiva ai fini della composizione della lite, di cui all' articolo 696-bis del codice di procedura civile ; d) nei procedimenti possessori, fino alla pronuncia dei provvedimenti di cui all' articolo 703, terzo comma, del codice di procedura civile ; e) nei procedimenti di opposizione o incidentali di cognizione relativi all'esecuzione forzata; f) nei procedimenti in camera di consiglio; g) nell'azione civile esercitata nel processo penale; (4) 5. Fermo quanto previsto dal comma 1-bis e salvo quanto disposto dai commi 3 e 4, se il contratto, lo statuto ovvero l'atto costitutivo dell'ente prevedono una clausola di mediazione o conciliazione e il tentativo non risulta esperito, il giudice o l'arbitro, su eccezione di parte, proposta nella prima difesa, assegna alle parti il termine di quindici giorni per la presentazione della domanda di mediazione e fissa la successiva udienza dopo la scadenza del termine di cui all'articolo 6. Allo stesso modo il giudice o l'arbitro fissa la successiva udienza quando la mediazione o il tentativo di conciliazione sono iniziati, ma non conclusi. La domanda e' presentata davanti all'organismo indicato dalla clausola, se iscritto nel registro, ovvero, in mancanza, davanti ad un altro organismo iscritto, fermo il rispetto del criterio di cui all'articolo 4, comma 1. In ogni caso, le parti possono concordare, successivamente al contratto o allo statuto o all'atto costitutivo, l'individuazione di un diverso organismo iscritto.(4) 6. Dal momento della comunicazione alle altre parti, la domanda di mediazione produce sulla prescrizione gli effetti della domanda giudiziale. Dalla stessa data, la domanda di mediazione impedisce altresi' la decadenza per una sola volta, ma se il tentativo fallisce la domanda giudiziale deve essere proposta entro il medesimo termine di decadenza, decorrente dal deposito del verbale di cui all'articolo 11 presso la segreteria dell'organismo. ------------- AGGIORNAMENTO (3) La Corte Costituzionale, con sentenza 24 ottobre 2012 - 6 dicembre 2012, n. 272 (in G.U. 1a s.s. 12/12/2012, n. 49), ha dichiarato \"l'illegittimita' costituzionale dell' articolo 5, comma 1, del decreto legislativo 4 marzo 2010, n. 28 (Attuazione dell' articolo 60 della legge 18 giugno 2009, n. 69 , in materia di mediazione finalizzata alla conciliazione delle controversie civili e commerciali)\". Ha inoltre dichiarato \"in via consequenziale, ai sensi dell' art. 27 della legge 11 marzo 1953, n. 87 (Norme sulla costituzione e sul funzionamento della Corte costituzionale), l'illegittimita' costituzionale: [...] b) dell'art. 5, comma 2, primo periodo, del detto decreto legislativo, limitatamente alle parole «Fermo quanto previsto dal comma 1 e», c) dell'art. 5, comma 4, del detto decreto legislativo, limitatamente alle parole «I commi 1 e»; d) dell'art. 5, comma 5 del detto decreto legislativo, limitatamente alle parole «Fermo quanto previsto dal comma 1 e»\". ------------- AGGIORNAMENTO (4) Il D.L. 21 giugno 2013, n. 69 , convertito con modificazioni dalla L. 9 agosto 2013, n. 98 ha disposto (con l'art. 84, comma 2) che \" Le disposizioni di cui al comma 1 si applicano decorsi trenta giorni dall'entrata in vigore della legge di conversione del presente decreto.\" ------------- AGGIORNAMENTO (6) Il D.Lgs. 6 agosto 2015, n. 130 ha disposto (con l'art. 2, comma 1) che \"Le disposizioni del presente decreto, concernenti l'attuazione del regolamento (UE) n. 524/2013 del Parlamento europeo e del Consiglio, del 21 maggio 2013, relativo alla risoluzione delle controversie online dei consumatori, si applicano a decorrere dal 9 gennaio 2016\". ------------- AGGIORNAMENTO (8) Il D.Lgs. 21 maggio 2018, n. 68 ha disposto (con l'art. 4, comma 7) che \"Le disposizioni di cui agli articoli 1 e 2 del presente decreto legislativo trovano applicazione dal 1° ottobre 2018, conformemente a quanto previsto dalla direttiva (UE) 2018/411 del Parlamento europeo e del Consiglio , che modifica la direttiva (UE) 2016/97 per quanto riguarda la data di applicazione delle misure di recepimento degli Stati membri\".",
+   "versione": "c12928637f95f443",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17"
+  },
+  "dlgs28:5bis": {
+   "citazione": "art. 5-bis d.lgs. 28/2010",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legislativo:2010-03-04;28",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (10) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197 ha disposto (con l'art. 41, comma 1) che \"Le disposizioni di cui all'articolo 7, comma l, lettere c), numero 3), d), e), f), g), h), t), u), v), z), aa) e bb), si applicano a decorrere dal 30 giugno 2023\".",
+    "AGGIORNAMENTO (9) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 41, comma 1) che \"Le disposizioni di cui all'articolo 7 si applicano a decorrere dal 30 giugno 2023\"."
+   ],
+   "schede": [
+    "ist-opposizione-di"
+   ],
+   "sha256_akn": "a90bfb0390e708c1e2b92691557fc872eb29255e4bf272f9a2f9ce70e2abcd25",
+   "stato": "assente al 17/10/2022 (articolo introdotto dalla riforma)"
+  },
+  "dlgs28:8": {
+   "citazione": "art. 8 d.lgs. 28/2010",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:decreto.legislativo:2010-03-04;28",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (10) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197 ha disposto (con l'art. 41, comma 1) che \"Le disposizioni di cui all'articolo 7, comma l, lettere c), numero 3), d), e), f), g), h), t), u), v), z), aa) e bb), si applicano a decorrere dal 30 giugno 2023\".",
+    "AGGIORNAMENTO (9) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 41, comma 1) che \"Le disposizioni di cui all'articolo 7 si applicano a decorrere dal 30 giugno 2023\"."
+   ],
+   "schede": [
+    "ist-canone-nero",
+    "ist-mediazione"
+   ],
+   "sha256_akn": "a90bfb0390e708c1e2b92691557fc872eb29255e4bf272f9a2f9ce70e2abcd25",
+   "stato": "testo anteriore",
+   "testo": "Art. 8. Procedimento 1. All'atto della presentazione della domanda di mediazione, il responsabile dell'organismo designa un mediatore e fissa il primo incontro tra le parti ((non oltre trenta)) giorni dal deposito della domanda. La domanda e la data del primo incontro sono comunicate all'altra parte con ogni mezzo idoneo ad assicurarne la ricezione, anche a cura della parte istante. ((Al primo incontro e agli incontri successivi, fino al termine della procedura, le parti devono partecipare con l'assistenza dell'avvocato. Durante il primo incontro il mediatore chiarisce alle parti la funzione e le modalita' di svolgimento della mediazione. Il mediatore, sempre nello stesso primo incontro, invita poi le parti e i loro avvocati a esprimersi sulla possibilita' di iniziare la procedura di mediazione e, nel caso positivo, procede con lo svolgimento)) . Nelle controversie che richiedono specifiche competenze tecniche, l'organismo puo' nominare uno o piu' mediatori ausiliari. ((4)) 2. Il procedimento si svolge senza formalita' presso la sede dell'organismo di mediazione o nel luogo indicato dal regolamento di procedura dell'organismo. 3. Il mediatore si adopera affinche' le parti raggiungano un accordo amichevole di definizione della controversia. 4. Quando non puo' procedere ai sensi del comma 1, ultimo periodo, il mediatore puo' avvalersi di esperti iscritti negli albi dei consulenti presso i tribunali. Il regolamento di procedura dell'organismo deve prevedere le modalita' di calcolo e liquidazione dei compensi spettanti agli esperti. ((4-bis. Dalla mancata partecipazione senza giustificato motivo al procedimento di mediazione, il giudice puo' desumere argomenti di prova nel successivo giudizio ai sensi dell' articolo 116, secondo comma, del codice di procedura civile . Il giudice condanna la parte costituita che, nei casi previsti dall'articolo 5, non ha partecipato al procedimento senza giustificato motivo, al versamento all'entrata del bilancio dello Stato di una somma di importo corrispondente al contributo unificato dovuto per il giudizio.)) 5. Dalla mancata partecipazione senza giustificato motivo al procedimento di mediazione il giudice puo' desumere argomenti di prova nel successivo giudizio ai sensi dell' articolo 116, secondo comma, del codice di procedura civile . Il giudice condanna la parte costituita che, nei casi previsti dall'articolo 5, non ha partecipato al procedimento senza giustificato motivo, al versamento all'entrata del bilancio dello Stato di una somma di importo corrispondente al contributo unificato dovuto per il giudizio. (3) ------------- AGGIORNAMENTO (3) La Corte Costituzionale, con sentenza 24 ottobre 2012 - 6 dicembre 2012, n. 272 (in G.U. 1a s.s. 12/12/2012, n. 49), ha dichiarato \"in via consequenziale, ai sensi dell' art. 27 della legge 11 marzo 1953, n. 87 (Norme sulla costituzione e sul funzionamento della Corte costituzionale), l'illegittimita' costituzionale: [...] h) dell'art. 8, comma 5, del detto decreto legislativo\". ------------- AGGIORNAMENTO (4) Il D.L. 21 giugno 2013, n. 69 , convertito con modificazioni dalla L. 9 agosto 2013, n. 98 ha disposto (con l'art. 84, comma 2) che \" Le disposizioni di cui al comma 1 si applicano decorsi trenta giorni dall'entrata in vigore della legge di conversione del presente decreto.\"",
+   "versione": "6df9d7666472a6e6",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8!vig=2022-10-17"
+  },
+  "dpr115:13": {
+   "citazione": "art. 13 d.P.R. 115/2002",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:presidente.repubblica:decreto:2002-05-30;115",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (81) Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (84) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-competenza-pagamento",
+    "ist-foro-consumatore"
+   ],
+   "sha256_akn": "03cbbbcfdafa68aa2e2bfe803abce29d775e0ac14e7bb18056d54229eaf6a6d2",
+   "stato": "testo anteriore",
+   "testo": "Art. 13. (L) Importi 1. Il contributo unificato e' dovuto nei seguenti importi: a) euro 43 per i processi di valore fino a 1.100 euro, nonche' per i processi per controversie di previdenza e assistenza obbligatorie, salvo quanto previsto dall'articolo 9, comma-1 bis, per i procedimenti di cui all' articolo 711 del codice di procedura civile , e per i procedimenti di cui all' articolo 4, comma 16, della legge 1° dicembre 1970, n. 898 ; (27) b) euro 98 per i processi di valore superiore a euro 1.100 e fino a euro 5.200 e per i processi di volontaria giurisdizione, nonche' per i processi speciali di cui al libro IV, titolo II, capo I e capo VI, del codice di procedura civile , e per i processi contenziosi di cui all' articolo 4 della legge 1 dicembre 1970, n. 898 , (27) c) euro 237 per i processi di valore superiore a euro 5.200 e fino a euro 26.000 e per i processi contenziosi di valore indeterminabile di competenza esclusiva del giudice di pace; (27) d) euro 518 per i processi di valore superiore a euro 26.000 e fino a euro 52.000 e per i processi civili di valore indeterminabile; (27) e) euro 759 per i processi di valore superiore a euro 52.000 e fino a euro 260.000;(27) f) euro 1.214 per i processi di valore superiore a euro 260.000 e fino a euro 520.000; (27) g) euro 1.686 per i processi di valore superiore a euro 520.000. (27) 1-bis. Il contributo di cui al comma 1 e' aumentato della meta' per i giudizi di impugnazione ed e' raddoppiato per i processi dinanzi alla Corte di cassazione. (30) 1-ter. Per i processi di competenza delle sezioni specializzate di cui al decreto legislativo 27 giugno 2003, n. 168 , e successive modificazioni, il contributo unificato di cui al comma 1 e' raddoppiato. Si applica il comma 1-bis. (31) 1-quater. Quando l'impugnazione, anche incidentale, e' respinta integralmente o e' dichiarata inammissibile o improcedibile, la parte che l'ha proposta e' tenuta a versare un ulteriore importo a titolo di contributo unificato pari a quello dovuto per la stessa impugnazione, principale o incidentale, a norma del comma 1-bis. Il giudice da' atto nel provvedimento della sussistenza dei presupposti di cui al periodo precedente e l'obbligo di pagamento sorge al momento del deposito dello stesso. (34) 1-quinquies. Per il procedimento introdotto con l'istanza di cui all' articolo 492-bis, primo comma, del codice di procedura civile il contributo dovuto e' pari ad euro 43 e non si applica l'articolo 30. (40) 2. Per i processi di esecuzione immobiliare il contributo dovuto e' pari a euro 278. Per gli altri processi esecutivi lo stesso importo e' ridotto della meta'. Per i processi esecutivi mobiliari di valore inferiore a 2.500 euro il contributo dovuto e' pari a euro 43. Per i processi di opposizione agli atti esecutivi il contributo dovuto e' pari a euro 168. 2-bis. Fuori dei casi previsti dall'articolo 10, comma 6-bis, per i processi dinanzi alla Corte di cassazione, oltre al contributo unificato, e' dovuto un importo pari all'imposta fissa di registrazione dei provvedimenti giudiziari. 3. Il contributo e' ridotto alla meta' per i processi speciali previsti nel libro IV, titolo I, del codice di procedura civile , compreso il giudizio di opposizione a decreto ingiuntivo e di opposizione alla sentenza dichiarativa di fallimento e per le controversie individuali di lavoro o concernenti rapporti di pubblico impiego, salvo quanto previsto dall'articolo 9, comma 1-bis. Ai fini del contributo dovuto, il valore dei processi di sfratto per morosita' si determina in base all'importo dei canoni non corrisposti alla data di notifica dell'atto di citazione per la convalida e quello dei processi di finita locazione si determina in base all'ammontare del canone per ogni anno. (27) 3-bis. Ove il difensore non indichi il proprio numero di fax ai sensi dell' articolo 125, primo comma, del codice di procedura civile e il proprio indirizzo di posta elettronica certificata ai sensi dell' articolo 16, comma 1-bis, del decreto legislativo 31 dicembre 1992, n. 546 , ovvero qualora la parte ometta di indicare il codice fiscale nell'atto introduttivo del giudizio o, per il processo tributario, nel ricorso il contributo unificato e' aumentato della meta'. (27) 4. COMMA ABROGATO DALLA L. 23 DICEMBRE 2009, N. 191 . (27) 5. Per la procedura fallimentare, che e' la procedura dalla sentenza dichiarativa di fallimento alla chiusura, il contributo dovuto e' pari a euro 851. (27) 6. Se manca la dichiarazione di cui all'articolo 14, il processo si presume del valore indicato al comma 1, lettera g). Se manca la dichiarazione di cui al comma 3-bis dell'articolo 14, il processo si presume del valore indicato al comma 6-quater, lettera f). 6-bis. Il contributo unificato per i ricorsi proposti davanti ai Tribunali amministrativi regionali e al Consiglio di Stato e' dovuto nei seguenti importi: a) per i ricorsi previsti dagli articoli 116 e 117 del decreto legislativo 2 luglio 2010, n. 104 , per quelli aventi ad oggetto il diritto di cittadinanza, di residenza, di soggiorno e di ingresso nel territorio dello Stato e per i ricorsi di esecuzione nella sentenza o di ottemperanza del giudicato il contributo dovuto e' di euro 300. Non e' dovuto alcun contributo per i ricorsi previsti dall'articolo 25 della citata legge n. 241 del 1990 avverso il diniego di accesso alle informazioni di cui al decreto legislativo 19 agosto 2005, n. 195 , di attuazione della direttiva 2003/4/CE sull'accesso del pubblico all'informazione ambientale; b) per le controversie concernenti rapporti di pubblico impiego, si applica il comma 3; c) per i ricorsi cui si applica il rito abbreviato comune a determinate materie previsto dal libro IV, titolo V, del decreto legislativo 2 luglio 2010, n. 104 , nonche' da altre disposizioni che richiamino il citato rito, il contributo dovuto e' di euro 1.800; (34) d) per i ricorsi di cui all'articolo 119, comma 1, lettere a) e b), del codice di cui all'allegato 1 al decreto legislativo 2 luglio 2010, n. 104 , il contributo dovuto e' di euro 2.000 quando il valore della controversia e' pari o inferiore ad euro 200.000; per quelle di importo compreso tra euro 200.000 e 1.000.000 il contributo dovuto e' di euro 4.000 mentre per quelle di valore superiore a 1.000.000 di euro e' pari ad euro 6.000. Se manca la dichiarazione di cui al comma 3-bis dell'articolo 14, il contributo dovuto e' di euro 6.000; (34) e) in tutti gli altri casi non previsti dalle lettere precedenti e per il ricorso straordinario al Presidente della Repubblica nei casi ammessi dalla normativa vigente, il contributo dovuto e' di euro 650. PERIODO SOPPRESSO DAL D.L. 13 AGOSTO 2011, N. 138 , CONVERTITO CON MODIFICAZIONI DALLA L. 14 SETTEMBRE 2011, N. 148 . PERIODO SOPPRESSO DAL D.L. 13 AGOSTO 2011, N. 138 , CONVERTITO CON MODIFICAZIONI DALLA L. 14 SETTEMBRE 2011, N. 148 . (27) (34) 6-bis.1. Gli importi di cui alle lettere a), b ), c), d) ed e) del comma 6-bis sono aumentati della meta' ove il difensore non indichi il proprio indirizzo di posta elettronica certificata e il proprio recapito fax, ai sensi dell' articolo 136 del codice del processo amministrativo di cui al decreto legislativo 2 luglio 2010, n. 104 , ovvero qualora la parte ometta di indicare il codice fiscale nel ricorso. L'onere relativo al pagamento dei suddetti contributi e' dovuto in ogni caso dalla parte soccombente, anche nel caso di compensazione giudiziale delle spese e anche se essa non si e' costituita in giudizio. Ai fini predetti, la soccombenza si determina con il passaggio in giudicato della sentenza. Ai fini del presente comma, per ricorsi si intendono quello principale, quello incidentale e i motivi aggiunti che introducono domande nuove. 6-ter. COMMA ABROGATO DAL D.L. 6 LUGLIO 2011, N. 98 , CONVERTITO CON MODIFICAZIONI DALLA L. 15 LUGLIO 2011, N. 111 . 6-quater. Per i ricorsi principale ed incidentale proposti avanti le Commissioni tributarie provinciali e regionali e' dovuto il contributo unificato nei seguenti importi: a) euro 30 per controversie di valore fino a euro 2.582,28; b) euro 60 per controversie di valore superiore a euro 2.582,28 e fino a euro 5.000; c) euro 120 per controversie di valore superiore a euro 5.000 e fino a euro 25.000 e per le controversie tributarie di valore indeterminabile; d) euro 250 per controversie di valore superiore a euro 25.000 e fino a euro 75.000; e) euro 500 per controversie di valore superiore a euro 75.000 e fino a euro 200.000; f) euro 1.500 per controversie di valore superiore a euro 200.000. (27) ((6-quinquies. Per le controversie di cui al regolamento (UE) n. 655/2014 del Parlamento europeo e del Consiglio, del 15 maggio 2014, che istituisce una procedura per l'ordinanza europea di sequestro conservativo su conti bancari al fine di facilitare il recupero transfrontaliero dei crediti in materia civile e commerciale, si applicano: a) gli importi stabiliti dall'articolo 13, commi 1, lettera b), e 1-bis, per i procedimenti previsti dagli articoli 21 e 37 del regolamento (UE) n. 655/2014; b) gli importi stabiliti dall'articolo 13, comma 3, per i procedimenti previsti dagli articoli 8 , 33 e 35 del regolamento (UE) n. 655/2014; c) gli importi stabiliti dall'articolo 13, comma 1, per i procedimenti previsti dall'articolo 34 del regolamento (UE) n. 655/2014; d) gli importi stabiliti dall'articolo 13, comma 1-quinquies, per i procedimenti previsti dall'articolo 14 del regolamento (UE) n. 655/2014.)) ------------- AGGIORNAMENTO (27) Il D.L. 6 luglio 2011, n. 98 , convertito con modificazioni dalla L. 15 luglio 2011, n. 111 , ha disposto (con l'art. 37, comma 7) che \"Le disposizioni di cui al comma 6 si applicano alle controversie instaurate, nonche' ai ricorsi notificati ai sensi del decreto legislativo 31 dicembre 1992, n. 546 , successivamente alla data di entrata in vigore del presente decreto\". Ha inoltre disposto (con l'art. 37, comma 14) che \"A decorrere dal 1° gennaio 2012, il maggior gettito derivante dall'applicazione dell' articolo 13, comma 6-bis, del decreto del Presidente della Repubblica 30 maggio 2002, n. 115 , confluisce nel fondo di cui al comma 10\". ------------- AGGIORNAMENTO (30) La L. 12 novembre 2011, n. 183 ha disposto (con l'art. 28, comma 3, lettera a)) che \"La disposizione di cui al comma 1, lettera a), si applica anche alle controversie pendenti nelle quali il provvedimento impugnato e' stato pubblicato ovvero, nei casi in cui non sia prevista la pubblicazione, depositato successivamente alla data di entrata in vigore della presente legge\". ------------- AGGIORNAMENTO (31) Il D.L. 24 gennaio 2012, n. 1 , convertito con modificazioni dalla L. 24 marzo 2012, n. 27 , ha disposto (con l'art. 2, comma 6) che \"Le disposizioni di cui al presente articolo si applicano ai giudizi instaurati dopo il centottantesimo giorno dalla data di entrata in vigore della legge di conversione del presente decreto\". --------------- AGGIORNAMENTO (34) La L. 24 dicembre 2012, n. 228 , ha disposto (con l'art. 1, comma 18) che \"Le disposizioni di cui al comma 17 si applicano ai procedimenti iniziati dal trentesimo giorno successivo alla data di entrata in vigore della presente legge.\" Nel modificare il D.L. 6 luglio 2011, n. 98 , convertito con modificazioni dalla L. 15 luglio 2011, n. 111 , ha conseguentemente disposto (con l'art. 1, comma 29) che \"Le disposizioni di cui ai commi 25, lettera a), e 27 si applicano ai ricorsi notificati successivamente alla data di entrata in vigore della presente legge\". Ha inoltre disposto (con l'art. 1, comma 27) che \"Il contributo di cui all'articolo 13, comma 6-bis, del testo unico di cui al decreto del Presidente della Repubblica 30 maggio 2002, n. 115 , come da ultimo modificato dal comma 25, lettera a), del presente articolo, e' aumentato della meta' per i giudizi di impugnazione\". ------------- AGGIORNAMENTO (40) Il D.L. 12 settembre 2014, n. 132 , convertito con modificazioni dalla L. 10 novembre 2014, n. 162 , ha disposto (con l'art. 19, comma 6-bis) che la presente modifica si applica ai procedimenti iniziati a decorrere dal trentesimo giorno successivo alla data di entrata in vigore della legge di conversione del D.L. medesimo.",
+   "versione": "b0639ca206ca6b0a",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art13!vig=2022-10-17"
+  },
+  "dpr115:30": {
+   "citazione": "art. 30 d.P.R. 115/2002",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:presidente.repubblica:decreto:2002-05-30;115",
+   "decorrenza_letta": [
+    "AGGIORNAMENTO (81) Il D.Lgs. 10 ottobre 2022, n. 149, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "AGGIORNAMENTO (84) Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\"."
+   ],
+   "schede": [
+    "ist-competenza-pagamento",
+    "ist-foro-consumatore"
+   ],
+   "sha256_akn": "03cbbbcfdafa68aa2e2bfe803abce29d775e0ac14e7bb18056d54229eaf6a6d2",
+   "stato": "testo anteriore",
+   "testo": "Art. 30. (Anticipazioni forfettarie dai privati all'erario nel processo civile) 1. La parte che per prima si costituisce in giudizio, che deposita il ricorso introduttivo, ovvero che, nei processi esecutivi di espropriazione forzata, fa istanza per l'assegnazione o la vendita di beni pignorati, anticipa i diritti, le indennita' di trasferta e le spese di spedizione per la notificazione eseguita su richiesta del funzionario addetto all'ufficio, in modo forfettizzato, nella misura di ((euro 27)) , eccetto che nei processi previsti dall'articolo unico della legge 2 aprile 1958, n. 319 , e successive modificazioni, e in quelli in cui si applica lo stesso articolo. 2. L'inosservanza delle prescrizioni di cui all'articolo 134, secondo comma, n. 1, e del termine stabilito dal quarto comma dello stesso articolo, del regio decreto 18 dicembre 1941, n. 1368 e successive modificazioni, determina il raddoppio dell'importo dovuto; il funzionario addetto all'ufficio procede alla riscossione mediante ruolo, secondo le disposizioni della parte VII e relative norme transitorie, in solido nei confronti dell'impugnante e del difensore.",
+   "versione": "4f8252d729c4cca0",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art30!vig=2022-10-17"
+  },
+  "l898:5": {
+   "citazione": "art. 5 l. 898/1970",
+   "vigente_al": "17/10/2022",
+   "urn": "urn:nir:stato:legge:1970-12-01;898",
+   "decorrenza_letta": [],
+   "schede": [
+    "ist-divorzio"
+   ],
+   "sha256_akn": "efd7f6be653c03682bb8346d59871a6e85cc0f07e782d6a2f7169f9a2c0cc8b1",
+   "stato": "testo anteriore",
+   "testo": "Art. 5. Il tribunale adito, in contraddittorio delle parti e con l'intervento obbligatorio del pubblico ministero, accertata la sussistenza di uno dei casi di cui all'articolo 3, pronuncia con sentenza lo scioglimento o la cessazione degli effetti civili del matrimonio ed ordina all'ufficiale dello stato civile del luogo ove venne trascritto il matrimonio di procedere alla annotazione della sentenza. ((La donna perde il cognome che aveva aggiunto al proprio a seguito del matrimonio. Il tribunale, con la sentenza con cui pronuncia lo scioglimento o la cessazione degli effetti civili del matrimonio, puo' autorizzare la donna che ne faccia richiesta a conservare il cognome del marito aggiunto al proprio quando sussista un interesse suo o dei Figli meritevole di tutela. La decisione di cui al comma precedente puo' essere modificata con successiva sentenza, per motivi di particolare gravita', su istanza di una delle parti)) . La sentenza e' impugnabile da ciascuna delle parti. Il pubblico ministero puo', ai sensi dell' articolo 72 del codice di procedura civile , proporre impugnazione limitatamente agli interessi patrimoniali dei figli minori o legalmente incapaci. ((Con la sentenza che pronuncia lo scioglimento o la cessazione degli effetti civili del matrimonio, il tribunale, tenuto conto delle condizioni dei coniugi, delle ragioni della decisione, del contributo personale ed economico dato da ciascuno alla conduzione familiare ed alla formazione del patrimonio di ciascuno o di quello comune, del reddito di entrambi, e valutati tutti i suddetti elementi anche in rapporto alla durata del matrimonio, dispone l'obbligo per un coniuge di somministrare periodicamente a favore dell'altro un assegno quando quest'ultimo non ha mezzi adeguati o comunque non puo' procurarseli per ragioni oggettive. La sentenza deve stabilire anche un criterio di adeguamento automatico dell'assegno, almeno con riferimento agli indici di svalutazione monetaria. Il tribunale puo', in caso di palese iniquita', escludere la previsione con motivata decisione. Su accordo delle parti la corresponsione puo' avvenire in unica soluzione ove questa sia ritenuta equa dal tribunale. In tal caso non puo' essere proposta alcuna successiva domanda di contenuto economico. I coniugi devono presentare all'udienza di comparizione avanti al presidente del tribunale la dichiarazione personale dei redditi e ogni documentazione relativa ai loro redditi e al loro patrimonio personale e comune. In caso di contestazioni il tribunale dispone indagini sui redditi, sui patrimoni e sull'effettivo tenore di vita, valendosi, se del caso, anche della polizia tributaria)) . L'obbligo di corresponsione dell'assegno cessa se il coniuge, al quale deve essere corrisposto, passa a nuove nozze. Il coniuge, al quale non spetti l'assistenza sanitaria per nessun altro titolo, conserva il diritto nei confronti dell'ente mutualistico da cui sia assistito l'altro coniuge. Il diritto si estingue se egli passa a nuove nozze.",
+   "versione": "0cb2fcf596445b7a",
+   "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-12-01;898~art5!vig=2022-10-17"
+  }
+ }
+}

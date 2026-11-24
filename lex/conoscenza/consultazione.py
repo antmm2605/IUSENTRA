@@ -165,6 +165,19 @@ def scheda_per_regola(regola: str, percorso: Path | None = None) -> dict[str, An
     return next((s for s in candidate if s["istituto"] == regola), candidate[0])
 
 
+def testo_anteriore(chiave: str) -> dict[str, Any] | None:
+    """Il testo anteriore al d.lgs. 149/2022 registrato per la norma (vigente al 17/10/2022), con la decorrenza letta."""
+    from .generatore import _anteriori
+
+    a = _anteriori().get(chiave)
+    if not a:
+        return None
+    return {"chiave": chiave, "citazione": a["citazione"], "stato": a["stato"], "testo": a.get("testo", ""),
+            "vigente_al": a["vigente_al"], "url": a.get("url", ""), "versione": a.get("versione", ""),
+            "decorrenza_letta": a.get("decorrenza_letta", []), "inizio": -1, "fine": -1, "rubrica": "",
+            "aggiornamento": a["vigente_al"]}
+
+
 def passaggio_norma(chiave: str, ancora: str = "") -> dict[str, Any] | None:
     """Il testo vigente della norma e la posizione dell'ancora (spazi e accenti tollerati)."""
     from lex.harness.norme import NORME, testo_norma

@@ -1,6 +1,6 @@
 # Competenza per territorio nelle cause di pagamento
 
-- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 5 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 6 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale.
@@ -56,11 +56,15 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Fonti con versione
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 167 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `bd6d7602771dbd96` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167!vig=2022-10-17
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
+- art. 13 d.P.R. 115/2002 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `b0639ca206ca6b0a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art13!vig=2022-10-17
 - art. 13 d.P.R. 115/2002 (Contributo unificato) — testo vigente, aggiornamento archivio 12/11/2026, versione `9a51effd6ca10720` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art13
+- art. 30 d.P.R. 115/2002 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `4f8252d729c4cca0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art30!vig=2022-10-17
 - art. 30 d.P.R. 115/2002 (Anticipazione forfettaria) — testo vigente, aggiornamento archivio 12/11/2026, versione `e3f685eb096bf57e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art30
 - art. 10 c.p.c. (Determinazione del valore) — testo vigente, aggiornamento archivio 05/03/2026, versione `a0ed8b8f6720e878` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art10
 - art. 14 c.p.c. (Cause relative a somme di danaro e a beni mobili) — testo vigente, aggiornamento archivio 05/03/2026, versione `0e823be7f40952f2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art14
+- art. 7 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c211f95d1bd2c950` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7!vig=2022-10-17
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 - art. 9 c.p.c. (Competenza del tribunale) — testo vigente, aggiornamento archivio 05/03/2026, versione `3513c78f4e954cde` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art9
 - art. 18 c.p.c. (Foro generale delle persone fisiche) — testo vigente, aggiornamento archivio 05/03/2026, versione `edfe283095fec60d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art18
@@ -82,3 +86,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:167, norma:cpc:38
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+- r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

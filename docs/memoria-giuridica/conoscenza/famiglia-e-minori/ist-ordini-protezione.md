@@ -1,6 +1,6 @@
 # Ordini di protezione contro gli abusi familiari
 
-- ID: `ist-ordini-protezione` · materia: famiglia e minori · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-ordini-protezione` · materia: famiglia e minori · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per ordine di protezione contro gli abusi familiari (artt. 473-bis.69 e 473-bis.70 c.p.c.).
@@ -47,7 +47,9 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
+- art. 473-bis.69 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis.69 c.p.c. (Ordini di protezione contro gli abusi familiari) — testo vigente, aggiornamento archivio 05/03/2026, versione `dbd1453d70830793` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.69
+- art. 473-bis.70 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 473-bis.70 c.p.c. (Contenuto degli ordini di protezione) — testo vigente, aggiornamento archivio 05/03/2026, versione `40625a6ca80e1734` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art473bis.70
 
 ## Norme abrogate (storico, non norme di riferimento)
@@ -59,3 +61,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:24 · contenuto delle regole cambiato con le stesse fonti
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

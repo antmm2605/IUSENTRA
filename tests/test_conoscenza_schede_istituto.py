@@ -287,6 +287,9 @@ def test_api_conoscenza(tmp_path):
         n = client.get("/api/v1/ui/conoscenza/norma/dl669:14?ancora=centoventi giorni").get_json()
         assert n["ok"] and n["norma"]["inizio"] >= 0
         assert client.get("/api/v1/ui/conoscenza/norma/inesistente:1").status_code == 404
+        a = client.get("/api/v1/ui/conoscenza/norma/cpc:37?versione=anteriore").get_json()
+        assert a["ok"] and a["norma"]["vigente_al"] == "17/10/2022"
+        assert client.get("/api/v1/ui/conoscenza/norma/cc:2697?versione=anteriore").status_code == 404
         assert client.get("/api/v1/ui/conoscenza/registro").get_json()["eventi"]
         r = client.post(f"/api/v1/ui/conoscenza/schede/{ident}/annotazioni", json={"sezione": "generale", "testo": "Nota di prova."})
         assert r.status_code == 200 and r.get_json()["ok"], r.get_json()
@@ -414,3 +417,14 @@ def test_questione_fuori_tema_scartata_e_contata(monkeypatch):
     s = generatore.genera_scheda(_istituto("esecuzione_contro_pa"))
     assert not [v for v in s["sezioni"]["questioni"]["voci"] if v.get("etichetta")]
     assert any(x.startswith("1 passaggi con la motivazione della Corte scartati") for x in s["lacune"])
+
+
+def test_testo_anteriore_alla_riforma_per_le_cause_pendenti():
+    a = consultazione.testo_anteriore("cpc:37")
+    assert a["stato"] == "testo anteriore" and a["vigente_al"] == "17/10/2022"
+    assert "in qualunque stato e grado del processo" in a["testo"] and "specifico motivo" not in a["testo"]
+    assert any("28 febbraio 2023" in x for x in a["decorrenza_letta"])
+    nuovo = consultazione.testo_anteriore("cpc:171ter")
+    assert nuovo["stato"].startswith("assente al 17/10/2022") and not nuovo["testo"]
+    f = next(f for f in consultazione.scheda("ist-comparsa")["fonti"] if f["chiave"] == "cpc:167")
+    assert f["testo_anteriore"]["vigente_al"] == "17/10/2022" and f["testo_anteriore"]["url"].endswith("!vig=2022-10-17")

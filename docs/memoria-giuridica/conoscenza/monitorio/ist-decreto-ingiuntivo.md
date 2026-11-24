@@ -1,6 +1,6 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 8 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 9 · ultimo controllo 24/11/2026 04:34
 - Stato: verificata · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al giudice competente per valore.
@@ -68,6 +68,7 @@
 - art. 644 c.p.c. (Mancata notificazione del decreto) — testo vigente, aggiornamento archivio 05/03/2026, versione `5e162b8609e86369` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art644
 - art. 642 c.p.c. (Esecuzione provvisoria) — testo vigente, aggiornamento archivio 05/03/2026, versione `736050f30d4d71ef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art642
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
 - art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
@@ -94,3 +95,4 @@
 - r6 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r7 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2934, norma:cc:2938, norma:cpc:112
+- r9 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

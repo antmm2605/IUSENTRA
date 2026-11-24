@@ -1,6 +1,6 @@
 # Restituzione del canone non registrato o in nero
 
-- ID: `ist-canone-nero` · materia: locazioni · revisione 8 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-canone-nero` · materia: locazioni · revisione 9 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di restituzione entro sei mesi dalla riconsegna dell'immobile.
@@ -63,7 +63,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 13 l. 431/1998 (Patti contrari alla legge) — testo vigente, aggiornamento archivio n.d., versione `c5a5ba9c17162e30` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1998-12-09;431~art13
 - art. 2964 c.c. (Inapplicabilità di regole della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `69c1057339253ee7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2964
 - art. 2966 c.c. (Cause che impediscono la decadenza) — testo vigente, aggiornamento archivio 29/04/2026, versione `5b6423cb22a12a07` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2966
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 8 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `6df9d7666472a6e6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8!vig=2022-10-17
 - art. 8 d.lgs. 28/2010 (Procedimento) — testo vigente, aggiornamento archivio 19/06/2025, versione `5e15fd9c44cea6e9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8
 - art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
 - art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
@@ -91,3 +93,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r6 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|29674/2026, pronuncia:Corte di Cassazione — civile|29675/2026, pronuncia:Corte di Cassazione — civile|26776/2026, pronuncia:Corte di Cassazione — civile|26777/2026
 - r7 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r8 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

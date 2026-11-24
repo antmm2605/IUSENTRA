@@ -1,6 +1,6 @@
 # Liquidazione controllata del sovraindebitato
 
-- ID: `ist-liquidazione-controllata` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-liquidazione-controllata` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale per l'apertura della liquidazione controllata, con la relazione dell'OCC.

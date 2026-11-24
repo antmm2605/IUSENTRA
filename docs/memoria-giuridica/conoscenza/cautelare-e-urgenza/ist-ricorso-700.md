@@ -1,6 +1,6 @@
 # Provvedimento d'urgenza (art. 700 c.p.c.)
 
-- ID: `ist-ricorso-700` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-ricorso-700` · materia: cautelare e urgenza · revisione 3 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 700 c.p.c. al giudice competente per il merito.
@@ -51,6 +51,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Fonti con versione
 - art. 700 c.p.c. (Condizioni per la concessione) — testo vigente, aggiornamento archivio n.d., versione `549462a0e0d6206d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art700
 - art. 669-bis c.p.c. (Forma della domanda) — testo vigente, aggiornamento archivio 05/03/2026, versione `3a6217845747074c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669bis
+- art. 669-octies c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `4de89fa541ef9aa8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669octies!vig=2022-10-17
 - art. 669-octies c.p.c. (Provvedimento di accoglimento) — testo vigente, aggiornamento archivio 05/03/2026, versione `ffd546d7e00fe088` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669octies
 - art. 669-terdecies c.p.c. (Reclamo contro i provvedimenti cautelari) — testo vigente, aggiornamento archivio n.d., versione `92eb7670efd7bec7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669terdecies
 - art. 669-ter c.p.c. (Competenza anteriore alla causa) — testo vigente, aggiornamento archivio 05/03/2026, versione `9b0478d3ab076db9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669ter
@@ -64,3 +65,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

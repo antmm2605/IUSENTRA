@@ -1,6 +1,6 @@
 # Mediazione civile e commerciale (d.lgs. 28/2010)
 
-- ID: `ist-mediazione` · materia: stragiudiziale · revisione 5 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-mediazione` · materia: stragiudiziale · revisione 6 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di mediazione all'organismo competente.
@@ -51,10 +51,14 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 8 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `6df9d7666472a6e6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8!vig=2022-10-17
 - art. 8 d.lgs. 28/2010 (Procedimento) — testo vigente, aggiornamento archivio 19/06/2025, versione `5e15fd9c44cea6e9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8
+- art. 12 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `f70a0f3c9b53d35c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art12!vig=2022-10-17
 - art. 12 d.lgs. 28/2010 (Efficacia esecutiva ed esecuzione) — testo vigente, aggiornamento archivio n.d., versione `9e9cad6381200d23` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art12
 - art. 6 d.lgs. 28/2010 (Durata) — testo vigente, aggiornamento archivio n.d., versione `fd8899f7e387028f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art6
+- art. 12-bis d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 12-bis d.lgs. 28/2010 (Conseguenze processuali della mancata partecipazione) — testo vigente, aggiornamento archivio n.d., versione `9e1770c73d60a132` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art12bis
 - Corte di Cassazione — civile, sez. 3, n. 29672/2026 (testo integrale) — versione `78ea4ddd30a67567` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329672O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29096/2026 (testo integrale) — versione `c2075017fd68bdd6` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329096O&rows=1&wt=json
@@ -69,3 +73,4 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:dlgs28:12bis, norma:dlgs28:6
 - r4 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
 - r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29656/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+- r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

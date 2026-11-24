@@ -1,6 +1,6 @@
 # Contestazione degli estratti conto e richiesta documenti (art. 119 TUB)
 
-- ID: `ist-estratti-conto` · materia: bancario e finanziario · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-estratti-conto` · materia: bancario e finanziario · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta ex art. 119, comma 4, TUB; contestazione scritta degli estratti conto.
@@ -46,6 +46,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Fonti con versione
 - art. 119 d.lgs. 385/1993 (TUB) (Comunicazioni periodiche alla clientela) — testo vigente, aggiornamento archivio n.d., versione `056a83c20da6a6a3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1993-09-01;385~art119
 - art. 1832 c.c. (Approvazione del conto) — testo vigente, aggiornamento archivio n.d., versione `d9ea681eada7ba8d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1832
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
@@ -57,3 +58,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:dlgs28:5
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

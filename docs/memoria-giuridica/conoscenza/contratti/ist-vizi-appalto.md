@@ -1,6 +1,6 @@
 # Vizi e difformità nell'appalto
 
-- ID: `ist-vizi-appalto` · materia: contratti · revisione 4 · ultimo controllo 24/11/2026 04:27
+- ID: `ist-vizi-appalto` · materia: contratti · revisione 5 · ultimo controllo 24/11/2026 04:34
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di garanzia per vizi dell'appalto (artt. 1667-1668 c.c.): diffida interruttiva della prescrizione, accertamento tecnico preventivo e poi giudizio di merito per l'eliminazione dei vizi o la riduzione del prezzo.
@@ -61,6 +61,7 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
+- art. 167 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `bd6d7602771dbd96` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167!vig=2022-10-17
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
 - art. 1460 c.c. (Eccezione d'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `4a69653223467c8c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1460
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
@@ -68,6 +69,7 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
 - art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
 - art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
+- art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 1655 c.c. (Nozione dell'appalto) — testo vigente, aggiornamento archivio 29/04/2026, versione `db574c2d4aee85ca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1655
 - Corte di Cassazione — civile, sez. 2, n. 29574/2026 (testo integrale) — versione `dc3fa8ddc02b84df` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229574O&rows=1&wt=json
@@ -82,3 +84,4 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1460, norma:cpc:167, norma:cpc:38, pronuncia:Corte di Cassazione — civile|25702/2026, pronuncia:Corte di Cassazione — civile|26951/2026
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+- r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti

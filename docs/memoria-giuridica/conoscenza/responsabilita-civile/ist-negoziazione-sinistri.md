@@ -1,6 +1,6 @@
 # Negoziazione assistita per sinistri stradali
 
-- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 8 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 9 · ultimo controllo 24/11/2026 05:34
 - Stato: verificata · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione, attesa dei termini, poi invito alla negoziazione assistita tramite avvocato; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
@@ -57,6 +57,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «sinistro_stradale»
 - Messa in mora dell’assicurazione — `/template-atti?scheda=RCD_015`
 - Regola di Lex «rc_negoziazione_sinistri»
+- Procedura guidata: Risarcimento sinistro RC auto — `/legal-skills/percorsi?percorso=sinistro_rc_auto`
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -99,3 +100,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2934, norma:cc:2938, norma:cpc:112
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte di Cassazione — penale|25009/2026, pronuncia:Corte di Cassazione — civile|28758/2026
+- r9 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

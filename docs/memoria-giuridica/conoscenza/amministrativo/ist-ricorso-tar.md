@@ -1,6 +1,6 @@
 # Ricorso al TAR (art. 29 c.p.a.)
 
-- ID: `ist-ricorso-tar` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-ricorso-tar` · materia: amministrativo · revisione 3 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 29 c.p.a., art. 41 c.p.a., art. 40 c.p.a..
@@ -40,6 +40,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «ricorso_tar»
 - Ricorso al TAR di annullamento (anche concessioni e sanzioni di settore) — `/template-atti?scheda=AMM_001`
+- Procedura guidata: Ricorso al TAR — `/legal-skills/percorsi?percorso=ricorso_tar`
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -61,3 +62,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

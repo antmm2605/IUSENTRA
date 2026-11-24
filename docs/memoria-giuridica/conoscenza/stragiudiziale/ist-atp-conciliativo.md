@@ -1,6 +1,6 @@
 # Consulenza tecnica preventiva ai fini conciliativi (art. 696-bis)
 
-- ID: `ist-atp-conciliativo` · materia: stragiudiziale · revisione 2 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-atp-conciliativo` · materia: stragiudiziale · revisione 2 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per accertamento tecnico preventivo o per consulenza tecnica preventiva ai fini della composizione della lite.

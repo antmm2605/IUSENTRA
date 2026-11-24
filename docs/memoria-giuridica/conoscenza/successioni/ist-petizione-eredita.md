@@ -1,6 +1,6 @@
 # Petizione di eredità
 
-- ID: `ist-petizione-eredita` · materia: successioni · revisione 6 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-petizione-eredita` · materia: successioni · revisione 6 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per petizione di eredità al tribunale del luogo di apertura della successione.

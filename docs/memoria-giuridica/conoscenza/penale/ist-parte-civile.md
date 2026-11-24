@@ -1,6 +1,6 @@
 # Costituzione di parte civile
 
-- ID: `ist-parte-civile` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-parte-civile` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di costituzione di parte civile depositata o presentata in udienza, con procura speciale.

@@ -1,6 +1,6 @@
 # Azione di responsabilità contro gli amministratori
 
-- ID: `ist-responsabilita-amministratori` · materia: società e impresa · revisione 4 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-responsabilita-amministratori` · materia: società e impresa · revisione 4 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione sociale di responsabilità (delibera assembleare o, nella s.r.l., anche del singolo socio); azione dei creditori sociali.

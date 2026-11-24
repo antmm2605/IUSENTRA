@@ -1,6 +1,6 @@
 # Ricorso per cassazione penale
 
-- ID: `ist-cassazione-penale` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-cassazione-penale` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per cassazione sottoscritto da difensore iscritto nell'albo speciale.

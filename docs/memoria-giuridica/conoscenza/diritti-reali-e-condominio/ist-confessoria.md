@@ -1,6 +1,6 @@
 # Azione confessoria (servitù)
 
-- ID: `ist-confessoria` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-confessoria` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per l'accertamento della servitù, la cessazione degli impedimenti e la rimessione in pristino.

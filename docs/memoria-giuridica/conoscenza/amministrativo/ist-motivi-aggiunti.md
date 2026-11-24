@@ -1,6 +1,6 @@
 # Motivi aggiunti
 
-- ID: `ist-motivi-aggiunti` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-motivi-aggiunti` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** motivi aggiunti nel giudizio pendente, notificati alle parti costituite, nel termine del ricorso.

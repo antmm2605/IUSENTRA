@@ -5421,3 +5421,111 @@ rinominate: 0
 invariate: 118
 ritirate: 0
 schede: 155
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Ricorso per decreto ingiuntivo
+event_id: 22d718833686f12256ca
+scheda: ist-decreto-ingiuntivo
+status: completato
+revision: 10 -> 11
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Opposizione a decreto ingiuntivo
+event_id: 6181116a4c1ee9b7c354
+scheda: ist-opposizione-di
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Separazione personale (giudiziale e consensuale)
+event_id: d9749ab5312c1e4cbf28
+scheda: ist-separazione
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Negoziazione assistita familiare
+event_id: e741af7b12e5f753cacd
+scheda: ist-negoziazione-familiare
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
+event_id: 6f868874cdaead0218bf
+scheda: ist-sinistro-stradale
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Negoziazione assistita per sinistri stradali
+event_id: b82b7c918b9333aa9547
+scheda: ist-negoziazione-sinistri
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Responsabilità sanitaria (l. 24/2017)
+event_id: 3ce135506e8bb691690f
+scheda: ist-responsabilita-medica
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Impugnazione del licenziamento
+event_id: f7938499f586f4c081a4
+scheda: ist-licenziamento
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Intimazione di sfratto per morosità e citazione per la convalida
+event_id: 30ca5193510e7de0c2b5
+scheda: ist-sfratto-morosita
+status: completato
+revision: 9 -> 10
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Ricorso al TAR (art. 29 c.p.a.)
+event_id: ec82d97e76ce87ea087c
+scheda: ist-ricorso-tar
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Sospensiva e misure cautelari al TAR
+event_id: 029bb450c010b6d9dd80
+scheda: ist-sospensiva
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Accesso agli atti (l. 241/1990, art. 116 c.p.a.)
+event_id: 4858234c2ac6f0c600f1
+scheda: ist-accesso-atti
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Diffida e messa in mora
+event_id: c50ec6a3963cd3829dca
+scheda: ist-diffida-messa-mora
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] aggiornamento | Mediazione civile e commerciale (d.lgs. 28/2010)
+event_id: 309cedbdebdcc8fc7358
+scheda: ist-mediazione
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:34:01+01:00] controllo | passaggio di controllo
+event_id: e622c0c54b1cee429ced
+status: completato
+generate: 0
+aggiornate: 14
+rinominate: 0
+invariate: 141
+ritirate: 0
+schede: 155

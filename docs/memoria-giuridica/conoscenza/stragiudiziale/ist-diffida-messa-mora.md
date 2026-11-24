@@ -1,6 +1,6 @@
 # Diffida e messa in mora
 
-- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 6 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 7 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** lettera di diffida e messa in mora via PEC o raccomandata, con termine per adempiere.
@@ -48,6 +48,7 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - Regola di Lex «diffida_commerciale»
 - Solleciti, messa in mora e costituzione in mora — `/template-atti?scheda=STR_001`
 - Regola di Lex «diffida_messa_mora»
+- Procedura guidata: Recupero credito in via monitoria — `/legal-skills/percorsi?percorso=recupero_credito_monitorio`
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito.
@@ -79,3 +80,4 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - r4 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026
 - r5 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026
 - r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

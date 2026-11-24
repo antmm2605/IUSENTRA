@@ -565,7 +565,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Il cliente ha fatture non pagate per 12.000 euro e la diffida è rimasta senza esito: facciamo un decreto ingiuntivo?"
+   "frase_esempio": "Il cliente ha fatture non pagate per 12.000 euro e la diffida è rimasta senza esito: facciamo un decreto ingiuntivo?",
+   "procedure": [
+    "recupero_credito_monitorio"
+   ]
   },
   {
    "id": "provvisoria_esecuzione",
@@ -620,7 +623,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Mi è arrivato un decreto ingiuntivo n. 345/2026 notificato il 02/11/2026, come ci opponiamo?"
+   "frase_esempio": "Mi è arrivato un decreto ingiuntivo n. 345/2026 notificato il 02/11/2026, come ci opponiamo?",
+   "procedure": [
+    "opposizione_decreto_ingiuntivo"
+   ]
   },
   {
    "id": "opposizione_tardiva_di",
@@ -939,7 +945,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "La cliente vuole separarsi dal marito violento, come impostiamo il ricorso?"
+   "frase_esempio": "La cliente vuole separarsi dal marito violento, come impostiamo il ricorso?",
+   "procedure": [
+    "separazione_consensuale"
+   ]
   },
   {
    "id": "divorzio",
@@ -1127,7 +1136,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Possiamo separarci senza andare in tribunale, con gli avvocati?"
+   "frase_esempio": "Possiamo separarci senza andare in tribunale, con gli avvocati?",
+   "procedure": [
+    "separazione_consensuale"
+   ]
   },
   {
    "id": "disconoscimento",
@@ -1777,7 +1789,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Il cliente è stato tamponato al semaforo: come chiediamo il risarcimento all'assicurazione?"
+   "frase_esempio": "Il cliente è stato tamponato al semaforo: come chiediamo il risarcimento all'assicurazione?",
+   "procedure": [
+    "sinistro_rc_auto"
+   ]
   },
   {
    "id": "negoziazione_sinistri",
@@ -1802,7 +1817,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Per il risarcimento da sinistro stradale serve la negoziazione assistita prima della causa?"
+   "frase_esempio": "Per il risarcimento da sinistro stradale serve la negoziazione assistita prima della causa?",
+   "procedure": [
+    "sinistro_rc_auto"
+   ]
   },
   {
    "id": "responsabilita_medica",
@@ -1837,7 +1855,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Errore del chirurgo durante l'operazione: come chiediamo i danni all'ospedale?"
+   "frase_esempio": "Errore del chirurgo durante l'operazione: come chiediamo i danni all'ospedale?",
+   "procedure": [
+    "responsabilita_sanitaria"
+   ]
   },
   {
    "id": "cose_in_custodia",
@@ -1930,7 +1951,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Il mio cliente è stato licenziato ieri per giusta causa: cosa facciamo?"
+   "frase_esempio": "Il mio cliente è stato licenziato ieri per giusta causa: cosa facciamo?",
+   "procedure": [
+    "impugnazione_licenziamento"
+   ]
   },
   {
    "id": "differenze_retributive",
@@ -2339,7 +2363,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "L'inquilino non paga da quattro mesi: facciamo lo sfratto?"
+   "frase_esempio": "L'inquilino non paga da quattro mesi: facciamo lo sfratto?",
+   "procedure": [
+    "sfratto_morosita"
+   ]
   },
   {
    "id": "sfratto_finita_locazione",
@@ -3083,7 +3110,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Il Comune ha negato il permesso di costruire: entro quando ricorriamo al TAR?"
+   "frase_esempio": "Il Comune ha negato il permesso di costruire: entro quando ricorriamo al TAR?",
+   "procedure": [
+    "ricorso_tar"
+   ]
   },
   {
    "id": "motivi_aggiunti",
@@ -3124,7 +3154,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Possiamo chiedere al TAR di sospendere subito l'ordinanza di chiusura del locale?"
+   "frase_esempio": "Possiamo chiedere al TAR di sospendere subito l'ordinanza di chiusura del locale?",
+   "procedure": [
+    "ricorso_tar"
+   ]
   },
   {
    "id": "ottemperanza",
@@ -3176,7 +3209,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Il Comune non ci dà copia del fascicolo della pratica edilizia: come otteniamo l'accesso?"
+   "frase_esempio": "Il Comune non ci dà copia del fascicolo della pratica edilizia: come otteniamo l'accesso?",
+   "procedure": [
+    "ricorso_tar"
+   ]
   },
   {
    "id": "silenzio",
@@ -4006,7 +4042,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Scrivi una diffida al cliente che non paga le fatture di 5.000 euro della mia società."
+   "frase_esempio": "Scrivi una diffida al cliente che non paga le fatture di 5.000 euro della mia società.",
+   "procedure": [
+    "recupero_credito_monitorio"
+   ]
   },
   {
    "id": "mediazione",
@@ -4036,7 +4075,10 @@
      "stato_biblioteca": "vigente"
     }
    ],
-   "frase_esempio": "Per una lite sulla successione serve la mediazione obbligatoria?"
+   "frase_esempio": "Per una lite sulla successione serve la mediazione obbligatoria?",
+   "procedure": [
+    "mediazione_civile"
+   ]
   },
   {
    "id": "negoziazione_assistita",

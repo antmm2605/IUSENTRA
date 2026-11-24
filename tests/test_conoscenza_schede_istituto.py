@@ -570,3 +570,17 @@ def test_riconvalida_notturna_rigenera_solo_le_schede_con_fonti_cambiate(tmp_pat
     prodotto = deposito.leggi_archivio()["schede"]["ist-esecuzione-contro-pa"]
     assert prodotto["impronta"] != rec["impronta"]
     assert notturno.riconvalida_notturna(cartella, ora="2026-11-26T04:50:00+01:00")["rigenerate"] == []
+
+
+def test_procedure_guidate_collegate_nei_due_sensi():
+    s = consultazione.scheda("ist-licenziamento")
+    proc = [x for x in s["strumenti"] if x["tipo"] == "procedura_guidata"]
+    assert proc == [{"tipo": "procedura_guidata", "id": "impugnazione_licenziamento",
+                     "titolo": "Procedura guidata: Impugnazione del licenziamento",
+                     "collegamento": "/legal-skills/percorsi?percorso=impugnazione_licenziamento"}]
+    assert [x["id"] for x in consultazione.schede_per_procedura("sinistro_rc_auto")] == ["ist-negoziazione-sinistri", "ist-sinistro-stradale"] \
+        or {x["id"] for x in consultazione.schede_per_procedura("sinistro_rc_auto")} == {"ist-negoziazione-sinistri", "ist-sinistro-stradale"}
+    from lex.legal_skills.prompt_library.pathways import get_pathway_catalog
+
+    collegate = {p.percorso_id for p in get_pathway_catalog().percorsi() if consultazione.schede_per_procedura(p.percorso_id)}
+    assert len(collegate) == 9  # il data breach non ha un istituto nel catalogo

@@ -1,6 +1,6 @@
 # Responsabilità sanitaria (l. 24/2017)
 
-- ID: `ist-responsabilita-medica` · materia: responsabilità civile · revisione 6 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-responsabilita-medica` · materia: responsabilità civile · revisione 7 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 24 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per consulenza tecnica preventiva ex art. 696-bis c.p.c. (o mediazione), poi giudizio di merito.
@@ -54,6 +54,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Strumenti del software
 - Regola di Lex «rc_responsabilita_sanitaria»
+- Procedura guidata: Responsabilità sanitaria — `/legal-skills/percorsi?percorso=responsabilita_sanitaria`
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -94,3 +95,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

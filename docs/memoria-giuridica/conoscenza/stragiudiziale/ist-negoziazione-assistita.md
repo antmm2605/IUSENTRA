@@ -1,6 +1,6 @@
 # Negoziazione assistita (d.l. 132/2014)
 
-- ID: `ist-negoziazione-assistita` · materia: stragiudiziale · revisione 6 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-negoziazione-assistita` · materia: stragiudiziale · revisione 6 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** invito a stipulare la convenzione di negoziazione assistita firmato dall'avvocato.

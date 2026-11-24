@@ -1,6 +1,6 @@
 # Ricorso nel rito del lavoro (art. 414)
 
-- ID: `ist-ricorso-414` · materia: lavoro · revisione 7 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-ricorso-414` · materia: lavoro · revisione 7 · ultimo controllo 24/11/2026 05:34
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.

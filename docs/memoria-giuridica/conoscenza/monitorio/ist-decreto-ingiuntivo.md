@@ -1,6 +1,6 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 10 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 11 · ultimo controllo 24/11/2026 05:34
 - Stato: verificata · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al giudice competente per valore.
@@ -56,6 +56,7 @@
 - Ricorso per decreto ingiuntivo — `/template-atti?scheda=MON_001`
 - Regola di Lex «notifica_decreto_ingiuntivo»
 - Regola di Lex «mon_ricorso_credito»
+- Procedura guidata: Recupero credito in via monitoria — `/legal-skills/percorsi?percorso=recupero_credito_monitorio`
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -98,3 +99,4 @@
 - r8 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2934, norma:cc:2938, norma:cpc:112
 - r9 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r10 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti
+- r11 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

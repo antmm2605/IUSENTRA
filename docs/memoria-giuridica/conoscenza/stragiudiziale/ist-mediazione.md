@@ -1,6 +1,6 @@
 # Mediazione civile e commerciale (d.lgs. 28/2010)
 
-- ID: `ist-mediazione` · materia: stragiudiziale · revisione 6 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-mediazione` · materia: stragiudiziale · revisione 7 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di mediazione all'organismo competente.
@@ -45,6 +45,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Strumenti del software
 - Regola di Lex «mediazione_obbligatoria»
 - Regola di Lex «str_mediazione»
+- Procedura guidata: Mediazione civile obbligatoria — `/legal-skills/percorsi?percorso=mediazione_civile`
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri.
@@ -74,3 +75,4 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - r4 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
 - r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29656/2026, pronuncia:Corte di Cassazione — civile|29672/2026
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

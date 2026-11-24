@@ -1,6 +1,6 @@
 # Impugnazione del licenziamento
 
-- ID: `ist-licenziamento` · materia: lavoro · revisione 7 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-licenziamento` · materia: lavoro · revisione 8 · ultimo controllo 24/11/2026 05:34
 - Stato: verificata · fonti dirette: 25 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
@@ -52,6 +52,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «impugnazione_licenziamento»
 - Ricorso per impugnazione del licenziamento e reintegrazione — `/template-atti?scheda=LAV_003`
+- Procedura guidata: Impugnazione del licenziamento — `/legal-skills/percorsi?percorso=impugnazione_licenziamento`
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -93,3 +94,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
 - r6 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

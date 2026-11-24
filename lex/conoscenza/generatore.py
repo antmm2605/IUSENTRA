@@ -200,6 +200,17 @@ def _schede_harness() -> dict[str, Any]:
 
 
 @lru_cache(maxsize=1)
+def _procedure_guidate() -> dict[str, str]:
+    """Le procedure guidate del software (catalogo dei percorsi di LegalSkills), per ID."""
+    try:
+        from lex.legal_skills.prompt_library.pathways import get_pathway_catalog
+
+        return {p.percorso_id: p.nome for p in get_pathway_catalog().percorsi()}
+    except Exception:  # noqa: BLE001 - catalogo non caricabile: i collegamenti risultano lacune dichiarate
+        return {}
+
+
+@lru_cache(maxsize=1)
 def _istituti_della_regola() -> dict[str, int]:
     from .istituti import carica
 
@@ -360,6 +371,13 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
             for f in v["fonti"]:
                 if f["chiave"] not in norme_usate:
                     norme_usate.append(f["chiave"])
+    for pid in ist.procedure:
+        nome = _procedure_guidate().get(pid)
+        if nome is None:
+            lacune.append(f"Procedura guidata «{pid}» collegata all'istituto ma assente dal catalogo delle procedure.")
+            continue
+        strumenti.append({"tipo": "procedura_guidata", "id": pid, "titolo": f"Procedura guidata: {nome}",
+                          "collegamento": f"/legal-skills/percorsi?percorso={pid}"})
     if sez["termini"]:
         strumenti.append({"tipo": "calcolatore", "id": "calcola-termini", "titolo": "Calcolo dei termini processuali",
                           "collegamento": "/scadenziario/calcola-termini"})

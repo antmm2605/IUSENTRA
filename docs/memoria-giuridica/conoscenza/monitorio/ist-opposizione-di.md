@@ -1,6 +1,6 @@
 # Opposizione a decreto ingiuntivo
 
-- ID: `ist-opposizione-di` · materia: monitorio · revisione 8 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-opposizione-di` · materia: monitorio · revisione 9 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
@@ -54,6 +54,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «opposizione_decreto_ingiuntivo»
 - Atto di opposizione a decreto ingiuntivo — `/template-atti?scheda=MON_011`
 - Regola di Lex «mon_opposizione_di»
+- Procedura guidata: Opposizione a decreto ingiuntivo — `/legal-skills/percorsi?percorso=opposizione_decreto_ingiuntivo`
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -94,3 +95,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

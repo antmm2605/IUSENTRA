@@ -1,6 +1,6 @@
 # Sospensiva e misure cautelari al TAR
 
-- ID: `ist-sospensiva` · materia: amministrativo · revisione 3 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-sospensiva` · materia: amministrativo · revisione 4 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda cautelare collegiale nel ricorso o con atto separato; in estrema urgenza istanza di decreto monocratico.
@@ -45,6 +45,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «ricorso_tar»
 - Ricorso al TAR di annullamento (anche concessioni e sanzioni di settore) — `/template-atti?scheda=AMM_001`
 - Regola di Lex «amm_sospensiva»
+- Procedura guidata: Ricorso al TAR — `/legal-skills/percorsi?percorso=ricorso_tar`
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -68,3 +69,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpa:55, norma:cpa:56
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

@@ -1,6 +1,6 @@
 # Usucapione
 
-- ID: `ist-usucapione` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-usucapione` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** mediazione obbligatoria e citazione per accertamento dell'usucapione (trascrizione della sentenza o del verbale).

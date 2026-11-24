@@ -80,6 +80,16 @@ def _verifica_fascicolo(fascicolo_id: str):
     return contesto
 
 
+def _schede_istituto(percorso_id: str) -> list[dict[str, str]]:
+    """Le schede di istituto della procedura (sezione «Conoscenza»); assenti se le schede non sono leggibili."""
+    try:
+        from lex.conoscenza.consultazione import schede_per_procedura
+
+        return schede_per_procedura(percorso_id)
+    except Exception:  # noqa: BLE001 - il collegamento è un aiuto: la procedura resta consultabile
+        return []
+
+
 def _titoli_prompt(percorso: Percorso) -> dict[str, dict[str, str]]:
     library = get_prompt_library()
     titoli: dict[str, dict[str, str]] = {}
@@ -105,6 +115,7 @@ def _dettaglio_percorso(percorso: Percorso, fascicolo_id: str) -> dict[str, obje
         dati["completato_il"] = str((passi_stato.get(passo.passo_id) or {}).get("completato_il", ""))
         passi_payload.append(dati)
     payload = percorso.to_public_dict()
+    payload["schede_istituto"] = _schede_istituto(percorso.percorso_id)
     payload["passi"] = passi_payload
     payload["fascicolo_id"] = fascicolo_id
     payload["prossimo_passo"] = prossimo_passo if fascicolo_id else ""
@@ -116,7 +127,8 @@ def _dettaglio_percorso(percorso: Percorso, fascicolo_id: str) -> dict[str, obje
 @_require_feature("lex.legalSkills.enabled")
 @_require_permission("legal_skills.leggi")
 def list_percorsi():
-    percorsi = [percorso.to_public_dict() for percorso in get_pathway_catalog().percorsi()]
+    percorsi = [dict(percorso.to_public_dict(), schede_istituto=_schede_istituto(percorso.percorso_id))
+                for percorso in get_pathway_catalog().percorsi()]
     return jsonify({"ok": True, "percorsi": percorsi, "totale": len(percorsi)})
 
 

@@ -1,6 +1,6 @@
 # Differenze retributive e crediti di lavoro
 
-- ID: `ist-differenze-retributive` · materia: lavoro · revisione 7 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-differenze-retributive` · materia: lavoro · revisione 7 · ultimo controllo 24/11/2026 05:34
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro (o decreto ingiuntivo con le buste paga); Tribunale in funzione di giudice del lavoro.

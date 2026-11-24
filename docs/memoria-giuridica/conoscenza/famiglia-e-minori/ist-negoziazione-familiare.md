@@ -1,6 +1,6 @@
 # Negoziazione assistita familiare
 
-- ID: `ist-negoziazione-familiare` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-negoziazione-familiare` · materia: famiglia e minori · revisione 4 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** convenzione di negoziazione assistita da almeno un avvocato per parte e trasmissione dell'accordo al pubblico ministero.
@@ -41,6 +41,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Strumenti del software
 - Regola di Lex «negoziazione_familiare»
 - Regola di Lex «fam_negoziazione»
+- Procedura guidata: Separazione consensuale — `/legal-skills/percorsi?percorso=separazione_consensuale`
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
@@ -52,3 +53,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

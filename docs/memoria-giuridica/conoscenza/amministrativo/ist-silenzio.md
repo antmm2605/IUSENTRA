@@ -1,6 +1,6 @@
 # Ricorso avverso il silenzio della PA
 
-- ID: `ist-silenzio` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-silenzio` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR avverso il silenzio, per l'accertamento dell'obbligo di provvedere.

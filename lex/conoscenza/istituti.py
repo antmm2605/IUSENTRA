@@ -36,7 +36,8 @@ class Istituto:
     norme: tuple[NormaRiferimento, ...] = ()
     frase_esempio: str = ""
     origine: str = ""
-    norme_abrogate: tuple[dict, ...] = ()        # storico: mai norme di riferimento (abrogata_da, decorrenza, sede vigente)
+    norme_abrogate: tuple[dict, ...] = ()
+    procedure: tuple[str, ...] = ()              # procedure guidate (lex/legal_skills/prompt_library/pathways_data)        # storico: mai norme di riferimento (abrogata_da, decorrenza, sede vigente)
     extra: dict = field(default_factory=dict, compare=False, hash=False)
 
     @property
@@ -69,7 +70,8 @@ def carica(percorso: Path | None = None) -> tuple[list[str], list[Istituto]]:
                                        n.get("stato_biblioteca", ""), n.get("comma", ""), n.get("nota_commi", ""))
                       for n in v.get("norme", []))
         istituti.append(Istituto(v["id"], v["materia"], v["nome"], tuple(v.get("regole", [])), norme,
-                                 v.get("frase_esempio", ""), v.get("origine", ""), tuple(v.get("norme_abrogate", []))))
+                                 v.get("frase_esempio", ""), v.get("origine", ""), tuple(v.get("norme_abrogate", [])),
+                                 tuple(v.get("procedure", []))))
     materie = list(dati.get("materie") or dict.fromkeys(i.materia for i in istituti))
     for i in istituti:
         if i.materia not in materie:

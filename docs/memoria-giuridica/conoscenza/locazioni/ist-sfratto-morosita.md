@@ -1,6 +1,6 @@
 # Intimazione di sfratto per morosità e citazione per la convalida
 
-- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 9 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 10 · ultimo controllo 24/11/2026 05:34
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.
@@ -69,6 +69,7 @@
 - Regola di Lex «negoziazione_locazione_inadatta»
 - Regola di Lex «opposizione_sfratto_commerciale»
 - Opposizione del conduttore all’intimazione e comparsa — `/template-atti?scheda=LOC_004`
+- Procedura guidata: Sfratto per morosità — `/legal-skills/percorsi?percorso=sfratto_morosita`
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -127,3 +128,4 @@
 - r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r9 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti
+- r10 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

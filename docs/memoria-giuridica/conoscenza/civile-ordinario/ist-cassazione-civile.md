@@ -1,6 +1,6 @@
 # Ricorso per cassazione civile
 
-- ID: `ist-cassazione-civile` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-cassazione-civile` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per cassazione sottoscritto da avvocato abilitato con procura speciale.

@@ -231,3 +231,10 @@ def _posizione_originale(testo: str, a: int, b: int) -> tuple[int, int]:
                 pos_b = i + 1
                 break
     return pos_a, pos_b
+
+
+def schede_per_procedura(percorso_id: str) -> list[dict[str, str]]:
+    """Le schede di istituto collegate a una procedura guidata (per la pagina «Procedure guidate»)."""
+    return [{"id": s["id"], "titolo": s["titolo"], "collegamento": f"/ricerca-legale/conoscenza?scheda={s['id']}"}
+            for s in schede() if any(x.get("tipo") == "procedura_guidata" and x.get("id") == percorso_id
+                                     for x in s.get("strumenti", []))]

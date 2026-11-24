@@ -1,6 +1,6 @@
 # Risoluzione per inadempimento
 
-- ID: `ist-risoluzione` · materia: contratti · revisione 8 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-risoluzione` · materia: contratti · revisione 8 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 24 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda giudiziale di risoluzione per inadempimento con risarcimento del danno (o diffida ad adempiere prima).

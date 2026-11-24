@@ -1,6 +1,6 @@
 # Danni da parti comuni e liti condominiali
 
-- ID: `ist-lite-condominio` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-lite-condominio` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1117 c.c., art. 2051 c.c., art. 5 d.lgs. 28/2010.

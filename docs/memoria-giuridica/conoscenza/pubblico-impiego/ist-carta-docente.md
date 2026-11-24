@@ -1,6 +1,6 @@
 # Carta del docente per i supplenti
 
-- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 9 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 9 · ultimo controllo 24/11/2026 05:34
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per l'accertamento del diritto alla carta per gli anni scolastici indicati e la condanna del Ministero all'attribuzione o al risarcimento per equivalente; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.

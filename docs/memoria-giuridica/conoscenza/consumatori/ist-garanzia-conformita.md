@@ -1,6 +1,6 @@
 # Garanzia legale di conformità
 
-- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 8 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 8 · ultimo controllo 24/11/2026 05:34
 - Stato: verificata · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta al venditore di riparazione o sostituzione gratuita; in subordine riduzione del prezzo o risoluzione del contratto.

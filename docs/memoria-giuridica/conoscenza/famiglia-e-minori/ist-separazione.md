@@ -1,6 +1,6 @@
 # Separazione personale (giudiziale e consensuale)
 
-- ID: `ist-separazione` · materia: famiglia e minori · revisione 7 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-separazione` · materia: famiglia e minori · revisione 8 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per separazione giudiziale (o congiunto per la consensuale) al tribunale; Tribunale.
@@ -51,6 +51,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - Regola di Lex «separazione_giudiziale»
 - Ricorso per separazione giudiziale o divorzio giudiziale — `/template-atti?scheda=FAM_002`
 - Regola di Lex «fam_separazione»
+- Procedura guidata: Separazione consensuale — `/legal-skills/percorsi?percorso=separazione_consensuale`
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri.
@@ -88,3 +89,4 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r7 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte di Cassazione — civile|32211/2025
+- r8 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti

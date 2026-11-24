@@ -1,6 +1,6 @@
 # Pignoramento immobiliare
 
-- ID: `ist-pignoramento-immobiliare` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-pignoramento-immobiliare` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di pignoramento immobiliare notificato e trascritto, iscrizione a ruolo, istanza di vendita con la documentazione.

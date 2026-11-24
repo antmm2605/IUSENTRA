@@ -1,6 +1,6 @@
 # Atto di citazione (rito ordinario di cognizione)
 
-- ID: `ist-citazione` · materia: civile ordinario · revisione 7 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-citazione` · materia: civile ordinario · revisione 7 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione a udienza fissa notificato al convenuto, con iscrizione a ruolo.

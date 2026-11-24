@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "pipeline": "schede-istituto/1",
- "aggiornato_il": "2026-11-24T04:46:36+01:00",
+ "aggiornato_il": "2026-11-24T05:34:01+01:00",
  "schede": {
   "ist-abbreviato": {
    "id": "ist-abbreviato",
@@ -254,7 +254,7 @@
    "impronta": "8ac79d185861c8048f6be238b46abc3749479a230456c1fc1f7317de3f284b9f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -491,7 +491,7 @@
    "impronta": "63368be1a214db240dfba5a0d3e03dd7324576b3e817940eff59e32dbe7b15a2",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -1821,7 +1821,7 @@
    "impronta": "9902f047340a23c0db25e5e71e8e69723d3d3301a351efba03f20c53cf6fcfcc",
    "revisione": 10,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2080,6 +2080,12 @@
      "id": "accesso_atti",
      "titolo": "Regola di Lex «accesso_atti»",
      "collegamento": ""
+    },
+    {
+     "tipo": "procedura_guidata",
+     "id": "ricorso_tar",
+     "titolo": "Procedura guidata: Ricorso al TAR",
+     "collegamento": "/legal-skills/percorsi?percorso=ricorso_tar"
     }
    ],
    "lacune": [
@@ -2104,10 +2110,10 @@
     "norma:l241:25": "6635f1ed09c8b097",
     "norma:cpa:116": "a6733ca6c05aeb97"
    },
-   "impronta": "ebf315c276f371f5f9dd0471a9f0097938eed348865aa7e1d16a1ad11ccf3ee6",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "e594c9b6e6199c44b33dfb1e7138beb81f9d6f40089815271140174989b01f2e",
+   "revisione": 3,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2120,6 +2126,12 @@
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "ebf315c276f371f5",
      "motivo": "fonti cambiate: norma:l241:22"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "e594c9b6e6199c44",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -2268,7 +2280,7 @@
    "impronta": "16ee72c5773a333da9a9da6dec742f6c6f8dbb97b4f0175c0b8023b8b0c67652",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2471,7 +2483,7 @@
    "impronta": "2cfedef6329d038057a8971f80af5a0a05d207e7ca4cd6aca7c50112797cdbab",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -2646,7 +2658,7 @@
    "impronta": "ab9afee72544bcec967789ed6a8c97bc0b350414b3faed8b4bbf09e6ffd487aa",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -3108,7 +3120,7 @@
    "impronta": "c7f7e2a342eff464ba9111bf58dec57ae25d58cb882701fafe82b8e52c2b104a",
    "revisione": 3,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -3710,7 +3722,7 @@
    "impronta": "7f41333b1f8e9789710510327c0ddaa7dde7de161934fc78b4554d2ebbddbc71",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -4640,7 +4652,7 @@
    "impronta": "c42f5d55007ed6142858c6503e23ec792938a23a265f5505af20ccb3e396f73c",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -5124,7 +5136,7 @@
    "impronta": "b64091557a6d5de5876b9cbee94af61ccaf1ef5b468c950ce22fb66e1e969553",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -5397,7 +5409,7 @@
    "impronta": "2b1014a60deb485f3c2bb64a188a92a95575d3ec49f18a0320b66008453978b3",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -6134,7 +6146,7 @@
    "impronta": "b7cf9f4d1c01c71cb046293a5fa6d8dcb95a203df81d80b537d97f04a855e29e",
    "revisione": 5,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -6742,7 +6754,7 @@
    "impronta": "85db532562761454f5bdd65ec1ce17d90c77d62336af36a03eb192ac4aa61b83",
    "revisione": 7,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7207,7 +7219,7 @@
    "impronta": "0774f4554ac87ff73f852ae7ddc256fd6d861be22dd36daefb27cb72fa3a9c8b",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7673,7 +7685,7 @@
    "impronta": "f14e89355ce0c147ab213d914f74029219057af666d885c59b7dbaf189daa906",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -7906,7 +7918,7 @@
    "impronta": "8f7d2d242b98627cf70b51daadbd1289696ab76d8f576719172ef3b25762ef09",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -8138,7 +8150,7 @@
    "impronta": "38838d755a67af85d098497756e28bce99d30e88c91cf853c33750f27f10be4b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -8397,7 +8409,7 @@
    "impronta": "c00c5ac97df0a934d14e9e0db6db52bc753d9d2ab039aadfac5aa52e6fe16343",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -9130,7 +9142,7 @@
    "impronta": "5a88811bbb7ed9059be21c2ed61fce9d54b7befd8c64e91b22b66a4fda6907fc",
    "revisione": 2,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -9322,7 +9334,7 @@
    "impronta": "82334528448181e98a8eccdd285be811feb5a2abcd9c7b725cc9986081b02475",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -9875,7 +9887,7 @@
    "impronta": "452c03c0c3a88dc55c4a320fcf82c9c2615f61af839c22d659e59a85716b8df6",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -10817,7 +10829,7 @@
    "impronta": "6fd7bbd9f8bc8e3e5fada94c08edb699f546645140202505e7b88f611d578f63",
    "revisione": 9,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -11685,7 +11697,7 @@
    "impronta": "2455ba863c5619e467e3caa6e574819c79f513d0a611cf358e91eba68c73fd1e",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -13032,7 +13044,7 @@
    "impronta": "261b9f5ad305c51d8f59e22576a2686cd261a98b65f198726a0b3fc3d913c5fe",
    "revisione": 9,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -13712,7 +13724,7 @@
    "impronta": "b0df16bcd4d7610f2216ebb36e4e9c6f4465e84ee35893e1788bbddb97681aa1",
    "revisione": 4,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -14260,7 +14272,7 @@
    "impronta": "0945b3653b35b8cbb0afa392fcd86916f9905fc6d0898b21a903df2458fba4ef",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -14447,7 +14459,7 @@
    "impronta": "96ebd20c438d1c732a305e9212a0f9419b795fd03e4674078e9673c74ed5531a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -15320,7 +15332,7 @@
    "impronta": "235056db3d04d01ce1701186f9e14a7625f916999ff8c12199f294bb699f921c",
    "revisione": 7,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -15830,7 +15842,7 @@
    "impronta": "6d1a338beff11585f772b8427cb4eeaf24dbc81a7fd86467212f5583a96e8079",
    "revisione": 6,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -16567,7 +16579,7 @@
    "impronta": "ed52461eb46d1e84f6a126b4b3b4eccdcf5ac9f22a29d742c1713c1271e5e5cf",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -17516,7 +17528,7 @@
    "impronta": "686845bbf350ce00c84a5441a68776b7e90be8c01a2db5d360cba4e946606912",
    "revisione": 7,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -17779,7 +17791,7 @@
    "impronta": "83f71a890249cafa442100208de6d155f4ebe43db646898caa8713305c897bbc",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -18437,7 +18449,7 @@
    "impronta": "8eb3cc3dec9f25bf010ede096fbeb085539fd41048ab475a41e11d6dc1886bd7",
    "revisione": 3,
    "generata_il": "2026-11-24T04:04:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -18661,7 +18673,7 @@
    "impronta": "617ba6e175d9e22b6406e1a757a83ca43dfea6d914fa583ef9b2b55e7ea797f1",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -19332,7 +19344,7 @@
    "impronta": "cfec339b215a2fc915658eca1c56554f318690db3c7417a0b4b3e16f9cdcb899",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -19538,7 +19550,7 @@
    "impronta": "8efaa0a57b502b45cda8db9a8a23cd27f07d10aa8d08f0f7b511f2a8012aff69",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -20386,7 +20398,7 @@
    "impronta": "313f484ab90dd5a7132e3e9f912a67ee9a4a4a8a5a27a179f2918257676bbda1",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -21361,6 +21373,12 @@
      "collegamento": ""
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "recupero_credito_monitorio",
+     "titolo": "Procedura guidata: Recupero credito in via monitoria",
+     "collegamento": "/legal-skills/percorsi?percorso=recupero_credito_monitorio"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -21401,10 +21419,10 @@
     "pronuncia:Corte di Cassazione — civile|19040/2026": "fa27630e6a2bc93a",
     "pronuncia:Corte di Cassazione — civile|12660/2026": "22e41421ba5d5a99"
    },
-   "impronta": "94540fb75aa9a8afd93515bda13cd0bdacbebb5557da50597f5496219ac88d54",
-   "revisione": 10,
-   "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "08fe5661af0eeb5eaa8b990569e6c6c647ffbdc11cd055b378d13d0111d20d86",
+   "revisione": 11,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -21464,6 +21482,12 @@
      "revisione": 10,
      "data": "2026-11-24T04:46:36+01:00",
      "impronta": "94540fb75aa9a8af",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 11,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "08fe5661af0eeb5e",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -21734,7 +21758,7 @@
    "impronta": "3af963bf4f8499ce06057f22868ac8a1d271dd01794be5c6e44dbea44be9ba31",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -22430,7 +22454,7 @@
    "impronta": "3db16571adaa3c918f84e2b1b26f016aff53e592b57b95325ca3e613b8285ada",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -23283,7 +23307,7 @@
    "impronta": "23e002c28cd577964b5a27d9aa935cff93de7ce931853f52b438bfd1266285db",
    "revisione": 7,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -24923,7 +24947,7 @@
    "impronta": "dd046e22290e427a2e0cc4a11839579b4093a66011c1bd7858a9e6ca30300d94",
    "revisione": 12,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -25927,7 +25951,7 @@
    "impronta": "42741fbc80f24618c9d2678e69b4c27ba7c13511a6fceccc4fecaf38fe4074f7",
    "revisione": 7,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -27195,7 +27219,7 @@
    "impronta": "b66f9fb7956d22360660ea3cda3ad861914528bbc6bb104f38502ea392df1c8b",
    "revisione": 7,
    "generata_il": "2026-11-24T04:26:46+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -27707,7 +27731,7 @@
    "impronta": "28d3a81f216dade21621d17121b891b09a51eb972241cc8fa4fa453cf95a231f",
    "revisione": 6,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -28371,6 +28395,12 @@
      "id": "diffida_messa_mora",
      "titolo": "Regola di Lex «diffida_messa_mora»",
      "collegamento": ""
+    },
+    {
+     "tipo": "procedura_guidata",
+     "id": "recupero_credito_monitorio",
+     "titolo": "Procedura guidata: Recupero credito in via monitoria",
+     "collegamento": "/legal-skills/percorsi?percorso=recupero_credito_monitorio"
     }
    ],
    "lacune": [
@@ -28406,10 +28436,10 @@
     "pronuncia:Corte di Cassazione — civile|29148/2026": "ca593440a87857e7",
     "pronuncia:Corte di Cassazione — civile|27061/2026": "d4e211eff28437ce"
    },
-   "impronta": "4c21f6b90fe9179f7387d26229c4acf613211ed3be75c5246d0d46a28b1e0bc3",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "8601cd082b596a943547c4bac4a4cd7ab857a7009054c7f5d3c33c41b1bedd39",
+   "revisione": 7,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -28445,6 +28475,12 @@
      "revisione": 6,
      "data": "2026-11-24T04:46:36+01:00",
      "impronta": "4c21f6b90fe9179f",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "8601cd082b596a94",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -28982,7 +29018,7 @@
    "impronta": "95b638f639a67ba1310688aab95fd9c65f80adb1d20afab66ea487320c7b21df",
    "revisione": 6,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -29750,7 +29786,7 @@
    "impronta": "a6fdbd24bb8b2bcf4e6dcc1fd5765f377a43a3427bf3689441148bc4823c4a27",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -30645,7 +30681,7 @@
    "impronta": "ca44139160f2eec3adbd7473c0d3ee123e7930a4de0a683aaee9094069be4f80",
    "revisione": 7,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -30893,7 +30929,7 @@
    "impronta": "306be91fd02c3e6528ff03e4c82eff3299e430930fa5792000ab996ef40a5dd0",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -31812,7 +31848,7 @@
    "impronta": "b6bba2767cc22cf9ee027ebdfeb3080541ba896f532df340e883d46745cc6f0b",
    "revisione": 7,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -32432,7 +32468,7 @@
    "impronta": "8f60849edbd4546ce9dc4ba91974e1b7abe6f37cd2c292f117a4a6ac5e278495",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -32665,7 +32701,7 @@
    "impronta": "7b64dd3568c703ac47a4b6fd3db7470c25652c83b758e3f8678712cdded9501b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -33063,7 +33099,7 @@
    "impronta": "1147d0dc84f0df57304aa268a1778fd427aa8d6a7424921dfad3e53dced9fa5f",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -33836,7 +33872,7 @@
    "impronta": "d8e81b7a38c00bb03cfc9ee80654cc61809787cb05846d1a4cb4420375dd4167",
    "revisione": 6,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -34840,7 +34876,7 @@
    "impronta": "67d31db05a5778a82d236b542d55da5d57b4f814ea5ae6b12243600421786610",
    "revisione": 8,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -35124,7 +35160,7 @@
    "impronta": "5a681b995b7ab1d8d177e1341877f281cd6a15fc442dd096ce06a5d6e5f2e336",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -35543,7 +35579,7 @@
    "impronta": "46fb9ea24b2aab54cde415d93920f4e5ceb90bbde72d0e528c664b2579a034a6",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -35789,7 +35825,7 @@
    "impronta": "8ea466068228d3654c80c4dbeb0f90c8c7e45928b4fb4a867eda237e030d1aac",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -36736,6 +36772,12 @@
      "collegamento": "/template-atti?scheda=LAV_003"
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "impugnazione_licenziamento",
+     "titolo": "Procedura guidata: Impugnazione del licenziamento",
+     "collegamento": "/legal-skills/percorsi?percorso=impugnazione_licenziamento"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -36780,10 +36822,10 @@
     "pronuncia:Corte costituzionale|186/2023": "cc1:a9c01c2c2a64",
     "pronuncia:Corte costituzionale|54/2023": "cc1:fd09adf50e46"
    },
-   "impronta": "f11503e3772a96670beee77e74491ca7012323e8e664eab8a8a32d768198d971",
-   "revisione": 7,
-   "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "9f0bf1bf85a0ef95baee8bdca5720d6fe7c9d4ccde4a006b70977a29ce5d6821",
+   "revisione": 8,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -36825,6 +36867,12 @@
      "revisione": 7,
      "data": "2026-11-24T04:34:33+01:00",
      "impronta": "f11503e3772a9667",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 8,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "9f0bf1bf85a0ef95",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -37030,7 +37078,7 @@
    "impronta": "2f924a88ff09245a4d4c92eca93b1dc54617e39d988115d8bd40d8455a598460",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -37641,7 +37689,7 @@
    "impronta": "f767ae30e6c12486fd32b1b468112c1c7215156f15ef42c2f4c309d2dc4d81e2",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -38666,7 +38714,7 @@
    "impronta": "eae97eeaf03c15f6e89ad0be847387df791b31c3f653baaa62dffa26c8cbd6ec",
    "revisione": 7,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -38893,7 +38941,7 @@
    "impronta": "68a3de7444c66f44f59bd254f796775a3dd51a404a0fed9f257402d9368b386b",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -39402,6 +39450,12 @@
      "id": "str_mediazione",
      "titolo": "Regola di Lex «str_mediazione»",
      "collegamento": ""
+    },
+    {
+     "tipo": "procedura_guidata",
+     "id": "mediazione_civile",
+     "titolo": "Procedura guidata: Mediazione civile obbligatoria",
+     "collegamento": "/legal-skills/percorsi?percorso=mediazione_civile"
     }
    ],
    "lacune": [
@@ -39433,10 +39487,10 @@
     "pronuncia:Corte costituzionale|98/2014": "bed4a7e64926d8da",
     "pronuncia:Corte di Cassazione — civile|29656/2026": "54ae3d16864561d5"
    },
-   "impronta": "c46c74aa15bd85732828fc06dcae8bce56acb996084ae497a7788cc472ab539d",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "0a922d04e57d9c85bac42ab5af899aaeee39c022fed99128fe061379c29dc09c",
+   "revisione": 7,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -39472,6 +39526,12 @@
      "revisione": 6,
      "data": "2026-11-24T04:34:33+01:00",
      "impronta": "c46c74aa15bd8573",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "0a922d04e57d9c85",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -39955,7 +40015,7 @@
    "impronta": "d39974182c655d7daa030484be4c9496f7677713ffa9c78c466a746c57a10032",
    "revisione": 4,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -40170,7 +40230,7 @@
    "impronta": "117c54e5dcac48bc934ecfc581df61fa8ddda46ec9edc79a07f8cb649a853b21",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -40841,7 +40901,7 @@
    "impronta": "6e17d37fe402a8622d6d42bfbee22928c650a7bbc33310aa363b2ae31e8abb69",
    "revisione": 5,
    "generata_il": "2026-11-24T04:26:46+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41134,7 +41194,7 @@
    "impronta": "f694404d24100e45c3cff4eea850255f4bbeca1a04ae47395ef30816d2f80566",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41378,7 +41438,7 @@
    "impronta": "8e1e4c94592b8559f4b40e2a15cb74fd9e420454b5f80cd8eb1af32728e5929d",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -41990,7 +42050,7 @@
    "impronta": "e55a6979da27e6a7c0255d7e47e8c0cdd4dd3fa27c8723b7b49a57ef58977c6c",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42545,7 +42605,7 @@
    "impronta": "7e5367e0ada302f6b6bba3fa5c7a361bb030c3ddd2e0c6e9f4ca09e582b03de4",
    "revisione": 6,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42799,6 +42859,12 @@
      "id": "fam_negoziazione",
      "titolo": "Regola di Lex «fam_negoziazione»",
      "collegamento": ""
+    },
+    {
+     "tipo": "procedura_guidata",
+     "id": "separazione_consensuale",
+     "titolo": "Procedura guidata: Separazione consensuale",
+     "collegamento": "/legal-skills/percorsi?percorso=separazione_consensuale"
     }
    ],
    "lacune": [
@@ -42821,10 +42887,10 @@
    "dipendenze": {
     "norma:dl132:6": "f93d860729b2dafa"
    },
-   "impronta": "291c9b592bca681ffcc3ec5f5a519e22fed0b9902acf8d83b085677e7b7d0885",
-   "revisione": 3,
-   "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "d00e5a14c8fba4442abaf5aea62e8b654adc6bdd4e1c1582e4e008a321f0ecc4",
+   "revisione": 4,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -42842,6 +42908,12 @@
      "revisione": 3,
      "data": "2026-11-24T01:12:08+01:00",
      "impronta": "291c9b592bca681f",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 4,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "d00e5a14c8fba444",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -43735,6 +43807,12 @@
      "collegamento": ""
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "sinistro_rc_auto",
+     "titolo": "Procedura guidata: Risarcimento sinistro RC auto",
+     "collegamento": "/legal-skills/percorsi?percorso=sinistro_rc_auto"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -43779,10 +43857,10 @@
     "pronuncia:Corte di Cassazione — civile|32152/2024": "401a626fad4febf2",
     "pronuncia:Corte di Cassazione — penale|25009/2026": "325e45be3717825a"
    },
-   "impronta": "ec6baf9b3e42842e79db7b557a7e34b250db1a6612c2d4a85a65b523f300d938",
-   "revisione": 8,
-   "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "7c81963d69a57cf65da57d36e0a5f966483bcc65cc6e45d8e957553fe6d0acfb",
+   "revisione": 9,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -43831,6 +43909,12 @@
      "data": "2026-11-24T04:46:36+01:00",
      "impronta": "ec6baf9b3e42842e",
      "motivo": "fonti cambiate: pronuncia:Corte di Cassazione — penale|25009/2026, pronuncia:Corte di Cassazione — civile|28758/2026"
+    },
+    {
+     "revisione": 9,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "7c81963d69a57cf6",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -44273,7 +44357,7 @@
    "impronta": "b2739dbbb47dd012973a4f92a74c6cf7fe808ebd894fb69619d1cefa2d3bed4c",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -44525,7 +44609,7 @@
    "impronta": "4394031cef5d0528c85fc0d2ea853f131a6eb6e3145dc65db878e889683d03df",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -44779,7 +44863,7 @@
    "impronta": "06162e41f1821d439120fd87abcc910705533e8bcd8d3d50f5b1fbef7bdf75d1",
    "revisione": 3,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -45032,7 +45116,7 @@
    "impronta": "4a0283deeb3b3bbbec7547ceabf657394ea4893313db5551ce4c44e88499da3e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -45892,7 +45976,7 @@
    "impronta": "2d0f63f654d2af643d19aa92360bb610931856b7b64a84d09a8f4cf233c573d4",
    "revisione": 9,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -47269,7 +47353,7 @@
    "impronta": "85c947e85f2d4b312a42eeb0110df87a9d2ccfb1b3692d4573846fb9d91e7485",
    "revisione": 8,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48160,6 +48244,12 @@
      "collegamento": ""
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "opposizione_decreto_ingiuntivo",
+     "titolo": "Procedura guidata: Opposizione a decreto ingiuntivo",
+     "collegamento": "/legal-skills/percorsi?percorso=opposizione_decreto_ingiuntivo"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -48201,10 +48291,10 @@
     "pronuncia:Corte costituzionale|131/2013": "cc1:09f47ed257d0",
     "pronuncia:Corte costituzionale|35/2013": "cc1:4727c274abbd"
    },
-   "impronta": "68cd246c5f54748a155c7270e23130896c32479fe5d83836bd276e50fed7e763",
-   "revisione": 8,
-   "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "02668f6b3218b050de675760bdab3554e7ee6df54ca12b081f1a268aed66c395",
+   "revisione": 9,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -48252,6 +48342,12 @@
      "revisione": 8,
      "data": "2026-11-24T04:46:36+01:00",
      "impronta": "68cd246c5f54748a",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 9,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "02668f6b3218b050",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -49140,7 +49236,7 @@
    "impronta": "5c5a74abf64e84ec093dd6e4adc8f7d2e8bd4c8c9211b35870e72c8b477d112f",
    "revisione": 8,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -49564,7 +49660,7 @@
    "impronta": "ae48888808b39b1e81a215d37ce751442c9fec1cb4807770e9c35540a4218c32",
    "revisione": 5,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -49863,7 +49959,7 @@
    "impronta": "55fea0de16802853bbafc053c931cef271d42757872fcf78454758cbd59fc32b",
    "revisione": 4,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50281,7 +50377,7 @@
    "impronta": "55cb52f62f3287da359f5ae1f299859e42b9c1deeffcda15a7e4b09c66b60531",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50572,7 +50668,7 @@
    "impronta": "10c8ec4498e647d0f77feffef32c62950131c1aa7f8b6b1ff7d82356e842588e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -50940,7 +51036,7 @@
    "impronta": "e2f8f0e7bd054035c25b6863838a10a377a1e397ffb1576dcc1fcf26a0c108a5",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51137,7 +51233,7 @@
    "impronta": "7c5b1ce49dcd5983b2046208ceaf162c24c77413c36c6dfe2166bb042bea1b71",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51297,7 +51393,7 @@
    "impronta": "02acef0191cd61ab6944573b88c950f8c7bdf47f53dac3384b48dc249f3c955f",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51552,7 +51648,7 @@
    "impronta": "aad6109380d7cf7de9c9a4baacf7322279960b3f4d8293ff1732fd901c0602ff",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -51755,7 +51851,7 @@
    "impronta": "b4f3f9ba4412fc07c23c85ab2470d4a35d13462a2f74e7b052f79f899f1ceef9",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -52126,7 +52222,7 @@
    "impronta": "f9834ec8db567a9c2e6de3e563e9263f15f3cf9e7f3832f04ad29211fde89d97",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -52793,7 +52889,7 @@
    "impronta": "d9d73da8a8a72e597567533743e9a691fa75e4380fd3434127fb577c3f3bf2f4",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -53148,7 +53244,7 @@
    "impronta": "a9aaaca975c6da6c782e3987c43c54f7eed90c853dfdd515a6be34baa7b1a726",
    "revisione": 3,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -53464,7 +53560,7 @@
    "impronta": "645d027ee23e2b0cb82224ded6b1a85a4c9064a5a98cb9a758c06e66f09c1e07",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54133,7 +54229,7 @@
    "impronta": "7849961c451b818cde1c9ca7366c21cf2f8a37694632a445fa9d109ece0e11c7",
    "revisione": 6,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54385,7 +54481,7 @@
    "impronta": "313d0f80702f53a4d0700f07a877ba5754a896894a09d5789a02a1adad93dd72",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -54806,7 +54902,7 @@
    "impronta": "5b7dcdf0d91b4985e17be730d5bfc64981e1f98ee51d6c9fcc6e65193c3b8315",
    "revisione": 5,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -55615,7 +55711,7 @@
    "impronta": "36a751c69b9a289e00339d5e50280a6e82c06ad2ea4e068a0316e85b88b3107f",
    "revisione": 6,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -55930,7 +56026,7 @@
    "impronta": "a9c245897a82c06e00ff2d7f03be20860e26a5c34c3a16054f1e3fc22896ef18",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -56834,7 +56930,7 @@
    "impronta": "764c885681e2082979b89dd7a747e12ee3c1e234eab2feab8ded321bff7d1e1b",
    "revisione": 9,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -57312,7 +57408,7 @@
    "impronta": "0553715a0d9adf1721ac58aecb365fa9d1502d9f63400a2cb36e50c14ce047d3",
    "revisione": 3,
    "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -57500,7 +57596,7 @@
    "impronta": "e4af6cab03917b3db5fe6b763d0a4ae5f9a0b89170db9987d4078b0ee5ba2184",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -57847,7 +57943,7 @@
    "impronta": "101d4aa8f854bc79bac418933db763858bfa1d483b8b016bfa83bb249b85b9c6",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -58095,7 +58191,7 @@
    "impronta": "4bb538cbb33d3b703acf1706a803b7655d99837dfa576c4f19de8b607106109d",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -58472,7 +58568,7 @@
    "impronta": "f3544ab8298845cfe2b9a6801b60bedc5ebb946f8fcc1b80751afaac7924a230",
    "revisione": 5,
    "generata_il": "2026-11-24T04:05:46+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -58866,7 +58962,7 @@
    "impronta": "145c9f77a89920134344bee14a12fa108f4a74f3a85c21d52e8e555175107c8f",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -59138,7 +59234,7 @@
    "impronta": "d342452879ab1cb58d08bbdcd776ba16218c9a3704c91c6125eb1728b177ef19",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -59385,7 +59481,7 @@
    "impronta": "c9f842950e6728a465ec3996b55e3248ec79d9d31eb4df9bab2451271f0d7b1e",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -59797,7 +59893,7 @@
    "impronta": "e46d1401ce809d45a92ecebd945ad75f57596c9139e5cc740cd1c3aa9864c6be",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60113,7 +60209,7 @@
    "impronta": "ce99ee59f0ddb7ca4ef8cefbc13d45dc3719105507225843bef3ff935a0422b1",
    "revisione": 3,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -60768,7 +60864,7 @@
    "impronta": "2902179096c93d5323c6180cd479675e9264fc3815144bf1e0641300c2b49fb7",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -61024,7 +61120,7 @@
    "impronta": "9535f1c3c3af2ff96ad2da0c304237ba6dd4872a949708295973f12bfa68246a",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -61264,7 +61360,7 @@
    "impronta": "7758cde52ef5cfdf8a90c5ed9e5e36bebf6d3de1675b892cc9201383952ebf03",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -61737,7 +61833,7 @@
    "impronta": "820354547ff37bf2e5343a088e7d896ce78abf6b03b02cb2165ec9f2f2d7f24d",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -62138,7 +62234,7 @@
    "impronta": "da20d93e54c54db66595f492228c52431708d4a4b8811e7d550cf6b94725652b",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -63080,6 +63176,12 @@
      "collegamento": ""
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "responsabilita_sanitaria",
+     "titolo": "Procedura guidata: Responsabilità sanitaria",
+     "collegamento": "/legal-skills/percorsi?percorso=responsabilita_sanitaria"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -63125,10 +63227,10 @@
     "pronuncia:Corte costituzionale|182/2023": "cc1:18c9b1e9da5a",
     "pronuncia:Corte costituzionale|87/2021": "cc1:1de4cc9c93c0"
    },
-   "impronta": "d758b754da7c8a10cb3cd4b9997e58df9b26ff4721cff4a6784ad6b5db1e783a",
-   "revisione": 6,
-   "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "db9b73b5a727b320aa2b65f9a05f2f70b75f75795194098f3550320ac41af9be",
+   "revisione": 7,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -63164,6 +63266,12 @@
      "revisione": 6,
      "data": "2026-11-24T04:34:33+01:00",
      "impronta": "d758b754da7c8a10",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 7,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "db9b73b5a727b320",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -63427,7 +63535,7 @@
    "impronta": "9275599f45dcb66b9a2faed1294e134adfffd986d0f2dbab926d09dd11ed5df2",
    "revisione": 3,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -63794,7 +63902,7 @@
    "impronta": "c762768d948a1dca07b39f6290c5f10f3ae38fe8cdcf125c974f47a70eb94455",
    "revisione": 4,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -64182,7 +64290,7 @@
    "impronta": "0b49572f212d3774e10904fd51253725150ae84dc23b251432cad20e3a1600e0",
    "revisione": 3,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -65533,7 +65641,7 @@
    "impronta": "98a0a8c55a1fc0d5a01c6140cf98a26ee06ed5f611c38c0281c5f72035268769",
    "revisione": 7,
    "generata_il": "2026-11-24T04:26:46+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -66139,7 +66247,7 @@
    "impronta": "e2435878343586f55608e7612af436059d92807d534ef89286c7d15c013e20d2",
    "revisione": 5,
    "generata_il": "2026-11-24T04:26:46+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -66633,7 +66741,7 @@
    "impronta": "18fdba86a293d31707d90d842253c244b70a9ed6fc243c033dd0e88a08072829",
    "revisione": 3,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -66922,7 +67030,7 @@
    "impronta": "e567e06912ad79d29c58bd4b9f0d0721f10c5fe40cd9ca2b939ea4ad2ba475ad",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -68803,7 +68911,7 @@
    "impronta": "3d5c4994855cd16103f561a9c2dc6dedc49defe70bcbb4e1d5cad8a4c5a2480d",
    "revisione": 11,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -69296,7 +69404,7 @@
    "impronta": "02537d448c27da6fdfe9f3181d2d19794f67e9f0eb220d91730fcc5db35d4ac5",
    "revisione": 3,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -69566,7 +69674,7 @@
    "impronta": "05f0c2e528d4dfdf7e8e561b4ec659f4c9d11c4cecbf5151795998bf28131589",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -70116,7 +70224,7 @@
    "impronta": "027cefcb32f9df9dee181e99ea706146312a0f9b209b65df917cdeb7f0d09d62",
    "revisione": 4,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -70401,7 +70509,7 @@
    "impronta": "a440cfb1429e31f6f655ca98ee6f4518165aeecdb7205418d2e40f4e98b94df0",
    "revisione": 4,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -70784,6 +70892,12 @@
      "collegamento": "/template-atti?scheda=AMM_001"
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "ricorso_tar",
+     "titolo": "Procedura guidata: Ricorso al TAR",
+     "collegamento": "/legal-skills/percorsi?percorso=ricorso_tar"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -70819,10 +70933,10 @@
     "pronuncia:Corte di Cassazione — civile|5839/2026": "459bc748397c0cb7",
     "pronuncia:Corte costituzionale|192/2024": "cc1:5d320deea69f"
    },
-   "impronta": "5b7651e5707b98c1e2790fd663511ce96cfa888d2f875749c0bbfe8e2bdf25c5",
-   "revisione": 2,
-   "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "d2242c88fc9cdf993834bcede2200a633d1ad1e1eac601a3e8d471d5a270175b",
+   "revisione": 3,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -70834,6 +70948,12 @@
      "revisione": 2,
      "data": "2026-11-24T01:07:27+01:00",
      "impronta": "5b7651e5707b98c1",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 3,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "d2242c88fc9cdf99",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -71217,7 +71337,7 @@
    "impronta": "7798fbce19a32e807f1873713d7e69541877efeb1de0baafd8b844ab1f902d00",
    "revisione": 3,
    "generata_il": "2026-11-24T04:20:29+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -71924,7 +72044,7 @@
    "impronta": "e7354699af29a5d54cc6daf86cc74534a2b9063ad9f65249d7d1594dc5ef4855",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -72254,7 +72374,7 @@
    "impronta": "e99d600f3a345aa87dec1f7cd2de6719e0160ae57b7ae7efe87b789a8842d2ab",
    "revisione": 3,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -72791,7 +72911,7 @@
    "impronta": "5d6a115f20921483a3852691065baf243769fa3f79bb6a8ff2050762007eb680",
    "revisione": 6,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -72975,7 +73095,7 @@
    "impronta": "443751af6f26651fbee1c655da070267716e50b9ffec561a05873580e373b69d",
    "revisione": 2,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -73601,7 +73721,7 @@
    "impronta": "8645e08afd808fd610acd9a02d3904e0d0f905fd913b06765a6be183316c8c1d",
    "revisione": 4,
    "generata_il": "2026-11-24T04:24:43+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -74392,7 +74512,7 @@
    "impronta": "36661db0bbcdb2a46871cf7590cc5fcaeb34a44ff436e3ace5e6abe4f753968d",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -75410,7 +75530,7 @@
    "impronta": "f24d6cd3c9dbfd13f82ab4f5ec199005635cee5ddc41695f44c2129bc0d5a2f4",
    "revisione": 8,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -75679,7 +75799,7 @@
    "impronta": "174b7d2ff3ceece04a7385ec00eb8de4e0b8810ffcca78213ccab76e9add7291",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -76045,7 +76165,7 @@
    "impronta": "4702a9184adb9e85c21f0ddd4ec8fcf8b8dcb578c65d6b4f3b9378a805b502c3",
    "revisione": 5,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -76834,6 +76954,12 @@
      "id": "fam_separazione",
      "titolo": "Regola di Lex «fam_separazione»",
      "collegamento": ""
+    },
+    {
+     "tipo": "procedura_guidata",
+     "id": "separazione_consensuale",
+     "titolo": "Procedura guidata: Separazione consensuale",
+     "collegamento": "/legal-skills/percorsi?percorso=separazione_consensuale"
     }
    ],
    "lacune": [
@@ -76867,10 +76993,10 @@
     "pronuncia:Corte di Cassazione — civile|32587/2025": "5447d48a447d3fc7",
     "pronuncia:Corte di Cassazione — civile|32211/2025": "d455ce1c4a41fe31"
    },
-   "impronta": "3cdd8a1d261da254b61ffa68dedb1d4e19650a5ae0ae04b2d771afb99a88fe87",
-   "revisione": 7,
-   "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "0d11e0a59ea2982f695cfe9c508ece52d3fe61a651e6303d2881df89abd50e78",
+   "revisione": 8,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -76913,6 +77039,12 @@
      "data": "2026-11-24T04:46:36+01:00",
      "impronta": "3cdd8a1d261da254",
      "motivo": "fonti cambiate: pronuncia:Corte di Cassazione — civile|32211/2025"
+    },
+    {
+     "revisione": 8,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "0d11e0a59ea2982f",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -77549,7 +77681,7 @@
    "impronta": "41ecd53e935b05d9e3f268c199b69e1d38bbbdce62926d86aa8dcdefe3319f22",
    "revisione": 7,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -78365,7 +78497,7 @@
    "impronta": "52933f660fe786d16e5966cd5cb8127b8f3752569a067e93bd625721863ca2a2",
    "revisione": 5,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -79129,7 +79261,7 @@
    "impronta": "00ff2844a060481efa753ccf4d8e80568df28a62478e24d4c68f1b0f7a81e210",
    "revisione": 7,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -80676,6 +80808,12 @@
      "collegamento": "/template-atti?scheda=LOC_004"
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "sfratto_morosita",
+     "titolo": "Procedura guidata: Sfratto per morosità",
+     "collegamento": "/legal-skills/percorsi?percorso=sfratto_morosita"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -80732,10 +80870,10 @@
     "pronuncia:Corte costituzionale|2/1992": "cc1:b6d6621394e5",
     "pronuncia:Corte di Cassazione — civile|22105/2023": "f9db5e0d5b2ef6ae"
    },
-   "impronta": "0972b6eea293b1873d2dedbbe4e621e683bdb6712ef41bfdafd2f421d27f0295",
-   "revisione": 9,
-   "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "d3116e03459e178cd2aeba57e14a59cf6f30230291932968f5711e64b9eef30a",
+   "revisione": 10,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -80789,6 +80927,12 @@
      "revisione": 9,
      "data": "2026-11-24T04:46:36+01:00",
      "impronta": "0972b6eea293b187",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 10,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "d3116e03459e178c",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -81036,7 +81180,7 @@
    "impronta": "bc0e8e2f70aa305a5e9068794a8f493c4b6eda4c046a63e736df7db90c87d501",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -82198,6 +82342,12 @@
      "collegamento": ""
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "sinistro_rc_auto",
+     "titolo": "Procedura guidata: Risarcimento sinistro RC auto",
+     "collegamento": "/legal-skills/percorsi?percorso=sinistro_rc_auto"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -82249,10 +82399,10 @@
     "pronuncia:Corte di Cassazione — civile|21935/2026": "f05c2d6c87ffe234",
     "pronuncia:Corte costituzionale|266/2019": "cc1:e7fe122ef8b0"
    },
-   "impronta": "86e0072add24808e4606ae39db69381b1de7396f643fd53d2f3824c1fd897712",
-   "revisione": 8,
-   "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "091ca32f8fcd9fcfe0501b5c906352ed944c06b80837d224e901eeac6e3c3eb3",
+   "revisione": 9,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -82301,6 +82451,12 @@
      "data": "2026-11-24T04:46:36+01:00",
      "impronta": "86e0072add24808e",
      "motivo": "fonti cambiate: pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|28758/2026"
+    },
+    {
+     "revisione": 9,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "091ca32f8fcd9fcf",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
    "stato_ciclo": "attiva"
@@ -82468,7 +82624,7 @@
    "impronta": "d2b2b7cad61206484331085bf0c3415bea0b8b97197d2c93a7c5e6bba7f002de",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -82920,6 +83076,12 @@
      "collegamento": ""
     },
     {
+     "tipo": "procedura_guidata",
+     "id": "ricorso_tar",
+     "titolo": "Procedura guidata: Ricorso al TAR",
+     "collegamento": "/legal-skills/percorsi?percorso=ricorso_tar"
+    },
+    {
      "tipo": "calcolatore",
      "id": "calcola-termini",
      "titolo": "Calcolo dei termini processuali",
@@ -82955,10 +83117,10 @@
     "pronuncia:Corte di Cassazione — civile|5839/2026": "459bc748397c0cb7",
     "pronuncia:Corte costituzionale|192/2024": "cc1:5d320deea69f"
    },
-   "impronta": "56f999395157064f2e20a5bb1b2f6b51f0ec3e0f20b3d934917294735fdb1f3a",
-   "revisione": 3,
-   "generata_il": "2026-11-24T01:12:08+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "impronta": "65865914c897ddfd6cdc0cf5695a73cd7cf85d8874aa268c9dcbfee8adfd8d28",
+   "revisione": 4,
+   "generata_il": "2026-11-24T05:34:01+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -82976,6 +83138,12 @@
      "revisione": 3,
      "data": "2026-11-24T01:12:08+01:00",
      "impronta": "56f999395157064f",
+     "motivo": "contenuto delle regole cambiato con le stesse fonti"
+    },
+    {
+     "revisione": 4,
+     "data": "2026-11-24T05:34:01+01:00",
+     "impronta": "65865914c897ddfd",
      "motivo": "contenuto delle regole cambiato con le stesse fonti"
     }
    ],
@@ -84498,7 +84666,7 @@
    "impronta": "e8e1068a19b5db1a4d60b5f90e263163ef39cb08663c37c8c391d3ab64410bc6",
    "revisione": 13,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -84855,7 +85023,7 @@
    "impronta": "0ac29b5ec9e410b1a628ac08d74b908d9119da050b99b5d235f79b71e17fe633",
    "revisione": 2,
    "generata_il": "2026-11-24T01:07:27+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -85569,7 +85737,7 @@
    "impronta": "ba16188a6f7c2aa545a0098f683147e528886e019d3494728eaa3f75d132458a",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -86495,7 +86663,7 @@
    "impronta": "a2d21eea87bc776981b92532248321abb7948d715e0ae18fc631457866d5bf88",
    "revisione": 6,
    "generata_il": "2026-11-24T04:34:33+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,
@@ -87392,7 +87560,7 @@
    "impronta": "44a40c54713c274d3c469abf777a9ea6bb7ccf9e5fbcebe2b41771eae3d7de37",
    "revisione": 6,
    "generata_il": "2026-11-24T04:46:36+01:00",
-   "ultimo_controllo": "2026-11-24T04:46:36+01:00",
+   "ultimo_controllo": "2026-11-24T05:34:01+01:00",
    "storia": [
     {
      "revisione": 1,

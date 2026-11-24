@@ -1,6 +1,6 @@
 # Denuncia di nuova opera e di danno temuto
 
-- ID: `ist-nuova-opera` · materia: possessorio · revisione 2 · ultimo controllo 24/11/2026 04:46
+- ID: `ist-nuova-opera` · materia: possessorio · revisione 2 · ultimo controllo 24/11/2026 05:34
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per denuncia di nuova opera o di danno temuto al tribunale del luogo.

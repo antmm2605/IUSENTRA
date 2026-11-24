@@ -125,9 +125,16 @@ def _refuso_di(parola: str, s: str) -> bool:
     return False
 
 
+# Parole che il dizionario italiano conosce solo come forme rare o disusate e che negli atti sono sempre il refuso di un
+# termine giuridico: per queste il dizionario non basta a lasciarle com'è (resta la regola dell'unico candidato).
+REFUSI_NEL_DIZIONARIO: frozenset[str] = frozenset({
+    "sfrato",        # da «sfratare» (disusato, togliere i frati): negli atti è «sfratto»
+})
+
+
 @lru_cache(maxsize=4096)
 def _corretta(parola: str) -> str:
-    if parola in lessico() or _parola_italiana(parola):
+    if parola in lessico() or (_parola_italiana(parola) and parola not in REFUSI_NEL_DIZIONARIO):
         return parola
     # Come legal_ocr/lessico: si corregge solo se UNA SOLA parola del lessico è un refuso tipico della parola letta
     # (le forme flesse della stessa parola, «sfratto» e «sfratti», contano come una sola).

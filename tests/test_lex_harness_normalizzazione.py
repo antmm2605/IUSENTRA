@@ -60,6 +60,11 @@ def test_una_parola_del_lessico_non_si_corregge_mai_in_un_altra(parola):
     assert correggi_refusi(f"il {parola} del cliente") == f"il {parola} del cliente"
 
 
-@pytest.mark.parametrize("scritto,atteso", [("prefeto", "prefetto"), ("preceto", "precetto"), ("appelo", "appello")])
+@pytest.mark.parametrize("scritto,atteso", [("prefeto", "prefetto"), ("appelo", "appello")])
 def test_refusi_delle_coppie_vicine_vanno_alla_parola_giusta(scritto, atteso):
     assert correggi_refusi(f"il {scritto} del cliente") == f"il {atteso} del cliente"
+
+
+def test_refuso_con_due_candidati_non_si_corregge():
+    # «preceto» può essere «precetto» o «preceduto»: con due candidati la parola resta com'è.
+    assert correggi_refusi("il preceto del cliente") == "il preceto del cliente"

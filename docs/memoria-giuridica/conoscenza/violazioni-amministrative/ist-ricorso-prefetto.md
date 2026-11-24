@@ -1,7 +1,7 @@
 # Ricorso al Prefetto contro il verbale (art. 203 cod. strada)
 
-- ID: `ist-ricorso-prefetto` · materia: violazioni amministrative · revisione 3 · ultimo controllo 24/11/2026 04:05
-- Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ricorso-prefetto` · materia: violazioni amministrative · revisione 4 · ultimo controllo 24/11/2026 04:21
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al Prefetto entro sessanta giorni (in alternativa al giudice di pace entro trenta).
 
@@ -36,7 +36,12 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
-- 3 e 24 Cost., l'art. 204-bis, comma 3, del decreto legislativo n. 285 del 1992, introdotto dall'art. — _Corte costituzionale, n. 69/2012_ (passaggio letto nel testo integrale della pronuncia)
+- In particolare, l’opponente rappresentavache entrambi i verbali risultavano a lui notificati soltanto in data 3 febbraio 2015 e, pertanto, oltre i termini di 90 giorni prescritti dall’art. 201 del d.lgs. n. 285/1992, recante il nuovo Codice della strada, con conseguente decadenza dal potere sanzionatorio. — _Corte di Cassazione — civile, sez. 2, n. 2857/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 205 dello stesso decreto legislativo; che, inoltre, l'art. 201, comma 1, del d.lgs. n. 285 del 1992, nel caso in cui il trasgressore risieda all'estero, accorda alla pubblica amministrazione un più ampio termine per la notificazione del verbale di accertamento dell'infrazione, mentre le disposizioni censurate non prevedono un più lungo termine per proporre opposizione, qualora il ricorrente risieda all'estero, realizzando in tal modo una ingiust — _Corte costituzionale, n. 462/2006_ (passaggio letto nel testo integrale della pronuncia)
+- In tale situazione l’iniziativa processualedoveva essere qualificata come opposizione recuperatoria ex art. 7 d.lgs. n.150/2011, assoggettata al termine decadenziale di trenta giorni. — _Corte di Cassazione — civile, sez. 3, n. 29409/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 689 del 1981 (oggi,art. 7, comma 7, d.lgs. n. 150 del 2011), non è necessaria la formale costituzionein giudizio dinanzi al giudice della Pubblica Amministrazione, essendo sufficienteil deposito di copia del rapporto con gli atti relativi all’accertamento dell’autoritàemittente (Cass., Sez. — _Corte di Cassazione — civile, sez. 2, n. 17694/2026_ (passaggio letto nel testo integrale della pronuncia)
+- art. 7 dlg.s 150/2011 in relazione all’art. — _Corte di Cassazione — civile, sez. 2, n. 15992/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 150/2011ed ai sensi dell’art. 204- bis d. lgs. n. 285/1992, in caso di opposizione a verbale di accertamento per violazione al cod. — _Corte di Cassazione — civile, sez. 2, n. 2857/2026_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «opposizione_verbale_cds»
@@ -55,9 +60,14 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 7 d.lgs. 150/2011 (Opposizione al verbale di accertamento di violazione del codice della strada) — testo vigente, aggiornamento archivio 19/06/2025, versione `377198aaa49a8a85` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art7
 - art. 204-bis d.lgs. 285/1992 (codice della strada) (Ricorso al giudice di pace) — testo vigente, aggiornamento archivio 16/05/2026, versione `f280bca71a2c21d9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art204bis
 - art. 203 d.lgs. 285/1992 (codice della strada) (Ricorso al prefetto) — testo vigente, aggiornamento archivio 16/05/2026, versione `4c6242f8d1b581cf` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art203
-- Corte costituzionale, n. 69/2012 (testo integrale) — versione `cc1:db666fe0d642` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/69
+- Corte di Cassazione — civile, sez. 2, n. 2857/2026 (testo integrale) — versione `4136f762e9efd2ac` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026202857S&rows=1&wt=json
+- Corte costituzionale, n. 462/2006 (testo integrale) — versione `cc1:9d86303a68db` — https://www.cortecostituzionale.it/scheda-pronuncia/2006/462
+- Corte di Cassazione — civile, sez. 3, n. 29409/2026 (testo integrale) — versione `073a2915e3e9b677` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329409O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 2, n. 17694/2026 (testo integrale) — versione `0f53642913ca766a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026217694O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 2, n. 15992/2026 (testo integrale) — versione `bb36a9a3d043489d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026215992O&rows=1&wt=json
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cds:203, norma:cds:204
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|462/2006, pronuncia:Corte di Cassazione — civile|15992/2026, pronuncia:Corte di Cassazione — civile|17694/2026, pronuncia:Corte di Cassazione — civile|2857/2026, pronuncia:Corte di Cassazione — civile|29409/2026, pronuncia:Corte costituzionale|69/2012

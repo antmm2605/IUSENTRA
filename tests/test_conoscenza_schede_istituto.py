@@ -374,7 +374,7 @@ def test_questioni_solo_dalla_motivazione_non_dalle_difese(monkeypatch):
     assert not e_motivazione("Il ricorrente lamenta che questa Corte avrebbe errato.")
     assert not e_motivazione("Il giudice rimettente rammenta che questa Corte ha affermato il principio.")
     _passaggi(monkeypatch, {"dl669:14": [
-        _pronuncia("400", "Secondo la giurisprudenza di questa Corte il termine dell'art. 14 d.l. 669/1996 è dilatorio."),
+        _pronuncia("400", "Secondo la giurisprudenza di questa Corte il termine dell'art. 14 d.l. 669/1996 per l'esecuzione forzata contro le amministrazioni è dilatorio."),
         _pronuncia("500", "Il ricorrente deduce la violazione dell'art. 14 d.l. 669/1996."),
     ]})
     s = generatore.genera_scheda(_istituto("esecuzione_contro_pa"))
@@ -397,3 +397,20 @@ def test_campione_pubblico_impiego_lavoro_locazioni():
     assert "art. 2113 c.c." in ecc("ist-conciliazione-lavoro")
     # Regole del rito ordinario non entrano nel rito del lavoro né nel pubblico impiego.
     assert "art. 38 c.p.c." not in ecc("ist-ricorso-dipendente-pubblico") and "art. 167 c.p.c." not in ecc("ist-licenziamento")
+
+
+def test_questione_fuori_tema_scartata_e_contata(monkeypatch):
+    from lex.conoscenza.trasversali import pertinente, termini_istituto
+
+    termini = termini_istituto("Esecuzione forzata contro la PA", ("pi_esecuzione_pa",))
+    assert pertinente("Secondo la giurisprudenza di questa Corte, l'art. 14 d.l. 669/1996 vieta l'esecuzione forzata "
+                      "nei confronti delle amministrazioni prima dei centoventi giorni.", "art. 14 d.l. 669/1996", termini)
+    # Norma presente ma tema diverso (nessun termine dell'istituto nella finestra): scartato.
+    assert not pertinente("Secondo la giurisprudenza di questa Corte, l'art. 14 d.l. 669/1996 riguarda le scritture "
+                          "contabili dell'imprenditore.", "art. 14 d.l. 669/1996", termini)
+    _passaggi(monkeypatch, {"dl669:14": [
+        _pronuncia("600", "Secondo la giurisprudenza di questa Corte l'art. 14 d.l. 669/1996 riguarda le scritture contabili."),
+    ]})
+    s = generatore.genera_scheda(_istituto("esecuzione_contro_pa"))
+    assert not [v for v in s["sezioni"]["questioni"]["voci"] if v.get("etichetta")]
+    assert any(x.startswith("1 passaggi con la motivazione della Corte scartati") for x in s["lacune"])

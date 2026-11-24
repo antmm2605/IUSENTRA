@@ -1,6 +1,6 @@
 # Esecuzione in forma specifica dell'obbligo di concludere il contratto (art. 2932)
 
-- ID: `ist-esecuzione-2932` · materia: contratti · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-esecuzione-2932` · materia: contratti · revisione 5 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione ex art. 2932 c.c. con trascrizione della domanda (mediazione obbligatoria se diritti reali).
@@ -54,6 +54,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Giudice e rito, Questioni interpretative.
 - Questione della regola caparra_confirmatoria non riportata (senza norma citata): «Manca l'importo della caparra: senza di esso non si calcolano domanda, valore e procedibilità.»
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 2932 c.c. (Esecuzione specifica dell'obbligo di concludere un contratto) — testo vigente, aggiornamento archivio 29/04/2026, versione `63ffe47853417906` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2932
@@ -77,3 +78,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:2652
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cc:2946, norma:dlgs28:5
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cpc:167, norma:cpc:38
+- r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

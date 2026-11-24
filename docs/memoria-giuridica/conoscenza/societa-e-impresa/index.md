@@ -2,6 +2,6 @@
 
 | ID | Istituto | Sintesi | Fonti dirette | Stato | Sezioni | Revisione | Ultimo controllo |
 |---|---|---|---:|---|---:|---:|---|
-| `ist-responsabilita-amministratori` | [Azione di responsabilità contro gli amministratori](ist-responsabilita-amministratori.md) | azione sociale di responsabilità (delibera assembleare o, nella s.r.l., anche del singolo socio); azione dei creditori sociali. | 4 | lacune | 3/9 | r3 | 24/11/2026 04:05 |
-| `ist-impugnazione-delibere-societarie` | [Impugnazione delle delibere societarie](ist-impugnazione-delibere-societarie.md) | atto di citazione davanti al tribunale delle imprese del luogo della sede, con eventuale istanza di sospensione. | 5 | lacune | 3/9 | r3 | 24/11/2026 04:05 |
-| `ist-recesso-socio` | [Recesso del socio](ist-recesso-socio.md) | dichiarazione di recesso nelle forme e nei termini di legge o di statuto. | 4 | lacune | 3/9 | r3 | 24/11/2026 04:05 |
+| `ist-responsabilita-amministratori` | [Azione di responsabilità contro gli amministratori](ist-responsabilita-amministratori.md) | azione sociale di responsabilità (delibera assembleare o, nella s.r.l., anche del singolo socio); azione dei creditori sociali. | 4 | lacune | 3/9 | r3 | 24/11/2026 04:21 |
+| `ist-impugnazione-delibere-societarie` | [Impugnazione delle delibere societarie](ist-impugnazione-delibere-societarie.md) | atto di citazione davanti al tribunale delle imprese del luogo della sede, con eventuale istanza di sospensione. | 5 | lacune | 3/9 | r3 | 24/11/2026 04:21 |
+| `ist-recesso-socio` | [Recesso del socio](ist-recesso-socio.md) | dichiarazione di recesso nelle forme e nei termini di legge o di statuto. | 4 | lacune | 3/9 | r3 | 24/11/2026 04:21 |

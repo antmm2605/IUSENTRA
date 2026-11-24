@@ -1,6 +1,6 @@
 # Condizioni di procedibilità nelle cause di locazione
 
-- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con citazione per la convalida, senza mediazione preventiva; mediazione da avviare dopo il mutamento del rito, se il giudizio prosegue nel merito; Tribunale del luogo dell'immobile.
@@ -44,7 +44,7 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - in relazione al combinato disposto degli artt. 658 c.p.c., 426 c.p.c. — _Corte di Cassazione — civile, sez. 3, n. 11802/2025_ (passaggio letto nel testo integrale della pronuncia)
 - 392 del 1978, trovi applicazione soltanto nel procedimento per convalida di sfratto (art. 658 cod. proc. civ.), mentre nell'ordinario giudizio di risoluzione del contratto per inadempimento, applicandosi la regola generale stabilita dall' art. — _Corte costituzionale, n. 3/1999_ (passaggio letto nel testo integrale della pronuncia)
 - 392, nella parte in cui, per costante interpretazione giurisprudenziale, prevede che la sanatoria giudiziale della morosità si applichi al solo procedimento per convalida di sfratto ex art. 658 del codice di procedura civile e non anche all'ordinario giudizio di risoluzione per inadempimento (nel qual caso non sarebbe dato al conduttore di adempiere l'obbligazione dopo la proposizione della domanda ai sensi del terzo comma dell'art. — _Corte costituzionale, n. 2/1992_ (passaggio letto nel testo integrale della pronuncia)
-- montare della morosità del conduttore per canoni in misurapari ad € 675,00, così come per gli oneri condominiali; che, alla data dellanotifica dell’intimazione di sfratto, la conduttrice risultava morosa per l’importodi € 675,00, dunque eccedente una mensilità (pari ad € 650,00), sicchésussisteva il presupposto della gravità dell’inadempimento, ex art. 5 della leggen. 392/1978, essendo irrilevante il successivo pagamento di € 26,00 effettuatodalla conduttrice.Avverso detta sentenza ha proposto ricorso per cassazione Annunziata Farro,sulla base di undici motivi, cui resiste con controricorso Alfredo Somazzi. — _Corte di Cassazione — civile, sez. 3, n. 23217/2026_ (passaggio letto nel testo integrale della pronuncia)
+- n.149 del 2022), aisensi del quale, in presenza di una doppia decisione conforme in fatto,il ricorso per cassazione può essere proposto esclusivamente per imotivi di cui ai numeri 1), 2), 3) e 4) del primo comma dell'articolo360;con l’ottavo motivo, la ricorrente censura la sentenza impugnataper violazione e falsa applicazione dell’art. 5 cpv. 2, ultimo periodo,d.lgs n. 28/2010 e dell’art 221 c.p.c. — _Corte di Cassazione — civile, sez. 3, n. 29672/2026_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «procedibilita_locazione»
@@ -54,6 +54,7 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - Sezioni senza fonte: Termini, Prove e oneri, Documenti e dati da verificare.
 - Avvertenza della regola procedibilita_locazione non riportata (senza norma citata): «Dopo il mutamento del rito conviene che sia il locatore, che ha interesse alla risoluzione, a depositare subito la domanda di mediazione: se»
 - Avvertenza della regola procedibilita_locazione non riportata (senza norma citata): «Una citazione ordinaria per la sola risoluzione o per i soli canoni richiede invece la mediazione prima della causa.»
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 658 c.p.c. (Intimazione di sfratto per morosità) — testo vigente, aggiornamento archivio 05/03/2026, versione `720ffdd98a2bb29a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art658
@@ -69,9 +70,10 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - Corte di Cassazione — civile, sez. 3, n. 11802/2025 (testo integrale) — versione `c12e7a4d7374785b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025311802O&rows=1&wt=json
 - Corte costituzionale, n. 3/1999 (testo integrale) — versione `cc1:78fc60d803e9` — https://www.cortecostituzionale.it/scheda-pronuncia/1999/3
 - Corte costituzionale, n. 2/1992 (testo integrale) — versione `cc1:b6d6621394e5` — https://www.cortecostituzionale.it/scheda-pronuncia/1992/2
-- Corte di Cassazione — civile, sez. 3, n. 23217/2026 (testo integrale) — versione `6b9dffcd07047a29` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026323217O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29672/2026 (testo integrale) — versione `78ea4ddd30a67567` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329672O&rows=1&wt=json
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte di Cassazione — civile|23217/2026
+- r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|29672/2026, pronuncia:Corte di Cassazione — civile|23217/2026

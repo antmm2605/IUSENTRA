@@ -1,6 +1,6 @@
 # Opposizione a decreto ingiuntivo
 
-- ID: `ist-opposizione-di` · materia: monitorio · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-opposizione-di` · materia: monitorio · revisione 5 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
@@ -55,6 +55,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Giudice e rito, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 645 c.p.c. (Opposizione) — testo vigente, aggiornamento archivio 05/03/2026, versione `7ef93b76460dece9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art645
@@ -79,3 +80,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:647
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:dlgs28:5bis
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2697, norma:cpc:167, norma:cpc:38
+- r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

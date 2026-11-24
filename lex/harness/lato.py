@@ -20,7 +20,10 @@ _PASSIVO = (r"(?:mi|ci|gli|le|lo|la) (?:hanno|ha|e stato|e stata|sono stati|sono
             r"contro di (?:me|noi|lui|lei)|debitor\w* esecutat|\besecutat[oa]\b|\bconvenut[oa]\b|\bintimat[oa]\b|\bingiunt[oa]\b|"
             r"opporc|oppormi|opporsi|vero proprietari|(?:fare|proporre|presentare|fatto|proposto) (?:l )?opposizion|difender|difenderci|difendermi|terzo proprietari|beni (?:miei|nostri|di mia proprieta)|"
             r"pignoramento subito|che si difende|assisto il debitore|assisto il conduttore|assisto l esecutato|di mia proprieta|"
-            r"di nostra proprieta|(?:al|alla) (?:mio |mia |nostro |nostra )?(?:cliente|assistit[oa]|societa) (?:e|sono) (?:arrivat|stat[oa] notificat)|"
+            r"di nostra proprieta|sono (?:il|la) terz[oa]|(?:i beni|l auto|i mobili|la macchina) (?:sono|e) mi[eao]|sono miei|"
+            r"pagare per evitare|evitare (?:la vendita|l asta|la vendita all asta)|conversione del pignoramento|"
+            r"pignoramento (?:della|sulla|dello|sullo|del) (?:mia|mio) (?:casa|pensione|stipendio|conto|abitazione)|"
+            r"(?:mi|ci|gli|le) (?:stanno|vogliono) pignorar|(?:al|alla) (?:mio |mia |nostro |nostra )?(?:cliente|assistit[oa]|societa) (?:e|sono) (?:arrivat|stat[oa] notificat)|"
             r"e arrivat\w* (?:un|una|il|la|lo) (?:decreto|precetto|pignorament|atto|intimazion|citazion|cartella|sfratt)")
 _ATTIVO = (r"recuper\w* (?:il |un |del )?credit|recuper\w* (?:i soldi|le somme|il dovuto|quanto)|come (?:lo |li )?recuper|voglio (?:agire|fare causa|ottenere|chiedere|riavere|pignorare)|vogliamo (?:agire|pignorare|recuperare)|"
            r"possiamo pignorar|pignorargli|pignorarle|(?:non mi|non ci|non gli|non le) (?:paga|ha pagato|restituisce)|"

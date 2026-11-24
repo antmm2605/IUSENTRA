@@ -1,7 +1,7 @@
 # Petizione di eredità
 
-- ID: `ist-petizione-eredita` · materia: successioni · revisione 3 · ultimo controllo 24/11/2026 04:05
-- Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-petizione-eredita` · materia: successioni · revisione 4 · ultimo controllo 24/11/2026 04:21
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per petizione di eredità al tribunale del luogo di apertura della successione.
 
@@ -35,13 +35,18 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+- n.149 del 2022), aisensi del quale, in presenza di una doppia decisione conforme in fatto,il ricorso per cassazione può essere proposto esclusivamente per imotivi di cui ai numeri 1), 2), 3) e 4) del primo comma dell'articolo360;con l’ottavo motivo, la ricorrente censura la sentenza impugnataper violazione e falsa applicazione dell’art. 5 cpv. 2, ultimo periodo,d.lgs n. 28/2010 e dell’art 221 c.p.c. — _Corte di Cassazione — civile, sez. 3, n. 29672/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Il primo motivo denuncia «Nullità della sentenza per violazione dell’art.1, comma 11, 249/1997 in combinato disposto con l’art. 5, comma 1-bis,L.28/2010, in relazione all’art. — _Corte di Cassazione — civile, sez. 3, n. 29096/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 4) e con riferimento all’omesso esame di questionipregiudiziali di rito».1.1 Si assume che né il giudice di prime cure né quello del gravame sisono pronunciati in merito all’eccezione tempestivamente proposta sindall’atto di opposizione e relativa al mancato esperimento dellamediazione di cui all’art.5 d.lgs.28/2010 previsto a pena di improcedibilitàdella domanda introdotta da Unipol.1.2. — _Corte di Cassazione — civile, sez. 3, n. 28205/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 84 e dell'art. 5, comma 4, lettera a), del citato d.lgs. n. 28 del 2010, promossi dal Tribunale ordinario di Verona con ordinanze del 30 gennaio e del 23 febbraio 2018, iscritte, rispettivamente, ai numeri 62 e 98 del registro ordinanze 2018 e pubblicate nella Gazzetta Ufficiale della Repubblica numeri 16 e 27, prima serie speciale, dell'anno 2018. — _Corte costituzionale, n. 97/2019_ (passaggio letto nel testo integrale della pronuncia)
+- - Per la declaratoria di illegittimità costituzionale dell'art. 5, comma 1, del d.lgs. n. 28 del 2010 che prevedeva l'obbligatorietà della mediazione per la conciliazione di alcune controversie civili e commerciali, v. — _Corte costituzionale, n. 98/2014_ (massima: fatti e motivazione della decisione non letti)
 
 ## Strumenti del software
 - Regola di Lex «suc_petizione_eredita»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 533 c.c. (Petizione di eredità) — testo vigente, aggiornamento archivio n.d., versione `490b98eb91168ee0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art533
@@ -50,8 +55,14 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- Corte di Cassazione — civile, sez. 3, n. 29672/2026 (testo integrale) — versione `78ea4ddd30a67567` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329672O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29096/2026 (testo integrale) — versione `c2075017fd68bdd6` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329096O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 28205/2026 (testo integrale) — versione `6db84d358aebecae` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328205O&rows=1&wt=json
+- Corte costituzionale, n. 97/2019 (testo integrale) — versione `cc1:bb2a0eab2b56` — https://www.cortecostituzionale.it/scheda-pronuncia/2019/97
+- Corte costituzionale, n. 98/2014 (massima) — versione `bed4a7e64926d8da` — https://www.cortecostituzionale.it/scheda-pronuncia/2014/98
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:167, norma:cpc:38
+- r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026

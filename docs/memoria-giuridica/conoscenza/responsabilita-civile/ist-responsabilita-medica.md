@@ -1,6 +1,6 @@
 # Responsabilità sanitaria (l. 24/2017)
 
-- ID: `ist-responsabilita-medica` · materia: responsabilità civile · revisione 3 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-responsabilita-medica` · materia: responsabilità civile · revisione 4 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per consulenza tecnica preventiva ex art. 696-bis c.p.c. (o mediazione), poi giudizio di merito.
@@ -42,7 +42,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - dinanzial Tribunale di Reggio Calabria, in conformità al disposto dell’art. 8, comma 1,della legge n. 24/2017, chiedendo la nomina di un consulente tecnico d’ufficioche accertasse l’eventuale sussistenza di correlazione causale tra l’omissionedei medici operanti nella struttura sanitaria e il decesso del loro congiunto;2. — _Corte di Cassazione — civile, sez. 3, n. 33249/2025_ (passaggio letto nel testo integrale della pronuncia)
-- ex art.702-bis c.p.c.»;lamenta che la Corte d’Appello abbia erroneamente interpretato lanorma suindicata, ritenendo che il termine di novanta giorni nonincidesse sulla procedibilità, ma solo sulla salvezza degli effettisostanziali e processuali della domanda introdotta con il ricorso peraccertamento tecnico preventivo;sostiene, al contrario, che l’art. 8, comma 3, della legge n.24/2017, in quanto norma processuale, impone un termine perentorioper la proposizione del ricorso ex art. — _Corte di Cassazione — civile, sez. 3, n. 31999/2025_ (passaggio letto nel testo integrale della pronuncia)
+- civ., «violazione e falsa applicazione dell’art. 8, comma 2, l. n.24 del 2017 in quanto non rilevata la declaratoria di improcedibilitàdella domanda proposta con il rito sommario di cognizione ex art.702-bis c.p.c.»;lamenta che la Corte d’Appello abbia erroneamente interpretato lanorma suindicata, ritenendo che il termine di novanta giorni nonincidesse sulla procedibilità, ma solo sulla salvezza degli effettisostanziali e p — _Corte di Cassazione — civile, sez. 3, n. 31999/2025_ (passaggio letto nel testo integrale della pronuncia)
 - Al riguardo, non coglie nel segno l'obiezione dell'Avvocatura dello Stato, basata sul rilievo che l'art. 8 della legge n. 24 del 2017 subordina, a pena di improcedibilità, l'azione civile diretta del danneggiato nei confronti dell'assicuratore della struttura sanitaria all'esperimento della consulenza tecnica preventiva, che non sarebbe possibile in sede penale. — _Corte costituzionale, n. 170/2025_ (passaggio letto nel testo integrale della pronuncia)
 - In ogni caso, poi, anche a voler opinare diversamente, l'azione sarebbe proponibile in sede civile solo dopo il tentativo obbligatorio di conciliazione previsto dall'art. 8 della legge n. 24 del 2017. — _Corte costituzionale, n. 182/2023_ (passaggio letto nel testo integrale della pronuncia)
 - civ., che il predetto art. 8 della legge n. 24 del 2017 ha reso condizione di procedibilità della domanda giudiziale di merito in materia di responsabilità sanitaria. — _Corte costituzionale, n. 87/2021_ (passaggio letto nel testo integrale della pronuncia)
@@ -78,3 +78,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cpc:167, norma:cpc:38, norma:dlgs28:5
+- r4 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

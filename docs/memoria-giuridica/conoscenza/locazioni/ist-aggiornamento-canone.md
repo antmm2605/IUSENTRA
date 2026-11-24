@@ -1,6 +1,6 @@
 # Aggiornamento ISTAT del canone
 
-- ID: `ist-aggiornamento-canone` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-aggiornamento-canone` · materia: locazioni · revisione 3 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 7 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta del locatore; contestazione delle somme non dovute.

@@ -45,6 +45,18 @@ SINONIMI: tuple[tuple[str, str], ...] = (
     (r"\bdati personali\b|\bgdpr\b", "privacy dati personali"),
     (r"\binps\b", "inps previdenza"),
     (r"\bstatale\b|\bministeriale\b|\bpubblico dipendente\b", "dipendente pubblico"),
+    (r"(?:ospedal\w*|\bmedic[oi]\b|chirurg\w*|pronto soccorso|\bintervento\b|\bcurat[oa])[^.?]{0,60}(?:sbagliat|errore|male\b|peggiorat|"
+     r"negligen|infezion|non ha (?:visto|capito|diagnosticat))|(?:non ha|mancata|ritardata|sbagliata) (?:diagnos|visto la malattia)|"
+     r"\bmalasanit|errore (?:medico|sanitario)", "responsabilita sanitaria medica danni"),
+    (r"piano di sopra|appartamento di sopra|acqua (?:dal|che scende dal|che viene dal) (?:soffitto|vicino)|\binfiltrazion\w*|perdit\w* d acqua|macchi\w* di umidita",
+     "infiltrazioni danni"),
+    (r"si e (?:pres[oa]|tenut[oa]|impossessat[oa]|intestat[oa]) (?:la casa|l immobile|i beni|tutto|l eredita)|tiene (?:per se|tutta) l eredita",
+     "erede petizione eredita"),
+    (r"\be (?:mancat[oa]|mort[oa]|venut[oa] a mancare|decedut[oa])\b|\bdefunt[oa]\b|\bdecess[oi]\b|\bscompars[oa]\b(?= (?:da|il|la|l))",
+     "defunto eredita successione"),
+    (r"(?:scritt\w*|pubblicat\w*|postat\w*|condivis\w*)[^.?]{0,80}(?:facebook|instagram|whatsapp|tiktok|social|gruppo|recension|blog|giornale)|"
+     r"(?:facebook|instagram|whatsapp|tiktok|social|recension\w*|blog|giornale)[^.?]{0,80}(?:scritt|pubblicat|postat|offes|falsit|ladr|truffator)",
+     "diffamazione reputazione danni"),
     (r"\bmi hanno citat\w*|\bci hanno citat\w*|\bsiamo stati citati|\bsono stat[oa] citat\w*", "convenuto citazione ricevuta"),
 )
 
@@ -140,11 +152,23 @@ def correggi_refusi(testo: str) -> str:
     return re.sub(r"[A-Za-z]+", sost, testo)
 
 
+# Negazioni ed eccezioni: la parola esclusa non deve far vincere proprio quell'istituto («diffamazione senza querela»,
+# «salvo la prescrizione», «non vogliamo fare causa»). La parola si sostituisce con un segnaposto neutro.
+_ESCLUSA = re.compile(r"\b(senza|salvo|tranne|eccetto|escluso|esclusa|non (?:voglio|vogliamo|vuole|vogliono|intendo|intendiamo)"
+                      r"(?: fare| presentare| sporgere| proporre| chiedere)?)\s+(?:la |il |lo |l |le |i |gli |un |una |alcuna |nessuna )?"
+                      r"(querel\w*|denunc\w*|caus[ae]|mediazion\w*|negoziazion\w*|transazion\w*|prescrizion\w*|decadenz\w*|"
+                      r"opposizion\w*|ricors\w*|appell\w*|sfratt\w*|separazion\w*|divorzi\w*)", re.IGNORECASE)
+
+
+def togli_negati(testo: str) -> str:
+    return _ESCLUSA.sub(lambda m: f"{m.group(1)} [istituto escluso]", testo)
+
+
 def normalizza_richiesta(testo: str) -> str:
     """Testo pronto per comprensione e fatti: accenti tolti, refusi corretti, termini tecnici affiancati al linguaggio comune."""
     if not testo:
         return ""
-    t = correggi_refusi(senza_accenti(testo))
+    t = togli_negati(correggi_refusi(senza_accenti(testo)))
     basso = t.lower()
     aggiunte = []
     for espr, termine in SINONIMI:

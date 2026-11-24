@@ -1,6 +1,6 @@
 # Riesame e appello cautelare
 
-- ID: `ist-riesame` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-riesame` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di riesame al tribunale distrettuale (o appello cautelare ex art. 310 c.p.p.).

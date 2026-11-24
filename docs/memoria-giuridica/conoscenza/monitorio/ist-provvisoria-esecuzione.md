@@ -1,7 +1,7 @@
 # Provvisoria esecuzione del decreto (artt. 642 e 648)
 
-- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 3 · ultimo controllo 24/11/2026 04:05
-- Stato: verificata · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 7 · ultimo controllo 24/11/2026 04:21
+- Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
 
@@ -42,7 +42,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - somme contestate e non contestate (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-- civ., che riconoscono efficacia probatoria alle scritture dell'imprenditore solo "contro" di lui, e di cui all'art. 634 cod. proc. civ. in materia di procedimento di ingiunzione, che attribuisce alle scritture contabili in favore dell'imprenditore rilevanza solo ai fini di una tutela sommaria; 2) la norma si risolverebbe nell'attribuzione alla banca di un potere di attestazione, attraverso l'annotazione, in contrasto con la marcata natura privatistica che la più recente legislazio — _Corte costituzionale, n. 78/2012_ (passaggio letto nel testo integrale della pronuncia)
+_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - o-loso» in quanto:− fin dalla prima formulazione della richiesta di pagamento della cau-zione, la Provincia era consapevole che le problematiche emerse nell'esecu-zione dell'appalto non erano riconducibili a un inadempimento dell'appalta-trice, ma a «difetti di progettazione dell'intervento»;− sia al momento del deposito del ricorso per decreto ex art. 633 c.p.c.che al momento della costituzione nel giudizio di opposizione a decreto in-giuntivo, la Provincia aveva taciuto il già avvenuto rinvio a giudizio del pro-gettista dell'opera e del direttore dei lavori (assolti, va ricordato, dal Tribu-nale di Camerino con sentenza 19 novembre 2012 n. — _Corte di Cassazione — civile, sez. 1, n. 29102/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -61,7 +61,9 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri.
+- Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 78/2012.
 
 ## Fonti con versione
 - art. 642 c.p.c. (Esecuzione provvisoria) — testo vigente, aggiornamento archivio 05/03/2026, versione `736050f30d4d71ef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art642
@@ -75,7 +77,6 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - art. 644 c.p.c. (Mancata notificazione del decreto) — testo vigente, aggiornamento archivio 05/03/2026, versione `5e162b8609e86369` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art644
 - art. 637 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `3798af16206abf88` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art637
 - art. 649 c.p.c. (Sospensione dell'esecuzione provvisoria) — testo vigente, aggiornamento archivio n.d., versione `b030b5e8f30a3e16` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art649
-- Corte costituzionale, n. 78/2012 (testo integrale) — versione `cc1:546f2629ef64` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/78
 - Corte di Cassazione — civile, sez. 1, n. 29102/2026 (testo integrale) — versione `e2a228abfdb5a872` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026129102O&rows=1&wt=json
 - Corte costituzionale, n. 96/2008 (testo integrale) — versione `cc1:28b7f4a445f5` — https://www.cortecostituzionale.it/scheda-pronuncia/2008/96
 - Corte costituzionale, n. 299/2003 (testo integrale) — versione `cc1:95706fadab4b` — https://www.cortecostituzionale.it/scheda-pronuncia/2003/299
@@ -87,3 +88,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|78/2012, pronuncia:Corte costituzionale|137/1975, pronuncia:Corte costituzionale|410/2005, pronuncia:Corte costituzionale|50/2010
+- r4 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r5 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r6 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 04:21 · fonti cambiate: pronuncia:Corte costituzionale|78/2012

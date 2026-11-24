@@ -1,6 +1,6 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 7 · ultimo controllo 24/11/2026 04:21
 - Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al giudice competente per valore.
@@ -57,6 +57,7 @@
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 633 c.p.c. (Condizioni di ammissibilità) — testo vigente, aggiornamento archivio 05/03/2026, versione `650f7095d9bfba54` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art633
@@ -84,3 +85,6 @@
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2935, norma:cc:2943, norma:cc:2946, pronuncia:Corte costituzionale|78/2012, pronuncia:Corte costituzionale|137/1975, pronuncia:Corte costituzionale|410/2005, pronuncia:Corte costituzionale|50/2010
+- r5 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r6 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r7 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

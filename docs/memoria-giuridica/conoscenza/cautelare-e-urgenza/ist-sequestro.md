@@ -1,6 +1,6 @@
 # Sequestro conservativo e giudiziario
 
-- ID: `ist-sequestro` · materia: cautelare e urgenza · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-sequestro` · materia: cautelare e urgenza · revisione 6 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per sequestro al giudice competente per il merito.
@@ -73,3 +73,5 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:2905, norma:cpc:670
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cpc:669ter, pronuncia:Corte costituzionale|154/2021, pronuncia:Corte costituzionale|258/1996, pronuncia:Corte costituzionale|99/1997, pronuncia:Corte di Cassazione — civile|8579/2026, pronuncia:Corte costituzionale|237/1995, pronuncia:Corte costituzionale|258/1990, pronuncia:Corte costituzionale|475/1995, pronuncia:Corte di Cassazione — civile|825/2025, pronuncia:Corte di Cassazione — penale
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte di Cassazione — penale|43389/2023, pronuncia:Corte costituzionale|109/2026, pronuncia:Corte costituzionale|116/2011, pronuncia:Corte costituzionale|26/2010, pronuncia:Corte di Cassazione — civile|5984/2026
+- r5 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte di Cassazione — penale|43389/2023
+- r6 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte di Cassazione — penale|43389/2023

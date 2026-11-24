@@ -1,7 +1,7 @@
 # Sequestro ante causam: efficacia e inizio del giudizio di merito
 
-- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 04:05
-- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 3 · ultimo controllo 24/11/2026 04:21
+- Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per sequestro conservativo ante causam al giudice competente per il merito; poi esecuzione entro trenta giorni e inizio del merito nel termine perentorio; Tribunale competente per territorio sul merito.
 
@@ -41,6 +41,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - potrebbe essere esclusa per il sol fatto che sia possibile richiedere il sequestro conservativo dei beni del datore di lavoro inadempiente (art. 671 del codice di procedura civile), in quanto il ricorrente dovrebbe dimostrare «dati di fatto ulteriori», riguardanti il fondato timore di perdere la garanzia del proprio credito. — _Corte costituzionale, n. 154/2021_ (passaggio letto nel testo integrale della pronuncia)
 - civ., che prevedono l'obbligo degli alimenti anche a carico degli ascendenti naturali; all'art. 671 cod. proc. civ., che regola il sequestro conservativo, mezzo di tutela della garanzia patrimoniale di portata generale, applicabile, ricorrendone le condizioni, anche nelle controversie tra genitori naturali per questioni concernenti il mantenimento dei figli. — _Corte costituzionale, n. 99/1997_ (passaggio letto nel testo integrale della pronuncia)
 - 3, 29, 30 e 31 della Costituzione, poiché il coniuge in difficoltà si troverebbe nella concreta impossibilità di ottenere il sequestro durante la fase istruttoria, non potendosi neppure applicare la norma generale di cui all'art. 671 cod. proc. civ., dal momento che il sequestro conservativo si fonda su presupposti del tutto differenti. — _Corte costituzionale, n. 258/1996_ (passaggio letto nel testo integrale della pronuncia)
+- n.149 del 2022), aisensi del quale, in presenza di una doppia decisione conforme in fatto,il ricorso per cassazione può essere proposto esclusivamente per imotivi di cui ai numeri 1), 2), 3) e 4) del primo comma dell'articolo360;con l’ottavo motivo, la ricorrente censura la sentenza impugnataper violazione e falsa applicazione dell’art. 5 cpv. 2, ultimo periodo,d.lgs n. 28/2010 e dell’art 221 c.p.c. — _Corte di Cassazione — civile, sez. 3, n. 29672/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Il primo motivo denuncia «Nullità della sentenza per violazione dell’art.1, comma 11, 249/1997 in combinato disposto con l’art. 5, comma 1-bis,L.28/2010, in relazione all’art. — _Corte di Cassazione — civile, sez. 3, n. 29096/2026_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «sequestro_ante_causam»
@@ -49,6 +51,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Rimedi e forme, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 671 c.p.c. (Sequestro conservativo) — testo vigente, aggiornamento archivio 05/03/2026, versione `f2d2a0674576a1f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art671
@@ -65,7 +68,10 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Corte costituzionale, n. 154/2021 (testo integrale) — versione `cc1:3d8b45552679` — https://www.cortecostituzionale.it/scheda-pronuncia/2021/154
 - Corte costituzionale, n. 99/1997 (testo integrale) — versione `cc1:3d86221a81cc` — https://www.cortecostituzionale.it/scheda-pronuncia/1997/99
 - Corte costituzionale, n. 258/1996 (testo integrale) — versione `cc1:b060d4defd6b` — https://www.cortecostituzionale.it/scheda-pronuncia/1996/258
+- Corte di Cassazione — civile, sez. 3, n. 29672/2026 (testo integrale) — versione `78ea4ddd30a67567` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329672O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29096/2026 (testo integrale) — versione `c2075017fd68bdd6` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329096O&rows=1&wt=json
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026

@@ -173,7 +173,7 @@ def voci_per(istituto: str) -> list[tuple[Voce, Punto]]:
 # Formule della motivazione: il passaggio esprime il ragionamento della Corte, non i fatti o le difese delle parti.
 MOTIVAZIONE = re.compile(
     r"\bquesta corte\b|\bprincipio di diritto\b|\bva (?:qui )?ribadit|\bgiurisprudenza di (?:questa corte|legittimit)|"
-    r"\bsecondo (?:il consolidato|l'orientamento|la giurisprudenza)|\borientamento (?:consolidato|di questa)|"
+    r"\bsecondo (?:il consolidato|l\W?orientamento|la giurisprudenza)|\borientamento (?:consolidato|di questa)|"
     r"\bcontrasto\b|\bla corte ritiene\b|\bquesta corte ha (?:gia )?(?:affermato|chiarito|precisato)|"
     r"\bnon e fondata\b|\bla questione (?:e|non e) fondata", re.I)
 
@@ -187,7 +187,57 @@ NARRAZIONE = re.compile(r"\bha dedotto\b|\bdeduce\b|\blamenta\b|\bespone\b|\brif
 
 def e_motivazione(passaggio: str) -> bool:
     """Il passaggio contiene una formula della motivazione e nessuna formula di narrazione delle difese."""
+    from lex.harness.norme import piano
+
+    t = piano(passaggio)
+    return bool(MOTIVAZIONE.search(t)) and not NARRAZIONE.search(t)
+
+
+# ------------------------------------------------------------------ pertinenza del passaggio all'istituto
+_GENERICHE = frozenset(
+    "ricorso giudice tribunale termine termini sentenza articolo articoli domanda giudizio procedimento decreto legge "
+    "codice diritto diritti quando perche essere avere fatto cliente clienti voglio dobbiamo possiamo nostro nostra "
+    "questo questa quello quella contro dopo prima ancora sempre ormai fatto oppure giorni mesi anni importo euro "
+    "parte parti causa cause azione azioni richiesta chiedere chiede devo posso".split())
+FINESTRA = 300
+
+
+def termini_istituto(nome: str, regole: tuple[str, ...]) -> frozenset[str]:
+    """Radici delle parole che identificano l'istituto: il suo nome e, per ogni sua regola, nome, sinonimi e situazioni
+    del file del significato di Lex (``lex.harness.significato.voci``)."""
     from lex.harness.norme import normalizza
 
-    t = normalizza(passaggio)
-    return bool(MOTIVAZIONE.search(t)) and not NARRAZIONE.search(t)
+    testi = [nome]
+    try:
+        from lex.harness.significato import voci
+
+        testi += [v.testo for v in voci() if v.regola in regole]
+    except Exception:  # noqa: BLE001 - senza il file del significato vale solo il nome dell'istituto
+        pass
+    out = set()
+    for t in testi:
+        for w in re.findall(r"[a-z]+", normalizza(t)):
+            if len(w) >= 6 and w not in _GENERICHE:
+                out.add(w[:7])
+    return frozenset(out)
+
+
+def pertinente(passaggio: str, citazione_norma: str, termini: frozenset[str]) -> bool:
+    """Il passaggio resta fra le questioni solo se, nella stessa finestra di testo della formula di motivazione,
+    compaiono anche la norma dell'istituto e almeno un termine dell'istituto."""
+    from lex.harness.norme import piano
+
+    from .citazioni import modello_citazione
+
+    t = piano(passaggio)  # minuscole, senza accenti; l'apostrofo separa le parole («dell'art.» → «dell art.»)
+    rx = modello_citazione(citazione_norma)
+    if not rx:
+        return False
+    for m in MOTIVAZIONE.finditer(t):
+        finestra = t[max(0, m.start() - FINESTRA): m.end() + FINESTRA]
+        if not re.search(rx, finestra, re.I):
+            continue
+        parole = re.findall(r"[a-z]+", finestra)
+        if any(w.startswith(r) for w in parole for r in termini):
+            return True
+    return False

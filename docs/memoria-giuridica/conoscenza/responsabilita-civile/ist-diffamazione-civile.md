@@ -1,6 +1,6 @@
 # Diffamazione: risarcimento civile
 
-- ID: `ist-diffamazione-civile` · materia: responsabilità civile · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-diffamazione-civile` · materia: responsabilità civile · revisione 5 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per risarcimento del danno (mediazione obbligatoria se a mezzo stampa o altro mezzo di pubblicità).
@@ -51,6 +51,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Giudice e rito, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 2043 c.c. (Risarcimento per fatto illecito) — testo vigente, aggiornamento archivio n.d., versione `d103379584946b25` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043
@@ -75,3 +76,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cpc:167, norma:cpc:38
 - r4 · 24/11/2026 04:05 · contenuto delle regole cambiato con le stesse fonti
+- r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

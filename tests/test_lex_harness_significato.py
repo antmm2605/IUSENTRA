@@ -28,3 +28,21 @@ def test_la_scelta_rimandata_porta_allo_strumento():
     assert strumento_indicato(domanda) == v.regola
     r = rispondi(domanda)
     assert r is not None and r.regola == v.regola
+
+
+def test_linguaggio_comune_entra_e_propone_gli_strumenti():
+    r = rispondi("il vicino ha alzato un muro sul confine e mi toglie la luce del giardino")
+    assert r is not None and r.regola in {"chiarimento_strumento"} or (r is not None and r.regola.startswith(("pos_", "dr_")))
+
+
+def test_domanda_vaga_chiede_i_fatti_o_propone():
+    r = rispondi("ho un problema con un contratto, mi aiuti?")
+    assert r is not None and r.regola in {"chiarimento_strumento", "fuori_materia"}
+    assert "Serve una precisazione" in r.testo
+
+
+@pytest.mark.parametrize("testo", ["buongiorno, a che ora apre lo studio?", "grazie mille", "mostrami le scadenze di domani"])
+def test_saluti_e_operativi_non_entrano(testo):
+    from lex.harness.comprensione import comprendi
+
+    assert not comprendi(testo).per_harness

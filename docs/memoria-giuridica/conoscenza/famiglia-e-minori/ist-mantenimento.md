@@ -1,6 +1,6 @@
 # Mantenimento dei figli e del coniuge
 
-- ID: `ist-mantenimento` · materia: famiglia e minori · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-mantenimento` · materia: famiglia e minori · revisione 5 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di determinazione del contributo; per l'inadempimento, ordine di pagamento diretto al terzo e titolo esecutivo; Tribunale.
@@ -60,6 +60,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 337-ter c.c. (Provvedimenti riguardo ai figli) — testo vigente, aggiornamento archivio 29/04/2026, versione `b22492dba36fe097` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337ter
@@ -85,3 +86,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:156, norma:cpc:473bis36
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cpc:473bis37, pronuncia:Corte costituzionale|68/2025, pronuncia:Corte costituzionale|71/2024, pronuncia:Corte costituzionale|79/2022, pronuncia:Corte di Cassazione — civile|32211/2025, pronuncia:Corte di Cassazione — civile|32587/2025, pronuncia:Corte di Cassazione — civile|34143/2025, pronuncia:Corte costituzionale|1009/1988, pronuncia:Corte costituzionale|266/2014, pronuncia:Corte costituz
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|71/2024, pronuncia:Corte costituzionale|79/2022
+- r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

@@ -1,7 +1,7 @@
 # TFR (trattamento di fine rapporto)
 
-- ID: `ist-tfr` · materia: lavoro · revisione 5 · ultimo controllo 24/11/2026 04:05
-- Stato: verificata · fonti dirette: 27 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-tfr` · materia: lavoro · revisione 9 · ultimo controllo 24/11/2026 04:21
+- Stato: verificata · fonti dirette: 26 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida, poi decreto ingiuntivo o ricorso al giudice del lavoro; con datore insolvente domanda al Fondo di garanzia INPS; Tribunale in funzione di giudice del lavoro.
 
@@ -47,7 +47,7 @@
 - eventuale procedura concorsuale del datore (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-- civ., che riconoscono efficacia probatoria alle scritture dell'imprenditore solo "contro" di lui, e di cui all'art. 634 cod. proc. civ. in materia di procedimento di ingiunzione, che attribuisce alle scritture contabili in favore dell'imprenditore rilevanza solo ai fini di una tutela sommaria; 2) la norma si risolverebbe nell'attribuzione alla banca di un potere di attestazione, attraverso l'annotazione, in contrasto con la marcata natura privatistica che la più recente legislazio — _Corte costituzionale, n. 78/2012_ (passaggio letto nel testo integrale della pronuncia)
+_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - secondo cui il provvedimento che ammette o nega la chiamata del terzo costituisceesercizio di potere discrezionale del giudice di merito e non è sindacabile in sededi impugnazione.Infine, è stata respinta l'eccezione di decadenza probatoria ex art. 414 c.p.c.,ritenendosi che la documentazione fosse stata adeguatamente indicata nel ricorsointroduttivo e già depositata presso la cancelleria nell'ambito del precedenteprocedimento cautelare tra le stesse parti; in ogni caso, la Corte ha osservato cheil giudice del lavoro avrebbe potuto acquisirla mediante esercizio dei poteriistruttori officiosi di cui agl — _Corte di Cassazione — civile, sez. L, n. 29446/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -66,6 +66,9 @@
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
+- Sezioni senza fonte: Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 78/2012.
 
 ## Fonti con versione
 - art. 2120 c.c. (Disciplina del trattamento di fine rapporto) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f1c918000c14f0b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2120
@@ -88,7 +91,6 @@
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
-- Corte costituzionale, n. 78/2012 (testo integrale) — versione `cc1:546f2629ef64` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/78
 - Corte di Cassazione — civile, sez. L, n. 29446/2026 (testo integrale) — versione `4ee179018b5f65fc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29446O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 5, n. 29147/2026 (testo integrale) — versione `a3317a02460159dc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529147O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 29047/2026 (testo integrale) — versione `fead8d45396a9a67` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29047O&rows=1&wt=json
@@ -102,3 +104,7 @@
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:l742:3
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2113, norma:cc:2697, norma:cc:2935, norma:cc:2943, pronuncia:Corte costituzionale|78/2012, pronuncia:Corte di Cassazione — civile|27991/2026
 - r5 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27991/2026
+- r6 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r7 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r8 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 04:21 · fonti cambiate: pronuncia:Corte costituzionale|78/2012

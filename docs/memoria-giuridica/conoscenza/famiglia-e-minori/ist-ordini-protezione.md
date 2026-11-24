@@ -1,6 +1,6 @@
 # Ordini di protezione contro gli abusi familiari
 
-- ID: `ist-ordini-protezione` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-ordini-protezione` · materia: famiglia e minori · revisione 3 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per ordine di protezione contro gli abusi familiari (artt. 473-bis.69 e 473-bis.70 c.p.c.).

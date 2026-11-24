@@ -1,6 +1,6 @@
 # Opposizione alla convalida di sfratto e termine di grazia
 
-- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 23 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** comparsa di costituzione e opposizione alla convalida (art. 665 c.p.c.), non l'istanza di termine di grazia dell'art. 55 l. 392/1978.
@@ -64,6 +64,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Sezioni senza fonte: Giudice e rito, Questioni interpretative.
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Tentare subito un accordo con la locatrice sul piano di rientro.»
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 665 c.p.c. (Opposizione e provvedimenti del giudice) — testo vigente, aggiornamento archivio 05/03/2026, versione `9fbf736ad8a2171f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art665
@@ -95,3 +96,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1455, norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cc:2948, pronuncia:Corte costituzionale|448/1998, pronuncia:Corte di Cassazione — civile|11406/2026, pronuncia:Corte di Cassazione — civile|11783/2026
+- r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

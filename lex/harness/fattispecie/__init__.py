@@ -4,11 +4,14 @@ L'ordine conta a parità di punteggio: le fattispecie specifiche vengono prima d
 """
 from __future__ import annotations
 
+import re
+
 from collections.abc import Callable
 
 from ..comprensione import Comprensione
 from ..fatti import Fatti
 from ..modello import Analisi
+from ..norme import piano
 from . import amministrativo, appalto, civile, consumo, domande, pubblico, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
 
 Regola = tuple[str, Callable[[Comprensione, Fatti], int], Callable[[Comprensione, Fatti], Analisi]]
@@ -124,5 +127,23 @@ def scegli(c: Comprensione, f: Fatti) -> Regola | None:
         if candidati:
             return max(candidati, key=lambda rp: rp[1])[0]
         per_nome = {r[0]: r for r in REGOLE}
+        t_lato = piano(f.testo)
+        if fam[0] == "pignoramento" and lato == "passivo":
+            # Il debitore che chiede i limiti su stipendio o pensione riceve l'art. 545 (regola del pignoramento presso terzi).
+            if re.search(r"stipendi|pension|salari", t_lato) and re.search(r"quinto|quanto|limit|tutt|inter[ao]|minimo vitale|impignorab", t_lato):
+                return migliore
+            for cue, nome in ((r"terz[oa]\b|sono miei|di mia proprieta|di nostra proprieta|vero proprietari|non (?:e|sono) del debitore",
+                               "es_opposizione_terzo"),
+                              (r"pagare per evitare|evitare (?:la vendita|l asta)|conversion|pagare a rate|rateizz", "es_conversione_pignoramento")):
+                if re.search(cue, t_lato) and nome in per_nome:
+                    return per_nome[nome]
+        if fam[0] == "precetto" and lato == "passivo" and re.search(r"prescri|non (?:e|era) dovut|gia pagat|estint", t_lato):
+            return per_nome.get("opposizione_precetto", per_nome[nomi[0]])
+        # Decreto ingiuntivo conosciuto solo dopo, per notifica viziata o con il termine scaduto: opposizione tardiva (art. 650).
+        if fam[0] == "monitorio" and "mon_opposizione_tardiva" in per_nome and re.search(
+                r"notific\w* (?:nulla|sbagliat|irregolar|viziat)|indirizzo sbagliato|non (?:ho|abbiamo|ha) mai ricevut|saputo solo|"
+                r"scoperto (?:solo )?(?:dal|con il|quando)|termine (?:e )?scadut|oltre (?:il termine|i quaranta)|quaranta giorni sono passati",
+                piano(f.testo)):
+            return per_nome["mon_opposizione_tardiva"]
         return per_nome[nomi[0]]
     return migliore

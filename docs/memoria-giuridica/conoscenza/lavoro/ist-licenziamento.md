@@ -1,6 +1,6 @@
 # Impugnazione del licenziamento
 
-- ID: `ist-licenziamento` · materia: lavoro · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-licenziamento` · materia: lavoro · revisione 4 · ultimo controllo 24/11/2026 04:21
 - Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.

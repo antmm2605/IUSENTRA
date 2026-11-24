@@ -1,6 +1,6 @@
 # Decreto ingiuntivo per retribuzioni
 
-- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 5 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 8 · ultimo controllo 24/11/2026 04:21
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al tribunale in funzione di giudice del lavoro, con le buste paga; Tribunale in funzione di giudice del lavoro.
@@ -75,6 +75,7 @@
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 633 c.p.c. (Condizioni di ammissibilità) — testo vigente, aggiornamento archivio 05/03/2026, versione `650f7095d9bfba54` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art633
@@ -112,3 +113,6 @@
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:l742:3
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2697, norma:cc:2935, norma:cc:2943, pronuncia:Corte costituzionale|54/2023, pronuncia:Corte costituzionale|78/2012, pronuncia:Corte costituzionale|137/1975, pronuncia:Corte costituzionale|410/2005, pronuncia:Corte costituzionale|50/2010
 - r5 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte costituzionale|54/2023
+- r6 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r7 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
+- r8 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

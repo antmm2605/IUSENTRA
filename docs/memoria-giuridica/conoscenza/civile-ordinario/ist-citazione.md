@@ -1,6 +1,6 @@
 # Atto di citazione (rito ordinario di cognizione)
 
-- ID: `ist-citazione` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-citazione` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione a udienza fissa notificato al convenuto, con iscrizione a ruolo.
@@ -49,6 +49,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 163 c.p.c. (Contenuto della citazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `77209d0b61dd6ee9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art163
@@ -72,3 +73,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:167, norma:cpc:38
+- r4 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

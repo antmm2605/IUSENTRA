@@ -1,6 +1,6 @@
 # Divorzio (scioglimento e cessazione degli effetti civili)
 
-- ID: `ist-divorzio` · materia: famiglia e minori · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-divorzio` · materia: famiglia e minori · revisione 5 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per divorzio fondato sull'art. 3, n. 1, l. 898/1970 (senza separazione); Tribunale.
@@ -57,6 +57,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 3 l. 898/1970 (Casi di scioglimento) — testo vigente, aggiornamento archivio n.d., versione `49c52561e587ccb1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-12-01;898~art3
@@ -80,3 +81,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:l898:5
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|68/2025, pronuncia:Corte costituzionale|71/2024, pronuncia:Corte costituzionale|79/2022, pronuncia:Corte di Cassazione — civile|32211/2025, pronuncia:Corte di Cassazione — civile|32587/2025
+- r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

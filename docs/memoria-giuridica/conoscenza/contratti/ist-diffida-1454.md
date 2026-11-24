@@ -1,7 +1,7 @@
 # Diffida ad adempiere (art. 1454)
 
-- ID: `ist-diffida-1454` · materia: contratti · revisione 3 · ultimo controllo 24/11/2026 04:05
-- Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-diffida-1454` · materia: contratti · revisione 4 · ultimo controllo 24/11/2026 04:21
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida ad adempiere per iscritto con termine non inferiore a quindici giorni e dichiarazione che, decorso inutilmente, il contratto si intenderà risolto.
 
@@ -31,7 +31,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 
 ## Questioni interpretative
-- della motivazione),l'atto di costituzione in mora, come delineato dall'art. 1219 cod. civ., consistenella manifestazione di volontà del creditore rivolta al debitore di pretenderesubito l'adempimento o, più in generale, di non voler tollerare ulteriore ritardoo indugio da parte dell'obbligato.In questo senso, la qui condivisa giurisprudenza di questa Corte haaffermato che, sebbene non sia necessaria una particolare formula solenne,affin — _Corte di Cassazione — civile, sez. 1, n. 27716/2026_ (passaggio letto nel testo integrale della pronuncia)
+_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - rericevute non poteva trovare accoglimento; però, dall’altro lato, larisoluzione dei tre preliminari citati, avutasi de iure alla scadenzadel termine vanamente accordato dalla promittente per giungerealla stipula delle vendite definitive, non consentiva a quest’ultimadi trattenere le caparre, poiché la scelta di intimarel’adempimento ai sensi dell’art. 1454 c.c., in luogo del recesso, laobbligava, una volta perfezionatasi la risoluzione, a dimostrarel’esistenza della misura in concreto del danno effettivamentepatito, in base alle norme generali, e a non basarsiapoditticamente sulla preventiva e convenzionale liquidazione diesso, cui era appunto finalizzata la caparra confirmatoria.3.– Avverso la sentenza — _Corte di Cassazione — civile, sez. 2, n. 29148/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -45,7 +45,8 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - Regola di Lex «diffida_1454»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare.
+- Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 1, n. 27716/2026.
 
 ## Fonti con versione
 - art. 1454 c.c. (Diffida ad adempiere) — testo vigente, aggiornamento archivio 29/04/2026, versione `b3a45ab979a4e6d7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1454
@@ -53,7 +54,6 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - art. 1219 c.c. (Costituzione in mora) — testo vigente, aggiornamento archivio 29/04/2026, versione `680f07ed7152350c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1219
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
-- Corte di Cassazione — civile, sez. 1, n. 27716/2026 (testo integrale) — versione `cdd81cf2c684663a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026127716O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 29148/2026 (testo integrale) — versione `ca593440a87857e7` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229148O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 1, n. 27061/2026 (testo integrale) — versione `d4e211eff28437ce` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026127061O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 26722/2026 (testo integrale) — versione `cbf19e8feb79f361` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026226722O&rows=1&wt=json
@@ -65,3 +65,4 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|427/1993, pronuncia:Corte costituzionale|8/1975, pronuncia:Corte di Cassazione — civile|26176/2026
+- r4 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026

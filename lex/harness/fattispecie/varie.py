@@ -68,6 +68,8 @@ def analizza_sequestro(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- verbale del codice della strada non contestato
 def riconosci_verbale_cds(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
+    if re.search(r"ricorso al prefetto|ricorrere al prefetto|al prefetto", t) and not re.search(r"giudice di pace|opposizion|meglio|oppure|o il", t):
+        return 0
     return 5 if re.search(r"autovelox|verbale n\.|multa|codice della strada|rilevamento della velocita|eccesso di velocita|"
                           r"limite di velocita|semaforo rosso|divieto di sosta|\bztl\b|infrazione stradal|verbale (?:di|per) "
                           r"(?:contestazione|violazione|eccesso|sosta|accertamento)", t) and re.search(
@@ -196,7 +198,12 @@ def analizza_disconoscimento(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- chiamato all'eredità nel possesso dei beni
 def riconosci_eredita_possesso(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    return 5 if re.search(r"eredit|rinuncia all eredita|chiamat", t) and re.search(r"debiti|rinunci", t) else 0
+    if not (re.search(r"eredit|rinuncia all eredita|chiamat", t) and re.search(r"debiti|rinunci", t)):
+        return 0
+    # La regola è quella del chiamato nel possesso dei beni (art. 485 c.c.): senza possesso rispondono rinuncia e beneficio
+    # d'inventario.
+    return 5 if re.search(r"possess|\bchiamat|abit\w* (?:nella|la) casa|vive nella casa|ha le chiavi|chiavi|"
+                          r"usat[oa] (?:il|la|i|le)|conto (?:del|corrente del) defunt|gestisc|incassat|ritirat|preso (?:i|il|la)", t) else 0
 
 
 def analizza_eredita_possesso(c: Comprensione, f: Fatti) -> Analisi:

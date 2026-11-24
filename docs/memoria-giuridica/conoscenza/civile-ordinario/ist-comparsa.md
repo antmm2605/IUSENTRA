@@ -1,6 +1,6 @@
 # Comparsa di costituzione e risposta
 
-- ID: `ist-comparsa` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-comparsa` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 166 c.p.c., art. 167 c.p.c., art. 171-ter c.p.c..

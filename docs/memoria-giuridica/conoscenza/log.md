@@ -3315,3 +3315,550 @@ rinominate: 0
 invariate: 150
 ritirate: 0
 schede: 154
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Sequestro conservativo e giudiziario
+event_id: 160a9cf27a43ae72cc8c
+scheda: ist-sequestro
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — penale|43389/2023
+fonti_tolte: pronuncia:Corte di Cassazione — penale|43389/2023
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Ricorso per decreto ingiuntivo
+event_id: 459806bd16708ae9fbfd
+scheda: ist-decreto-ingiuntivo
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_tolte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Provvisoria esecuzione del decreto (artt. 642 e 648)
+event_id: ca85d9bb167ea8cb543c
+scheda: ist-provvisoria-esecuzione
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_tolte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Opposizione all'esecuzione (art. 615)
+event_id: 607cc914bad4ce16398b
+scheda: ist-opposizione-esecuzione
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte costituzionale|271/2017
+fonti_tolte: pronuncia:Corte costituzionale|271/2017
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Opposizione agli atti esecutivi (art. 617)
+event_id: e645fc5253c7c820e37f
+scheda: ist-opposizione-atti-esecutivi
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte costituzionale|151/2026, pronuncia:Corte costituzionale|271/2017
+fonti_tolte: pronuncia:Corte costituzionale|151/2026, pronuncia:Corte costituzionale|271/2017
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Risoluzione per inadempimento
+event_id: c7818f56fc00ed7692bc
+scheda: ist-risoluzione
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|192/2014
+fonti_tolte: pronuncia:Corte costituzionale|192/2014
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Diffida ad adempiere (art. 1454)
+event_id: 3d662c8ff6e9acbd1adf
+scheda: ist-diffida-1454
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026
+fonti_tolte: pronuncia:Corte di Cassazione — civile|27716/2026
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: fd245e2d250300dfbf0e
+scheda: ist-tfr
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_tolte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Decreto ingiuntivo per retribuzioni
+event_id: eadb9727f9346b913775
+scheda: ist-di-retribuzioni
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_tolte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:13:33+01:00] aggiornamento | Diffida e messa in mora
+event_id: c90ae74b306363d7d986
+scheda: ist-diffida-messa-mora
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026
+fonti_tolte: pronuncia:Corte di Cassazione — civile|27716/2026
+
+## [2026-11-24T04:13:33+01:00] controllo | passaggio di controllo
+event_id: 44fc981aa348c3e2fe42
+status: completato
+generate: 0
+aggiornate: 10
+rinominate: 0
+invariate: 144
+ritirate: 0
+schede: 154
+
+## [2026-11-24T04:14:14+01:00] aggiornamento | Sequestro conservativo e giudiziario
+event_id: 33d4f793d9fe3cd6b2f9
+scheda: ist-sequestro
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — penale|43389/2023
+fonti_aggiunte: pronuncia:Corte di Cassazione — penale|43389/2023
+
+## [2026-11-24T04:14:14+01:00] aggiornamento | Ricorso per decreto ingiuntivo
+event_id: 8a1b22564100a9126eb5
+scheda: ist-decreto-ingiuntivo
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_aggiunte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:14:14+01:00] aggiornamento | Provvisoria esecuzione del decreto (artt. 642 e 648)
+event_id: 402c4c1088e71a7e93ef
+scheda: ist-provvisoria-esecuzione
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_aggiunte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:14:14+01:00] aggiornamento | Opposizione agli atti esecutivi (art. 617)
+event_id: b4b92df32e49399b3817
+scheda: ist-opposizione-atti-esecutivi
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: pronuncia:Corte costituzionale|151/2026, pronuncia:Corte costituzionale|271/2017
+fonti_aggiunte: pronuncia:Corte costituzionale|151/2026, pronuncia:Corte costituzionale|271/2017
+
+## [2026-11-24T04:14:14+01:00] aggiornamento | Risoluzione per inadempimento
+event_id: 79b45fa9eededf215eee
+scheda: ist-risoluzione
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte costituzionale|192/2014
+fonti_aggiunte: pronuncia:Corte costituzionale|192/2014
+
+## [2026-11-24T04:14:14+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: 531253ffbc1ca85fea14
+scheda: ist-tfr
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_aggiunte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:14:14+01:00] aggiornamento | Decreto ingiuntivo per retribuzioni
+event_id: e469c922a31a51321aa9
+scheda: ist-di-retribuzioni
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_aggiunte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:14:14+01:00] aggiornamento | Diffida e messa in mora
+event_id: 8ad5dc51ffe2d76258d1
+scheda: ist-diffida-messa-mora
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|27716/2026
+
+## [2026-11-24T04:14:14+01:00] controllo | passaggio di controllo
+event_id: b9eb5d0d4365ed2c5354
+status: completato
+generate: 0
+aggiornate: 8
+rinominate: 0
+invariate: 146
+ritirate: 0
+schede: 154
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Atto di citazione (rito ordinario di cognizione)
+event_id: 20f3bbae25d63faf64bd
+scheda: ist-citazione
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Ricorso per decreto ingiuntivo
+event_id: d3750915e1c8ff453216
+scheda: ist-decreto-ingiuntivo
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Provvisoria esecuzione del decreto (artt. 642 e 648)
+event_id: 806b694c69a10eeb4ee2
+scheda: ist-provvisoria-esecuzione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Opposizione a decreto ingiuntivo
+event_id: 6855d8ee091c6f98d2e9
+scheda: ist-opposizione-di
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Opposizione all'esecuzione (art. 615)
+event_id: fdeaa6e73332fedaab77
+scheda: ist-opposizione-esecuzione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Opposizione agli atti esecutivi (art. 617)
+event_id: 92c9f32d37b8e866b392
+scheda: ist-opposizione-atti-esecutivi
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Separazione personale (giudiziale e consensuale)
+event_id: 8384c19226454b2e9fc9
+scheda: ist-separazione
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Divorzio (scioglimento e cessazione degli effetti civili)
+event_id: 2cf82ca370163744138d
+scheda: ist-divorzio
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Mantenimento dei figli e del coniuge
+event_id: 98cc0a5ec905b86c72c8
+scheda: ist-mantenimento
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Petizione di eredità
+event_id: 0378d53e18330cbb9ebb
+scheda: ist-petizione-eredita
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Divisione ereditaria (e scioglimento della comunione)
+event_id: 4ab7d63e8e3fdb13b431
+scheda: ist-divisione
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Azione di riduzione (lesione di legittima)
+event_id: e455c6f8566868417897
+scheda: ist-riduzione
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Impugnazione della delibera condominiale (art. 1137)
+event_id: bf283f4ab8b441f1d5a4
+scheda: ist-delibera-condominio
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Danni da parti comuni e liti condominiali
+event_id: a72670e55808916a1bac
+scheda: ist-lite-condominio
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Azione negatoria
+event_id: 5531a01a1f0ed0288058
+scheda: ist-negatoria
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Azione confessoria (servitù)
+event_id: a19c4ef1065fb7614b6d
+scheda: ist-confessoria
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Usucapione
+event_id: 5ce9cb233faf41640353
+scheda: ist-usucapione
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Regolamento di confini
+event_id: b884fde8bc3a69bf77eb
+scheda: ist-regolamento-confini
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Esecuzione in forma specifica dell'obbligo di concludere il contratto (art. 2932)
+event_id: 04b1c3bd2fe005c1b37e
+scheda: ist-esecuzione-2932
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
+event_id: 12b64f5be043074f5c03
+scheda: ist-sinistro-stradale
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte costituzionale|157/2011, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|32152/2024, pronuncia:Corte di Cassazione — penale|25009/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|157/2011, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|32152/2024, pronuncia:Corte di Cassazione — penale|25009/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Negoziazione assistita per sinistri stradali
+event_id: f8e3a3eb1cd4d5947c94
+scheda: ist-negoziazione-sinistri
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte costituzionale|162/2016, pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|32152/2024
+fonti_aggiunte: pronuncia:Corte costituzionale|162/2016, pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|32152/2024
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Responsabilità sanitaria (l. 24/2017)
+event_id: 0ebb8d660e09bbd3fb1a
+scheda: ist-responsabilita-medica
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Diffamazione: risarcimento civile
+event_id: 46aa0bd11b54df69c850
+scheda: ist-diffamazione-civile
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: a981b46e56312c4b744b
+scheda: ist-tfr
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Decreto ingiuntivo per retribuzioni
+event_id: 8889630709c703828999
+scheda: ist-di-retribuzioni
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Intimazione di sfratto per morosità e citazione per la convalida
+event_id: 3ecc8f4494369db457c5
+scheda: ist-sfratto-morosita
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Licenza e sfratto per finita locazione
+event_id: 1fcf68468900365050d7
+scheda: ist-sfratto-finita-locazione
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Opposizione alla convalida di sfratto e termine di grazia
+event_id: c9c094ee49cfeb806b5b
+scheda: ist-opposizione-convalida
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Restituzione del deposito cauzionale e cause di locazione
+event_id: 5b3ef064ab8dd2d6ec5d
+scheda: ist-deposito-cauzionale
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026, pronuncia:Corte costituzionale|135/2016, pronuncia:Corte costituzionale|45/2018, pronuncia:Corte di Cassazione — civile|27991/2026, pronuncia:Corte di Cassazione — civ
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_tolte: pronuncia:Corte costituzionale|135/2016, pronuncia:Corte costituzionale|45/2018, pronuncia:Corte di Cassazione — civile|27991/2026, pronuncia:Corte di Cassazione — civile|28247/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Restituzione del canone non registrato o in nero
+event_id: 54b7b2136ee18b74721a
+scheda: ist-canone-nero
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|29674/2026, pronuncia:Corte di Cassazione — civile|29675/2026, pronuncia:Corte di Cassazione — civile|26776/2026, pronuncia:Corte di Cassazione — civile|26777/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|29674/2026, pronuncia:Corte di Cassazione — civile|29675/2026
+fonti_tolte: pronuncia:Corte di Cassazione — civile|26776/2026, pronuncia:Corte di Cassazione — civile|26777/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Garanzia legale di conformità
+event_id: 0965eac5a9f6138c3aad
+scheda: ist-garanzia-conformita
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|10445/2025, pronuncia:Corte di Cassazione — civile|14390/2024, pronuncia:Corte di Cassazione — civile|19979/2024, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26202/2024, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|10445/2025, pronuncia:Corte di Cassazione — civile|14390/2024, pronuncia:Corte di Cassazione — civile|19979/2024, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26202/2024, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Clausole vessatorie
+event_id: dfe623a5c6d13a6f79b6
+scheda: ist-clausole-vessatorie
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|27040/2026, pronuncia:Corte di Cassazione — civile|27601/2026, pronuncia:Corte di Cassazione — civile|27880/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|27040/2026, pronuncia:Corte di Cassazione — civile|27601/2026, pronuncia:Corte di Cassazione — civile|27880/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Foro del consumatore e competenza
+event_id: ae5a9cc96e5d5833870a
+scheda: ist-foro-consumatore
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Usura bancaria
+event_id: f2dc9f781cac82d6abf5
+scheda: ist-usura
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Anatocismo e ripetizione di indebito bancario
+event_id: 8f81c4e24f744748ab63
+scheda: ist-anatocismo
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Ricorso straordinario al Capo dello Stato
+event_id: 00662a35932cd8a7d822
+scheda: ist-ricorso-straordinario
+status: completato
+revision: 2 -> 3
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|26410/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|26410/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Ricorso tributario di primo grado
+event_id: 286b12e89e0352fe17cc
+scheda: ist-ricorso-tributario
+status: completato
+revision: 2 -> 3
+motivo: fonti cambiate: pronuncia:Corte costituzionale|128/2019, pronuncia:Corte costituzionale|55/2013, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28817/2026, pronuncia:Corte di Cassazione — civile|29055/2026, pronuncia:Corte di Cassazione — civile|29410/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|128/2019, pronuncia:Corte costituzionale|55/2013, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28817/2026, pronuncia:Corte di Cassazione — civile|29055/2026, pronuncia:Corte di Cassazione — civile|29410/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Reclamo e mediazione tributaria (istituto abrogato: oggi ricorso diretto)
+event_id: 64cabb4e8c27cabdfd02
+scheda: ist-reclamo-mediazione-tributaria
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|128/2019, pronuncia:Corte costituzionale|55/2013, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28817/2026, pronuncia:Corte di Cassazione — civile|29055/2026, pronuncia:Corte di Cassazione — civile|29410/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|128/2019, pronuncia:Corte costituzionale|55/2013, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28817/2026, pronuncia:Corte di Cassazione — civile|29055/2026, pronuncia:Corte di Cassazione — civile|29410/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Ricorso al Prefetto contro il verbale (art. 203 cod. strada)
+event_id: 4bb617d043fef0fe8d5d
+scheda: ist-ricorso-prefetto
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|462/2006, pronuncia:Corte di Cassazione — civile|15992/2026, pronuncia:Corte di Cassazione — civile|17694/2026, pronuncia:Corte di Cassazione — civile|2857/2026, pronuncia:Corte di Cassazione — civile|29409/2026, pronuncia:Corte costituzionale|69/2012
+fonti_aggiunte: pronuncia:Corte costituzionale|462/2006, pronuncia:Corte di Cassazione — civile|15992/2026, pronuncia:Corte di Cassazione — civile|17694/2026, pronuncia:Corte di Cassazione — civile|2857/2026, pronuncia:Corte di Cassazione — civile|29409/2026
+fonti_tolte: pronuncia:Corte costituzionale|69/2012
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Opposizione al verbale davanti al giudice di pace (art. 204-bis cod. strada, art. 7 d.lgs. 150/2011)
+event_id: bb7889ba640c11bb2e61
+scheda: ist-ricorso-gdp-cds
+status: completato
+revision: 2 -> 3
+motivo: fonti cambiate: pronuncia:Corte costituzionale|462/2006, pronuncia:Corte di Cassazione — civile|15992/2026, pronuncia:Corte di Cassazione — civile|17694/2026, pronuncia:Corte di Cassazione — civile|2857/2026, pronuncia:Corte di Cassazione — civile|29409/2026, pronuncia:Corte costituzionale|69/2012
+fonti_aggiunte: pronuncia:Corte costituzionale|462/2006, pronuncia:Corte di Cassazione — civile|15992/2026, pronuncia:Corte di Cassazione — civile|17694/2026, pronuncia:Corte di Cassazione — civile|2857/2026, pronuncia:Corte di Cassazione — civile|29409/2026
+fonti_tolte: pronuncia:Corte costituzionale|69/2012
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Mediazione civile e commerciale (d.lgs. 28/2010)
+event_id: c749521aa9dae5646bec
+scheda: ist-mediazione
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29656/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29656/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Negoziazione assistita (d.l. 132/2014)
+event_id: 0df5de8eed951a98eafa
+scheda: ist-negoziazione-assistita
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|162/2016, pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|3268/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|162/2016, pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|3268/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Condizioni di procedibilità nelle cause di locazione
+event_id: d77cc42c4e9f10d7f686
+scheda: ist-procedibilita-locazione
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|29672/2026, pronuncia:Corte di Cassazione — civile|23217/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_tolte: pronuncia:Corte di Cassazione — civile|23217/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Sequestro ante causam: efficacia e inizio del giudizio di merito
+event_id: 1a36dae2dd064eed7e48
+scheda: ist-sequestro-ante-causam
+status: completato
+revision: 2 -> 3
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] aggiornamento | Competenza per territorio nelle cause di pagamento
+event_id: e6e02287cda1438fd4cc
+scheda: ist-competenza-pagamento
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+
+## [2026-11-24T04:20:29+01:00] controllo | passaggio di controllo
+event_id: 8ca5c07fecadbdf90759
+status: completato
+generate: 0
+aggiornate: 45
+rinominate: 0
+invariate: 109
+ritirate: 0
+schede: 154
+
+## [2026-11-24T04:21:07+01:00] aggiornamento | Provvisoria esecuzione del decreto (artt. 642 e 648)
+event_id: 4748802b8eb826ee6d64
+scheda: ist-provvisoria-esecuzione
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_tolte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:21:07+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: 718905a5124a63f41d5b
+scheda: ist-tfr
+status: completato
+revision: 8 -> 9
+motivo: fonti cambiate: pronuncia:Corte costituzionale|78/2012
+fonti_tolte: pronuncia:Corte costituzionale|78/2012
+
+## [2026-11-24T04:21:07+01:00] controllo | passaggio di controllo
+event_id: e1f04b62559f232ba085
+status: completato
+generate: 0
+aggiornate: 2
+rinominate: 0
+invariate: 152
+ritirate: 0
+schede: 154

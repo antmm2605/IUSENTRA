@@ -1,6 +1,6 @@
 # Composizione negoziata della crisi
 
-- ID: `ist-composizione-negoziata` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-composizione-negoziata` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di nomina dell'esperto sulla piattaforma telematica della camera di commercio, con eventuali misure protettive.

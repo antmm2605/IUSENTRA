@@ -12,7 +12,8 @@ from .. import procedura as P
 
 def riconosci_separazione(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    if re.search(r"modific\w* (?:delle |le )?condizion|revision\w* (?:delle |le )?condizion|negoziazione assistita|ordine di protezione|"
+    if re.search(r"(?:cambi|modific|rivede)\w* (?:il |l |i |le )?(?:collocament|affidament|assegno|mantenimento|visit)|"
+                 r"modific\w* (?:delle |le )?condizion|revision\w* (?:delle |le )?condizion|negoziazione assistita|ordine di protezione|"
                  r"ordini di protezione", t):
         return 0
     if re.search(r"separazion|divorzi", t) and not re.search(r"quando posso.{0,40}divorzi|dopo (?:quanto|la separazione)", t):
@@ -109,8 +110,8 @@ def riconosci_modifica_condizioni(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
     if re.search(r"negoziazione assistita", t):
         return 0
-    return 6 if re.search(r"(?:modific|revision|revoc|riduzion|ridurr|aument|rivede|rivision)\w* (?:delle |le |dell |l |dell assegno|del mantenimento|"
-                          r"dell affidamento|del contributo)?(?:condizion|assegno|mantenimento|affidamento|contribut)", t) and re.search(
+    return 6 if re.search(r"(?:modific|revision|revoc|riduzion|ridurr|aument|rivede|rivision|cambi|abbass|alzar)\w* (?:delle |le |dell |l |il |i |dell assegno|del mantenimento|"
+                          r"dell affidamento|del contributo)?(?:condizion|assegno|mantenimento|affidamento|contribut|collocament|visit|tempi di permanenza)", t) and re.search(
         r"separazion|divorzi|figli|mantenimento|ex (?:moglie|marito|coniuge)|assegno (?:divorzile|di mantenimento)", t) and not re.search(
         r"\binps\b|assegno sociale|pension|invalidit|assegno unico", t) else 0
 

@@ -1,6 +1,6 @@
 # Restituzione del canone non registrato o in nero
 
-- ID: `ist-canone-nero` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-canone-nero` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di restituzione entro sei mesi dalla riconsegna dell'immobile.
@@ -39,12 +39,12 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
-- l Cazzolla avesse basato le propriedomande su non dimostrate pattuizioni inter partes aventi a oggetto ilcanone temporalmente collocate all’inizio della decorrenza delrapporto, non avvedendosi dell’intervenuta formazione del giudicatointerno relativamente al non impugnato capo della pronunzia con cui ilTribunale aveva (erroneamente) ritenuto che l’art. 13 della legge n.431/1998 trovi applicazione solo per le pattuizioni successive allastipulazione del contratto;sotto altro profilo, secondo il ricorrente, la corte territoriale avrebbealtresì omesso di considerare come il Cazzolla non avesse formulatoalcuna domanda per l’accertamento della nullità delle pattuizioni ex art.13, co. — _Corte di Cassazione — civile, sez. 3, n. 29671/2026_ (passaggio letto nel testo integrale della pronuncia)
+- e dell’art. 13, co. 1, legge n.431/1998 (in relazione all’art. — _Corte di Cassazione — civile, sez. 3, n. 29671/2026_ (passaggio letto nel testo integrale della pronuncia)
+- e esclusione degli oneriche riguardino, non solo l'unità immobiliare, ma l'edificio condominialenel suo complesso), attesa la necessità che il rimborso di tali spese, daparte del conduttore, ne rispetti il coerente inserimento nel quadro delrapporto sinallagmatico tra locatore e conduttore;deve pertanto escludersi che la mancata riproduzione, nell’art. 13,co. 4, della legge n. 431 del 1998, dell’art. — _Corte di Cassazione — civile, sez. 3, n. 29674/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Marco Dell’UtriNumero registro ge nerale 17740/2023 considerato che,con il primo motivo, la ricorrente censura la sentenza impugnataper violazione o falsa applicazione dell’art. 13, co. 1 e 2, legge n.431/1998; degli artt. — _Corte di Cassazione — civile, sez. 3, n. 29675/2026_ (passaggio letto nel testo integrale della pronuncia)
 - 47 del 2014, che avevano (la prima) operato e (la seconda) prorogato «una sorta di convalida di un contratto "nullo" per difetto di registrazione, conformando [...] il sottostante rapporto giuridico quanto a durata e corrispettivo» - l'art. 13, comma 5, della legge n. 431 del 1998, come novellato dall'art. — _Corte costituzionale, n. 238/2017_ (passaggio letto nel testo integrale della pronuncia)
 - 3 Cost., attesa la coesistenza - nel testo dell'art. 13 della legge n. 431 del 1998 (come sostituito dall'art. — _Corte costituzionale, n. 87/2017_ (passaggio letto nel testo integrale della pronuncia)
 - 5, dell'art. 2964 c.c. e della legge dellaRegione Lazio n. — _Corte di Cassazione — civile, sez. 3, n. 29672/2026_ (passaggio letto nel testo integrale della pronuncia)
-- – Con il primo motivo di ricorso la società contribuentedenuncia la violazione e falsa applicazione dell’art. 2964 c.c., inNumero registro gener ale 20434/2017 relazione all’art. — _Corte di Cassazione — civile, sez. 5, n. 26776/2026_ (passaggio letto nel testo integrale della pronuncia)
-- – Con il primo motivo di ricorso, la società ricorrentedenuncia la violazione e falsa applicazione dell’art. 2964 c.c., inrelazione all’art. — _Corte di Cassazione — civile, sez. 5, n. 26777/2026_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «restituzione_canone_non_registrato»
@@ -52,6 +52,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 13 l. 431/1998 (Patti contrari alla legge) — testo vigente, aggiornamento archivio n.d., versione `c5a5ba9c17162e30` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1998-12-09;431~art13
@@ -64,11 +65,11 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - Corte di Cassazione — civile, sez. 3, n. 29671/2026 (testo integrale) — versione `01032293a8927ff5` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329671O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29674/2026 (testo integrale) — versione `eae93b47699e70f0` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329674O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29675/2026 (testo integrale) — versione `51ee046cf2820740` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329675O&rows=1&wt=json
 - Corte costituzionale, n. 238/2017 (testo integrale) — versione `cc1:2f64b9ec9e08` — https://www.cortecostituzionale.it/scheda-pronuncia/2017/238
 - Corte costituzionale, n. 87/2017 (testo integrale) — versione `cc1:d03476b10f12` — https://www.cortecostituzionale.it/scheda-pronuncia/2017/87
 - Corte di Cassazione — civile, sez. 3, n. 29672/2026 (testo integrale) — versione `78ea4ddd30a67567` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329672O&rows=1&wt=json
-- Corte di Cassazione — civile, sez. 5, n. 26776/2026 (testo integrale) — versione `d6b930b786195a6c` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026526776O&rows=1&wt=json
-- Corte di Cassazione — civile, sez. 5, n. 26777/2026 (testo integrale) — versione `e5d3bb0ef25b8cdf` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026526777O&rows=1&wt=json
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
@@ -76,3 +77,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cc:2948, pronuncia:Corte costituzionale|275/2000
 - r5 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte costituzionale|111/2025
+- r6 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|29674/2026, pronuncia:Corte di Cassazione — civile|29675/2026, pronuncia:Corte di Cassazione — civile|26776/2026, pronuncia:Corte di Cassazione — civile|26777/2026

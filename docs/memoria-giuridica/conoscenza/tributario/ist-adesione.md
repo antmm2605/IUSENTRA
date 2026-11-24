@@ -1,6 +1,6 @@
 # Accertamento con adesione
 
-- ID: `ist-adesione` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-adesione` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di accertamento con adesione prima dell'impugnazione.

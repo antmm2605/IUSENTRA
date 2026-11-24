@@ -1,7 +1,7 @@
 # Negoziazione assistita per sinistri stradali
 
-- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 4 · ultimo controllo 24/11/2026 04:05
-- Stato: verificata · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 5 · ultimo controllo 24/11/2026 04:21
+- Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione, attesa dei termini, poi invito alla negoziazione assistita tramite avvocato; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
 
@@ -44,7 +44,12 @@
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+- 31227 del 2019).Ancor prima, peraltro, va rilevato che l’eccezione non risulta neppuretempestivamente proposta entro la prima udienza di trattazione delgiudizio di primo grado, come richiesto dall’art. 3 d.l. n. 132/2014 (cfr.Cass. — _Corte di Cassazione — civile, sez. 3, n. 28758/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 132/14, dell’art. 3, co. 1, del d.l. n.132/2014, nonché del principio di cui agli artt. — _Corte di Cassazione — civile, sez. 3, n. 26412/2026_ (passaggio letto nel testo integrale della pronuncia)
+- Il diritto alla restituzione, infatti, sorge solocome conseguenza della sentenza costitutiva che accoglie la domanda direvoca.L’art. 3 D.L. n. 132/2014, nello stabilire l'obbligo per le domande dipagamento, stabilisce che tale obbligo vale «fuori dei casi previsti [...]dall’art. — _Corte di Cassazione — civile, sez. 3, n. 21935/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 162, e, in subordine, in riferimento agli artt. 3 e 24 Cost., del comma 5 del medesimo art. 3 del d.l. n. 132 del 2014. — _Corte costituzionale, n. 266/2019_ (passaggio letto nel testo integrale della pronuncia)
+- 2, 3 e 24 della Costituzione - ed ha, per ciò, sollevato, con l'ordinanza in epigrafe - questione di legittimità costituzionale del suddetto art. 3, comma 1, del d.l. n. 132 del 2014, convertito, «relativamente alla parte in cui - disponendo "Chi intende esercitare in giudizio un'azione relativa a una controversia in materia di risarcimento del danno da circolazione di veicoli e natanti deve, tramite il suo avvocato, invitare l'altra parte a stipulare una convenzione di negoziazione assistita" - sottopone la procedibilità dell — _Corte costituzionale, n. 162/2016_ (passaggio letto nel testo integrale della pronuncia)
+- 647588-01 («In tema di assicurazione obbligatoria della responsabilità civile derivante dalla circolazione dei veicoli a motore, a norma dell’art. 145 del d.lgs. n. 209 del 2005, non può essere proposta azione risarcitoria dal danneggiato che, in violazione dei principi di correttezza (art. — _Corte di Cassazione — civile, sez. 3, n. 32152/2024_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «sinistro_stradale»
@@ -53,10 +58,11 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Questioni interpretative.
 - Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «I termini per l'offerta e per la proponibilità decorrono dalla ricezione della richiesta, non ancora inviata.»
 - Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «La negoziazione assistita è obbligatoria per il danno da circolazione a prescindere dal valore.»
 - la regola «negoziazione_obbligatoria» richiede fatti concreti (ValueError)
+- Corte costituzionale, n. 137/2011: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
@@ -70,9 +76,16 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 7 c.p.c. (Competenza del giudice di pace) — testo vigente, aggiornamento archivio 05/03/2026, versione `478fa694a3a229b4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art7
 - art. 2054 c.c. (Circolazione di veicoli) — testo vigente, aggiornamento archivio n.d., versione `9bdfb41e3dc9636f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2054
+- Corte di Cassazione — civile, sez. 3, n. 28758/2026 (testo integrale) — versione `c4b82ee6e6157bad` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328758O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 26412/2026 (testo integrale) — versione `38b6979e36d4ae6b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026326412O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 21935/2026 (testo integrale) — versione `f05c2d6c87ffe234` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026321935O&rows=1&wt=json
+- Corte costituzionale, n. 266/2019 (testo integrale) — versione `cc1:e7fe122ef8b0` — https://www.cortecostituzionale.it/scheda-pronuncia/2019/266
+- Corte costituzionale, n. 162/2016 (testo integrale) — versione `cc1:92253397a247` — https://www.cortecostituzionale.it/scheda-pronuncia/2016/162
+- Corte di Cassazione — civile, sez. 3, n. 32152/2024 (testo integrale) — versione `401a626fad4febf2` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024332152O&rows=1&wt=json
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:codass:145
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cc:2947
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2054, norma:cc:2935, norma:cc:2943
+- r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|162/2016, pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|32152/2024

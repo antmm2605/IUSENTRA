@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from .istituti import DATI, Istituto
-from .trasversali import e_motivazione, voci_per
+from .trasversali import e_motivazione, pertinente, termini_istituto, voci_per
 
 PIPELINE = "schede-istituto/1"
 RADICE = Path(__file__).resolve().parents[2]
@@ -180,6 +180,17 @@ def _schede_harness() -> dict[str, Any]:
     from lex.harness.fattispecie.materie import SCHEDE
 
     return {s.regola: s for s in SCHEDE}
+
+
+@lru_cache(maxsize=1)
+def _istituti_della_regola() -> dict[str, int]:
+    from .istituti import carica
+
+    conteggi: dict[str, int] = {}
+    for i in carica()[1]:
+        for r in i.regole:
+            conteggi[r] = conteggi.get(r, 0) + 1
+    return conteggi
 
 
 @dataclass
@@ -360,6 +371,9 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
             lacune.append(f"{f['citazione']}: in biblioteca «{n.stato_biblioteca}»; verificare il comma applicabile.")
     abrogate = [dict(a) for a in ist.norme_abrogate]
 
+    # Termini dell'istituto: il nome e il significato delle sole regole proprie (una regola condivisa con altri istituti,
+    # come il decreto ingiuntivo nella scheda del TFR, non rende pertinente un passaggio sul suo tema).
+    termini, scartate = termini_istituto(ist.nome, tuple(r for r in ist.regole if r == ist.id or _istituti_della_regola().get(r, 0) == 1)), []
     # Orientamenti: solo pronunce con il passaggio letto che cita la norma; prima le norme della conclusione.
     for chiave in list(dict.fromkeys([f["chiave"] for v in sez["rimedi"] + sez["presupposti"] for f in v["fonti"]]
                                      + [f["chiave"] for f in riferimento])):
@@ -374,7 +388,11 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
                                "citazione": p["estremi"], "url": p.get("url", ""), "tipo_testo": p.get("tipo_testo", ""),
                                "data": p.get("data", ""), "versione": p.get("versione", ""), "norma": chiave}]}
             if p.get("tipo_testo") != "massima" and e_motivazione(p["passaggio"]):
-                # Passaggio della motivazione della Corte: questione interpretativa affrontata dalla pronuncia.
+                # Passaggio della motivazione della Corte: questione interpretativa affrontata dalla pronuncia, solo se
+                # nella stessa finestra ci sono la norma e un termine dell'istituto; altrimenti si scarta e si conta.
+                if not pertinente(p["passaggio"], p.get("citazione_norma") or "", termini):
+                    scartate.append(p["estremi"])
+                    continue
                 if len(sez["questioni"]) < 6:
                     voce["provenienza"] = f"motivazione di una pronuncia che applica {p.get('citazione_norma') or chiave}"
                     voce["etichetta"] = "Questione affrontata dalla pronuncia"
@@ -387,6 +405,9 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
         if len(sez["orientamenti"]) >= 6 and len(sez["questioni"]) >= 6:
             break
 
+    if scartate:
+        lacune.append(f"{len(scartate)} passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema "
+                      f"(nella stessa finestra mancano la norma o un termine dell'istituto): {', '.join(scartate[:6])}.")
     # Prove, oneri ed eccezioni dalle norme generali e speciali (lex/conoscenza/trasversali.py), ancorate al testo
     # vigente con il controllore di Lex: entrano solo negli istituti indicati per materia e rito.
     from lex.harness.controllo import _verifica_punto

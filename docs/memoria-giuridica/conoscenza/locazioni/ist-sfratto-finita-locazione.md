@@ -1,6 +1,6 @@
 # Licenza e sfratto per finita locazione
 
-- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 4 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di licenza (prima della scadenza) o di sfratto (dopo la scadenza) per finita locazione, con citazione per la convalida; Tribunale del luogo dell'immobile.
@@ -52,6 +52,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Questioni interpretative.
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 657 c.p.c. (Intimazione di licenza e di sfratto) — testo vigente, aggiornamento archivio 05/03/2026, versione `a4fa9dd73b8b85e2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art657
@@ -74,3 +75,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:l392:28
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:l392:29
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:665
+- r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

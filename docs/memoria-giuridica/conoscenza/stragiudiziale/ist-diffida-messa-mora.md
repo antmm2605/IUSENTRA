@@ -1,6 +1,6 @@
 # Diffida e messa in mora
 
-- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 3 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 5 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** lettera di diffida e messa in mora via PEC o raccomandata, con termine per adempiere.
@@ -75,3 +75,5 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|362/2000, pronuncia:Corte costituzionale|71/2025, pronuncia:Corte di Cassazione — civile|26722/2026
+- r4 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026
+- r5 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026

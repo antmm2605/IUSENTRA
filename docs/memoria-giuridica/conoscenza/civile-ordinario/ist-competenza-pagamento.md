@@ -1,7 +1,7 @@
 # Competenza per territorio nelle cause di pagamento
 
-- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:05
-- Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:21
+- Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale.
 
@@ -36,14 +36,19 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
-_Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme dell'istituto._
+- 6826).Per l’esito di reciproca soccombenza, vanno compensate le spese delgiudizio di legittimità. Ai sensi dell’art. 13, comma 1-quater, d.p.r. n. 115/2002, si dà atto dellasussistenza dei presupposti per il versamento, a opera della partericorrente principale e della parte ricorrente incidentale, dell’ulterioreimporto a titolo di contributo unificato pari a quello per il ricorso, a normadel comma 1-bis del citato art. — _Corte di Cassazione — civile, sez. 3, n. 29616/2026_ (passaggio letto nel testo integrale della pronuncia)
+- minate, dev’essere pronunciato il rigetto del ricorso;le spese seguono la soccombenza e si liquidano come dadispositivo;si dà atto della sussistenza dei presupposti processuali per ilversamento, da parte del ricorrente, dell’ulteriore importo a titolo dicontributo unificato pari a quello, ove dovuto, per il ricorso, a normadel comma 1-quater, dell’art. 13 del d.p.r. n. 115/2002. — _Corte di Cassazione — civile, sez. 3, n. 29671/2026_ (passaggio letto nel testo integrale della pronuncia)
+- nate, dev’essere pronunciato il rigetto del ricorso;le spese seguono la soccombenza e si liquidano come dadispositivo;si dà atto della sussistenza dei presupposti processuali per ilversamento, da parte della ricorrente, dell’ulteriore importo a titolo dicontributo unificato pari a quello, ove dovuto, per il ricorso, a normadel comma 1-quater, dell’art. 13 del d.p.r. n. 115/2002. — _Corte di Cassazione — civile, sez. 3, n. 29672/2026_ (passaggio letto nel testo integrale della pronuncia)
+- da Equitalia Giustizia spa, importo dovuto a titolo di contributo unificato e di "raddoppio" dello stesso, ai sensi dell'art. 13, comma 1-quater, del d.P.R. n. 115 del 2002, in seguito al rigetto del ricorso per cassazione in una causa di lavoro intercorsa tra C.P. — _Corte costituzionale, n. 104/2020_ (passaggio letto nel testo integrale della pronuncia)
+- L'art. 13, comma l, del d.P.R. n. 115 del 2002 ha introdotto un nuovo regime di tassazione degli atti giudiziari, costituito da un «contributo unificato» fissato secondo i due criteri, alternativi o concorrenti, della materia e della proporzione al valore della controversia, che sostituisce il sistema previgente basato sul pagamento di una marca da bollo da versare anticipatamente al momento d — _Corte costituzionale, n. 78/2016_ (passaggio letto nel testo integrale della pronuncia)
+- incaricato delle attività connesse alla riscossione del contributo unificato per i ricorsi presentati avanti il medesimo Tribunale - aveva emesso l'avviso di pagamento e contestuale irrogazione di sanzioni, nel quale veniva richiesto alla società ricorrente il pagamento del contributo unificato dovuto, nella misura di euro 2.000,00 ( ai sensi dell'art. 13, comma 6-bis, del d.P.R. n. 115 del 2002, come modificato dall'art. — _Corte costituzionale, n. 164/2010_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «competenza_pagamento»
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Termini, Documenti e dati da verificare, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
+- Sezioni senza fonte: Termini, Documenti e dati da verificare, Questioni interpretative.
 
 ## Fonti con versione
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
@@ -58,8 +63,15 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - art. 18 c.p.c. (Foro generale delle persone fisiche) — testo vigente, aggiornamento archivio 05/03/2026, versione `edfe283095fec60d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art18
 - art. 20 c.p.c. (Foro facoltativo per le cause relative a diritti di obbligazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `a85515452e1b2416` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art20
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- Corte di Cassazione — civile, sez. 3, n. 29616/2026 (testo integrale) — versione `8a588945a9d7de5f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329616O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29671/2026 (testo integrale) — versione `01032293a8927ff5` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329671O&rows=1&wt=json
+- Corte di Cassazione — civile, sez. 3, n. 29672/2026 (testo integrale) — versione `78ea4ddd30a67567` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329672O&rows=1&wt=json
+- Corte costituzionale, n. 104/2020 (testo integrale) — versione `cc1:eeff0128c89b` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/104
+- Corte costituzionale, n. 78/2016 (testo integrale) — versione `cc1:a9652968f06e` — https://www.cortecostituzionale.it/scheda-pronuncia/2016/78
+- Corte costituzionale, n. 164/2010 (testo integrale) — versione `cc1:a1f55f181f5d` — https://www.cortecostituzionale.it/scheda-pronuncia/2010/164
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:167, norma:cpc:38
+- r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026

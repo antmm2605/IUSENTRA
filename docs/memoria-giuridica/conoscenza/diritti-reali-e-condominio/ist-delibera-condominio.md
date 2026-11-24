@@ -1,6 +1,6 @@
 # Impugnazione della delibera condominiale (art. 1137)
 
-- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 3 · ultimo controllo 24/11/2026 04:05
+- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 4 · ultimo controllo 24/11/2026 04:21
 - Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1137 c.c., art. 71-quater disp. att. c.c., art. 5 d.lgs. 28/2010.
@@ -45,6 +45,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Giudice e rito, Documenti e dati da verificare, Questioni interpretative.
 - Questione della regola impugnazione_delibera non riportata (senza norma citata): «La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: depositala entro i trenta giorni.»
+- Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
 - art. 1137 c.c. (Impugnazione delle deliberazioni dell'assemblea) — testo vigente, aggiornamento archivio 29/04/2026, versione `b55891c7a8b508f2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1137
@@ -64,3 +65,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:dispattcc:71quater
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:167, norma:cpc:38
+- r4 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti

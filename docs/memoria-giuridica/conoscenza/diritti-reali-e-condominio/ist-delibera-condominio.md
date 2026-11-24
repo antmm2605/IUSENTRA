@@ -1,6 +1,6 @@
 # Impugnazione della delibera condominiale (art. 1137)
 
-- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1137 c.c., art. 71-quater disp. att. c.c., art. 5 d.lgs. 28/2010.

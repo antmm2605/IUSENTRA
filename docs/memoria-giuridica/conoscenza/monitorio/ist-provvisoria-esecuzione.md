@@ -1,6 +1,6 @@
 # Provvisoria esecuzione del decreto (artt. 642 e 648)
 
-- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 8 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-provvisoria-esecuzione` · materia: monitorio · revisione 9 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a decreto ingiuntivo (artt. 641 e 645 c.p.c.).
@@ -63,7 +63,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
-- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 78/2012.
+- 2 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 78/2012, Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 642 c.p.c. (Esecuzione provvisoria) — testo vigente, aggiornamento archivio 05/03/2026, versione `736050f30d4d71ef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art642
@@ -94,3 +94,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r6 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r7 · 24/11/2026 04:21 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

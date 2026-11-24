@@ -1,6 +1,6 @@
 # Foro del consumatore e competenza
 
-- ID: `ist-foro-consumatore` · materia: consumatori · revisione 5 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-foro-consumatore` · materia: consumatori · revisione 6 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** eccezione di incompetenza per territorio se la causa è proposta fuori dal foro del consumatore; Giudice di pace.
@@ -53,6 +53,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 33 d.lgs. 206/2005 (codice del consumo) (Clausole vessatorie nel contratto tra professionista e consumatore) — testo vigente, aggiornamento archivio n.d., versione `e874a59c9d01b386` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art33
@@ -79,3 +80,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
 - r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

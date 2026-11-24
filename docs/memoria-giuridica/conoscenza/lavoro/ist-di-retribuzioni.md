@@ -1,6 +1,6 @@
 # Decreto ingiuntivo per retribuzioni
 
-- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 11 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 12 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al tribunale in funzione di giudice del lavoro, con le buste paga; Tribunale in funzione di giudice del lavoro.
@@ -81,6 +81,7 @@
 
 ## Limiti e lacune dichiarate
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 633 c.p.c. (Condizioni di ammissibilità) — testo vigente, aggiornamento archivio 05/03/2026, versione `650f7095d9bfba54` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art633
@@ -131,3 +132,4 @@
 - r9 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r10 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r11 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r12 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

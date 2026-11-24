@@ -1,6 +1,6 @@
 # Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
 
-- ID: `ist-sinistro-stradale` · materia: responsabilità civile · revisione 7 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-sinistro-stradale` · materia: responsabilità civile · revisione 8 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione (diretto o del responsabile), poi negoziazione assistita e causa; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
@@ -56,9 +56,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - 647588-01 («In tema di assicurazione obbligatoria della responsabilità civile derivante dalla circolazione dei veicoli a motore, a norma dell’art. 145 del d.lgs. n. 209 del 2005, non può essere proposta azione risarcitoria dal danneggiato che, in violazione dei principi di correttezza (art. — _Corte di Cassazione — civile, sez. 3, n. 32152/2024_ (passaggio letto nel testo integrale della pronuncia)
 - e all'art. 148 del d.lgs. n. 209 del 2005, e il vizio di motivazione, «con riferimento alla valutazione della missiva redatta dalla compagnia assicurativa in data 10.12.2018», asseritamente travisata, è manifestamente infondato, attesa la correttezza della tesi della Corte d'appello secondo cui, anche ad ammettere che la compagnia assicurativa, con la missiva del 10/12/2018, avesse attiva — _Corte di Cassazione — penale, sez. 7, n. 25009/2026_ (passaggio letto nel testo integrale della pronuncia)
 - ichiarata inammissibile o, in subordine, infondata; che l'inammissibilità deriverebbe dal difetto di rilevanza della questione sollevata, dal momento che la parte attrice ha chiesto il risarcimento del danno alla persona quale terzo trasportato, con la conseguenza che la procedura di risarcimento applicabile alla fattispecie è quella definita dall'art. 148 del d.lgs. n. 209 del 2005, secondo quanto espressamente previsto all'art. — _Corte costituzionale, n. 157/2011_ (passaggio letto nel testo integrale della pronuncia)
-- 31227 del 2019).Ancor prima, peraltro, va rilevato che l’eccezione non risulta neppuretempestivamente proposta entro la prima udienza di trattazione delgiudizio di primo grado, come richiesto dall’art. 3 d.l. n. 132/2014 (cfr.Cass. — _Corte di Cassazione — civile, sez. 3, n. 28758/2026_ (passaggio letto nel testo integrale della pronuncia)
 - 132/14, dell’art. 3, co. 1, del d.l. n.132/2014, nonché del principio di cui agli artt. — _Corte di Cassazione — civile, sez. 3, n. 26412/2026_ (passaggio letto nel testo integrale della pronuncia)
 - Il diritto alla restituzione, infatti, sorge solocome conseguenza della sentenza costitutiva che accoglie la domanda direvoca.L’art. 3 D.L. n. 132/2014, nello stabilire l'obbligo per le domande dipagamento, stabilisce che tale obbligo vale «fuori dei casi previsti [...]dall’art. — _Corte di Cassazione — civile, sez. 3, n. 21935/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 162, e, in subordine, in riferimento agli artt. 3 e 24 Cost., del comma 5 del medesimo art. 3 del d.l. n. 132 del 2014. — _Corte costituzionale, n. 266/2019_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «sinistro_stradale»
@@ -71,6 +71,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «I termini per l'offerta e per la proponibilità decorrono dalla ricezione della richiesta, non ancora inviata.»
 - Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «La negoziazione assistita è obbligatoria per il danno da circolazione a prescindere dal valore.»
 - Corte costituzionale, n. 137/2011: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 145 d.lgs. 209/2005 (cod. ass.) (Proponibilita' dell'azione di risarcimento) — testo vigente, aggiornamento archivio n.d., versione `79544ff93520863d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-07;209~art145
@@ -100,9 +101,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Corte di Cassazione — civile, sez. 3, n. 32152/2024 (testo integrale) — versione `401a626fad4febf2` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024332152O&rows=1&wt=json
 - Corte di Cassazione — penale, sez. 7, n. 25009/2026 (testo integrale) — versione `325e45be3717825a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnpen2026725009O&rows=1&wt=json
 - Corte costituzionale, n. 157/2011 (testo integrale) — versione `cc1:48e06a1984f8` — https://www.cortecostituzionale.it/scheda-pronuncia/2011/157
-- Corte di Cassazione — civile, sez. 3, n. 28758/2026 (testo integrale) — versione `c4b82ee6e6157bad` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328758O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 26412/2026 (testo integrale) — versione `38b6979e36d4ae6b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026326412O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 21935/2026 (testo integrale) — versione `f05c2d6c87ffe234` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026321935O&rows=1&wt=json
+- Corte costituzionale, n. 266/2019 (testo integrale) — versione `cc1:e7fe122ef8b0` — https://www.cortecostituzionale.it/scheda-pronuncia/2019/266
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
@@ -112,3 +113,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|157/2011, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|32152/2024, pronuncia:Corte di Cassazione — penale|25009/2026
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|28758/2026

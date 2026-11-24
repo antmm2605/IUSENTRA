@@ -30,7 +30,9 @@ os.environ.setdefault("LEX_HARNESS_ARCHIVIO_VIVO", "0")
 
 VIGENZA = "20221017"
 RIFORMA = re.compile(r"D\.\s?Lgs\.\s*10 ottobre 2022,\s*n\.\s*149", re.I)
-NOTA = re.compile(r"AGGIORNAMENTO \(\d+\)\s*Il D\.\s?Lgs\.\s*10 ottobre 2022,\s*n\.\s*149[^-]{0,900}", re.I)
+# La nota intera: fino al separatore di Normattiva («-----») o alla nota successiva.
+NOTA = re.compile(r"AGGIORNAMENTO \(\d+\)\s*Il D\.\s?Lgs\.\s*10 ottobre 2022,\s*n\.\s*149.*?(?=-{3,}|AGGIORNAMENTO \(|$)",
+                  re.I | re.S)
 USCITA = RADICE / "lex" / "conoscenza" / "dati" / "testi_anteriori.json"
 
 
@@ -99,6 +101,7 @@ def acquisisci(norme: dict[str, dict]) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--elenco", action="store_true")
+    ap.add_argument("--solo-note", action="store_true", help="aggiorna solo le note di decorrenza, senza scaricare")
     a = ap.parse_args()
     norme = norme_toccate()
     per = defaultdict(list)
@@ -108,6 +111,14 @@ def main() -> int:
     for atto, v in per.items():
         print(f"  {atto}: {len(v)} — {', '.join(v)}")
     if a.elenco:
+        return 0
+    if a.solo_note:
+        dati = json.loads(USCITA.read_text(encoding="utf-8"))
+        for k, v in dati["norme"].items():
+            if k in norme:
+                v["decorrenza_letta"] = norme[k]["decorrenza_letta"]
+        USCITA.write_text(json.dumps(dati, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        print("note aggiornate")
         return 0
     dati = acquisisci(norme)
     USCITA.write_text(json.dumps(dati, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

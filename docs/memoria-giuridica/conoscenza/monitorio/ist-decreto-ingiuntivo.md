@@ -1,6 +1,6 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 9 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 10 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al giudice competente per valore.
@@ -60,6 +60,7 @@
 
 ## Limiti e lacune dichiarate
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 633 c.p.c. (Condizioni di ammissibilità) — testo vigente, aggiornamento archivio 05/03/2026, versione `650f7095d9bfba54` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art633
@@ -96,3 +97,4 @@
 - r7 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2934, norma:cc:2938, norma:cpc:112
 - r9 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r10 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

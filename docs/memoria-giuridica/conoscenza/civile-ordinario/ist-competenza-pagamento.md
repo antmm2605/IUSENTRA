@@ -1,6 +1,6 @@
 # Competenza per territorio nelle cause di pagamento
 
-- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 6 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 7 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale.
@@ -52,6 +52,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Documenti e dati da verificare, Questioni interpretative.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
@@ -87,3 +88,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

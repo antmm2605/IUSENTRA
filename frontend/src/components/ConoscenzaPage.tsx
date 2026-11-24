@@ -12,6 +12,15 @@ import './ConoscenzaPage.css'
 
 const base = '/api/v1/ui/conoscenza'
 
+function contestoDallIndirizzo(): string {
+  try {
+    const q = new URLSearchParams(window.location.search)
+    const out = new URLSearchParams()
+    for (const k of ['fascicolo', 'data_instaurazione']) { const v = q.get(k); if (v) out.set(k, v) }
+    return out.toString()
+  } catch { return '' }
+}
+
 function schedaDallIndirizzo(): string {
   try { return new URLSearchParams(window.location.search).get('scheda') || '' } catch { return '' }
 }
@@ -39,6 +48,7 @@ export function ConoscenzaPage() {
   const [q, setQ] = useState('')
   const [risultati, setRisultati] = useState<VoceIndice[] | null>(null)
   const [scheda, setScheda] = useState(schedaDallIndirizzo())
+  const [contesto] = useState(contestoDallIndirizzo())
   const [vista, setVista] = useState<'schede' | 'registro'>('schede')
   const [eventi, setEventi] = useState<Evento[]>([])
   const [operazione, setOperazione] = useState('')
@@ -66,7 +76,7 @@ export function ConoscenzaPage() {
 
   function apri(id: string) {
     setScheda(id)
-    try { window.history.replaceState({}, '', `${window.location.pathname}?scheda=${encodeURIComponent(id)}`) } catch { /* indirizzo non aggiornabile */ }
+    try { window.history.replaceState({}, '', `${window.location.pathname}?scheda=${encodeURIComponent(id)}${contesto ? `&${contesto}` : ''}`) } catch { /* indirizzo non aggiornabile */ }
   }
   function chiudi() {
     setScheda('')
@@ -120,7 +130,7 @@ export function ConoscenzaPage() {
             {!busy && !elenco.length ? <p>Nessuna scheda in questo elenco.</p> : null}
             <ul>{elenco.map(v => <VoceCatalogo key={v.id} v={v} onApri={apri} />)}</ul>
           </section>
-          {scheda ? <ConoscenzaScheda schedaId={scheda} puoAnnotare={!!catalogo?.puo_annotare} onClose={chiudi} /> : null}
+          {scheda ? <ConoscenzaScheda schedaId={scheda} puoAnnotare={!!catalogo?.puo_annotare} onClose={chiudi} contesto={contesto} /> : null}
         </div>
       </>}
     </div>

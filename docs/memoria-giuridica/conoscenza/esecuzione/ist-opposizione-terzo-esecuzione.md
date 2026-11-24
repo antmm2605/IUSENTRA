@@ -1,6 +1,6 @@
 # Opposizione di terzo all'esecuzione (art. 619)
 
-- ID: `ist-opposizione-terzo-esecuzione` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-opposizione-terzo-esecuzione` · materia: esecuzione · revisione 2 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso di opposizione di terzo al giudice dell'esecuzione prima della vendita o dell'assegnazione.

@@ -1,6 +1,6 @@
 # Mantenimento dei figli e del coniuge
 
-- ID: `ist-mantenimento` · materia: famiglia e minori · revisione 6 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-mantenimento` · materia: famiglia e minori · revisione 7 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di determinazione del contributo; per l'inadempimento, ordine di pagamento diretto al terzo e titolo esecutivo; Tribunale.
@@ -61,6 +61,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Termini, Prove e oneri, Questioni interpretative.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 1009/1988.
 
 ## Fonti con versione
 - art. 337-ter c.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `1380e26aab2dfcb7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art337ter!vig=2022-10-17
@@ -97,3 +98,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|71/2024, pronuncia:Corte costituzionale|79/2022
 - r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

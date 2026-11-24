@@ -9,5 +9,7 @@ d'atto e dei calcolatori. Ogni voce porta la provenienza e passa dal controllore
 - ``generatore``: costruzione della scheda da un istituto;
 - ``deposito``: record versionati con dipendenze, registro degli eventi append-only, viste ``index.md`` e ``log.md``;
 - ``consultazione``: elenco, ricerca testuale senza embeddings, stato attuale (riconvalida), scheda per regola di Lex;
-- ``annotazioni``: note dell'avvocato nel SQL dello studio, legate all'ID stabile della scheda.
+- ``annotazioni``: note dell'avvocato nel SQL dello studio, legate all'ID stabile della scheda;
+- ``applicabile``: ``testo_applicabile(chiave, data_instaurazione)`` (testo vigente o anteriore al d.lgs. 149/2022
+  secondo la decorrenza letta nella nota Normattiva; l'harness di Lex la può chiamare) e ``data_instaurazione(fatti)``.
 """

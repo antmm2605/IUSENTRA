@@ -1,6 +1,6 @@
 # Restituzione del deposito cauzionale e cause di locazione
 
-- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-deposito-cauzionale` · materia: locazioni · revisione 7 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1590 c.c., art. 11 l. 392/1978, art. 447-bis c.p.c..
@@ -50,6 +50,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Documenti e dati da verificare, Questioni interpretative.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 1590 c.c. (art. 1590 c.c.) — testo vigente, aggiornamento archivio n.d., versione `29b0130a75f2adb5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1590
@@ -80,3 +81,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026, pronuncia:Corte costituzionale|135/2016, pronuncia:Corte costituzionale|45/2018, pronuncia:Corte di Cassazione — civile|27991/2026, pronuncia:Corte di Cassazione — civ
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

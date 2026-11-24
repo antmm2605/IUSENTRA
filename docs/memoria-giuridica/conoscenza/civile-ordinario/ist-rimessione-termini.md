@@ -1,6 +1,6 @@
 # Rimessione in termini (art. 153 c.p.c.)
 
-- ID: `ist-rimessione-termini` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-rimessione-termini` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di rimessione in termini al giudice, con la prova della causa non imputabile, appena cessato l'impedimento.

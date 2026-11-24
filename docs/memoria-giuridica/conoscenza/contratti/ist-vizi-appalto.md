@@ -1,6 +1,6 @@
 # Vizi e difformità nell'appalto
 
-- ID: `ist-vizi-appalto` · materia: contratti · revisione 5 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-vizi-appalto` · materia: contratti · revisione 6 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di garanzia per vizi dell'appalto (artt. 1667-1668 c.c.): diffida interruttiva della prescrizione, accertamento tecnico preventivo e poi giudizio di merito per l'eliminazione dei vizi o la riduzione del prezzo.
@@ -53,6 +53,7 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Giudice e rito.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 1667 c.c. (Difformità e vizi dell'opera) — testo vigente, aggiornamento archivio 29/04/2026, versione `f4267ba8c75bbdca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1667
@@ -85,3 +86,4 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1460, norma:cpc:167, norma:cpc:38, pronuncia:Corte di Cassazione — civile|25702/2026, pronuncia:Corte di Cassazione — civile|26951/2026
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

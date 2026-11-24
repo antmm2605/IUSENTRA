@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from .istituti import DATI, Istituto
-from .trasversali import e_motivazione, pertinente, termini_istituto, voci_per
+from .trasversali import e_motivazione, pertinente, questioni_per, termini_istituto, voci_per
 
 PIPELINE = "schede-istituto/1"
 RADICE = Path(__file__).resolve().parents[2]
@@ -438,6 +438,25 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
                                                      f"dell'istituto (voce «{v.id}»)"), sez)
         if v.lacuna:
             lacune.append(v.lacuna)
+
+    # Questioni mirate su una norma (es. giudicato implicito sulla giurisdizione, art. 37 c.p.c.): passaggi letti che
+    # contengono il tema e la motivazione della Corte; nessuna prevalenza automatica.
+    for q in questioni_per(ist.id):
+        trovate = 0
+        for p in pronunce_per_norma(q.norma):
+            if not p.get("passaggio") or not re.search(q.tema, p["passaggio"], re.I) or not e_motivazione(p["passaggio"]):
+                continue
+            voce = {"testo": p["passaggio"], "etichetta": q.titolo,
+                    "provenienza": f"motivazione di una pronuncia sull'{p.get('citazione_norma') or q.norma}",
+                    "verifica": "passaggio letto nel testo integrale della pronuncia",
+                    "orientamento": "non classificato (lo valuta l'avvocato; nessuna prevalenza automatica)",
+                    "fonti": [{"tipo": "pronuncia", "chiave": f"{p['organo']}|{p['numero']}/{p['anno']}",
+                               "citazione": p["estremi"], "url": p.get("url", ""), "tipo_testo": p.get("tipo_testo", ""),
+                               "data": p.get("data", ""), "versione": p.get("versione", ""), "norma": q.norma}]}
+            _aggiungi(sez["questioni"], voce)
+            trovate += 1
+        if not trovate:
+            lacune.append(f"Nessuna pronuncia letta con la motivazione su: {q.titolo}.")
 
     motivi = {
         "presupposti": "nessuna regola con inquadramento ancorato al testo vigente",

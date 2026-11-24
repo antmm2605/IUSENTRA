@@ -5138,3 +5138,286 @@ rinominate: 0
 invariate: 77
 ritirate: 0
 schede: 155
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Atto di citazione (rito ordinario di cognizione)
+event_id: 990a7e6180372590f5a4
+scheda: ist-citazione
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|28758/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|28758/2026
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Atto di appello civile
+event_id: a118665404a4947d5a6d
+scheda: ist-appello-civile
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Ricorso per cassazione civile
+event_id: f564d5188a797f025152
+scheda: ist-cassazione-civile
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Revocazione della sentenza
+event_id: f83ffcf8c6131333de58
+scheda: ist-revocazione
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Opposizione di terzo
+event_id: 6641645523870ab8e528
+scheda: ist-opposizione-terzo
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Ricorso per decreto ingiuntivo
+event_id: c5ad067ad17a2913eab5
+scheda: ist-decreto-ingiuntivo
+status: completato
+revision: 9 -> 10
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Provvisoria esecuzione del decreto (artt. 642 e 648)
+event_id: 4149d9a791e2eb627b77
+scheda: ist-provvisoria-esecuzione
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Opposizione a decreto ingiuntivo
+event_id: 7182f9162def4ba00c66
+scheda: ist-opposizione-di
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Atto di precetto
+event_id: b9f6500c96843e0a0e85
+scheda: ist-precetto
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Pignoramento presso terzi
+event_id: 1c3e838b0b80082b8a23
+scheda: ist-pignoramento-terzi
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Opposizione all'esecuzione (art. 615)
+event_id: 1963fb2cd3cdde1497b8
+scheda: ist-opposizione-esecuzione
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Opposizione agli atti esecutivi (art. 617)
+event_id: ee006f92639decd5387a
+scheda: ist-opposizione-atti-esecutivi
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Separazione personale (giudiziale e consensuale)
+event_id: 42c4f24bbabe7dd95e8e
+scheda: ist-separazione
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|32211/2025
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|32211/2025
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Divorzio (scioglimento e cessazione degli effetti civili)
+event_id: 797988b88ea1b0145711
+scheda: ist-divorzio
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|32587/2025
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|32587/2025
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Mantenimento dei figli e del coniuge
+event_id: 3a895fe590ff845097d2
+scheda: ist-mantenimento
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Disconoscimento di paternità
+event_id: cc14363d2cd51ca8086c
+scheda: ist-disconoscimento
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Diffida ad adempiere (art. 1454)
+event_id: 6d9d5ab9c2b464f2e74c
+scheda: ist-diffida-1454
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Vizi e difformità nell'appalto
+event_id: f36f768dcdd83f3e807d
+scheda: ist-vizi-appalto
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
+event_id: 2678ca3a64663cb440b5
+scheda: ist-sinistro-stradale
+status: completato
+revision: 7 -> 8
+motivo: fonti cambiate: pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|28758/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|266/2019
+fonti_tolte: pronuncia:Corte di Cassazione — civile|28758/2026
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Negoziazione assistita per sinistri stradali
+event_id: 22482a76d72b657b8699
+scheda: ist-negoziazione-sinistri
+status: completato
+revision: 7 -> 8
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — penale|25009/2026, pronuncia:Corte di Cassazione — civile|28758/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — penale|25009/2026
+fonti_tolte: pronuncia:Corte di Cassazione — civile|28758/2026
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: b624383f80996a4f799b
+scheda: ist-tfr
+status: completato
+revision: 12 -> 13
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Decreto ingiuntivo per retribuzioni
+event_id: a53070a20dc386366a5e
+scheda: ist-di-retribuzioni
+status: completato
+revision: 11 -> 12
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Appello nel rito del lavoro (art. 434)
+event_id: 9c811bcd87c5e8422a6f
+scheda: ist-appello-lavoro
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
+event_id: b1e20fa73f58e619cef8
+scheda: ist-ricorso-dipendente-pubblico
+status: completato
+revision: 10 -> 11
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|10418/2026, pronuncia:Corte di Cassazione — civile|13227/2026, pronuncia:Corte di Cassazione — civile|16640/2022, pronuncia:Corte di Cassazione — civile|18718/2024, pronuncia:Corte di Cassazione — civile|21012/2026, pronuncia:Corte di Cassazione — civile|22195/2026, pronuncia:Corte di Cassazione — civile|33240/2025, pronuncia:Corte di Cassazione — civile|3384
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|10418/2026, pronuncia:Corte di Cassazione — civile|13227/2026, pronuncia:Corte di Cassazione — civile|16640/2022, pronuncia:Corte di Cassazione — civile|18718/2024, pronuncia:Corte di Cassazione — civile|21012/2026, pronuncia:Corte di Cassazione — civile|22195/2026, pronuncia:Corte di Cassazione — civile|33240/2025, pronuncia:Corte di Cassazione — civile|33846/2021, pronuncia:Corte di Cassazione — civile|36734/2022, pronuncia:Corte di Cassazione — civile|38737/2021
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Carta del docente per i supplenti
+event_id: b9ddca745ca18299ebfe
+scheda: ist-carta-docente
+status: completato
+revision: 8 -> 9
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|10418/2026, pronuncia:Corte di Cassazione — civile|13227/2026, pronuncia:Corte di Cassazione — civile|16640/2022, pronuncia:Corte di Cassazione — civile|18718/2024, pronuncia:Corte di Cassazione — civile|21012/2026, pronuncia:Corte di Cassazione — civile|22195/2026, pronuncia:Corte di Cassazione — civile|33240/2025, pronuncia:Corte di Cassazione — civile|3384
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|10418/2026, pronuncia:Corte di Cassazione — civile|13227/2026, pronuncia:Corte di Cassazione — civile|16640/2022, pronuncia:Corte di Cassazione — civile|18718/2024, pronuncia:Corte di Cassazione — civile|21012/2026, pronuncia:Corte di Cassazione — civile|22195/2026, pronuncia:Corte di Cassazione — civile|33240/2025, pronuncia:Corte di Cassazione — civile|33846/2021, pronuncia:Corte di Cassazione — civile|36734/2022, pronuncia:Corte di Cassazione — civile|38737/2021
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
+event_id: 4944ff646b26a91e6270
+scheda: ist-abuso-termine-pa
+status: completato
+revision: 9 -> 10
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|10418/2026, pronuncia:Corte di Cassazione — civile|13227/2026, pronuncia:Corte di Cassazione — civile|16640/2022, pronuncia:Corte di Cassazione — civile|18718/2024, pronuncia:Corte di Cassazione — civile|21012/2026, pronuncia:Corte di Cassazione — civile|22195/2026, pronuncia:Corte di Cassazione — civile|33240/2025, pronuncia:Corte di Cassazione — civile|3384
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|10418/2026, pronuncia:Corte di Cassazione — civile|13227/2026, pronuncia:Corte di Cassazione — civile|16640/2022, pronuncia:Corte di Cassazione — civile|18718/2024, pronuncia:Corte di Cassazione — civile|21012/2026, pronuncia:Corte di Cassazione — civile|22195/2026, pronuncia:Corte di Cassazione — civile|33240/2025, pronuncia:Corte di Cassazione — civile|33846/2021, pronuncia:Corte di Cassazione — civile|36734/2022, pronuncia:Corte di Cassazione — civile|38737/2021
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Intimazione di sfratto per morosità e citazione per la convalida
+event_id: 7e0e184fa30795d24713
+scheda: ist-sfratto-morosita
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Esecuzione per rilascio dell'immobile
+event_id: 6616f37995f12c90cd08
+scheda: ist-rilascio
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Restituzione del deposito cauzionale e cause di locazione
+event_id: 8a1861efb22361de557e
+scheda: ist-deposito-cauzionale
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Garanzia legale di conformità
+event_id: c5b99f4d0006ab53062f
+scheda: ist-garanzia-conformita
+status: completato
+revision: 7 -> 8
+motivo: fonti cambiate: pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|28758/2026
+fonti_aggiunte: pronuncia:Corte costituzionale|266/2019
+fonti_tolte: pronuncia:Corte di Cassazione — civile|28758/2026
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Foro del consumatore e competenza
+event_id: cbd7b035f48626d47b45
+scheda: ist-foro-consumatore
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Ricorso straordinario al Capo dello Stato
+event_id: 3c20a8b634504c40193a
+scheda: ist-ricorso-straordinario
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Diffida e messa in mora
+event_id: 493fb3e57de768c184ad
+scheda: ist-diffida-messa-mora
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Negoziazione assistita (d.l. 132/2014)
+event_id: f33ea4d77f8663992522
+scheda: ist-negoziazione-assistita
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: pronuncia:Corte di Cassazione — civile|2345/2026, pronuncia:Corte di Cassazione — civile|28758/2026
+fonti_aggiunte: pronuncia:Corte di Cassazione — civile|2345/2026
+fonti_tolte: pronuncia:Corte di Cassazione — civile|28758/2026
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Condizioni di procedibilità nelle cause di locazione
+event_id: 04a41e88d875c15f6850
+scheda: ist-procedibilita-locazione
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Sequestro ante causam: efficacia e inizio del giudizio di merito
+event_id: 4e28715dc52528faf24b
+scheda: ist-sequestro-ante-causam
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] aggiornamento | Competenza per territorio nelle cause di pagamento
+event_id: a6a8d32597c65eae8093
+scheda: ist-competenza-pagamento
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:46:36+01:00] controllo | passaggio di controllo
+event_id: 3174119982525c834746
+status: completato
+generate: 0
+aggiornate: 37
+rinominate: 0
+invariate: 118
+ritirate: 0
+schede: 155

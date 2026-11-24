@@ -1,6 +1,6 @@
 # TFR (trattamento di fine rapporto)
 
-- ID: `ist-tfr` · materia: lavoro · revisione 12 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-tfr` · materia: lavoro · revisione 13 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 35 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida, poi decreto ingiuntivo o ricorso al giudice del lavoro; con datore insolvente domanda al Fondo di garanzia INPS; Tribunale in funzione di giudice del lavoro.
@@ -77,7 +77,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Questioni interpretative.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
-- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 78/2012.
+- 2 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 78/2012, Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 2120 c.c. (Disciplina del trattamento di fine rapporto) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f1c918000c14f0b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2120
@@ -130,3 +130,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r10 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
 - r11 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r12 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r13 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

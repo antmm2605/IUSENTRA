@@ -1,6 +1,6 @@
 # Diffida ad adempiere (art. 1454)
 
-- ID: `ist-diffida-1454` · materia: contratti · revisione 5 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-diffida-1454` · materia: contratti · revisione 6 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida ad adempiere per iscritto con termine non inferiore a quindici giorni e dichiarazione che, decorso inutilmente, il contratto si intenderà risolto.
@@ -46,7 +46,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
-- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 1, n. 27716/2026.
+- 2 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 1, n. 27716/2026, Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 1454 c.c. (Diffida ad adempiere) — testo vigente, aggiornamento archivio 29/04/2026, versione `b3a45ab979a4e6d7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1454
@@ -67,3 +67,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|427/1993, pronuncia:Corte costituzionale|8/1975, pronuncia:Corte di Cassazione — civile|26176/2026
 - r4 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026
 - r5 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

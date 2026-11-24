@@ -1,6 +1,6 @@
 # Opposizione alla richiesta di archiviazione
 
-- ID: `ist-opposizione-archiviazione` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-opposizione-archiviazione` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione motivata al GIP con indicazione delle investigazioni suppletive e dei relativi elementi di prova.

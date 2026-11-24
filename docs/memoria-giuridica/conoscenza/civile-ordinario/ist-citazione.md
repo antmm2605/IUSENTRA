@@ -1,7 +1,7 @@
 # Atto di citazione (rito ordinario di cognizione)
 
-- ID: `ist-citazione` · materia: civile ordinario · revisione 6 · ultimo controllo 24/11/2026 04:34
-- Stato: lacune · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-citazione` · materia: civile ordinario · revisione 7 · ultimo controllo 24/11/2026 04:46
+- Stato: lacune · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione a udienza fissa notificato al convenuto, con iscrizione a ruolo.
 
@@ -37,7 +37,7 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - luogo di residenza o sede del convenuto (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-_Sezione mancante: nessuna questione interpretativa con norma citata verificata._
+- 31227 del 2019).Ancor prima, peraltro, va rilevato che l’eccezione non risulta neppuretempestivamente proposta entro la prima udienza di trattazione delgiudizio di primo grado, come richiesto dall’art. 3 d.l. n. 132/2014 (cfr.Cass. — _Corte di Cassazione — civile, sez. 3, n. 28758/2026_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - Il primo motivo del ricorso principale ed il primo motivo di quelloincidentale denunciano «Violazione e falsa applicazione dell'art. 163 c.p.c.,dell'art. — _Corte di Cassazione — civile, sez. 3, n. 29666/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -51,7 +51,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «civ_citazione»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative.
+- Sezioni senza fonte: Termini, Giudice e rito.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
@@ -74,6 +74,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
 - art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
 - art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
+- Corte di Cassazione — civile, sez. 3, n. 28758/2026 (testo integrale) — versione `c4b82ee6e6157bad` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328758O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29666/2026 (testo integrale) — versione `534fa2494048fa83` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329666O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 28134/2026 (testo integrale) — versione `7b876f209a3c6f99` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026228134S&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 27736/2026 (testo integrale) — versione `e0fc469294e3d5e0` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026327736O&rows=1&wt=json
@@ -88,3 +89,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte di Cassazione — civile|28758/2026

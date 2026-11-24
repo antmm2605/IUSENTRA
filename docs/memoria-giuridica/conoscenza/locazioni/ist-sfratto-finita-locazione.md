@@ -1,6 +1,6 @@
 # Licenza e sfratto per finita locazione
 
-- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 7 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 7 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di licenza (prima della scadenza) o di sfratto (dopo la scadenza) per finita locazione, con citazione per la convalida; Tribunale del luogo dell'immobile.

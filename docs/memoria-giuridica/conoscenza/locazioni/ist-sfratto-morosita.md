@@ -1,6 +1,6 @@
 # Intimazione di sfratto per morosità e citazione per la convalida
 
-- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 8 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 9 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.
@@ -77,6 +77,7 @@
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»
 - Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Tentare subito un accordo con la locatrice sul piano di rientro.»
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 658 c.p.c. (Intimazione di sfratto per morosità) — testo vigente, aggiornamento archivio 05/03/2026, versione `720ffdd98a2bb29a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art658
@@ -125,3 +126,4 @@
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

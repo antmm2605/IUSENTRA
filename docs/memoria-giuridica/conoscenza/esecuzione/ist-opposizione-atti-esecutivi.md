@@ -1,6 +1,6 @@
 # Opposizione agli atti esecutivi (art. 617)
 
-- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 8 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 9 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a precetto (art. 615, comma 1, c.p.c.) con istanza di sospensione dell'efficacia esecutiva del titolo per gravi motivi; giudice del luogo dell'esecuzione.
@@ -53,6 +53,7 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Prove e oneri.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 617 c.p.c. (Forma dell'opposizione agli atti esecutivi) — testo vigente, aggiornamento archivio 05/03/2026, versione `79b4302774c6396a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art617
@@ -87,3 +88,4 @@ _Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigen
 - r6 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|151/2026, pronuncia:Corte costituzionale|271/2017
 - r7 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

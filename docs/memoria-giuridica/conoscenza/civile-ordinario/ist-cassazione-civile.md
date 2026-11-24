@@ -1,6 +1,6 @@
 # Ricorso per cassazione civile
 
-- ID: `ist-cassazione-civile` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-cassazione-civile` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per cassazione sottoscritto da avvocato abilitato con procura speciale.
@@ -74,3 +74,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:380bis
 - r3 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

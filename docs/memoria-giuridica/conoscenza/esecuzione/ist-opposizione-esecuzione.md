@@ -1,6 +1,6 @@
 # Opposizione all'esecuzione (art. 615)
 
-- ID: `ist-opposizione-esecuzione` · materia: esecuzione · revisione 7 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-opposizione-esecuzione` · materia: esecuzione · revisione 8 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a precetto (art. 615, comma 1, c.p.c.) con istanza di sospensione dell'efficacia esecutiva del titolo per gravi motivi; giudice del luogo dell'esecuzione.
@@ -58,7 +58,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Prove e oneri, Questioni interpretative.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
-- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 271/2017.
+- 2 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 271/2017, Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 615 c.p.c. (Forma dell'opposizione all'esecuzione) — testo vigente, aggiornamento archivio 05/03/2026, versione `f1b9eef332b162b1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art615
@@ -90,3 +90,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r5 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte costituzionale|271/2017
 - r6 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

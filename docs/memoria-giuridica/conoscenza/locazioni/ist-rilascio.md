@@ -1,6 +1,6 @@
 # Esecuzione per rilascio dell'immobile
 
-- ID: `ist-rilascio` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-rilascio` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 12 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** precetto per rilascio, poi avviso di sloggio dell'ufficiale giudiziario almeno dieci giorni prima dell'accesso.
@@ -70,3 +70,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cpc:609
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1590, pronuncia:Corte costituzionale|36/1988, pronuncia:Corte costituzionale|62/1985
 - r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

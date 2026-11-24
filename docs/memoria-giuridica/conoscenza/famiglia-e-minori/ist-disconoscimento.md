@@ -1,6 +1,6 @@
 # Disconoscimento di paternità
 
-- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 5 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-disconoscimento` · materia: famiglia e minori · revisione 6 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per disconoscimento di paternità; tribunale della residenza abituale del minore.
@@ -49,6 +49,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Prove e oneri, Questioni interpretative.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte costituzionale, n. 162/2014.
 
 ## Fonti con versione
 - art. 243-bis c.c. (Disconoscimento di paternità) — testo vigente, aggiornamento archivio 29/04/2026, versione `723d49d6d0cea8fe` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art243bis
@@ -70,3 +71,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|162/2014
 - r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

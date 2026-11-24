@@ -1,6 +1,6 @@
 # Garanzia legale di conformità
 
-- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 7 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 8 · ultimo controllo 24/11/2026 04:46
 - Stato: verificata · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta al venditore di riparazione o sostituzione gratuita; in subordine riduzione del prezzo o risoluzione del contratto.
@@ -49,9 +49,9 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Con il terzo motivo la ricorrente denunzia ‹‹Violazione ed errata applicazione dell’art. 133, comma 1, d.lgs. 206/2005 (cd. — _Corte di Cassazione — civile, sez. 3, n. 26202/2024_ (passaggio letto nel testo integrale della pronuncia)
 - Si invoca l’applicabilità dell’art. 128 d.p.r. 206/2005, che disciplina unitariamente i contratti aventi a oggetto beni di consumoe si richiama la giurisprudenza, secondo cui la normativa del codice del consumo ha una prevalenza rispetto alla disciplina codicistica generale. — _Corte di Cassazione — civile, sez. 2, n. 10445/2025_ (passaggio letto nel testo integrale della pronuncia)
 - In questa sede deve anche ribadirsi che nell'attuale assetto normativo della compravendita e dei contratti ad essa equiparati , ove ricorrano i presupposti individuati dall'art. 128 del d. lgs. n. 206 del 2005 e, dunque, si tratti di vendita di "beni di consumo" (intendendosi per tale "qualsiasi bene mobile") operata da un soggetto qualificabile in termini di "venditore" alla stregua di tale disciplina speciale (e, cioè, "qualsiasi persona fisica o giuridica pubblica o privata che, nell'esercizio della propria attività imprenditoriale o professionale, u — _Corte di Cassazione — civile, sez. 2, n. 19979/2024_ (passaggio letto nel testo integrale della pronuncia)
-- 31227 del 2019).Ancor prima, peraltro, va rilevato che l’eccezione non risulta neppuretempestivamente proposta entro la prima udienza di trattazione delgiudizio di primo grado, come richiesto dall’art. 3 d.l. n. 132/2014 (cfr.Cass. — _Corte di Cassazione — civile, sez. 3, n. 28758/2026_ (passaggio letto nel testo integrale della pronuncia)
 - 132/14, dell’art. 3, co. 1, del d.l. n.132/2014, nonché del principio di cui agli artt. — _Corte di Cassazione — civile, sez. 3, n. 26412/2026_ (passaggio letto nel testo integrale della pronuncia)
 - Il diritto alla restituzione, infatti, sorge solocome conseguenza della sentenza costitutiva che accoglie la domanda direvoca.L’art. 3 D.L. n. 132/2014, nello stabilire l'obbligo per le domande dipagamento, stabilisce che tale obbligo vale «fuori dei casi previsti [...]dall’art. — _Corte di Cassazione — civile, sez. 3, n. 21935/2026_ (passaggio letto nel testo integrale della pronuncia)
+- 162, e, in subordine, in riferimento agli artt. 3 e 24 Cost., del comma 5 del medesimo art. 3 del d.l. n. 132 del 2014. — _Corte costituzionale, n. 266/2019_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
 - Regola di Lex «garanzia_conformita»
@@ -61,6 +61,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 128 d.lgs. 206/2005 (codice del consumo) ((( (Ambito di applicazione e definizioni). ))) — testo vigente, aggiornamento archivio n.d., versione `c9ec9ed01a293beb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art128
@@ -82,9 +83,9 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Corte di Cassazione — civile, sez. 3, n. 26202/2024 (testo integrale) — versione `fbe47df95de3956f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024326202O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 10445/2025 (testo integrale) — versione `40545d2e488c6834` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025210445O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 19979/2024 (testo integrale) — versione `593542b46bdd76da` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024219979O&rows=1&wt=json
-- Corte di Cassazione — civile, sez. 3, n. 28758/2026 (testo integrale) — versione `c4b82ee6e6157bad` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026328758O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 26412/2026 (testo integrale) — versione `38b6979e36d4ae6b` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026326412O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 21935/2026 (testo integrale) — versione `f05c2d6c87ffe234` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026321935O&rows=1&wt=json
+- Corte costituzionale, n. 266/2019 (testo integrale) — versione `cc1:e7fe122ef8b0` — https://www.cortecostituzionale.it/scheda-pronuncia/2019/266
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
@@ -94,3 +95,4 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|10445/2025, pronuncia:Corte di Cassazione — civile|14390/2024, pronuncia:Corte di Cassazione — civile|19979/2024, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26202/2024, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|28758/2026

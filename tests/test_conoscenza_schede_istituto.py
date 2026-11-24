@@ -290,6 +290,10 @@ def test_api_conoscenza(tmp_path):
         a = client.get("/api/v1/ui/conoscenza/norma/cpc:37?versione=anteriore").get_json()
         assert a["ok"] and a["norma"]["vigente_al"] == "17/10/2022"
         assert client.get("/api/v1/ui/conoscenza/norma/cc:2697?versione=anteriore").status_code == 404
+        r = client.get("/api/v1/ui/conoscenza/schede/ist-comparsa?data_instaurazione=2022-06-01").get_json()
+        assert r["instaurazione"]["certa"] and r["applicabilita"]["cpc:167"]["versione"] == "anteriore"
+        r = client.get("/api/v1/ui/conoscenza/schede/ist-comparsa?fascicolo=NON-ESISTE").get_json()
+        assert r["instaurazione"]["certa"] is False and "applicabilita" not in r
         assert client.get("/api/v1/ui/conoscenza/registro").get_json()["eventi"]
         r = client.post(f"/api/v1/ui/conoscenza/schede/{ident}/annotazioni", json={"sezione": "generale", "testo": "Nota di prova."})
         assert r.status_code == 200 and r.get_json()["ok"], r.get_json()
@@ -428,3 +432,46 @@ def test_testo_anteriore_alla_riforma_per_le_cause_pendenti():
     assert nuovo["stato"].startswith("assente al 17/10/2022") and not nuovo["testo"]
     f = next(f for f in consultazione.scheda("ist-comparsa")["fonti"] if f["chiave"] == "cpc:167")
     assert f["testo_anteriore"]["vigente_al"] == "17/10/2022" and f["testo_anteriore"]["url"].endswith("!vig=2022-10-17")
+
+
+# ------------------------------------------------------------------ testo applicabile alla data della causa
+def test_testo_applicabile_secondo_la_decorrenza_letta():
+    from datetime import date
+
+    from lex.conoscenza.applicabile import testo_applicabile
+
+    vecchia = testo_applicabile("cpc:167", date(2022, 5, 10))
+    assert vecchia["versione"] == "anteriore" and "28/02/2023" in vecchia["motivo"]
+    assert testo_applicabile("cpc:167", "2023-02-28")["versione"] == "anteriore"  # pendente il 28/02/2023
+    assert testo_applicabile("cpc:167", "2023-03-01")["versione"] == "vigente"
+    ignota = testo_applicabile("cpc:167", None)
+    assert ignota["versione"] == "entrambe" and ignota["testo_anteriore"] and ignota["testo_vigente"]
+    # Decorrenze diverse nella nota (impugnazioni): mai una scelta automatica.
+    assert testo_applicabile("cpc:437", date(2022, 5, 10))["versione"] == "entrambe"
+    # Articolo introdotto dalla riforma: per le cause anteriori non si applica.
+    nuovo = testo_applicabile("cpc:171ter", date(2022, 5, 10))
+    assert nuovo["versione"] == "anteriore" and "introdotto dalla riforma" in nuovo["motivo"]
+    assert testo_applicabile("cc:2697", date(2022, 5, 10))["versione"] == "vigente"
+
+
+def test_data_di_instaurazione_dalle_letture():
+    from types import SimpleNamespace as F
+
+    from lex.conoscenza.applicabile import data_instaurazione
+
+    certa = data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="verificata")])
+    assert certa == {"data": "2022-11-03", "certa": True, "campo": "data_deposito_ricorso",
+                     "motivo": "data deposito ricorso letta nel fascicolo e verificata"}
+    assert not data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="plausibile")])["certa"]
+    diverse = data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="verificata"),
+                                  F(campo="data_notifica_citazione", valore="2023-04-01", verifica="corretta")])
+    assert not diverse["certa"] and "diverse" in diverse["motivo"]
+    assert not data_instaurazione([F(campo="data_deposito_ricorso", valore="2022-11-03", verifica="respinta")])["certa"]
+
+
+def test_questione_giudicato_implicito_dalle_pronunce_lette():
+    s = consultazione.scheda("ist-ricorso-dipendente-pubblico")
+    q = [v for v in s["sezioni"]["questioni"]["voci"] if v.get("etichetta", "").startswith("Giudicato implicito")]
+    assert q and all("giudicat" in v["testo"].lower() and v["fonti"][0]["citazione"].startswith("Corte di Cassazione")
+                     for v in q)
+    assert all("nessuna prevalenza" in v["orientamento"] for v in q)

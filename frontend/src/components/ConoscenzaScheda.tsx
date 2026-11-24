@@ -6,7 +6,8 @@ import { Button, ButtonLink } from '../ui/Button'
 import { type Annotazione, type Fonte, type Norma, type Scheda, type StatoAttuale, type Voce, SEZIONI, STATI, chiaveFonte, dataOraIt, divisioneAncora } from './conoscenzaDati'
 
 const base = '/api/v1/ui/conoscenza'
-type Risposta = { scheda: Scheda; stato_attuale: StatoAttuale; annotazioni: Annotazione[]; annotazioni_disponibili: boolean; puo_annotare: boolean }
+type Risposta = { scheda: Scheda; stato_attuale: StatoAttuale; annotazioni: Annotazione[]; annotazioni_disponibili: boolean; puo_annotare: boolean; instaurazione?: { data: string; certa: boolean; motivo: string }; applicabilita?: Record<string, { versione: string; motivo: string }> }
+const VERSIONI: Record<string, string> = { vigente: 'si applica il testo vigente', anteriore: 'si applica il testo anteriore alla riforma', entrambe: 'testo da scegliere: vedi le due versioni' }
 const ESITI = ['', 'favorevole', 'contrario', 'non pertinente', 'da approfondire']
 
 function PassaggioNorma({ fonte }: { fonte: Fonte }) {
@@ -57,7 +58,7 @@ function VoceScheda({ voce }: { voce: Voce }) {
   </li>
 }
 
-export function ConoscenzaScheda({ schedaId, puoAnnotare, onClose }: { schedaId: string; puoAnnotare: boolean; onClose: () => void }) {
+export function ConoscenzaScheda({ schedaId, puoAnnotare, onClose, contesto = '' }: { schedaId: string; puoAnnotare: boolean; onClose: () => void; contesto?: string }) {
   const [dati, setDati] = useState<Risposta | null>(null)
   const [errore, setErrore] = useState('')
   const [carica, setCarica] = useState(0)
@@ -68,11 +69,11 @@ export function ConoscenzaScheda({ schedaId, puoAnnotare, onClose }: { schedaId:
   useEffect(() => {
     const controller = new AbortController()
     setErrore('')
-    ensureJson<Risposta>(`${base}/schede/${encodeURIComponent(schedaId)}`, { signal: controller.signal })
+    ensureJson<Risposta>(`${base}/schede/${encodeURIComponent(schedaId)}${contesto ? `?${contesto}` : ''}`, { signal: controller.signal })
       .then(d => { if (!controller.signal.aborted) setDati(d) })
       .catch(e => { if (!controller.signal.aborted) setErrore(e.status === 404 ? 'Scheda non trovata.' : 'Non riesco a caricare la scheda. Riprova.') })
     return () => controller.abort()
-  }, [schedaId, carica])
+  }, [schedaId, carica, contesto])
   useEffect(() => { ref.current?.scrollIntoView({ block: 'start' }) }, [schedaId])
   async function annota(e: React.FormEvent) {
     e.preventDefault()
@@ -94,6 +95,7 @@ export function ConoscenzaScheda({ schedaId, puoAnnotare, onClose }: { schedaId:
     {s && dati ? <>
       <div className="iu-cn-badges"><Badge tone={st.tono}>{st.etichetta}</Badge><Badge tone="neutral">Vista generata dalle fonti, non fonte primaria</Badge></div>
       {dati.stato_attuale.motivi.length ? <ul className="iu-cn-motivi" role="alert">{dati.stato_attuale.motivi.map(m => <li key={m}>{m}</li>)}</ul> : null}
+      {dati.instaurazione ? <p className="iu-cn-motivi" role="status">{dati.instaurazione.certa ? `Causa instaurata il ${dataOraIt(dati.instaurazione.data).slice(0, 10)} (${dati.instaurazione.motivo}): per ogni norma toccata dalla riforma si indica il testo che si applica.` : `Data di instaurazione non certa (${dati.instaurazione.motivo}): per le norme toccate dalla riforma si mostrano le due versioni.`}</p> : null}
       <p className="iu-cn-sintesi">{s.sintesi}</p>
       {SEZIONI.map(([k, titolo]) => {
         const sez = s.sezioni[k]
@@ -107,7 +109,7 @@ export function ConoscenzaScheda({ schedaId, puoAnnotare, onClose }: { schedaId:
         <ul className="iu-cn-strumenti">{s.strumenti.map(x => <li key={`${x.tipo}:${x.id}`}>{x.collegamento ? <ButtonLink tone="neutral" href={x.collegamento}>{x.titolo}</ButtonLink> : <span>{x.titolo}</span>}</li>)}</ul>
       </section>
       <details className="iu-cn-sezione"><summary>Limiti e lacune dichiarate ({s.lacune.length})</summary><ul>{s.lacune.map(x => <li key={x}>{x}</li>)}</ul></details>
-      <details className="iu-cn-sezione"><summary>Fonti con versione ({s.fonti.length})</summary><ul>{s.fonti.map(f => <li key={chiaveFonte(f)}>{f.citazione}{f.rubrica ? ` — ${f.rubrica}` : ''}{f.tipo === 'norma' ? (f.stato === 'abrogata' ? ` · norma abrogata (${f.nota_abrogazione || ''})` : ` · testo vigente, aggiornamento ${f.aggiornamento || 'n.d.'}`) : ` · ${f.tipo_testo || ''}`}{f.nota_commi ? ` · comma pertinente ${f.comma_pertinente}: ${f.nota_commi}` : ''} · versione {f.versione}{f.url ? <> · <a href={f.url} target="_blank" rel="noreferrer">fonte ufficiale</a></> : null}</li>)}</ul></details>
+      <details className="iu-cn-sezione"><summary>Fonti con versione ({s.fonti.length})</summary><ul>{s.fonti.map(f => <li key={chiaveFonte(f)}>{f.citazione}{f.rubrica ? ` — ${f.rubrica}` : ''}{f.tipo === 'norma' ? (f.stato === 'abrogata' ? ` · norma abrogata (${f.nota_abrogazione || ''})` : ` · testo vigente, aggiornamento ${f.aggiornamento || 'n.d.'}`) : ` · ${f.tipo_testo || ''}`}{f.nota_commi ? ` · comma pertinente ${f.comma_pertinente}: ${f.nota_commi}` : ''}{dati.applicabilita?.[f.chiave] ? ` · ${VERSIONI[dati.applicabilita[f.chiave].versione] || ''}: ${dati.applicabilita[f.chiave].motivo}` : ''} · versione {f.versione}{f.url ? <> · <a href={f.url} target="_blank" rel="noreferrer">fonte ufficiale</a></> : null}</li>)}</ul></details>
       {s.norme_abrogate?.length ? <section className="iu-cn-sezione" aria-label="Norme abrogate"><h3>Norme abrogate (storico, non norme di riferimento)</h3><ul>{s.norme_abrogate.map(a => <li key={a.citazione}>{a.citazione}: abrogato dal {a.abrogata_da}; decorrenza: {a.decorrenza}; sede vigente: {a.sede_vigente}</li>)}</ul></section> : null}
       <details className="iu-cn-sezione"><summary>Cronologia delle revisioni ({s.storia.length})</summary><ol>{s.storia.map(r => <li key={r.revisione}>Revisione {r.revisione} · {dataOraIt(r.data)} · {r.motivo}</li>)}</ol></details>
       <section className="iu-cn-sezione" aria-label="Annotazioni dello studio"><h3>Annotazioni dello studio</h3>

@@ -1,6 +1,6 @@
 # Risarcimento del danno da inadempimento
 
-- ID: `ist-risarcimento-contrattuale` · materia: contratti · revisione 5 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-risarcimento-contrattuale` · materia: contratti · revisione 5 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di risarcimento del danno contrattuale.

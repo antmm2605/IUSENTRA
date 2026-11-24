@@ -1,6 +1,6 @@
 # Atto di precetto
 
-- ID: `ist-precetto` · materia: esecuzione · revisione 4 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-precetto` · materia: esecuzione · revisione 5 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 480 c.p.c., art. 481 c.p.c., art. 479 c.p.c..
@@ -64,3 +64,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|159/1969, pronuncia:Corte costituzionale|200/1996, pronuncia:Corte costituzionale|37/1973
 - r4 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r5 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

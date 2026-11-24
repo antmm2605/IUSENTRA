@@ -179,7 +179,7 @@ VOCI: tuple[Voce, ...] = (
          "i procedimenti pendenti a quella data vale il testo anteriore, registrato fra le fonti (vigente al 17/10/2022): "
          "il difetto di giurisdizione verso la pubblica amministrazione o i giudici speciali è rilevato, anche d'ufficio, "
          "«in qualunque stato e grado del processo», senza la regola dello specifico motivo. I limiti posti dalla "
-         "giurisprudenza a quel testo (giudicato implicito sulla giurisdizione) non sono nell'archivio delle pronunce lette."),
+         "giurisprudenza a quel testo (giudicato implicito) sono fra le questioni interpretative, dalle pronunce lette."),
     Voce("prescrizione_non_rilevabile", "eccezioni",
          "La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata "
          "alle parti.",
@@ -280,13 +280,14 @@ MOTIVAZIONE = re.compile(
     r"\bquesta corte\b|\bprincipio di diritto\b|\bva (?:qui )?ribadit|\bgiurisprudenza di (?:questa corte|legittimit)|"
     r"\bsecondo (?:il consolidato|l\W?orientamento|la giurisprudenza)|\borientamento (?:consolidato|di questa)|"
     r"\bcontrasto\b|\bla corte ritiene\b|\bquesta corte ha (?:gia )?(?:affermato|chiarito|precisato)|"
-    r"\bnon e fondata\b|\bla questione (?:e|non e) fondata", re.I)
+    r"\bnon e fondata\b|\bla questione (?:e|non e) fondata|\bdeve ritenersi\b|\bsezioni unite\b|"
+    r"\bva (?:quindi |pertanto |dunque )?(?:affermat|ribadit|rilevat|osservat)|\bconsolidat\w* orientament|\bormai costante\b", re.I)
 
 
 # Narrazione del fatto o delle difese: il passaggio riferisce che cosa sostiene una parte, non che cosa decide la Corte.
 NARRAZIONE = re.compile(r"\bha dedotto\b|\bdeduce\b|\blamenta\b|\bespone\b|\briferisce\b|\bpremette\b|\bha proposto\b|"
                         r"\bsostiene\b|\bassume che\b|\bcon il (?:primo|secondo|terzo|quarto|quinto|sesto) motivo\b|"
-                        r"\bdenuncia\b|\bcensura\b|\bad avviso\b|\brimettente\b|\ba quo\b|\brammenta\b|\baggiunge\b|\bricostruisce\b|"
+                        r"\bdenuncia\b|\bcensura\b|\bad avviso\b|\brimettente\b|\ba quo\b|\brammenta\b|\binvoca\b|\baggiunge (?:il|la) (?:ricorrente|rimettente|difesa)\b|\bricostruisce\b|"
                         r"\bricorda\b|\bosserva il\b|\bqualora questa corte\b|\bdifesa (?:dello stato|erariale)\b|\bavvocatura\b", re.I)
 
 
@@ -346,3 +347,23 @@ def pertinente(passaggio: str, citazione_norma: str, termini: frozenset[str]) ->
         if any(w.startswith(r) for w in parole for r in termini):
             return True
     return False
+
+
+# ------------------------------------------------------------------ questioni mirate su una norma
+@dataclass(frozen=True)
+class Questione:
+    id: str
+    titolo: str
+    norma: str                   # chiave del registro: le pronunce si leggono fra i passaggi di quella norma
+    tema: str                    # espressione che il passaggio deve contenere (oltre alla norma, già nel passaggio)
+    istituti: frozenset[str]
+
+
+QUESTIONI: tuple[Questione, ...] = (
+    Questione("giudicato_implicito_giurisdizione", "Giudicato implicito sulla giurisdizione (art. 37 c.p.c.)", "cpc:37",
+              r"giudicato\s+(?:implicito|interno)", _PUBBLICO_IMPIEGO),
+)
+
+
+def questioni_per(istituto: str) -> list[Questione]:
+    return [q for q in QUESTIONI if istituto in q.istituti]

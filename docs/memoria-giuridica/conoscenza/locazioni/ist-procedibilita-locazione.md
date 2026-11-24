@@ -1,6 +1,6 @@
 # Condizioni di procedibilità nelle cause di locazione
 
-- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con citazione per la convalida, senza mediazione preventiva; mediazione da avviare dopo il mutamento del rito, se il giudizio prosegue nel merito; Tribunale del luogo dell'immobile.
@@ -55,6 +55,7 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - Avvertenza della regola procedibilita_locazione non riportata (senza norma citata): «Dopo il mutamento del rito conviene che sia il locatore, che ha interesse alla risoluzione, a depositare subito la domanda di mediazione: se»
 - Avvertenza della regola procedibilita_locazione non riportata (senza norma citata): «Una citazione ordinaria per la sola risoluzione o per i soli canoni richiede invece la mediazione prima della causa.»
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
+- 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
 - art. 658 c.p.c. (Intimazione di sfratto per morosità) — testo vigente, aggiornamento archivio 05/03/2026, versione `720ffdd98a2bb29a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art658
@@ -79,3 +80,4 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - r3 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte di Cassazione — civile|23217/2026
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|29672/2026, pronuncia:Corte di Cassazione — civile|23217/2026
 - r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti

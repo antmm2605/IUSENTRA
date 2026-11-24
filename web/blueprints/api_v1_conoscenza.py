@@ -97,7 +97,35 @@ def scheda(scheda_id: str):
         current_app.logger.warning("Annotazioni della scheda non leggibili", exc_info=True)
         note = None
     return jsonify(ok=True, scheda=s, stato_attuale=consultazione.stato_attuale(s), annotazioni=note or [],
-                   annotazioni_disponibili=note is not None, puo_annotare=_ha("fascicoli.scrivi"))
+                   annotazioni_disponibili=note is not None, puo_annotare=_ha("fascicoli.scrivi"),
+                   **_applicabilita(s))
+
+
+def _applicabilita(s: dict) -> dict:
+    """Testo vigente o anteriore alla riforma secondo la data di instaurazione: indicata (?data_instaurazione=AAAA-MM-GG)
+    o letta nel fascicolo (?fascicolo=ID, solo se l'utente lo può vedere). Senza data certa: entrambe le versioni."""
+    from lex.conoscenza.applicabile import applicabilita_scheda, data_instaurazione
+
+    fid = str(request.args.get("fascicolo", "") or "")[:80]
+    indicata = str(request.args.get("data_instaurazione", "") or "")[:10]
+    if not fid and not indicata:
+        return {}
+    if indicata:
+        dati = {"data": indicata, "certa": True, "motivo": "data indicata dall'avvocato"}
+    else:
+        from lex.fascicolo_accesso import fascicolo_accessibile
+
+        if not fascicolo_accessibile(fid):
+            return {"instaurazione": {"data": "", "certa": False, "motivo": "fascicolo non accessibile"}}
+        try:
+            from types import SimpleNamespace
+
+            from web.services.archivio_letture_runtime import fatti_fascicolo
+
+            dati = data_instaurazione(fatti_fascicolo(SimpleNamespace(id=fid)))
+        except RuntimeError:
+            dati = {"data": "", "certa": False, "motivo": "archivio delle letture non disponibile"}
+    return {"instaurazione": dati, "applicabilita": applicabilita_scheda(s, dati["data"] if dati["certa"] else None)}
 
 
 @api_v1_conoscenza.get("/norma/<chiave>")

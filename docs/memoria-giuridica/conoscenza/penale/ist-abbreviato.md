@@ -1,6 +1,6 @@
 # Giudizio abbreviato
 
-- ID: `ist-abbreviato` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:34
+- ID: `ist-abbreviato` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:46
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di giudizio abbreviato (semplice o condizionato).

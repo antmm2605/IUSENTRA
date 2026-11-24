@@ -74,7 +74,11 @@ RUOLI: dict[str, tuple[str, str]] = {
         r"datrice|titolare|capo|azienda)|assisto (?:il|la|un|una) (?:lavorat|dipendent)|non mi (?:pagano|hanno pagato|paga|ha "
         r"pagato) (?:lo stipendio|gli (?:ultimi )?stipendi|il tfr|gli straordinari|la tredicesima)|(?:il|l) (?:ex )?datore"
         r"(?: di lavoro)? (?:non )?mi\b|mi (?:deve|devono) (?:lo stipendio|gli stipendi|il tfr)|(?:mi sono|sono) dimess",
-        r"assisto (?:il|la|l) (?:datore|datrice|azienda|societa datrice|impresa)|(?:sono|siamo) (?:il|la|i|l) "
+        r"(?:assisto|rappresento|difendo) (?:il|la|l|una|un) (?:datore|datrice|azienda|societa|srl|s r l|ditta|impresa|"
+        r"cooperativa)|(?:la|una) (?:societa|ditta|azienda|impresa) che (?:assisto|rappresento|difendo)|titolare,? "
+        r"(?:mia|mio|nostra|nostro) client|ricorso (?:ex )?(?:art\.? ?)?414 (?:da parte|di|del|della|dell)|"
+        r"(?:dipendent|lavorat|operai|commess|impiegat|camerier|apprendist|autista|magazzinier)\w*[^.]{0,80}(?:ha|hanno) "
+        r"(?:mandato|inviato|notificato|depositato|proposto|fatto)[^.]{0,40}(?:impugnazion|ricorso|lettera|diffida|causa)|(?:sono|siamo) (?:il|la|i|l) "
         r"(?:datore|datrice|titolar|amministrator\w* unic|legale rappresentant)|(?:ho|abbiamo|ha) licenziato (?:un|una|il|la|l)|"
         r"(?:un|una|il|la|l|un mio|una mia|il mio|la mia|un nostro|una nostra) (?:ex )?(?:dipendent|lavorat|operai|commess|"
         r"impiegat|camerier|apprendist|autista|magazzinier)\w*[^.]{0,80}(?:mi|ci|gli|le) (?:ha|hanno) (?:impugnat|fatto "
@@ -83,7 +87,8 @@ RUOLI: dict[str, tuple[str, str]] = {
     "condominio": (
         r"\b(?:sono|e) (?:un[ao]? |una )?condomin|assisto (?:un|una|il|la) condomin|" + _CLIENTE + r",? (?:e )?condomin|"
         r"(?:ho|ha|abbiamo) votato contro|(?:ero|era|eravamo) assent\w* all assemblea|(?:mi sono|si e) astenut",
-        r"(?:sono|faccio) l amministrat|amministro (?:il|un|lo|questo) (?:condomin|stabile|palazzo)|assisto (?:il|l) "
+        r"(?:sono|faccio) l amministrat|il condominio che (?:rappresento|assisto|amministro|difendo)|(?:chiamat|convocat)\w* "
+        r"in mediazione da (?:un|una|alcuni) condomin|amministro (?:il|un|lo|questo) (?:condomin|stabile|palazzo)|assisto (?:il|l) "
         r"(?:condominio|amministrat)|(?:un|il|la|una|alcuni) condomin\w*[^.]{0,80}(?:ha|hanno) (?:impugnat|fatto causa|citat|"
         r"notificat|avviato la mediazione|chiesto la revoca|depositato)|citazione contro il condominio|contro il condominio|"
         r"(?:il|al) condominio (?:e stato citato|ha ricevuto|e convenuto)"),
@@ -91,7 +96,10 @@ RUOLI: dict[str, tuple[str, str]] = {
         r"(?:sono|e) stat[oa] (?:tamponat|investit|urtat)|mi (?:hanno|ha) (?:tamponat|investit|urtat)|" + _CLIENTE +
         r" (?:e stat[oa] (?:tamponat|investit|urtat)|ha subito)|ho subito (?:un|il) (?:sinistro|incidente|tamponamento|danno)|"
         r"assisto il danneggiat|(?:voglio|vogliamo|vuole) (?:chiedere|ottenere) (?:il )?risarciment",
-        r"\b(?:ho|abbiamo) (?:tamponat|investit|urtat)|(?:ho|abbiamo|ha) causato (?:un|l|il) (?:incidente|sinistro|"
+        r"\b(?:ho|abbiamo) (?:tamponat|investit|urtat)|(?:mio|mia) (?:padre|madre|figli\w*|marito|moglie|fratello|sorella) ha "
+        r"(?:tamponat|investit|urtat|causato)|assisto (?:il|la) conducente che ha (?:causato|tamponat|investit|urtat)|"
+        r"(?:chiede|chiedono|vuole|vogliono|pretende)[^.]{0,40}(?:danni|risarciment|soldi)[^.]{0,20}(?:a mio|a mia|al mio|"
+        r"alla mia|da me|da noi)|(?:ho|abbiamo|ha) causato (?:un|l|il) (?:incidente|sinistro|"
         r"tamponamento)|per colpa mia|" + _CLIENTE + r" ha (?:tamponat|investit|urtat|causato)|assisto (?:il|la) "
         r"(?:responsabil|conducente responsabil|assicurat)|(?:mi|ci|gli|le) (?:chiede|chiedono|ha chiesto|hanno chiesto|"
         r"pretende) (?:il |un )?(?:risarciment|i danni|danni|\d)"),
@@ -99,7 +107,8 @@ RUOLI: dict[str, tuple[str, str]] = {
         r"\b(?:ho|abbiamo) (?:comprato|acquistato)|" + _CLIENTE + r" ha (?:comprato|acquistato)|(?:sono|e) (?:un[ao]? |una )?"
         r"consumator|assisto (?:il|un|la|una) consumator|\b(?:comprat|acquistat)[oaie] (?:da|dal|dalla|dallo|in|nel|nella|al|"
         r"alla|online|on line|su)\b",
-        r"(?:il|nel|al|dal) (?:mio|nostro) (?:negozio|punto vendita|e commerce|sito|concessionari)|(?:ho|abbiamo) (?:un|una) "
+        r"(?:il|nel|al|dal) (?:mio|nostro) (?:negozio|punto vendita|e.?commerce|sito|concessionari|shop)|(?:il|la) "
+        r"(?:client\w*|acquirent\w*) (?:ci |mi )?(?:reclama|pretende|contesta)|(?:ho|abbiamo) (?:un|una) "
         r"(?:negozio|punto vendita|concessionari|ferramenta|rivendita)|(?:ho|abbiamo) vendut|(?:sono|siamo) (?:il|la|i) "
         r"(?:venditor|rivenditor)|assisto (?:il|la|un|una) (?:venditor|rivenditor|negozio|concessionari)|(?:un|una) "
         r"(?:cliente|acquirente|consumator\w*)[^.]{0,80}(?:\bpretende\b|\breclama\b|\bcontesta\b|(?:ci|mi|ce lo|me lo) "

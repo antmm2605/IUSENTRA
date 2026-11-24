@@ -13,6 +13,9 @@ from .. import procedura as P
 
 def riconosci_separazione(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
+    if re.search(r"(?:assegno|mantenimento)\b[^.?]{0,80}?\b(?:farl\w* )?(?:ridurr|abbass|diminuir|aumentar)|non riesco (?:piu )?a "
+                 r"pagare (?:l |il )?(?:assegno|mantenimento)", t):
+        return 0
     if re.search(r"(?:cambi|modific|rivede)\w* (?:il |l |i |le )?(?:collocament|affidament|assegno|mantenimento|visit)|"
                  r"modific\w* (?:delle |le )?condizion|revision\w* (?:delle |le )?condizion|negoziazione assistita|ordine di protezione|"
                  r"ordini di protezione", t):
@@ -111,8 +114,11 @@ def riconosci_modifica_condizioni(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
     if re.search(r"negoziazione assistita", t):
         return 0
-    return 6 if re.search(r"(?:modific|revision|revoc|riduzion|ridurr|aument|rivede|rivision|cambi|abbass|alzar)\w* (?:delle |le |dell |l |il |i |dell assegno|del mantenimento|"
-                          r"dell affidamento|del contributo)?(?:condizion|assegno|mantenimento|affidamento|contribut|collocament|visit|tempi di permanenza)", t) and re.search(
+    oggetto_prima = re.search(r"(?:assegno|mantenimento|contribut\w*|affidamento|collocamento)\b[^.?]{0,80}?\b(?:farl\w* |"
+                              r"farla |chiederne (?:la )?)?(?:ridurr|abbass|diminuir|aumentar|modific|rivedere|cambiar|revocar)|"
+                              r"non riesco (?:piu )?a pagare (?:l |il )?(?:assegno|mantenimento)", t)
+    return 6 if (oggetto_prima or re.search(r"(?:modific|revision|revoc|riduzion|ridurr|aument|rivede|rivision|cambi|abbass|alzar)\w* (?:delle |le |dell |l |il |i |dell assegno|del mantenimento|"
+                          r"dell affidamento|del contributo)?(?:condizion|assegno|mantenimento|affidamento|contribut|collocament|visit|tempi di permanenza)", t)) and re.search(
         r"separazion|divorzi|figli|mantenimento|ex (?:moglie|marito|coniuge)|assegno (?:divorzile|di mantenimento)", t) and not re.search(
         r"\binps\b|assegno sociale|pension|invalidit|assegno unico", t) else 0
 

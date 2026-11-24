@@ -111,7 +111,7 @@ RESPONSABILITA_SANITARIA = Scheda(
     regola="rc_responsabilita_sanitaria", materia="responsabilità civile", nome="responsabilità sanitaria (l. 24/2017)",
     segnali=(r"medic|ospedal|chirurg|sanitari|clinica|malasanita|infezione ospedaliera|errore (?:diagnostic|medico)|struttura sanitaria",),
     alcuni=(r"danni|danno|risarc|causa|errore|mort|responsabil|assicurazion|citare|rispond",),
-    esclusi=(r"invalidita civile|inps|accompagnamento|\b104\b|dati (?:sanitari|personali)|privacy|garante",), punteggio=7,
+    esclusi=(r"invalidita civile|inps|accompagnamento|(?:\blegge|\bl\.)\s*(?:n\.?\s*)?104\b|dati (?:sanitari|personali)|privacy|garante",), punteggio=7,
     capito="Danno da prestazione sanitaria: responsabilità della struttura e del medico.",
     rimedio="ricorso per consulenza tecnica preventiva ex art. 696-bis c.p.c. (o mediazione), poi giudizio di merito",
     conclusione=[

@@ -55,7 +55,7 @@ OPPOSIZIONE_ARCHIVIAZIONE = Scheda(
 
 PATTEGGIAMENTO = Scheda(
     regola="pen_patteggiamento", materia="penale", nome="applicazione della pena su richiesta (patteggiamento)",
-    segnali=(r"patteggi|applicazione della pena su richiesta|\b444\b",), punteggio=6,
+    segnali=(r"patteggi|applicazione della pena su richiesta|(?:\b(?:art\w*\.?|ex)\s*444\b|\b444\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))",), punteggio=6,
     capito="Definizione del processo con applicazione concordata della pena.",
     rimedio="richiesta di applicazione della pena con il consenso del pubblico ministero",
     conclusione=[

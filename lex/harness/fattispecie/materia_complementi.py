@@ -51,7 +51,7 @@ RICORSO_CREDITO = Scheda(
 OPPOSIZIONE_DI = Scheda(
     regola="mon_opposizione_di", materia="monitorio", nome="opposizione a decreto ingiuntivo",
     segnali=(r"decreto ingiuntiv|ingiunzion|\bdecreto\b", r"oppo|contest|non (?:dovut|dovev)|mediazione|difend|prescritt|gia pagat"),
-    esclusi=(r"tardiv|\b650\b|ordinanza.ingiunzione|\(creditore|provvisori|decreto (?:di|del) (?:espulsione|giudizio)|"
+    esclusi=(r"tardiv|(?:\b(?:art\w*\.?|ex)\s*650\b|\b650\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|ordinanza.ingiunzione|\(creditore|provvisori|decreto (?:di|del) (?:espulsione|giudizio)|"
              r"decreto (?:del )?ministero|decreto cautelare"), punteggio=6,
     capito="Ingiunto che vuole contestare il decreto ingiuntivo notificato.",
     rimedio="atto di citazione in opposizione davanti all'ufficio che ha emesso il decreto, entro quaranta giorni dalla notifica",
@@ -183,10 +183,10 @@ BENEFICIO_INVENTARIO = Scheda(
 
 ESECUZIONE_2932 = Scheda(
     regola="con_esecuzione_2932", materia="contratti", nome="esecuzione in forma specifica dell'obbligo di concludere il contratto",
-    segnali=(r"2932|forma specifica|sentenza che (?:trasferisca|produca gli effetti)|trasferimento (?:della casa|dell immobile)|"
+    segnali=(r"(?:\b(?:art\w*\.?|ex)\s*2932\b|\b2932\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|forma specifica|sentenza che (?:trasferisca|produca gli effetti)|trasferimento (?:della casa|dell immobile)|"
              r"non (?:vuole piu fare|si presenta)[^.]{0,30}(?:rogito|dal notaio)|chiedere il trasferimento|trasferimento coattivo",),
     alcuni=(r"preliminar|rogito|notaio|promittent|venditor|compromesso|trasferiment",),
-    esclusi=(r"caparra|obblig\w* di fare|612|demoli",), punteggio=6,
+    esclusi=(r"caparra|obblig\w* di fare|(?:\b(?:art\w*\.?|ex)\s*612\b|\b612\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|demoli",), punteggio=6,
     capito="Promissario acquirente che vuole una sentenza che trasferisca il bene al posto del contratto definitivo.",
     rimedio="citazione ex art. 2932 c.c. con trascrizione della domanda (mediazione obbligatoria se diritti reali)",
     conclusione=[
@@ -271,9 +271,9 @@ TFR = Scheda(
 
 RICORSO_414 = Scheda(
     regola="lav_ricorso_414", materia="lavoro", nome="ricorso nel rito del lavoro",
-    segnali=(r"\b414\b|ricorso (?:di|nel rito del) lavoro|cause di lavoro|controversi\w* di lavoro|giudice del lavoro|"
+    segnali=(r"(?:\b(?:art\w*\.?|ex)\s*414\b|\b414\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|ricorso (?:di|nel rito del) lavoro|cause di lavoro|controversi\w* di lavoro|giudice del lavoro|"
              r"azienda ha sede|dove facciamo causa",),
-    alcuni=(r"lavor|dipendent|azienda|datore|\b414\b",), esclusi=(r"minister|pubblic\w* amministrazion|\binps\b|appell|licenzia",), punteggio=3,
+    alcuni=(r"lavor|dipendent|azienda|datore|(?:\b(?:art\w*\.?|ex)\s*414\b|\b414\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))",), esclusi=(r"minister|pubblic\w* amministrazion|\binps\b|appell|licenzia",), punteggio=3,
     capito="Introduzione della causa di lavoro: forma, contenuto e giudice competente.",
     rimedio="ricorso al tribunale in funzione di giudice del lavoro",
     conclusione=[

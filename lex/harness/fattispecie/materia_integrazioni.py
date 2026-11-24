@@ -159,7 +159,7 @@ DIVORZIO_IMMEDIATO = Scheda(
 
 ATTIVITA_PERICOLOSE = Scheda(
     regola="rc_attivita_pericolose", materia="responsabilità civile", nome="danno da attività pericolose (art. 2050 c.c.)",
-    segnali=(r"attivita pericolos|2050|esplosion|fuochi d artificio|pirotecnic|petard|cantiere|lavori stradali|scavo|gas|impianto (?:elettrico|a gas)|"
+    segnali=(r"attivita pericolos|(?:\b(?:art\w*\.?|ex)\s*2050\b|\b2050\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|esplosion|fuochi d artificio|pirotecnic|petard|cantiere|lavori stradali|scavo|gas|impianto (?:elettrico|a gas)|"
              r"armi|caccia|poligono|centrale|cava\b|ruspa|gru\b|macchinari pesanti|sostanze (?:tossiche|chimiche)|incendio",),
     alcuni=(r"dann|risarc|ferit|lesion|morto|responsabil|chi paga|colpa",),
     esclusi=(r"sinistro stradale|tamponat|incidente (?:stradale|con l auto)|medic|ospedal|lavorator\w* (?:infortunat|dipendent)|"

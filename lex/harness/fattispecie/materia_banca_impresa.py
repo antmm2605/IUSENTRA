@@ -63,7 +63,7 @@ ANATOCISMO = Scheda(
 
 ESTRATTI = Scheda(
     regola="ban_documenti_estratti", materia="bancario e finanziario", nome="estratti conto e documentazione bancaria (art. 119 TUB)",
-    segnali=(r"estratt\w* conto|documentazione bancaria|copia del contratto|\b119\b|contestar\w*[^.]{0,30}estratto",),
+    segnali=(r"estratt\w* conto|documentazione bancaria|copia del contratto|(?:\b(?:art\w*\.?|ex)\s*119\b|\b119\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|contestar\w*[^.]{0,30}estratto",),
     alcuni=(_BANCA,), punteggio=6,
     capito="Richiesta di documentazione alla banca o contestazione degli estratti conto.",
     rimedio="richiesta scritta ex art. 119, comma 4, TUB; contestazione scritta degli estratti conto",

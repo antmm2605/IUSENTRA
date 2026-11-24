@@ -22,10 +22,10 @@ PA = (r"minister|\bmiur\b|\bmim\b|istruzione e del merito|scuol|scolastic|istitu
       r"universita|agenzia delle entrate|\binps\b come datore")
 _RETRIB = (r"retribu|differenz\w* (?:retributiv|stipendial)|stipend|indennit|scatt|compens|\brpd\b|\bcia\b|ferie non godut|"
            r"tredicesim|emolument|trattamento economico|busta paga|buste paga|progression|arretrat")
-_CARTA = r"carta (?:elettronica )?(?:per l aggiornamento )?(?:del |dei )?docent|bonus (?:formazione|aggiornamento|500)|500 euro[^.]{0,60}formazion"
+_CARTA = r"carta (?:elettronica )?(?:per l aggiornamento )?(?:del |dei )?docent|bonus (?:formazione|aggiornamento|500\b|docent)|(?:500 euro|\[importo\])[^.]{0,60}formazion"
 _TERMINE = (r"abus\w*|reiterazion|successione di contratti|contratti a termine|tempo determinato|36 mesi|trentasei mesi|"
             r"stabilizz|danno comunitario|precari\w*[^.]{0,40}(?:dieci|anni|risarc)")
-_CARRIERA = r"ricostruzione (?:di |della )?carriera|pre-?ruolo|servizio non di ruolo|anzianita di servizio|\b485\b|servizio prestato prima del ruolo"
+_CARRIERA = r"ricostruzione (?:di |della )?carriera|pre-?ruolo|servizio non di ruolo|anzianita di servizio|(?:\b(?:art\w*\.?|ex)\s*485\b|\b485\s*(?:c\.?\s?p\.?\s?c\b|c\.?\s?p\.?\s?p\b|c\.?\s?c\b|c\.?\s?p\b|cpc\b|cpp\b))|servizio prestato prima del ruolo"
 _ESECUZIONE = r"precett|pignor|ottemper|esecuzion|tesoreria|centoventi giorni|120 giorni|giudicato|commissario ad acta"
 PA_ESEC = PA + r"|amministrazion|\bcomune\b|regione|\bente\b"
 _TITOLO = r"sentenz|titolo|decreto ingiuntivo|giudicato|condann|ordinanza"

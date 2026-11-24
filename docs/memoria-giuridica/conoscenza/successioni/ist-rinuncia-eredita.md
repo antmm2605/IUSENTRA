@@ -1,6 +1,6 @@
 # Rinuncia all'eredità
 
-- ID: `ist-rinuncia-eredita` · materia: successioni · revisione 3 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-rinuncia-eredita` · materia: successioni · revisione 4 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di rinuncia davanti al notaio o al cancelliere del tribunale del luogo di apertura della successione.
@@ -53,7 +53,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Avvertenza della regola suc_rinuncia_eredita non riportata (senza norma citata): «Se nessuno degli eredi vuole i debiti, conviene che rinuncino anche i figli del rinunciante, o che i minori accettino con beneficio d'invent»
+- Avvertenza della regola suc_rinuncia_eredita non riportata (senza norma citata): «Consiglio operativo: se nessuno degli eredi vuole i debiti, conviene che rinuncino anche i figli del rinunciante, o che i minori accettino c»
 
 ## Fonti con versione
 - art. 519 c.c. (Rinunzia all'eredità) — testo vigente, aggiornamento archivio 29/04/2026, versione `4144b4ba08129e6d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art519
@@ -74,3 +74,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cc:525
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cc:467, norma:cc:476, norma:cc:521
+- r4 · 24/11/2026 04:24 · contenuto delle regole cambiato con le stesse fonti

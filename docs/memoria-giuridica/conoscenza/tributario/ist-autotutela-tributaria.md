@@ -1,6 +1,6 @@
 # Autotutela tributaria
 
-- ID: `ist-autotutela-tributaria` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-autotutela-tributaria` · materia: tributario · revisione 3 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di autotutela (obbligatoria nei casi di manifesta illegittimità), senza sospensione del termine per il ricorso.
@@ -39,7 +39,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Avvertenza della regola trib_autotutela non riportata (senza norma citata): «L'istanza di autotutela non sospende il termine per il ricorso: se il termine scade, depositare comunque il ricorso.»
+- Avvertenza della regola trib_autotutela non riportata (senza norma citata): «Consiglio operativo: l'istanza di autotutela non sospende il termine per il ricorso: se il termine scade, depositare comunque il ricorso.»
 
 ## Fonti con versione
 - art. 10-quater l. 212/2000 (Autotutela obbligatoria) — testo vigente, aggiornamento archivio n.d., versione `98d219dd4d1fa1a1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2000-07-27;212~art10quater
@@ -48,3 +48,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:24 · contenuto delle regole cambiato con le stesse fonti

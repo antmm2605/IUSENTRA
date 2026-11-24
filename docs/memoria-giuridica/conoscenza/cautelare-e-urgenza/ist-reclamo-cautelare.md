@@ -1,7 +1,7 @@
 # Reclamo cautelare (art. 669-terdecies)
 
-- ID: `ist-reclamo-cautelare` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 04:21
-- Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-reclamo-cautelare` · materia: cautelare e urgenza · revisione 3 · ultimo controllo 24/11/2026 04:24
+- Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** reclamo al collegio del tribunale (o ad altra sezione della corte d'appello).
 
@@ -12,6 +12,7 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
+- I procedimenti cautelari non godono della sospensione feriale dei termini. — _art. 3 l. 742/1969; art. 92 r.d. 12/1941 (ordinamento giudiziario)_ (ancora letterale trovata nel testo vigente)
 - Reclamo entro 15 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 669-terdecies c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
@@ -40,11 +41,13 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Avvertenza della regola cau_reclamo non riportata (senza norma citata): «I procedimenti cautelari non godono della sospensione feriale.»
 
 ## Fonti con versione
 - art. 669-terdecies c.p.c. (Reclamo contro i provvedimenti cautelari) — testo vigente, aggiornamento archivio n.d., versione `92eb7670efd7bec7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art669terdecies
+- art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
+- art. 92 r.d. 12/1941 (ordinamento giudiziario) (Affari civili nel periodo feriale) — testo vigente, aggiornamento archivio 21/04/1941, versione `37af6252bc51f586` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-01-30;12:1~art92
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:24 · fonti cambiate: norma:l742:3, norma:rd12:92

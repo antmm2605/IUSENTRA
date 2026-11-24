@@ -1,6 +1,6 @@
 # Foro del consumatore e competenza
 
-- ID: `ist-foro-consumatore` · materia: consumatori · revisione 4 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-foro-consumatore` · materia: consumatori · revisione 4 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 13 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** eccezione di incompetenza per territorio se la causa è proposta fuori dal foro del consumatore; Giudice di pace.

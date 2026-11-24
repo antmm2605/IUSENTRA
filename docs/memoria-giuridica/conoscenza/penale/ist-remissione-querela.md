@@ -1,12 +1,12 @@
 # Remissione della querela
 
-- ID: `ist-remissione-querela` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-remissione-querela` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di remissione all'autorità procedente (o a un ufficiale di polizia giudiziaria) e accettazione del querelato.
 
 ## Presupposti
-_Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
+- La remissione estingue solo i reati punibili a querela: per i reati procedibili d'ufficio non ha effetto. — _art. 152 c.p._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -40,8 +40,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Regola di Lex «pen_remissione_querela»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Avvertenza della regola pen_remissione_querela non riportata (senza norma citata): «Se il reato è procedibile d'ufficio la remissione non estingue il reato.»
+- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 152 c.p. (Remissione della querela) — testo vigente, aggiornamento archivio n.d., versione `e1776bcb6189d67a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398~art152
@@ -50,3 +49,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:24 · contenuto delle regole cambiato con le stesse fonti

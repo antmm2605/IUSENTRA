@@ -1,7 +1,7 @@
 # Impugnazione del licenziamento
 
-- ID: `ist-licenziamento` · materia: lavoro · revisione 4 · ultimo controllo 24/11/2026 04:21
-- Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-licenziamento` · materia: lavoro · revisione 5 · ultimo controllo 24/11/2026 04:24
+- Stato: verificata · fonti dirette: 25 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
 
@@ -9,6 +9,8 @@
 - Il tentativo di conciliazione è facoltativo: chi intende agire «può promuovere» il tentativo previsto dall'art. 410 c.p.c.; mediazione e negoziazione assistita non sono condizioni di procedibilità per queste controversie. — _art. 410 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
+- Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ai termini a pena di decadenza non si applicano le norme sull'interruzione della prescrizione né, salvo diversa disposizione, quelle sulla sospensione. — _art. 2964 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
@@ -26,6 +28,11 @@
 ## Prove e oneri
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 - L'onere di provare la giusta causa o il giustificato motivo del licenziamento spetta al datore di lavoro. — _art. 5 l. 604/1966_ (ancora letterale trovata nel testo vigente)
+- Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: nella memoria difensiva il convenuto prende posizione in modo preciso sui fatti affermati dall'attore e indica specificamente, a pena di decadenza, i mezzi di prova e i documenti, da depositare insieme. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: il giudice può disporre d'ufficio, in qualsiasi momento, ogni mezzo di prova anche fuori dei limiti del codice civile, salvo il giuramento decisorio. — _art. 421 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - codici fiscali e PEC delle parti (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -56,6 +63,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 18 l. 300/1970 (Tutela del lavoratore in caso di licenziamento illegittimo) — testo vigente, aggiornamento archivio n.d., versione `91e60f87076f449a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-05-20;300~art18
 - art. 441-bis c.p.c. (Controversie in materia di licenziamento) — testo vigente, aggiornamento archivio n.d., versione `a3b138c9e66d77de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art441bis
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
 - art. 2964 c.c. (Inapplicabilità di regole della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `69c1057339253ee7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2964
 - art. 32 l. 183/2010 (Decadenze e disposizioni in materia di contratto di lavoro a tempo determinato) — testo vigente, aggiornamento archivio 10/10/2025, versione `b2b61406eb4fe21e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2010-11-04;183~art32
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
@@ -64,6 +73,10 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 5 l. 604/1966 (Onere della prova) — testo vigente, aggiornamento archivio n.d., versione `19286ddb28fbb27f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1966-07-15;604~art5
+- art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
+- art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
+- art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
+- art. 421 c.p.c. (Poteri istruttori del giudice) — testo vigente, aggiornamento archivio n.d., versione `c77b5ae539337563` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art421
 - Corte di Cassazione — civile, sez. L, n. 29446/2026 (testo integrale) — versione `4ee179018b5f65fc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29446O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 5, n. 29147/2026 (testo integrale) — versione `a3317a02460159dc` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529147O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 29047/2026 (testo integrale) — versione `fead8d45396a9a67` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29047O&rows=1&wt=json
@@ -76,3 +89,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:441bis
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cc:2964, norma:l604:5, pronuncia:Corte di Cassazione — civile|28948/2026
 - r4 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|28948/2026
+- r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421

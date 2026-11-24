@@ -1,7 +1,7 @@
 # Decreto ingiuntivo per retribuzioni
 
-- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 8 · ultimo controllo 24/11/2026 04:21
-- Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-di-retribuzioni` · materia: lavoro · revisione 9 · ultimo controllo 24/11/2026 04:24
+- Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al tribunale in funzione di giudice del lavoro, con le buste paga; Tribunale in funzione di giudice del lavoro.
 
@@ -15,6 +15,8 @@
 - Il tentativo di conciliazione è facoltativo: chi intende agire «può promuovere» il tentativo previsto dall'art. 410 c.p.c.; mediazione e negoziazione assistita non sono condizioni di procedibilità per queste controversie. — _art. 410 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
+- La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Prescrizione quinquennale di ciò che si paga periodicamente ad anno o in termini più brevi (come le retribuzioni). — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
@@ -44,6 +46,9 @@
 ## Prove e oneri
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 - Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
+- Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - importo del credito (fatture e somme già pagate) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -86,6 +91,9 @@
 - art. 429 c.p.c. (Pronuncia della sentenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `bd356badf417fb65` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art429
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
+- art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
+- art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
+- art. 2934 c.c. (Estinzione dei diritti) — testo vigente, aggiornamento archivio n.d., versione `2ee6bf29315198c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2934
 - art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 644 c.p.c. (Mancata notificazione del decreto) — testo vigente, aggiornamento archivio 05/03/2026, versione `5e162b8609e86369` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art644
@@ -99,6 +107,9 @@
 - art. 409 c.p.c. (Controversie individuali di lavoro) — testo vigente, aggiornamento archivio 05/03/2026, versione `7187a8d1f3c0e1ed` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art409
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
+- art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
+- art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
+- art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
 - Corte costituzionale, n. 78/2012 (testo integrale) — versione `cc1:546f2629ef64` — https://www.cortecostituzionale.it/scheda-pronuncia/2012/78
 - Corte di Cassazione — civile, sez. 1, n. 29102/2026 (testo integrale) — versione `e2a228abfdb5a872` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026129102O&rows=1&wt=json
 - Corte costituzionale, n. 96/2008 (testo integrale) — versione `cc1:28b7f4a445f5` — https://www.cortecostituzionale.it/scheda-pronuncia/2008/96
@@ -116,3 +127,4 @@
 - r6 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r7 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r8 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116

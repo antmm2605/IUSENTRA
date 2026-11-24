@@ -1,7 +1,7 @@
 # Appello nel rito del lavoro (art. 434)
 
-- ID: `ist-appello-lavoro` · materia: lavoro · revisione 4 · ultimo controllo 24/11/2026 04:21
-- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-appello-lavoro` · materia: lavoro · revisione 5 · ultimo controllo 24/11/2026 04:24
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso in appello alla corte d'appello in funzione di giudice del lavoro.
 
@@ -9,7 +9,7 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Appello nel rito del lavoro: non sono ammesse nuove domande ed eccezioni. — _art. 437 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - La sospensione feriale dei termini non si applica alle controversie di lavoro. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
@@ -25,7 +25,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Appello nel rito del lavoro: non sono ammessi nuovi mezzi di prova, salvo il giuramento estimatorio e salvo che il collegio, anche d'ufficio, li ritenga indispensabili per decidere. — _art. 437 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - sentenza e data di notifica o pubblicazione (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -48,11 +48,12 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Presupposti, Giudice e rito, Questioni interpretative.
 
 ## Fonti con versione
 - art. 434 c.p.c. (Deposito del ricorso in appello) — testo vigente, aggiornamento archivio 05/03/2026, versione `db27e1a9dede2312` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art434
 - art. 433 c.p.c. (Giudice d'appello) — testo vigente, aggiornamento archivio n.d., versione `21e5669851a68d51` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art433
+- art. 437 c.p.c. (Udienza di discussione) — testo vigente, aggiornamento archivio n.d., versione `2c3474f4c976689b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art437
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 327 c.p.c. (Decadenza dall'impugnazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `3e877539f1fa0e9a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art327
 - Corte di Cassazione — civile, sez. L, n. 29273/2026 (testo integrale) — versione `9833d38299b9736a` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L29273O&rows=1&wt=json
@@ -67,3 +68,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:433
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cpc:327, pronuncia:Corte costituzionale|42/2025, pronuncia:Corte costituzionale|88/2018, pronuncia:Corte di Cassazione — civile|29351/2026, pronuncia:Corte di Cassazione — civile|29493/2026, pronuncia:Corte di Cassazione — civile|29551/2026
 - r4 · 24/11/2026 04:04 · fonti cambiate: pronuncia:Corte costituzionale|88/2018
+- r5 · 24/11/2026 04:24 · fonti cambiate: norma:cpc:437

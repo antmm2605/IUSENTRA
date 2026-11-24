@@ -1,6 +1,6 @@
 # Diritto di recesso del consumatore
 
-- ID: `ist-recesso-consumatore` · materia: consumatori · revisione 2 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-recesso-consumatore` · materia: consumatori · revisione 2 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione esplicita di recesso (anche con il modulo tipo) entro il termine.

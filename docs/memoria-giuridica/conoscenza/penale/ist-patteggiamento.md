@@ -1,6 +1,6 @@
 # Applicazione della pena su richiesta (patteggiamento)
 
-- ID: `ist-patteggiamento` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-patteggiamento` · materia: penale · revisione 2 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di applicazione della pena con il consenso del pubblico ministero.

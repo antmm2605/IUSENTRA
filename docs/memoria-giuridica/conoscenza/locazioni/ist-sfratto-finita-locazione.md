@@ -1,7 +1,7 @@
 # Licenza e sfratto per finita locazione
 
-- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:21
-- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sfratto-finita-locazione` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:24
+- Stato: lacune · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di licenza (prima della scadenza) o di sfratto (dopo la scadenza) per finita locazione, con citazione per la convalida; Tribunale del luogo dell'immobile.
 
@@ -25,6 +25,9 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 ## Prove e oneri
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 - Se l'intimato si oppone con eccezioni non fondate su prova scritta, il giudice, su istanza del locatore e se non vi sono gravi motivi contrari, pronuncia ordinanza di rilascio con riserva delle eccezioni. — _art. 665 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - data di scadenza del contratto e disdetta inviata (data e modalità) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -63,6 +66,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 661 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `bed85335f84f3c14` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art661
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 665 c.p.c. (Opposizione e provvedimenti del giudice) — testo vigente, aggiornamento archivio 05/03/2026, versione `9fbf736ad8a2171f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art665
+- art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
+- art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
+- art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
 - Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29253/2024 (testo integrale) — versione `84a43c2b77894d4c` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024329253S&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 25286/2024 (testo integrale) — versione `a9bfc3ae2af13df3` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024325286O&rows=1&wt=json
@@ -76,3 +82,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:l392:29
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:665
 - r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116

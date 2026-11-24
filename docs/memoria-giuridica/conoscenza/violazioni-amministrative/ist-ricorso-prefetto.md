@@ -1,6 +1,6 @@
 # Ricorso al Prefetto contro il verbale (art. 203 cod. strada)
 
-- ID: `ist-ricorso-prefetto` · materia: violazioni amministrative · revisione 4 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-ricorso-prefetto` · materia: violazioni amministrative · revisione 4 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al Prefetto entro sessanta giorni (in alternativa al giudice di pace entro trenta).

@@ -1,7 +1,7 @@
 # Atto di appello civile
 
-- ID: `ist-appello-civile` · materia: civile ordinario · revisione 2 · ultimo controllo 24/11/2026 04:21
-- Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-appello-civile` · materia: civile ordinario · revisione 3 · ultimo controllo 24/11/2026 04:24
+- Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in appello con motivi specifici per capo.
 
@@ -10,6 +10,7 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
 - Nel rito del lavoro l'appello si propone con ricorso entro trenta giorni senza sospensione feriale (art. 434 c.p.c.). — _art. 434 c.p.c._ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola)
+- Appello civile: le domande nuove sono inammissibili, rilevabili d'ufficio; non si propongono nuove eccezioni che non siano rilevabili anche d'ufficio. — _art. 345 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Termine breve: trenta giorni dalla notificazione della sentenza; senza notificazione, sei mesi dalla pubblicazione. — _art. 325 c.p.c.; art. 326 c.p.c.; art. 327 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -25,7 +26,7 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
-_Sezione mancante: nessuna affermazione su oneri e prove ancorata al testo vigente nelle regole dell'istituto._
+- Appello civile: non sono ammessi nuovi mezzi di prova né nuovi documenti, salvo che la parte dimostri di non averli potuti proporre o produrre in primo grado per causa a lei non imputabile. — _art. 345 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - sentenza, data di pubblicazione e di notificazione (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -48,7 +49,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Giudice e rito, Prove e oneri, Questioni interpretative.
+- Sezioni senza fonte: Presupposti, Giudice e rito, Questioni interpretative.
 
 ## Fonti con versione
 - art. 339 c.p.c. (Appellabilità delle sentenze) — testo vigente, aggiornamento archivio n.d., versione `0d89355652eae1fb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art339
@@ -57,6 +58,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 327 c.p.c. (Decadenza dall'impugnazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `3e877539f1fa0e9a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art327
 - art. 348-bis c.p.c. (Inammissibilità e manifesta infondatezza dell'appello) — testo vigente, aggiornamento archivio n.d., versione `cd06750c2ddea34f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art348bis
 - art. 434 c.p.c. (Deposito del ricorso in appello) — testo vigente, aggiornamento archivio 05/03/2026, versione `db27e1a9dede2312` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art434
+- art. 345 c.p.c. (Domande ed eccezioni nuove) — testo vigente, aggiornamento archivio n.d., versione `7ccb87194880d055` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art345
 - art. 326 c.p.c. (Decorrenza dei termini) — testo vigente, aggiornamento archivio n.d., versione `358eb8a805aa88ab` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 - art. 341 c.p.c. (Giudice dell'appello) — testo vigente, aggiornamento archivio n.d., versione `d3a70ba21106f7a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art341
@@ -70,3 +72,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpc:348bis
+- r3 · 24/11/2026 04:24 · fonti cambiate: norma:cpc:345

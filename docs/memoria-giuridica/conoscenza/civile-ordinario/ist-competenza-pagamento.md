@@ -1,7 +1,7 @@
 # Competenza per territorio nelle cause di pagamento
 
-- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 4 · ultimo controllo 24/11/2026 04:21
-- Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-competenza-pagamento` · materia: civile ordinario · revisione 5 · ultimo controllo 24/11/2026 04:24
+- Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Tribunale.
 
@@ -28,6 +28,9 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Prove e oneri
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
@@ -63,6 +66,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 18 c.p.c. (Foro generale delle persone fisiche) — testo vigente, aggiornamento archivio 05/03/2026, versione `edfe283095fec60d` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art18
 - art. 20 c.p.c. (Foro facoltativo per le cause relative a diritti di obbligazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `a85515452e1b2416` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art20
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
+- art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
+- art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
 - Corte di Cassazione — civile, sez. 3, n. 29616/2026 (testo integrale) — versione `8a588945a9d7de5f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329616O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29671/2026 (testo integrale) — versione `01032293a8927ff5` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329671O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 29672/2026 (testo integrale) — versione `78ea4ddd30a67567` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026329672O&rows=1&wt=json
@@ -75,3 +81,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697, norma:cpc:167, norma:cpc:38
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|104/2020, pronuncia:Corte costituzionale|164/2010, pronuncia:Corte costituzionale|78/2016, pronuncia:Corte di Cassazione — civile|29616/2026, pronuncia:Corte di Cassazione — civile|29671/2026, pronuncia:Corte di Cassazione — civile|29672/2026
+- r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116

@@ -1,7 +1,7 @@
 # Intimazione di sfratto per morosità e citazione per la convalida
 
-- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 5 · ultimo controllo 24/11/2026 04:21
-- Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 04:24
+- Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.
 
@@ -19,6 +19,8 @@
 
 ## Eccezioni e tranelli
 - La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente. — _art. 55 l. 392/1978_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 55 l. 392/1978: atto dedotto dalle norme citate dalla stessa regola)
+- La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Prescrizione quinquennale dei canoni e di ogni altro corrispettivo di locazione. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
@@ -40,6 +42,9 @@
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 - Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
 - Se l'intimato si oppone con eccezioni non fondate su prova scritta, il giudice, su istanza del locatore e se non vi sono gravi motivi contrari, pronuncia ordinanza di rilascio con riserva delle eccezioni. — _art. 665 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - comune e indirizzo dell'immobile (competenza del tribunale del luogo dell'immobile) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -86,6 +91,9 @@
 - art. 1578 c.c. (Vizi della cosa locata) — testo vigente, aggiornamento archivio 29/04/2026, versione `1480d3e41b44e190` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1578
 - art. 1460 c.c. (Eccezione d'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `4a69653223467c8c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1460
 - art. 1587 c.c. (Obbligazioni principali del conduttore) — testo vigente, aggiornamento archivio 29/04/2026, versione `dc85ae269c231cc5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1587
+- art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
+- art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
+- art. 2934 c.c. (Estinzione dei diritti) — testo vigente, aggiornamento archivio n.d., versione `2ee6bf29315198c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2934
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
 - art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
@@ -95,6 +103,9 @@
 - art. 447-bis c.p.c. (Norme applicabili alle controversie in materia di locazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `9313ab26e5e36132` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art447bis
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
+- art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
+- art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
+- art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
 - Corte costituzionale, n. 79/2020 (testo integrale) — versione `cc1:17b03ab6d9e5` — https://www.cortecostituzionale.it/scheda-pronuncia/2020/79
 - Corte di Cassazione — civile, sez. 3, n. 11406/2026 (testo integrale) — versione `8e574bc669a41d3f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026311406O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 32869/2025 (testo integrale) — versione `aa30479390b6a68c` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025332869O&rows=1&wt=json
@@ -109,3 +120,4 @@
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1455, norma:cc:2697, norma:cc:2935, norma:cc:2943, norma:cc:2948, pronuncia:Corte di Cassazione — civile|22105/2023
 - r5 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116

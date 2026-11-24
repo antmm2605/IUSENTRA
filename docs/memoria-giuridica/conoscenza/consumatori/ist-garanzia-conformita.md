@@ -1,7 +1,7 @@
 # Garanzia legale di conformità
 
-- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 5 · ultimo controllo 24/11/2026 04:21
-- Stato: verificata · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 6 · ultimo controllo 24/11/2026 04:24
+- Stato: verificata · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta al venditore di riparazione o sostituzione gratuita; in subordine riduzione del prezzo o risoluzione del contratto.
 
@@ -30,6 +30,9 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Prove e oneri
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - data di consegna del bene (da essa decorrono i due anni e i ventisei mesi) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -71,6 +74,9 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - art. 135-quater d.lgs. 206/2005 (codice del consumo) (Riduzione del prezzo e risoluzione) — testo vigente, aggiornamento archivio 11/11/2026, versione `6284256586d3379b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art135quater
 - art. 33 d.lgs. 206/2005 (codice del consumo) (Clausole vessatorie nel contratto tra professionista e consumatore) — testo vigente, aggiornamento archivio 11/11/2026, versione `24dbfba1db5d9c63` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art33
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
+- art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
+- art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
 - Corte di Cassazione — civile, sez. 3, n. 14390/2024 (testo integrale) — versione `80f80be053d91bb1` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024314390O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 26202/2024 (testo integrale) — versione `fbe47df95de3956f` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024326202O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 2, n. 10445/2025 (testo integrale) — versione `40545d2e488c6834` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025210445O&rows=1&wt=json
@@ -85,3 +91,4 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697
 - r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|10445/2025, pronuncia:Corte di Cassazione — civile|14390/2024, pronuncia:Corte di Cassazione — civile|19979/2024, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26202/2024, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026
+- r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116

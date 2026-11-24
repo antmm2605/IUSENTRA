@@ -3862,3 +3862,539 @@ rinominate: 0
 invariate: 152
 ritirate: 0
 schede: 154
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Atto di citazione (rito ordinario di cognizione)
+event_id: 5aa8e91b94640fb9ead4
+scheda: ist-citazione
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Comparsa di costituzione e risposta
+event_id: 541c961a477de0f9f187
+scheda: ist-comparsa
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Atto di appello civile
+event_id: 99689bf410944a039227
+scheda: ist-appello-civile
+status: completato
+revision: 2 -> 3
+motivo: fonti cambiate: norma:cpc:345
+fonti_aggiunte: norma:cpc:345
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Procedimento semplificato di cognizione (art. 281-decies)
+event_id: 36321fbbd2d115ca0631
+scheda: ist-rito-semplificato
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Reclamo cautelare (art. 669-terdecies)
+event_id: f5f48f52046a642f2fbe
+scheda: ist-reclamo-cautelare
+status: completato
+revision: 2 -> 3
+motivo: fonti cambiate: norma:l742:3, norma:rd12:92
+fonti_aggiunte: norma:l742:3, norma:rd12:92
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Ricorso per decreto ingiuntivo
+event_id: 13bdc0d235b54b777aa3
+scheda: ist-decreto-ingiuntivo
+status: completato
+revision: 7 -> 8
+motivo: fonti cambiate: norma:cc:2934, norma:cc:2938, norma:cpc:112
+fonti_aggiunte: norma:cc:2934, norma:cc:2938, norma:cpc:112
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Opposizione a decreto ingiuntivo
+event_id: c82bce4ea6093991584a
+scheda: ist-opposizione-di
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Opposizione tardiva a decreto ingiuntivo (art. 650)
+event_id: 0858d57796c1e7969d34
+scheda: ist-opposizione-tardiva-di
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Ordini di protezione contro gli abusi familiari
+event_id: fe0c3498ead924651341
+scheda: ist-ordini-protezione
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Rinuncia all'eredità
+event_id: 5388b009ac994f0f7222
+scheda: ist-rinuncia-eredita
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Petizione di eredità
+event_id: 5cf02a562ce456415b84
+scheda: ist-petizione-eredita
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Divisione ereditaria (e scioglimento della comunione)
+event_id: da74577c90585e8cf9a7
+scheda: ist-divisione
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Azione di riduzione (lesione di legittima)
+event_id: ceb82697ef0c746ec55b
+scheda: ist-riduzione
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Impugnazione della delibera condominiale (art. 1137)
+event_id: d897f5d03a18f7744548
+scheda: ist-delibera-condominio
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Danni da parti comuni e liti condominiali
+event_id: 739adc609b46f422b26a
+scheda: ist-lite-condominio
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Azione negatoria
+event_id: df8a2526b1391eeca44e
+scheda: ist-negatoria
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Azione confessoria (servitù)
+event_id: 62147c0f9997a0620227
+scheda: ist-confessoria
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Usucapione
+event_id: 5e577f3bc958e43da0f7
+scheda: ist-usucapione
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Regolamento di confini
+event_id: ba79b8851a11eea43b6c
+scheda: ist-regolamento-confini
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Risoluzione per inadempimento
+event_id: 368ac42b3eff263814e3
+scheda: ist-risoluzione
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Caparra confirmatoria e preliminare
+event_id: 7daafb3829221f4fa89e
+scheda: ist-caparra
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Rescissione del contratto
+event_id: 51b8671b52307014e956
+scheda: ist-rescissione
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Annullamento del contratto (vizi del consenso, incapacità)
+event_id: 921c49082750bd62fc39
+scheda: ist-annullamento
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Nullità del contratto
+event_id: 9f548d98fa0328f8ea1f
+scheda: ist-nullita
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Esecuzione in forma specifica dell'obbligo di concludere il contratto (art. 2932)
+event_id: 472eed4f7a1769fccc55
+scheda: ist-esecuzione-2932
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Risarcimento del danno da inadempimento
+event_id: bbf03eb0abedbf679cf0
+scheda: ist-risarcimento-contrattuale
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Vizi e difformità nell'appalto
+event_id: f09618fb9375bfe72a4e
+scheda: ist-vizi-appalto
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
+event_id: 4f8093a14a31c1f75cd9
+scheda: ist-sinistro-stradale
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Negoziazione assistita per sinistri stradali
+event_id: da08050cde467aeec43f
+scheda: ist-negoziazione-sinistri
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2934, norma:cc:2938, norma:cpc:112
+fonti_aggiunte: norma:cc:2934, norma:cc:2938, norma:cpc:112
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Responsabilità sanitaria (l. 24/2017)
+event_id: bcd169f3badd7098a5ce
+scheda: ist-responsabilita-medica
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Danno da cose in custodia (art. 2051) e insidia stradale
+event_id: d17ecd1a4e6279fe58e8
+scheda: ist-cose-in-custodia
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Diffamazione: risarcimento civile
+event_id: a3f32a6bab122a88c173
+scheda: ist-diffamazione-civile
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Impugnazione del licenziamento
+event_id: 5641e350f91cec93514a
+scheda: ist-licenziamento
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Differenze retributive e crediti di lavoro
+event_id: beedda44d6eccebe24f0
+scheda: ist-differenze-retributive
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: 34dc3482b98b863b2d12
+scheda: ist-tfr
+status: completato
+revision: 9 -> 10
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Mobbing, straining e demansionamento
+event_id: d6ea63b23a6d9f110894
+scheda: ist-mobbing
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Ricorso nel rito del lavoro (art. 414)
+event_id: 9518bf24c23273b1d41c
+scheda: ist-ricorso-414
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Decreto ingiuntivo per retribuzioni
+event_id: 1904a63775371f479c8e
+scheda: ist-di-retribuzioni
+status: completato
+revision: 8 -> 9
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Appello nel rito del lavoro (art. 434)
+event_id: 41308a58ddbd08d96177
+scheda: ist-appello-lavoro
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cpc:437
+fonti_aggiunte: norma:cpc:437
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
+event_id: d37845e02de9dcf3262d
+scheda: ist-ricorso-dipendente-pubblico
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Carta del docente per i supplenti
+event_id: f013e1f2af098ecc4ea9
+scheda: ist-carta-docente
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
+event_id: d93ff5d7bca7f73eecb9
+scheda: ist-abuso-termine-pa
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Esecuzione forzata contro la PA e ottemperanza del giudicato
+event_id: ff9da49ea88c3f55a4a3
+scheda: ist-esecuzione-contro-pa
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Controversie previdenziali (artt. 442-443 c.p.c.)
+event_id: 5b991dccf98899e8eda9
+scheda: ist-ricorso-442
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Intimazione di sfratto per morosità e citazione per la convalida
+event_id: 5e7b92cacaf461fd6057
+scheda: ist-sfratto-morosita
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Licenza e sfratto per finita locazione
+event_id: 7ee2fb98355feb3a8c48
+scheda: ist-sfratto-finita-locazione
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Opposizione alla convalida di sfratto e termine di grazia
+event_id: 6622af0d02b1991fbe95
+scheda: ist-opposizione-convalida
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Aggiornamento ISTAT del canone
+event_id: 5cf899b3a554bc893400
+scheda: ist-aggiornamento-canone
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Restituzione del deposito cauzionale e cause di locazione
+event_id: 9ae46f503aaba481afca
+scheda: ist-deposito-cauzionale
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Restituzione del canone non registrato o in nero
+event_id: 372f5ba0177645c8b712
+scheda: ist-canone-nero
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Garanzia legale di conformità
+event_id: 01a2abdadfa0ae5f12e8
+scheda: ist-garanzia-conformita
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Clausole vessatorie
+event_id: 92f849375316ed568836
+scheda: ist-clausole-vessatorie
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Usura bancaria
+event_id: 5c606c843c441bb6949c
+scheda: ist-usura
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Anatocismo e ripetizione di indebito bancario
+event_id: e0cc4bd9dcb57380b4dc
+scheda: ist-anatocismo
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Contestazione degli estratti conto e richiesta documenti (art. 119 TUB)
+event_id: 8ffe1326acf3b2e1d525
+scheda: ist-estratti-conto
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Arbitro per le Controversie Finanziarie (ACF)
+event_id: 5fccdbd6102eaf01b15e
+scheda: ist-acf
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Impugnazione delle delibere societarie
+event_id: 22cd6c39058e38b06ec3
+scheda: ist-impugnazione-delibere-societarie
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Azione di responsabilità contro gli amministratori
+event_id: 98257fdced216e8cce01
+scheda: ist-responsabilita-amministratori
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Recesso del socio
+event_id: c9ea0cad52686f0e05e4
+scheda: ist-recesso-socio
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Autotutela tributaria
+event_id: 43fe0830f98fc73fb636
+scheda: ist-autotutela-tributaria
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Definizioni agevolate (rottamazione)
+event_id: 75854092a7dbdc35d70a
+scheda: ist-definizioni-agevolate
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Remissione della querela
+event_id: 16a918e9b9c82df2f020
+scheda: ist-remissione-querela
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Riesame e appello cautelare
+event_id: 9ec2d32e32ef910ab689
+scheda: ist-riesame
+status: completato
+revision: 2 -> 3
+motivo: fonti cambiate: norma:l742:2
+fonti_aggiunte: norma:l742:2
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Ricorso contro il diniego di protezione internazionale
+event_id: c1401784f1e3792067e7
+scheda: ist-protezione-internazionale
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:dlgs25:35ter
+fonti_aggiunte: norma:dlgs25:35ter
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Competenza per territorio nelle cause di pagamento
+event_id: d072cc74a80076f9d8c1
+scheda: ist-competenza-pagamento
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
+fonti_aggiunte: norma:cc:2729, norma:cpc:115, norma:cpc:116
+
+## [2026-11-24T04:24:43+01:00] aggiornamento | Rimessione in termini (art. 153 c.p.c.)
+event_id: d31326088a4854f07827
+scheda: ist-rimessione-termini
+status: completato
+revision: 1 -> 2
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T04:24:43+01:00] generazione | Danno da attività pericolose (art. 2050 c.c.)
+event_id: 564bd9de3f524f0076e5
+scheda: ist-attivita-pericolose
+status: completato
+revision: 1
+fonti: 19
+
+## [2026-11-24T04:24:43+01:00] controllo | passaggio di controllo
+event_id: 7f1c66eb7147885440f6
+status: completato
+generate: 1
+aggiornate: 66
+rinominate: 0
+invariate: 88
+ritirate: 0
+schede: 155

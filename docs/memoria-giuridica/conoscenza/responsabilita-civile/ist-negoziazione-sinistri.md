@@ -1,7 +1,7 @@
 # Negoziazione assistita per sinistri stradali
 
-- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 5 · ultimo controllo 24/11/2026 04:21
-- Stato: verificata · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 6 · ultimo controllo 24/11/2026 04:24
+- Stato: verificata · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione, attesa dei termini, poi invito alla negoziazione assistita tramite avvocato; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
 
@@ -13,6 +13,8 @@
 - L'invito alla negoziazione avverte che la mancata risposta entro trenta giorni dalla ricezione o il rifiuto possono essere valutati dal giudice. — _art. 4 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
+- La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Mancata negoziazione assistita obbligatoria: l'improcedibilità deve essere eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice, non oltre la prima udienza. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 - Per il danno da circolazione dei veicoli il diritto al risarcimento si prescrive in due anni. — _art. 2947 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
@@ -71,6 +73,9 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 148 d.lgs. 209/2005 (Procedura di risarcimento) — testo vigente, aggiornamento archivio 11/11/2026, versione `c72de03ee03be23a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-07;209~art148
 - art. 145 d.lgs. 209/2005 (Proponibilità dell'azione di risarcimento) — testo vigente, aggiornamento archivio 11/11/2026, versione `267647533219a352` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-07;209~art145
 - art. 4 d.l. 132/2014 (Non accettazione dell'invito) — testo vigente, aggiornamento archivio n.d., versione `18d82d2c7a37c0a7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art4
+- art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
+- art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
+- art. 2934 c.c. (Estinzione dei diritti) — testo vigente, aggiornamento archivio n.d., versione `2ee6bf29315198c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2934
 - art. 2947 c.c. (Prescrizione del diritto al risarcimento del danno) — testo vigente, aggiornamento archivio 29/04/2026, versione `f792d4d582c83466` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2947
 - art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
@@ -89,3 +94,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:cc:2947
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2054, norma:cc:2935, norma:cc:2943
 - r5 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|162/2016, pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|21935/2026, pronuncia:Corte di Cassazione — civile|26412/2026, pronuncia:Corte di Cassazione — civile|28758/2026, pronuncia:Corte di Cassazione — civile|32152/2024
+- r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2934, norma:cc:2938, norma:cpc:112

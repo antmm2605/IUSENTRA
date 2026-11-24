@@ -1,6 +1,6 @@
 # Contenzioso sugli appalti pubblici (art. 120 c.p.a.)
 
-- ID: `ist-appalti-120` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-appalti-120` · materia: amministrativo · revisione 2 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR nel rito speciale degli appalti, entro trenta giorni, con eventuale istanza cautelare.

@@ -1,7 +1,7 @@
 # Ricorso per decreto ingiuntivo
 
-- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 7 · ultimo controllo 24/11/2026 04:21
-- Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-decreto-ingiuntivo` · materia: monitorio · revisione 8 · ultimo controllo 24/11/2026 04:24
+- Stato: verificata · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per decreto ingiuntivo al giudice competente per valore.
 
@@ -12,6 +12,8 @@
 - Né mediazione né negoziazione assistita sono condizioni di procedibilità del ricorso per decreto ingiuntivo: entrambe le discipline escludono i procedimenti per ingiunzione. — _art. 3 d.l. 132/2014; art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
+- La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Prescrizione: salvo diversa disposizione di legge, il diritto si estingue in dieci anni. — _art. 2946 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione decorre dal giorno in cui il diritto può essere fatto valere. — _art. 2935 c.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
@@ -67,6 +69,9 @@
 - art. 642 c.p.c. (Esecuzione provvisoria) — testo vigente, aggiornamento archivio 05/03/2026, versione `736050f30d4d71ef` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art642
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
+- art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
+- art. 2934 c.c. (Estinzione dei diritti) — testo vigente, aggiornamento archivio n.d., versione `2ee6bf29315198c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2934
 - art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
 - art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
@@ -88,3 +93,4 @@
 - r5 · 24/11/2026 04:13 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r6 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte costituzionale|78/2012
 - r7 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2934, norma:cc:2938, norma:cpc:112

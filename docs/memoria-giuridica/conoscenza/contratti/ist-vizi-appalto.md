@@ -1,7 +1,7 @@
 # Vizi e difformità nell'appalto
 
-- ID: `ist-vizi-appalto` · materia: contratti · revisione 3 · ultimo controllo 24/11/2026 04:21
-- Stato: lacune · fonti dirette: 18 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-vizi-appalto` · materia: contratti · revisione 4 · ultimo controllo 24/11/2026 04:24
+- Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di garanzia per vizi dell'appalto (artt. 1667-1668 c.c.): diffida interruttiva della prescrizione, accertamento tecnico preventivo e poi giudizio di merito per l'eliminazione dei vizi o la riduzione del prezzo.
 
@@ -28,6 +28,9 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 ## Prove e oneri
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 - Il debitore che non adempie esattamente risponde del danno se non prova che l'inadempimento o il ritardo deriva da impossibilità della prestazione per causa a lui non imputabile. — _art. 1218 c.c._ (ancora letterale trovata nel testo vigente)
+- Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - ricevuta di consegna della PEC di denuncia (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -62,6 +65,9 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - art. 1460 c.c. (Eccezione d'inadempimento) — testo vigente, aggiornamento archivio 29/04/2026, versione `4a69653223467c8c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1460
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
 - art. 1218 c.c. (Responsabilità del debitore) — testo vigente, aggiornamento archivio n.d., versione `c49340df4521815e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1218
+- art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
+- art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
+- art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 1655 c.c. (Nozione dell'appalto) — testo vigente, aggiornamento archivio 29/04/2026, versione `db574c2d4aee85ca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1655
 - Corte di Cassazione — civile, sez. 2, n. 29574/2026 (testo integrale) — versione `dc3fa8ddc02b84df` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026229574O&rows=1&wt=json
@@ -75,3 +81,4 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:1460, norma:cpc:167, norma:cpc:38, pronuncia:Corte di Cassazione — civile|25702/2026, pronuncia:Corte di Cassazione — civile|26951/2026
+- r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116

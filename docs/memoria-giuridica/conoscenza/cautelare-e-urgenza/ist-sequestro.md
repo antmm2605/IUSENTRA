@@ -1,6 +1,6 @@
 # Sequestro conservativo e giudiziario
 
-- ID: `ist-sequestro` · materia: cautelare e urgenza · revisione 6 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-sequestro` · materia: cautelare e urgenza · revisione 6 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per sequestro al giudice competente per il merito.

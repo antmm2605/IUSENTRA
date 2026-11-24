@@ -1,11 +1,12 @@
 # Esecuzione forzata contro la PA e ottemperanza del giudicato
 
-- ID: `ist-esecuzione-contro-pa` · materia: esecuzione contro la PA · revisione 2 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-esecuzione-contro-pa` · materia: esecuzione contro la PA · revisione 3 · ultimo controllo 24/11/2026 04:24
 - Stato: verificata · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** notificare il titolo, attendere 120 giorni, poi precetto e pignoramento presso terzi; in alternativa, passata in giudicato la sentenza, ricorso per ottemperanza al TAR; giudice dell'esecuzione (pignoramento presso terzi: foro dell'Avvocatura dello Stato del distretto del creditore) oppure TAR per l'ottemperanza del giudicato.
 
 ## Presupposti
+- Il precetto notificato prima dei 120 giorni viola il divieto di legge ed è esposto a opposizione. — _art. 14 d.l. 669/1996_ (ancora letterale trovata nel testo vigente)
 - Atti di precetto e pignoramento verso gli enti pubblici vanno notificati, a pena di nullità, presso la struttura territoriale dell'ente nella cui circoscrizione risiede il creditore. — _art. 14 d.l. 669/1996_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
@@ -51,7 +52,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Eccezioni e tranelli, Prove e oneri, Questioni interpretative.
-- Avvertenza della regola pi_esecuzione_pa non riportata (senza norma citata): «Il precetto notificato prima dei 120 giorni è inefficace come atto di esecuzione: si espone a opposizione.»
 
 ## Fonti con versione
 - art. 14 d.l. 669/1996 (Esecuzione forzata nei confronti di pubbliche amministrazioni) — testo vigente, aggiornamento archivio n.d., versione `4888ad8a61063942` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:1996-12-31;669~art14
@@ -68,3 +68,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 04:24 · contenuto delle regole cambiato con le stesse fonti

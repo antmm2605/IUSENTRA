@@ -1,6 +1,6 @@
 # Definizioni agevolate (rottamazione)
 
-- ID: `ist-definizioni-agevolate` · materia: tributario · revisione 3 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-definizioni-agevolate` · materia: tributario · revisione 4 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di adesione all'agente della riscossione e pagamento in unica soluzione o a rate.
@@ -12,7 +12,7 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 
 ## Termini
-_Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
+- Il termine per la dichiarazione di adesione era il 30/04/2026 ed è scaduto: per i carichi non dichiarati entro quella data la definizione non è più disponibile, salvo una nuova legge. — _art. 1 l. 199/2025_ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
 - I carichi affidati all'agente della riscossione dal 2000 al 2023 per imposte dichiarate e non versate (anche da controlli automatici) e per contributi INPS non versati, esclusi quelli da accertamento, si estinguono pagando il capitale e le spese, senza sanzioni, interessi di mora e aggio. — _art. 1 l. 199/2025_ (ancora letterale trovata nel testo vigente)
@@ -39,10 +39,10 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Strumenti del software
 - Regola di Lex «trib_definizione_agevolata»
+- Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Avvertenza della regola trib_definizione_agevolata non riportata (senza norma citata): «Nel testo vigente della l. 199/2025 (Normattiva, vigente al 23/11/2026) il termine per la dichiarazione di adesione era il 30/04/2026 ed è s»
+- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
 - art. 19 d.P.R. 602/1973 (Dilazione del pagamento) — testo vigente, aggiornamento archivio 21/11/2026, versione `dcf1c1eea33ac8d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;602~art19
@@ -53,3 +53,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:dlgs218:15
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:l199:1
+- r4 · 24/11/2026 04:24 · contenuto delle regole cambiato con le stesse fonti

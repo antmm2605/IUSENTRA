@@ -4168,6 +4168,34 @@
    "norme": [],
    "frase_esempio": "Ho perso un termine per causa non imputabile: posso chiedere la rimessione in termini?",
    "origine": "regola dell'harness di Lex senza voce nel catalogo"
+  },
+  {
+   "id": "attivita_pericolose",
+   "materia": "responsabilità civile",
+   "nome": "Danno da attività pericolose (art. 2050 c.c.)",
+   "regole": [],
+   "norme": [
+    {
+     "chiave": "cc:2050",
+     "citazione": "art. 2050 c.c.",
+     "rubrica": "Responsabilita' per l'esercizio di attivita' pericolose",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2043",
+     "citazione": "art. 2043 c.c.",
+     "rubrica": "Risarcimento per fatto illecito",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "cc:2947",
+     "citazione": "art. 2947 c.c.",
+     "rubrica": "Prescrizione del diritto al risarcimento del danno",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "frase_esempio": "Il cliente è stato ferito durante lavori con esplosivi in una cava: chi risponde del danno?",
+   "origine": "norma del registro di Lex senza istituto nel catalogo (richiesta del 24/11/2026)"
   }
  ]
 }

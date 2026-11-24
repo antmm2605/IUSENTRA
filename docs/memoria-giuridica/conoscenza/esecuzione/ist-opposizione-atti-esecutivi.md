@@ -1,6 +1,6 @@
 # Opposizione agli atti esecutivi (art. 617)
 
-- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 7 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-opposizione-atti-esecutivi` · materia: esecuzione · revisione 7 · ultimo controllo 24/11/2026 04:24
 - Stato: verificata · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** atto di citazione in opposizione a precetto (art. 615, comma 1, c.p.c.) con istanza di sospensione dell'efficacia esecutiva del titolo per gravi motivi; giudice del luogo dell'esecuzione.

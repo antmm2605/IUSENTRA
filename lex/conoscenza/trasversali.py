@@ -18,7 +18,7 @@ _RITO_ORDINARIO = frozenset(
     "citazione comparsa opposizione_di risoluzione caparra rescissione annullamento nullita esecuzione_2932 "
     "risarcimento_contrattuale vizi_appalto responsabilita_medica cose_in_custodia sinistro_stradale diffamazione_civile "
     "negatoria confessoria usucapione regolamento_confini petizione_eredita riduzione divisione usura anatocismo "
-    "competenza_pagamento delibera_condominio lite_condominio".split())
+    "competenza_pagamento delibera_condominio lite_condominio attivita_pericolose".split())
 # Azioni di cognizione su diritti (non procedure esecutive, cautelari, stragiudiziali o penali).
 _AZIONI_CIVILI = _RITO_ORDINARIO | frozenset(
     "rito_semplificato licenziamento differenze_retributive tfr mobbing ricorso_414 di_retribuzioni ricorso_dipendente_pubblico "
@@ -33,12 +33,17 @@ _PRESCRIZIONE_ORDINARIA = frozenset(
     "risoluzione risarcimento_contrattuale caparra esecuzione_2932 usura anatocismo decreto_ingiuntivo".split())
 _CANONI = frozenset("sfratto_morosita canone_nero aggiornamento_canone opposizione_convalida".split())
 _PERIODICI_LAVORO = frozenset("differenze_retributive ricorso_dipendente_pubblico di_retribuzioni ricorso_414".split())
-_ILLECITO = frozenset("cose_in_custodia diffamazione_civile responsabilita_medica".split())
+_ILLECITO = frozenset("cose_in_custodia diffamazione_civile responsabilita_medica attivita_pericolose".split())
 _CIRCOLAZIONE = frozenset("sinistro_stradale negoziazione_sinistri".split())
 _MEDIAZIONE = frozenset(
     "delibera_condominio lite_condominio negatoria confessoria usucapione regolamento_confini divisione petizione_eredita "
     "riduzione procedibilita_locazione canone_nero deposito_cauzionale aggiornamento_canone responsabilita_medica "
     "diffamazione_civile usura anatocismo estratti_conto".split())
+# Cause decise con il rito del lavoro (artt. 409 ss. e 442 c.p.c.; art. 63 d.lgs. 165/2001 per il pubblico impiego).
+_RITO_LAVORO = frozenset(
+    "licenziamento differenze_retributive tfr mobbing ricorso_414 ricorso_dipendente_pubblico carta_docente abuso_termine_pa "
+    "ricorso_442".split())
+_PUBBLICO_IMPIEGO = frozenset("ricorso_dipendente_pubblico carta_docente abuso_termine_pa".split())
 _PRESCRIZIONI = _PRESCRIZIONE_ORDINARIA | _CANONI | _PERIODICI_LAVORO | _ILLECITO | _CIRCOLAZIONE | {"tfr"}
 
 
@@ -91,7 +96,85 @@ VOCI: tuple[Voce, ...] = (
          (R("cpc:665", "oppone eccezioni non fondate su prova scritta"),
           R("cpc:665", "pronuncia ordinanza non impugnabile di rilascio, con riserva delle eccezioni del convenuto")),
          frozenset({"sfratto_morosita", "sfratto_finita_locazione", "opposizione_convalida"})),
+    Voce("presunzioni", "prove_oneri",
+         "Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e "
+         "concordanti; non sono ammesse dove la legge esclude la prova per testimoni.",
+         (R("cc:2729", "il quale non deve ammettere che presunzioni gravi, precise e concordanti"),
+          R("cc:2729", "Le presunzioni non si possono ammettere nei casi in cui la legge esclude la prova per testimoni")),
+         _AZIONI_CIVILI),
+    Voce("non_contestazione", "prove_oneri",
+         "Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente "
+         "contestati dalla parte costituita.",
+         (R("cpc:115", "il giudice deve porre a fondamento della decisione le prove proposte dalle parti"),
+          R("cpc:115", "i fatti non specificatamente contestati dalla parte costituita")), _AZIONI_CIVILI),
+    Voce("contegno_parti", "prove_oneri",
+         "Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle "
+         "parti nel processo.",
+         (R("cpc:116", "Il giudice deve valutare le prove secondo il suo prudente apprezzamento"),
+          R("cpc:116", "dal contegno delle parti stesse nel processo")), _AZIONI_CIVILI),
+    Voce("attivita_pericolosa", "prove_oneri",
+         "Chi cagiona danno nello svolgimento di un'attività pericolosa risarcisce se non prova di avere adottato tutte le "
+         "misure idonee a evitare il danno.",
+         (R("cc:2050", "se non prova di avere adottato tutte le misure idonee a evitare il danno"),),
+         frozenset({"attivita_pericolose"})),
+    Voce("memoria_416_prove", "prove_oneri",
+         "Rito del lavoro: nella memoria difensiva il convenuto prende posizione in modo preciso sui fatti affermati "
+         "dall'attore e indica specificamente, a pena di decadenza, i mezzi di prova e i documenti, da depositare insieme.",
+         (R("cpc:416", "deve prendere posizione, in maniera precisa e non limitata ad una generica contestazione"),
+          R("cpc:416", "indicare specificamente, a pena di decadenza, i mezzi di prova dei quali intende avvalersi")),
+         _RITO_LAVORO),
+    Voce("poteri_istruttori_lavoro", "prove_oneri",
+         "Rito del lavoro: il giudice può disporre d'ufficio, in qualsiasi momento, ogni mezzo di prova anche fuori dei "
+         "limiti del codice civile, salvo il giuramento decisorio.",
+         (R("cpc:421", "disporre d'ufficio in qualsiasi momento l'ammissione di ogni mezzo di prova, anche fuori dei limiti stabiliti dal codice civile"),),
+         _RITO_LAVORO),
+    Voce("nova_appello_lavoro_prove", "prove_oneri",
+         "Appello nel rito del lavoro: non sono ammessi nuovi mezzi di prova, salvo il giuramento estimatorio e salvo che "
+         "il collegio, anche d'ufficio, li ritenga indispensabili per decidere.",
+         (R("cpc:437", "Non sono ammessi nuovi mezzi di prova, tranne il giuramento estimatorio"),
+          R("cpc:437", "li ritenga indispensabili ai fini della decisione della causa")), frozenset({"appello_lavoro"})),
+    Voce("nova_appello_civile_prove", "prove_oneri",
+         "Appello civile: non sono ammessi nuovi mezzi di prova né nuovi documenti, salvo che la parte dimostri di non "
+         "averli potuti proporre o produrre in primo grado per causa a lei non imputabile.",
+         (R("cpc:345", "Non sono ammessi i nuovi mezzi di prova e non possono essere prodotti nuovi documenti"),
+          R("cpc:345", "per causa ad essa non imputabile")), frozenset({"appello_civile"})),
     # ------------------------------------------------------------------ eccezioni
+    Voce("memoria_416_eccezioni", "eccezioni",
+         "Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria "
+         "difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili "
+         "d'ufficio.",
+         (R("cpc:416", "Il convenuto deve costituirsi almeno dieci giorni prima della udienza"),
+          R("cpc:416", "devono essere proposte, a pena di decadenza, le eventuali domande in via riconvenzionale e le eccezioni processuali e di merito che non siano rilevabili d'ufficio")),
+         _RITO_LAVORO),
+    Voce("modifica_domande_lavoro", "eccezioni",
+         "Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi "
+         "motivi e con l'autorizzazione del giudice.",
+         (R("cpc:420", "se ricorrono gravi motivi, modificare le domande, eccezioni e conclusioni gia' formulate, previa autorizzazione del giudice"),),
+         _RITO_LAVORO),
+    Voce("nova_appello_lavoro", "eccezioni",
+         "Appello nel rito del lavoro: non sono ammesse nuove domande ed eccezioni.",
+         (R("cpc:437", "Non sono ammesse nuove domande ed eccezioni"),), frozenset({"appello_lavoro"})),
+    Voce("nova_appello_civile", "eccezioni",
+         "Appello civile: le domande nuove sono inammissibili, rilevabili d'ufficio; non si propongono nuove eccezioni "
+         "che non siano rilevabili anche d'ufficio.",
+         (R("cpc:345", "Nel giudizio d'appello non possono proporsi domande nuove"),
+          R("cpc:345", "Non possono proporsi nuove eccezioni, che non siano rilevabili anche d'ufficio")), frozenset({"appello_civile"})),
+    Voce("giurisdizione_pa", "eccezioni",
+         "Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo "
+         "grado; nei giudizi di impugnazione solo se oggetto di specifico motivo.",
+         (R("cpc:37", "nei confronti del giudice amministrativo o dei giudici speciali e' rilevato anche d'ufficio nel giudizio di primo grado"),
+          R("cpc:37", "Nei giudizi di impugnazione puo' essere rilevato solo se oggetto di specifico motivo")), _PUBBLICO_IMPIEGO),
+    Voce("prescrizione_non_rilevabile", "eccezioni",
+         "La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata "
+         "alle parti.",
+         (R("cc:2938", "Il giudice non puo' rilevare d'ufficio la prescrizione non opposta"),
+          R("cpc:112", "non puo' pronunciare d'ufficio su eccezioni, che possono essere proposte soltanto dalle parti")),
+         _PRESCRIZIONI),
+    Voce("diritti_indisponibili", "eccezioni",
+         "Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli "
+         "altri indicati dalla legge.",
+         (R("cc:2934", "Ogni diritto si estingue per prescrizione, quando il titolare non lo esercita per il tempo determinato dalla legge"),
+          R("cc:2934", "Non sono soggetti alla prescrizione i diritti indisponibili")), _PRESCRIZIONI),
     Voce("incompetenza", "eccezioni",
          "L'incompetenza per materia, valore e territorio si eccepisce, a pena di decadenza, nella comparsa di risposta "
          "tempestivamente depositata; l'eccezione di incompetenza per territorio deve indicare il giudice competente.",

@@ -1,15 +1,18 @@
 # Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
 
-- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 4 · ultimo controllo 24/11/2026 04:21
-- Stato: verificata · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-abuso-termine-pa` · materia: pubblico impiego · revisione 5 · ultimo controllo 24/11/2026 04:24
+- Stato: verificata · fonti dirette: 23 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per il risarcimento del danno da abuso (non per la conversione); Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
 
 ## Presupposti
+- Nel pubblico impiego non si chiede la conversione del rapporto a tempo indeterminato: la domanda è risarcitoria. — _art. 36 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
 - Il tentativo di conciliazione è facoltativo: chi agisce «può promuovere» il tentativo dell'art. 410 c.p.c.; mediazione e negoziazione assistita non sono condizioni di procedibilità. — _art. 410 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: domande, eccezioni e conclusioni già formulate si possono modificare all'udienza solo per gravi motivi e con l'autorizzazione del giudice. — _art. 420 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Difetto di giurisdizione del giudice ordinario verso il giudice amministrativo: rilevato anche d'ufficio in primo grado; nei giudizi di impugnazione solo se oggetto di specifico motivo. — _art. 37 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - La sospensione feriale non si applica alle controversie di lavoro. — _art. 3 l. 742/1969_ (ancora letterale trovata nel testo vigente)
@@ -28,6 +31,11 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Prove e oneri
 - Per l'abuso nella successione di contratti a termine il giudice liquida un'indennità fra quattro e ventiquattro mensilità dell'ultima retribuzione utile per il TFR, secondo la gravità della violazione, il numero dei contratti e la durata complessiva, salva la prova del maggior danno. — _art. 36 d.lgs. 165/2001_ (ancora letterale trovata nel testo vigente)
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
+- Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: nella memoria difensiva il convenuto prende posizione in modo preciso sui fatti affermati dall'attore e indica specificamente, a pena di decadenza, i mezzi di prova e i documenti, da depositare insieme. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Rito del lavoro: il giudice può disporre d'ufficio, in qualsiasi momento, ogni mezzo di prova anche fuori dei limiti del codice civile, salvo il giuramento decisorio. — _art. 421 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
 - elenco dei contratti con date e sede (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
@@ -36,7 +44,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - ultima retribuzione di riferimento per il TFR (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
-- La forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e per i contratti anteriori verificare la disciplina transitoria e l'orientamento delle Sezioni Unite nell'archivio SentenzeWeb. — _art. 36 d.lgs. 165/2001_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 36 d.lgs. 165/2001: atto dedotto dalle norme citate dalla stessa regola)
+- Consiglio operativo: la forbice da 4 a 24 mensilità è quella del testo vigente dell'art. 36, comma 5: per i giudizi già pendenti e per i contratti anteriori verificare la disciplina transitoria e l'orientamento delle Sezioni Unite nell'archivio SentenzeWeb. — _art. 36 d.lgs. 165/2001_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 36 d.lgs. 165/2001: atto dedotto dalle norme citate dalla stessa regola)
 
 ## Giurisprudenza che cita le norme (orientamenti da valutare)
 - Autotrasporto, la stessa non introduceva un obbligo a carico del lavoratore tale daprecludergli il ricorso alla procedura di cui all’art. 410 c.p.c. e ad invalidarne gli esiti; hainoltre respinto, per mancanza di prova, della quale ha ritenuto onerato il lavoratore, ladoglianza con la quale questi lamentava sotto diversi profili il difetto di effettività diassistenza da parte del rappresentante sindacale presente alle due conciliazionisottoscritte, per come pacifico, presso la sede dell’aziend — _Corte di Cassazione — civile, sez. L, n. 12056/2026_ (passaggio letto nel testo integrale della pronuncia)
@@ -53,12 +61,13 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli.
-- Avvertenza della regola pi_abuso_termine non riportata (senza norma citata): «Nel pubblico impiego non si chiede la conversione del rapporto: la domanda è risarcitoria.»
 
 ## Fonti con versione
 - art. 36 d.lgs. 165/2001 (Personale a tempo determinato o assunto con forme di lavoro flessibile) — testo vigente, aggiornamento archivio 21/11/2026, versione `fbe5c409530384b6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art36
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
+- art. 37 c.p.c. (Difetto di giurisdizione) — testo vigente, aggiornamento archivio n.d., versione `f1bb0e5c6533e2d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
 - art. 63 d.lgs. 165/2001 (Controversie relative ai rapporti di lavoro) — testo vigente, aggiornamento archivio 11/11/2026, versione `de186351b585f541` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art63
 - art. 413 c.p.c. (Giudice competente) — testo vigente, aggiornamento archivio 05/03/2026, versione `f3a69b5c4f2b6203` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413
@@ -67,6 +76,10 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - art. 9 d.P.R. 115/2002 (Contributo unificato) — testo vigente, aggiornamento archivio 21/11/2026, versione `eef544e027a4f323` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art9
 - art. 11 r.d. 1611/1933 (Notificazioni alle Amministrazioni dello Stato) — testo vigente, aggiornamento archivio 23/11/2026, versione `acb9a3053a3dc4b5` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1933-10-30;1611~art11
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
+- art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
+- art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
+- art. 116 c.p.c. (Valutazione delle prove) — testo vigente, aggiornamento archivio n.d., versione `37ef8c82fd389102` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art116
+- art. 421 c.p.c. (Poteri istruttori del giudice) — testo vigente, aggiornamento archivio n.d., versione `c77b5ae539337563` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art421
 - Corte di Cassazione — civile, sez. L, n. 12056/2026 (testo integrale) — versione `af4afda2304cef9d` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L12056O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 3, n. 7759/2026 (testo integrale) — versione `490601e1d2324fde` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026307759O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. L, n. 7556/2026 (testo integrale) — versione `1bf9aa81747796bf` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026L07556O&rows=1&wt=json
@@ -79,3 +92,4 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:rd1611:11
 - r3 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:04 · fonti cambiate: norma:cc:2697
+- r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:37, norma:cpc:416, norma:cpc:420, norma:cpc:421

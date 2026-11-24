@@ -1,12 +1,12 @@
 # Opposizione tardiva a decreto ingiuntivo (art. 650)
 
-- ID: `ist-opposizione-tardiva-di` · materia: monitorio · revisione 4 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-opposizione-tardiva-di` · materia: monitorio · revisione 5 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione tardiva con atto di citazione davanti all'ufficio che ha emesso il decreto, provando l'incolpevole ignoranza.
 
 ## Presupposti
-_Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
+- Il termine di dieci giorni dal primo atto di esecuzione è un limite finale: iniziata l'esecuzione, l'opposizione tardiva va proposta subito. — _art. 650 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
@@ -45,8 +45,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Avvertenza della regola mon_opposizione_tardiva non riportata (senza norma citata): «Il termine di dieci giorni dal primo atto esecutivo è un limite finale: se l'esecuzione è iniziata, agire subito.»
+- Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 650 c.p.c. (Opposizione tardiva) — testo vigente, aggiornamento archivio 05/03/2026, versione `ef6c6dfb4ad047de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art650
@@ -61,3 +60,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 04:04 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:05 · contenuto delle regole cambiato con le stesse fonti
+- r5 · 24/11/2026 04:24 · contenuto delle regole cambiato con le stesse fonti

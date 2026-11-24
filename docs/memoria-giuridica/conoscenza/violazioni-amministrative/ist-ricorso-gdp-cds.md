@@ -1,6 +1,6 @@
 # Opposizione al verbale davanti al giudice di pace (art. 204-bis cod. strada, art. 7 d.lgs. 150/2011)
 
-- ID: `ist-ricorso-gdp-cds` · materia: violazioni amministrative · revisione 3 · ultimo controllo 24/11/2026 04:21
+- ID: `ist-ricorso-gdp-cds` · materia: violazioni amministrative · revisione 3 · ultimo controllo 24/11/2026 04:24
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 204-bis d.lgs. 285/1992 (cod. strada), art. 7 d.lgs. 150/2011.

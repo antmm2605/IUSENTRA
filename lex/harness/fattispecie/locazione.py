@@ -144,8 +144,11 @@ def analizza_cause_locazione(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- sfratto per locazione ad uso diverso (commerciale)
 def riconosci_sfratto_commerciale(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    return 5 if re.search(r"sfratt", t) and re.search(r"commercial|uso diverso|\bbar\b|negozio|ufficio", t) and re.search(
-        r"termine di grazia|art\. 55|memoria|opposizion|udienza", t) else 0
+    if not (re.search(r"sfratt", t) and re.search(r"commercial|uso diverso|\bbar\b|negozio|ufficio", t) and re.search(
+            r"termine di grazia|art\. 55|memoria|opposizion|udienza", t)):
+        return 0
+    # Lo sfratto ricevuto con la richiesta del termine di grazia è lo strumento chiesto: prevale sulle schede generiche.
+    return 7 if re.search(r"termine di grazia|art\. 55", t) else 5
 
 
 def analizza_sfratto_commerciale(c: Comprensione, f: Fatti) -> Analisi:

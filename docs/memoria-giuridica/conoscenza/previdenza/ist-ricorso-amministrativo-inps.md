@@ -1,6 +1,6 @@
 # Ricorso amministrativo INPS
 
-- ID: `ist-ricorso-amministrativo-inps` · materia: previdenza · revisione 2 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-ricorso-amministrativo-inps` · materia: previdenza · revisione 2 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso amministrativo al comitato provinciale dell'INPS entro novanta giorni dalla comunicazione del provvedimento.

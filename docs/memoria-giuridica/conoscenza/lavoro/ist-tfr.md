@@ -1,6 +1,6 @@
 # TFR (trattamento di fine rapporto)
 
-- ID: `ist-tfr` · materia: lavoro · revisione 13 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-tfr` · materia: lavoro · revisione 13 · ultimo controllo 24/11/2026 05:39
 - Stato: verificata · fonti dirette: 35 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida, poi decreto ingiuntivo o ricorso al giudice del lavoro; con datore insolvente domanda al Fondo di garanzia INPS; Tribunale in funzione di giudice del lavoro.

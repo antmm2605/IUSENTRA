@@ -1,6 +1,6 @@
 # Istruzione preventiva (testimoni a futura memoria, art. 692)
 
-- ID: `ist-istruzione-preventiva` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-istruzione-preventiva` · materia: cautelare e urgenza · revisione 2 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per assunzione di testimoni a futura memoria.

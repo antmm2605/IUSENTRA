@@ -1,6 +1,6 @@
 # Modifica delle condizioni di separazione o divorzio
 
-- ID: `ist-modifica-condizioni` · materia: famiglia e minori · revisione 5 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-modifica-condizioni` · materia: famiglia e minori · revisione 5 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per la revisione dei provvedimenti con le forme del rito unitario della famiglia, oppure accordo con negoziazione assistita.

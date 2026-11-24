@@ -1,6 +1,6 @@
 # Sospensiva e misure cautelari al TAR
 
-- ID: `ist-sospensiva` · materia: amministrativo · revisione 4 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-sospensiva` · materia: amministrativo · revisione 4 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda cautelare collegiale nel ricorso o con atto separato; in estrema urgenza istanza di decreto monocratico.

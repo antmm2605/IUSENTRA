@@ -143,6 +143,50 @@ VOCI: tuple[Voce, ...] = (
          (R("cpc:345", "Non sono ammessi i nuovi mezzi di prova e non possono essere prodotti nuovi documenti"),
           R("cpc:345", "dimostri di non aver potuto proporli o produrli nel giudizio di primo grado per causa ad essa non imputabile")),
          frozenset({"appello_civile"})),
+    # ------------------------------------------------------------------ violazione dei dati personali (Reg. UE 2016/679)
+    Voce("data_breach_definizione", "presupposti",
+         "Violazione dei dati personali: la violazione di sicurezza che comporta accidentalmente o in modo illecito la "
+         "distruzione, la perdita, la modifica, la divulgazione non autorizzata o l'accesso ai dati personali trasmessi, "
+         "conservati o comunque trattati.",
+         (R("gdpr:4", "la violazione di sicurezza che comporta accidentalmente o in modo illecito la distruzione, la perdita, la modifica, la divulgazione non autorizzata o l'accesso ai dati personali trasmessi, conservati o comunque trattati"),),
+         frozenset({"data_breach"})),
+    Voce("data_breach_notifica", "termini",
+         "Il titolare notifica la violazione all'autorità di controllo senza ingiustificato ritardo e, ove possibile, entro "
+         "72 ore dal momento in cui ne è venuto a conoscenza, salvo che sia improbabile un rischio per i diritti e le "
+         "libertà delle persone fisiche; oltre le 72 ore la notifica è corredata dei motivi del ritardo.",
+         (R("gdpr:33", "senza ingiustificato ritardo e, ove possibile, entro 72 ore dal momento in cui ne è venuto a conoscenza"),
+          R("gdpr:33", "a meno che sia improbabile che la violazione dei dati personali presenti un rischio per i diritti e le libertà delle persone fisiche"),
+          R("gdpr:33", "Qualora la notifica all'autorità di controllo non sia effettuata entro 72 ore, è corredata dei motivi del ritardo")),
+         frozenset({"data_breach"})),
+    Voce("data_breach_responsabile", "termini",
+         "Il responsabile del trattamento informa il titolare senza ingiustificato ritardo dopo essere venuto a conoscenza "
+         "della violazione.",
+         (R("gdpr:33", "Il responsabile del trattamento informa il titolare del trattamento senza ingiustificato ritardo dopo essere venuto a conoscenza della violazione"),),
+         frozenset({"data_breach"})),
+    Voce("data_breach_comunicazione", "termini",
+         "Se la violazione può presentare un rischio elevato per i diritti e le libertà delle persone fisiche, il titolare "
+         "la comunica agli interessati senza ingiustificato ritardo, con linguaggio semplice e chiaro.",
+         (R("gdpr:34", "è suscettibile di presentare un rischio elevato per i diritti e le libertà delle persone fisiche, il titolare del trattamento comunica la violazione all'interessato senza ingiustificato ritardo"),
+          R("gdpr:34", "descrive con un linguaggio semplice e chiaro la natura della violazione dei dati personali")),
+         frozenset({"data_breach"})),
+    Voce("data_breach_esenzioni", "eccezioni",
+         "La comunicazione agli interessati non è richiesta se i dati erano protetti con misure che li rendono "
+         "incomprensibili a chi non è autorizzato (come la cifratura), se il titolare ha poi scongiurato il rischio elevato o "
+         "se richiederebbe sforzi sproporzionati.",
+         (R("gdpr:34", "Non è richiesta la comunicazione all'interessato di cui al paragrafo 1 se è soddisfatta una delle seguenti condizioni"),
+          R("gdpr:34", "quali la cifratura"),
+          R("gdpr:34", "misure atte a scongiurare il sopraggiungere di un rischio elevato"),
+          R("gdpr:34", "detta comunicazione richiederebbe sforzi sproporzionati")),
+         frozenset({"data_breach"})),
+    Voce("data_breach_contenuto", "documenti",
+         "La notifica descrive almeno la natura della violazione (categorie e numero approssimativo di interessati e di "
+         "registrazioni), il contatto del responsabile della protezione dei dati, le probabili conseguenze e le misure "
+         "adottate o proposte.",
+         (R("gdpr:33", "descrivere la natura della violazione dei dati personali compresi, ove possibile, le categorie e il numero approssimativo di interessati"),
+          R("gdpr:33", "comunicare il nome e i dati di contatto del responsabile della protezione dei dati"),
+          R("gdpr:33", "descrivere le probabili conseguenze della violazione dei dati personali"),
+          R("gdpr:33", "descrivere le misure adottate o di cui si propone l'adozione")),
+         frozenset({"data_breach"})),
     # ------------------------------------------------------------------ eccezioni
     Voce("memoria_416_eccezioni", "eccezioni",
          "Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria "

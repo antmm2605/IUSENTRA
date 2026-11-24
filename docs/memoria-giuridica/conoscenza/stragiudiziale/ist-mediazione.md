@@ -1,6 +1,6 @@
 # Mediazione civile e commerciale (d.lgs. 28/2010)
 
-- ID: `ist-mediazione` · materia: stragiudiziale · revisione 7 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-mediazione` · materia: stragiudiziale · revisione 7 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di mediazione all'organismo competente.

@@ -4238,6 +4238,37 @@
    ],
    "frase_esempio": "Il cliente è stato ferito durante lavori con esplosivi in una cava: chi risponde del danno?",
    "origine": "norma del registro di Lex senza istituto nel catalogo (richiesta del 24/11/2026)"
+  },
+  {
+   "id": "data_breach",
+   "materia": "privacy",
+   "nome": "Violazione dei dati personali (data breach)",
+   "regole": [],
+   "norme": [
+    {
+     "chiave": "gdpr:4",
+     "citazione": "art. 4 Reg. UE 2016/679",
+     "rubrica": "Definizioni (n. 12: violazione dei dati personali)",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "gdpr:33",
+     "citazione": "art. 33 Reg. UE 2016/679",
+     "rubrica": "Notifica di una violazione dei dati personali all'autorità di controllo",
+     "stato_biblioteca": "vigente"
+    },
+    {
+     "chiave": "gdpr:34",
+     "citazione": "art. 34 Reg. UE 2016/679",
+     "rubrica": "Comunicazione di una violazione dei dati personali all'interessato",
+     "stato_biblioteca": "vigente"
+    }
+   ],
+   "procedure": [
+    "violazione_dati_personali"
+   ],
+   "frase_esempio": "Lo studio ha perso un portatile con i dati dei clienti: entro quando va notificato il data breach al Garante?",
+   "origine": "istituto aggiunto su richiesta del 24/11/2026 (norme dalla biblioteca vigente)"
   }
  ]
 }

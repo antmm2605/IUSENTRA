@@ -1,6 +1,6 @@
 # Rescissione del contratto
 
-- ID: `ist-rescissione` · materia: contratti · revisione 5 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-rescissione` · materia: contratti · revisione 5 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di rescissione entro un anno dalla conclusione del contratto.

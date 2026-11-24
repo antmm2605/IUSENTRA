@@ -1,6 +1,6 @@
 # Mantenimento dei figli e del coniuge
 
-- ID: `ist-mantenimento` · materia: famiglia e minori · revisione 7 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-mantenimento` · materia: famiglia e minori · revisione 7 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 17 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda di determinazione del contributo; per l'inadempimento, ordine di pagamento diretto al terzo e titolo esecutivo; Tribunale.

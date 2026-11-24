@@ -1,6 +1,6 @@
 # Reclamo e mediazione tributaria (istituto abrogato: oggi ricorso diretto)
 
-- ID: `ist-reclamo-mediazione-tributaria` · materia: tributario · revisione 5 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-reclamo-mediazione-tributaria` · materia: tributario · revisione 5 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso diretto alla Corte di giustizia tributaria di primo grado, senza reclamo-mediazione.

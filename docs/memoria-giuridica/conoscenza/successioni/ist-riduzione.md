@@ -1,6 +1,6 @@
 # Azione di riduzione (lesione di legittima)
 
-- ID: `ist-riduzione` · materia: successioni · revisione 6 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-riduzione` · materia: successioni · revisione 6 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** mediazione obbligatoria e citazione per riduzione delle disposizioni testamentarie e delle donazioni.

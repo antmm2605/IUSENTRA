@@ -1,6 +1,6 @@
 # Diffida ad adempiere (art. 1454)
 
-- ID: `ist-diffida-1454` · materia: contratti · revisione 6 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-diffida-1454` · materia: contratti · revisione 6 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida ad adempiere per iscritto con termine non inferiore a quindici giorni e dichiarazione che, decorso inutilmente, il contratto si intenderà risolto.

@@ -1,6 +1,6 @@
 # Arbitro per le Controversie Finanziarie (ACF)
 
-- ID: `ist-acf` · materia: bancario e finanziario · revisione 3 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-acf` · materia: bancario e finanziario · revisione 3 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** reclamo all'intermediario e ricorso all'ACF presso la Consob.

@@ -497,7 +497,9 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
     if mancanti:
         lacune.insert(0, "Sezioni senza fonte: " + ", ".join(mancanti) + ".")
     if not ist.regole:
-        lacune.insert(0, "Nessuna regola di Lex per questo istituto: la scheda riporta solo le norme di riferimento.")
+        lacune.insert(0, "Nessuna regola di Lex per questo istituto: la scheda riporta " + (
+            "le norme di riferimento e le voci ancorate al loro testo." if any(sezioni[k]["voci"] for k, _ in SEZIONI)
+            else "solo le norme di riferimento."))
     sintesi = _sintesi(ist, rimedi_sintesi, giudici, riferimento)
     for f in fonti.values():
         if f.get("stato") == "abrogata":

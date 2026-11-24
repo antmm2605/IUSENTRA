@@ -1,6 +1,6 @@
 # Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
 
-- ID: `ist-sinistro-stradale` · materia: responsabilità civile · revisione 9 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-sinistro-stradale` · materia: responsabilità civile · revisione 9 · ultimo controllo 24/11/2026 05:39
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione (diretto o del responsabile), poi negoziazione assistita e causa; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).

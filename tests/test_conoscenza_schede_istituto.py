@@ -355,7 +355,7 @@ def test_voci_trasversali_tutte_ancorate_al_testo_vigente():
         _verifica_punto(p)
         assert p.verificato, (v.id, p.motivo)
         assert v.istituti <= ids, (v.id, v.istituti - ids)  # nessun istituto inesistente
-        assert v.sezione in ("prove_oneri", "eccezioni")
+        assert v.sezione in ("prove_oneri", "eccezioni", "presupposti", "termini", "documenti")
 
 
 def test_norma_inventata_nelle_voci_trasversali_esclusa(monkeypatch):
@@ -583,4 +583,14 @@ def test_procedure_guidate_collegate_nei_due_sensi():
     from lex.legal_skills.prompt_library.pathways import get_pathway_catalog
 
     collegate = {p.percorso_id for p in get_pathway_catalog().percorsi() if consultazione.schede_per_procedura(p.percorso_id)}
-    assert len(collegate) == 9  # il data breach non ha un istituto nel catalogo
+    assert len(collegate) == 10
+
+
+def test_istituto_data_breach_con_norme_vigenti_e_procedura():
+    s = consultazione.scheda("ist-data-breach")
+    assert s["materia"] == "privacy" and {f["chiave"] for f in s["fonti"]} >= {"gdpr:4", "gdpr:33", "gdpr:34"}
+    termini = " ".join(v["testo"] for v in s["sezioni"]["termini"]["voci"])
+    assert "72 ore" in termini and "motivi del ritardo" in termini
+    assert all(v["verifica"].startswith("ancora") for sez in s["sezioni"].values() for v in sez["voci"])
+    assert [x["id"] for x in s["strumenti"] if x["tipo"] == "procedura_guidata"] == ["violazione_dati_personali"]
+    assert [x["id"] for x in consultazione.schede_per_procedura("violazione_dati_personali")] == ["ist-data-breach"]

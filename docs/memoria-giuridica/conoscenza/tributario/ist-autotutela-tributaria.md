@@ -1,6 +1,6 @@
 # Autotutela tributaria
 
-- ID: `ist-autotutela-tributaria` · materia: tributario · revisione 3 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-autotutela-tributaria` · materia: tributario · revisione 3 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di autotutela (obbligatoria nei casi di manifesta illegittimità), senza sospensione del termine per il ricorso.

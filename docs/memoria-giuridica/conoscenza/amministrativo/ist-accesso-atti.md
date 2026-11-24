@@ -1,6 +1,6 @@
 # Accesso agli atti (l. 241/1990, art. 116 c.p.a.)
 
-- ID: `ist-accesso-atti` · materia: amministrativo · revisione 3 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-accesso-atti` · materia: amministrativo · revisione 3 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al TAR nel rito dell'accesso, oppure richiesta di riesame al difensore civico o alla Commissione per l'accesso.

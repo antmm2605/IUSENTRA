@@ -1,6 +1,6 @@
 # Danno da attività pericolose (art. 2050 c.c.)
 
-- ID: `ist-attivita-pericolose` · materia: responsabilità civile · revisione 2 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-attivita-pericolose` · materia: responsabilità civile · revisione 3 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 2050 c.c., art. 2043 c.c., art. 2947 c.c..
@@ -50,7 +50,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - nessuno
 
 ## Limiti e lacune dichiarate
-- Nessuna regola di Lex per questo istituto: la scheda riporta solo le norme di riferimento.
+- Nessuna regola di Lex per questo istituto: la scheda riporta le norme di riferimento e le voci ancorate al loro testo.
 - Sezioni senza fonte: Presupposti, Termini, Rimedi e forme, Giudice e rito, Documenti e dati da verificare, Questioni interpretative.
 
 ## Fonti con versione
@@ -78,3 +78,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 04:24 · prima generazione
 - r2 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r3 · 24/11/2026 05:39 · contenuto delle regole cambiato con le stesse fonti

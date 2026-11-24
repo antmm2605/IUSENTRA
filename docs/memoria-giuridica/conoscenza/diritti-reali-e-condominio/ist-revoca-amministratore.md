@@ -1,6 +1,6 @@
 # Revoca giudiziale dell'amministratore di condominio
 
-- ID: `ist-revoca-amministratore` · materia: diritti reali e condominio · revisione 3 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-revoca-amministratore` · materia: diritti reali e condominio · revisione 3 · ultimo controllo 24/11/2026 05:39
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per revoca giudiziale dell'amministratore (procedimento in camera di consiglio).

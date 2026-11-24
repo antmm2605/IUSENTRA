@@ -1,6 +1,6 @@
 # Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
 
-- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 11 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 11 · ultimo controllo 24/11/2026 05:39
 - Stato: verificata · fonti dirette: 44 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.

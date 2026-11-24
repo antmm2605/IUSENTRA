@@ -1,6 +1,6 @@
 # Intimazione di sfratto per morosità e citazione per la convalida
 
-- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 10 · ultimo controllo 24/11/2026 05:34
+- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 10 · ultimo controllo 24/11/2026 05:39
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.

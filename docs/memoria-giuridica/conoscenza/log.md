@@ -5529,3 +5529,44 @@ rinominate: 0
 invariate: 141
 ritirate: 0
 schede: 155
+
+## [2026-11-24T05:38:53+01:00] generazione | Violazione dei dati personali (data breach)
+event_id: a7a5f30207c7fff7e3a1
+scheda: ist-data-breach
+status: completato
+revision: 1
+fonti: 3
+
+## [2026-11-24T05:38:53+01:00] controllo | passaggio di controllo
+event_id: 0020cd91ec7f95d1adb2
+status: completato
+generate: 1
+aggiornate: 0
+rinominate: 0
+invariate: 155
+ritirate: 0
+schede: 156
+
+## [2026-11-24T05:39:12+01:00] aggiornamento | Danno da attività pericolose (art. 2050 c.c.)
+event_id: 02ccbd1c412b282f76d2
+scheda: ist-attivita-pericolose
+status: completato
+revision: 2 -> 3
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:39:12+01:00] aggiornamento | Violazione dei dati personali (data breach)
+event_id: 8915d621c037865ac0b9
+scheda: ist-data-breach
+status: completato
+revision: 1 -> 2
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-24T05:39:12+01:00] controllo | passaggio di controllo
+event_id: 76acb7cf1eed43f9d08a
+status: completato
+generate: 0
+aggiornate: 2
+rinominate: 0
+invariate: 154
+ritirate: 0
+schede: 156

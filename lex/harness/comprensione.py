@@ -88,7 +88,12 @@ _OGGETTI_GIURIDICI = (r"appell|cassazione|opposizion|ricors|querel|impugn|licenz
 # Richieste sui dati dello studio (restano al percorso operativo).
 _OPERATIVA = (r"\b(?:cosa|che cosa|quali|quante|mostra\w*|elenc\w*|dammi|dimmi)\b.{0,40}\b(?:scad\w*|pec|udienz\w*|appuntament\w*|"
               r"agenda|email|messagg\w*|notific\w*|fascicol\w*|client\w*|fattur\w*|preventiv\w*|depositi|ricevut\w*)|"
-              r"^(?:pec|scadenze|udienze|agenda|notifiche|email)\b|"
+              r"^(?:pec|scadenze|udienze|agenda|notifiche|email|depositi)\b|"
+              # Controlli sui dati dello studio («mi controlli preventivi, fatturazione e pagamenti») e il prossimo passo
+              # del fascicolo aperto («qual e il prossimo adempimento?»), anche senza le parole della domanda.
+              r"\b(?:controll\w*|verific\w*)\b.{0,40}\b(?:preventiv\w*|fatturazion\w*|ricevut\w*|depositi)|"
+              r"\bricevut\w* di (?:accettazione|consegna)|\bdepositi (?:accettat\w*|rifiutat\w*)|"
+              r"\bprossim\w* (?:adempiment\w*|scadenz\w*|udienz\w*|passo|passi|attivita)\b|"
               # Comandi del software («apri il fascicolo Rossi», «carica il documento»).
               r"^(?:apri|chiudi|mostra\w*|vai|cerca|trova|aggiungi|salva|stampa|invia|carica|scarica)\b.{0,40}"
               r"\b(?:fascicol|pratic|agenda|calendario|pec|email|document|file|client|scadenz|udienz|cartell[ae] dello studio)")
@@ -98,7 +103,9 @@ _OPERATIVA = (r"\b(?:cosa|che cosa|quali|quante|mostra\w*|elenc\w*|dammi|dimmi)\
 _RICERCA_FONTI = ("allegato ufficiale", "allegato della questione", "allegato collegato", "fonte correttiva", "fonte collegata",
                   "questione penale", "questione civile", "ordinanza di rimessione", "qsp", "contentid=", "fonte ufficiale",
                   "fonti ufficiali", "fonti del modello", "fonte del modello", "gazzetta ufficiale", "correttivo",
-                  "riforma civile", "riforma penale", "codice deontologico", "ordinamento forense", "equo compenso")
+                  "riforma civile", "riforma penale", "codice deontologico", "ordinamento forense", "equo compenso",
+                  # Richiesta esplicita di verificare la normativa o di cercare sul web: resta alle fonti ufficiali dal vivo.
+                  "verifica la normativa", "verificare la normativa", "ricerca web", "cerca sul web")
 
 
 @dataclass

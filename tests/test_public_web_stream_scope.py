@@ -16,6 +16,9 @@ def test_governed_stream_delivers_sources_warnings_and_export_policy(monkeypatch
     monkeypatch.setattr("lex.orchestrator_http._risposta_certa_http", lambda *args: "")
     monkeypatch.setattr("lex.orchestrator_http.build_context_payload", lambda *args, **kwargs: {"effective_question": question})
     monkeypatch.setattr("lex.orchestrator_http.build_bounded_http_payload", lambda **kwargs: payload)
+    # Dalla 2.490.3 l'harness chiede una precisazione per le domande giuridiche vaghe (lex-regole): qui si prova
+    # solo il flusso governato a valle, quindi l'harness non risponde.
+    monkeypatch.setattr("lex.orchestrator_http._harness_http_payload", lambda *args, **kwargs: None)
     routing = SimpleNamespace(is_social_only=False, effective_query=question, is_social_with_request=False)
     orchestrator = SimpleNamespace(auth_guard=SimpleNamespace(ensure_can_access=lambda **kwargs: None),
         dependencies=SimpleNamespace(resolve_social_and_operational_intent=lambda *args, **kwargs: routing,

@@ -1910,7 +1910,10 @@ def test_file_critici_non_contengono_marker_di_mojibake():
     assert "non UTF-8" in governance
 
 
-def test_assistente_richiesta_redazione_usa_catalogo_senza_ollama(monkeypatch, tmp_path: Path):
+def test_assistente_richiesta_redazione_con_refusi_usa_harness_senza_ollama(monkeypatch, tmp_path: Path):
+    # Dalla 2.490.3 Lex corregge i refusi (lex-regole): «scrvi ricrso decrto ingiuntvo» è la stessa richiesta di
+    # «scrivi ricorso per decreto ingiuntivo», che già nella 2.490.2 andava all'harness deterministico (schema del
+    # ricorso con i dati da completare), mai al modello.
     from web.app import create_app
 
     _write_studio_config(tmp_path / "config" / "studio.json")
@@ -1918,7 +1921,7 @@ def test_assistente_richiesta_redazione_usa_catalogo_senza_ollama(monkeypatch, t
     studio, tenant_admin = _seed_tenant_admin(app)
 
     def non_chiamare_modello(*args, **kwargs):
-        raise AssertionError("La scelta del modello è una consultazione del catalogo, non generazione")
+        raise AssertionError("La richiesta di redazione si risolve con l'harness deterministico, non con la generazione")
 
     monkeypatch.setattr("lex.runtime_dependencies.requests.post", non_chiamare_modello)
     with app.test_client() as client:
@@ -1926,6 +1929,6 @@ def test_assistente_richiesta_redazione_usa_catalogo_senza_ollama(monkeypatch, t
         response = client.post("/api/assistente/chat", json={"messages": [{"role": "user", "content": "scrvi ricrso decrto ingiuntvo"}]})
     body = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Scegli il modello da produrre" in body
-    assert "CIV_RDI_001" in body
+    assert '"query_type": "lex_harness"' in body
+    assert "decreto_ingiuntivo" in body
     assert "[DONE]" in body

@@ -184,10 +184,7 @@ class ExactLegalReferenceGuard:
         )
 
         # ── Verifica testo integrale ───────────────────────────────────────
-        full_text_available = any(
-            _has_full_text(item, reference) for item in evidence_items
-            if _is_exact_by_content(item, reference)
-        )
+        full_text_available = any(match.has_full_text for match in exact_matches)
 
         # ── Confidence cap ─────────────────────────────────────────────────
         warnings: list[str] = []

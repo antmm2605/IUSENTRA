@@ -1,6 +1,6 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
-import { KeyRound, LockKeyhole, Mail, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
+import { AtSign, Eye, EyeOff, KeyRound, LockKeyhole, Mail, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
 import { Badge, Panel } from './dashboard'
 import { JsonPostForm } from './JsonPostForm'
 import './ProfiloPage.css'
@@ -50,6 +50,28 @@ function roleLabel(value: string): string {
   if (role === 'segreteria') return 'Segreteria'
   if (role === 'cliente') return 'Cliente'
   return value || 'Profilo studio'
+}
+
+function CampoPasswordProfilo({ name, label, autoComplete, minLength }: {
+  name: string
+  label: string
+  autoComplete: 'current-password' | 'new-password'
+  minLength?: number
+}) {
+  const [visibile, setVisibile] = useState(false)
+  const id = `profilo-${name}`
+  const azione = `${visibile ? 'Nascondi' : 'Mostra'} ${label.toLowerCase()}`
+  return (
+    <div className="iu-profile-password">
+      <label htmlFor={id}><span>{label}</span></label>
+      <input id={id} name={name} type={visibile ? 'text' : 'password'} autoComplete={autoComplete}
+        minLength={minLength} spellCheck={false} autoCapitalize="none" required />
+      <button className="iu-profile-password__toggle" type="button" aria-controls={id}
+        aria-label={azione} title={azione} onClick={() => setVisibile((attuale) => !attuale)}>
+        {visibile ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+      </button>
+    </div>
+  )
 }
 
 export function ProfiloPage() {
@@ -124,18 +146,28 @@ export function ProfiloPage() {
           </JsonPostForm>
         </Panel>
 
+        <Panel title="Nome utente" subtitle="Identificativo usato per accedere" icon={<AtSign size={17} />}>
+          {!loading && data.ok ? (
+            <JsonPostForm className="iu-profile-form" action="/profilo" redirectTo="/profilo" successMessage="Nome utente aggiornato.">
+              <input type="hidden" name="azione" value="username" />
+              <label>
+                <span>Nome utente</span>
+                <input name="username" defaultValue={data.user.username} autoComplete="username"
+                  autoCapitalize="none" spellCheck={false} maxLength={64} aria-describedby="profilo-username-requisiti" required />
+              </label>
+              <small id="profilo-username-requisiti">Da 3 a 64 caratteri. Inizia con una lettera o un numero. Puoi usare anche punti, trattini e underscore.</small>
+              <CampoPasswordProfilo name="password_conferma_username" label="Password attuale per confermare" autoComplete="current-password" />
+              <button type="submit" disabled={data.passwordRequired}><AtSign size={16} /> Salva nome utente</button>
+            </JsonPostForm>
+          ) : null}
+        </Panel>
+
         <Panel title="Password" subtitle="Aggiornamento credenziali personali" icon={<LockKeyhole size={17} />}>
           {data.passwordRequired ? <div className="iu-profile-warning">Per continuare imposta una nuova password personale.</div> : null}
           <JsonPostForm className="iu-profile-form" action="/profilo" redirectTo="/profilo" successMessage="Password aggiornata.">
             <input type="hidden" name="azione" value="password" />
-            <label>
-              <span>Password attuale</span>
-              <input name="password_old" type="password" autoComplete="current-password" required />
-            </label>
-            <label>
-              <span>Nuova password</span>
-              <input name="password_new" type="password" autoComplete="new-password" minLength={8} required />
-            </label>
+            <CampoPasswordProfilo name="password_old" label="Password attuale" autoComplete="current-password" />
+            <CampoPasswordProfilo name="password_new" label="Nuova password" autoComplete="new-password" minLength={8} />
             <button type="submit"><KeyRound size={16} /> Aggiorna password</button>
           </JsonPostForm>
         </Panel>

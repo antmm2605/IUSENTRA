@@ -97,6 +97,24 @@ def register_auth_management_routes(
                     status_code = 400
                     category = "danger"
                     message = "Profilo non aggiornato. Controlla i dati inseriti."
+            elif azione == "username":
+                try:
+                    aggiornato = gu.cambia_username(
+                        u.id,
+                        request.form.get("username", ""),
+                        request.form.get("password_conferma_username", ""),
+                    )
+                except ValueError as exc:
+                    ok = False
+                    status_code = 400
+                    category = "danger"
+                    message = str(exc)
+                else:
+                    if aggiornato.username != u.username:
+                        audit("auth.cambia_username", "utente", aggiornato.id)
+                        message = "Nome utente aggiornato."
+                    else:
+                        message = "Nome utente già impostato."
             elif azione == "password":
                 pwd_old = request.form.get("password_old", "")
                 pwd_new = request.form.get("password_new", "")

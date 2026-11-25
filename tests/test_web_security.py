@@ -110,6 +110,53 @@ def test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata(tmp_pa
             assert home.headers["Location"].endswith("/admin/")
 
 
+def test_profilo_cambia_nome_utente_solo_con_la_password_del_proprio_account(tmp_path: Path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+
+    cfg = _cfg_web(tmp_path)
+    cfg["TESTING"] = False
+    cfg["MULTI_TENANT"] = False
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    gu = GestioneUtenti(cfg["AUTH_DB"], cfg["AUDIT_DB"], crea_admin_se_vuoto=False)
+    attuale = gu.crea("titolare", "PasswordPrima!1", RuoloUtente.AVVOCATO, must_change_password=False)
+    altro = gu.crea("collega", "PasswordAltra!2", RuoloUtente.AVVOCATO, email="riservato@example.test")
+    app = create_app(cfg)
+
+    def accedi(client, username):
+        token = _extract_csrf_token(client.get("/login").get_data(as_text=True))
+        return client.post("/login", data={"username": username, "password": "PasswordPrima!1", "_csrf_token": token})
+
+    with app.test_client() as client:
+        assert accedi(client, "titolare").status_code == 302
+        profilo = client.get("/profilo")
+        token = _extract_csrf_token(profilo.get_data(as_text=True))
+
+        def cambia(username, password, csrf=token):
+            return client.post("/profilo", headers={"Accept": "application/json"}, data={
+                "azione": "username", "username": username, "password_conferma_username": password,
+                "_csrf_token": csrf, "id": altro.id,
+            })
+
+        assert cambia("nuovo.nome", "PasswordPrima!1", "").status_code == 400
+        assert cambia("nuovo.nome", "PasswordAltra!2").get_json()["message"] == "Password attuale non corretta."
+        assert cambia(" COLLEGA ", "PasswordPrima!1").get_json()["message"] == "Nome utente già in uso."
+        assert cambia("nome con spazi", "PasswordPrima!1").status_code == 400
+        risposta = cambia(" Nuovo.Nome ", "PasswordPrima!1")
+        assert risposta.status_code == 200 and risposta.get_json()["ok"]
+        utente = client.get("/api/v1/ui/profilo").get_json()["user"]
+        assert (utente["id"], utente["username"]) == (attuale.id, "nuovo.nome")
+
+    with app.test_client() as client:
+        accedi(client, "titolare")
+        assert client.get("/api/v1/ui/profilo").status_code in {401, 403}
+        assert accedi(client, "nuovo.nome").status_code == 302
+        assert client.get("/api/v1/ui/profilo").get_json()["user"]["id"] == attuale.id
+
+    riletto = GestioneUtenti(cfg["AUTH_DB"], cfg["AUDIT_DB"], crea_admin_se_vuoto=False)
+    assert riletto.get(altro.id).username == "collega"
+    assert any(evento.azione == "auth.cambia_username" and evento.risorsa_id == attuale.id for evento in riletto._audit)
+
+
 def test_api_v1_cors_resta_chiuso_di_default(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     cfg = _cfg_web(tmp_path)

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sistema di autenticazione, profili e gestione permessi per lo studio legale.
 
 Funzionalità:
@@ -17,6 +17,7 @@ import hmac
 import hashlib
 import logging
 import os
+import re
 import secrets
 import struct
 import time as _time
@@ -1140,6 +1141,35 @@ class GestioneUtenti:
             setattr(u, k, v)
         self._salva_utenti()
         return u
+
+    def cambia_username(self, id_utente: str, username: str, password_attuale: str) -> Utente:
+        """Rinomina il solo account autenticato, preservando il suo identificativo."""
+        from pct.sync import FileLock
+
+        username = username.strip().lower()
+        with FileLock(str(self.db_path.resolve())):
+            self._carica()
+            utente = self._get_or_raise(id_utente)
+            if not utente.attivo or not self._verifica_password(password_attuale, utente.password_hash):
+                raise ValueError("Password attuale non corretta.")
+            if username == utente.username:
+                return utente
+            if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,63}", username):
+                raise ValueError("Usa da 3 a 64 caratteri: lettere, numeri, punti, trattini o underscore. Inizia con una lettera o un numero.")
+            if any(
+                altro.id != utente.id
+                and username in {altro.username.lower(), altro.email.strip().lower()}
+                for altro in self._utenti.values()
+            ):
+                raise ValueError("Nome utente già in uso.")
+            precedente = utente.username
+            utente.username = username
+            try:
+                self._salva_utenti()
+            except Exception:
+                utente.username = precedente
+                raise
+            return utente
 
     def importa_utente_esistente(
         self,

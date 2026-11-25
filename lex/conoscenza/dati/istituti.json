@@ -917,7 +917,8 @@
    "nome": "Separazione personale (giudiziale e consensuale)",
    "regole": [
     "separazione_giudiziale",
-    "fam_separazione"
+    "fam_separazione",
+    "separazione_consensuale"
    ],
    "norme": [
     {
@@ -1376,7 +1377,8 @@
    "materia": "diritti reali e condominio",
    "nome": "Danni da parti comuni e liti condominiali",
    "regole": [
-    "lite_condominio"
+    "lite_condominio",
+    "difesa_condominio"
    ],
    "norme": [
     {
@@ -1761,7 +1763,8 @@
    "nome": "Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)",
    "regole": [
     "sinistro_stradale",
-    "rc_sinistro"
+    "rc_sinistro",
+    "sinistro_responsabile"
    ],
    "norme": [
     {
@@ -2042,7 +2045,8 @@
     "crediti_lavoro",
     "competenza_lavoro",
     "impugnazione_licenziamento",
-    "lav_ricorso_414"
+    "lav_ricorso_414",
+    "difesa_datore_lavoro"
    ],
    "norme": [
     {
@@ -2535,7 +2539,8 @@
    "nome": "Restituzione del canone non registrato o in nero",
    "regole": [
     "restituzione_canone_non_registrato",
-    "loc_canone_nero"
+    "loc_canone_nero",
+    "locatore_canone_nero"
    ],
    "norme": [
     {
@@ -2553,7 +2558,8 @@
    "nome": "Garanzia legale di conformità",
    "regole": [
     "garanzia_conformita",
-    "cons_garanzia"
+    "cons_garanzia",
+    "garanzia_venditore"
    ],
    "norme": [
     {
@@ -4215,7 +4221,9 @@
    "id": "attivita_pericolose",
    "materia": "responsabilità civile",
    "nome": "Danno da attività pericolose (art. 2050 c.c.)",
-   "regole": [],
+   "regole": [
+    "rc_attivita_pericolose"
+   ],
    "norme": [
     {
      "chiave": "cc:2050",

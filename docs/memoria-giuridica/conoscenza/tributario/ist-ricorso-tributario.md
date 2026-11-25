@@ -1,7 +1,7 @@
 # Ricorso tributario di primo grado
 
-- ID: `ist-ricorso-tributario` · materia: tributario · revisione 3 · ultimo controllo 24/11/2026 05:39
-- Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-ricorso-tributario` · materia: tributario · revisione 4 · ultimo controllo 25/11/2026 14:39
+- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 18 d.lgs. 546/1992, art. 21 d.lgs. 546/1992, art. 67 d.lgs. 175/2024 (TU giustizia tributaria).
 
@@ -9,7 +9,7 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- L'istanza di accertamento con adesione presentata prima del ricorso sospende il termine per impugnare per novanta giorni dalla presentazione; dopo l'avviso è ammessa solo per gli atti per i quali non si applica il contraddittorio preventivo: verifica se è stata presentata. — _art. 6 d.lgs. 218/1997_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Il termine è sospeso dal 1° al 31 agosto. — _art. 1 l. 742/1969_ (ancora letterale trovata nel testo vigente)
@@ -43,14 +43,13 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
-- Questione della regola ricorso_tributario non riportata (senza norma citata): «L'istanza di accertamento con adesione sospende il termine per novanta giorni: verifica se è stata presentata.»
-- Questione della regola ricorso_tributario non riportata (senza norma citata): «Il testo unico della giustizia tributaria (d.lgs. 175/2024) sostituirà il d.lgs. 546/1992: verifica sull'archivio la data da cui si applica »
+- Sezioni senza fonte: Presupposti, Giudice e rito, Prove e oneri, Documenti e dati da verificare, Questioni interpretative.
 
 ## Fonti con versione
 - art. 18 d.lgs. 546/1992 (Il ricorso) — testo vigente, aggiornamento archivio 12/05/2026, versione `5dc3c967321cdeaa` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art18
 - art. 21 d.lgs. 546/1992 (Termine per la proposizione del ricorso) — testo vigente, aggiornamento archivio 12/05/2026, versione `0e3a2c96f7e731ca` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art21
 - art. 67 d.lgs. 175/2024 (TU giustizia tributaria) (Termine per la proposizione del ricorso) — testo vigente, aggiornamento archivio n.d., versione `18d27f7239e9087a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art67
+- art. 6 d.lgs. 218/1997 (Istanza del contribuente) — testo vigente, aggiornamento archivio n.d., versione `b55ab17f7c5abc36` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1997-06-19;218~art6
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 - Corte di Cassazione — civile, sez. 5, n. 29410/2026 (testo integrale) — versione `e8731db2aed82a06` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529410O&rows=1&wt=json
 - Corte di Cassazione — civile, sez. 5, n. 29055/2026 (testo integrale) — versione `0fcd0f59ae705c86` — https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2026529055O&rows=1&wt=json
@@ -63,3 +62,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:tu175:67
 - r3 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|128/2019, pronuncia:Corte costituzionale|55/2013, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28817/2026, pronuncia:Corte di Cassazione — civile|29055/2026, pronuncia:Corte di Cassazione — civile|29410/2026
+- r4 · 25/11/2026 14:39 · fonti cambiate: norma:dlgs218:6

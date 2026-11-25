@@ -1,6 +1,6 @@
 # Diniego o revoca del permesso di soggiorno ed espulsione
 
-- ID: `ist-permesso-soggiorno` · materia: immigrazione · revisione 5 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-permesso-soggiorno` · materia: immigrazione · revisione 6 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 6 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** opposizione al tribunale ordinario (sezione specializzata immigrazione), non ricorso al TAR.
@@ -9,6 +9,7 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
+- Il TAR non è il giudice di questi provvedimenti: la legge rimette l'opposizione all'autorità giudiziaria ordinaria, e un ricorso al TAR farebbe perdere tempo. — _art. 30 d.lgs. 286/1998_ (ancora letterale trovata nel testo vigente)
 - Per il diniego del permesso per motivi familiari è competente il giudice ordinario (art. 30, comma 6, TUI). — _art. 30 d.lgs. 286/1998_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 30 d.lgs. 286/1998: atto dedotto dalle norme citate dalla stessa regola)
 
 ## Termini
@@ -43,7 +44,6 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
-- Avvertenza della regola permesso_soggiorno non riportata (senza norma citata): «Il TAR non è il giudice di questi provvedimenti: un ricorso al TAR farebbe perdere tempo.»
 
 ## Fonti con versione
 - art. 5 d.lgs. 286/1998 (Permesso di soggiorno (Legge 6 marzo 1998, n. 40, art. 5)) — testo vigente, aggiornamento archivio n.d., versione `861e9ba3ef13d5cd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-07-25;286~art5
@@ -61,3 +61,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r3 · 24/11/2026 01:12 · fonti cambiate: norma:dlgs150:18, norma:dlgs286:6
 - r4 · 24/11/2026 01:20 · contenuto delle regole cambiato con le stesse fonti
 - r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

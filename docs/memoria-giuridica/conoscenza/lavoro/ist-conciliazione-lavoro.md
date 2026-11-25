@@ -1,6 +1,6 @@
 # Conciliazione in materia di lavoro (artt. 410-412-ter)
 
-- ID: `ist-conciliazione-lavoro` · materia: lavoro · revisione 3 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-conciliazione-lavoro` · materia: lavoro · revisione 3 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** conciliazione in sede protetta (commissione presso l'Ispettorato, sede sindacale o prevista dai contratti collettivi); impugnazione scritta delle rinunce invalide entro sei mesi; Tribunale in funzione di giudice del lavoro.

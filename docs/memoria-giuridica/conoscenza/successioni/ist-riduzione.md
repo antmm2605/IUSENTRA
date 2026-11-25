@@ -1,6 +1,6 @@
 # Azione di riduzione (lesione di legittima)
 
-- ID: `ist-riduzione` · materia: successioni · revisione 6 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-riduzione` · materia: successioni · revisione 7 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** mediazione obbligatoria e citazione per riduzione delle disposizioni testamentarie e delle donazioni.
@@ -50,7 +50,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative.
-- Questione della regola suc_riduzione non riportata (senza norma citata): «Consiglio operativo: prescrizione decennale e decorrenza (dall'accettazione dell'erede istituito o dalla pubblicazione del testamento): veri»
+- Avvertenza della regola suc_riduzione non riportata (senza norma citata): «Giurisprudenza letta — Cass., sez. II, n. 8517/2025 (dep. 01/04/2025): l'azione di riduzione si prescrive in dieci anni; se la qualità di le»
+- Questione della regola suc_riduzione non riportata (senza norma citata): «Da verificare: la decorrenza ordinaria della prescrizione (Cass. SU n. 20644/2004, citata da Cass. n. 17749/2023) non ha un testo ufficiale »
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
@@ -80,3 +81,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

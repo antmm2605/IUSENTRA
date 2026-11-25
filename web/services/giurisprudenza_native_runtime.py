@@ -62,7 +62,8 @@ def search(owner, *, source, query="", limit=20, prefix="/giurisprudenza/corpus"
     if len(query) > 500:
         raise ValueError("Ricerca troppo lunga.")
     # «194 2018» come «194/2018»: gli estremi si cercano sull'indice, non nei testi.
-    coppia = re.fullmatch(r"\s*(?:n\.?\s*)?(\d{1,6})\s+((?:19|20)\d{2})\s*", query)
+    # Spazi esterni tolti prima, non con «\s*» ai bordi: niente tentativi ripetuti sugli spazi (CodeQL py/polynomial-redos).
+    coppia = re.fullmatch(r"(?:n\.?\s*)?(\d{1,6})\s+((?:19|20)\d{2})", query.strip())
     if coppia:
         query = f"{coppia.group(1)}/{coppia.group(2)}"
     limite = min(50, max(1, int(limit)))

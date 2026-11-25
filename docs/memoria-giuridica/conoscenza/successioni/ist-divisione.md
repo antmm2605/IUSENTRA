@@ -1,6 +1,6 @@
 # Divisione ereditaria (e scioglimento della comunione)
 
-- ID: `ist-divisione` · materia: successioni · revisione 6 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-divisione` · materia: successioni · revisione 6 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** mediazione obbligatoria e poi citazione per divisione giudiziale nei confronti di tutti i condividenti.

@@ -129,4 +129,16 @@ def conosce(parola: str) -> bool:
     return dizionario_italiano().conosce(piatta)
 
 
-__all__ = ["ITALIANO_NUCLEO", "PERCORSI_DIZIONARIO", "RIGHE_MASSIME", "conosce", "dizionario_di_sistema", "parole_conosciute", "parole_dichiarate"]
+def vocabolario_completo() -> bool:
+    """Se il dizionario italiano di sistema (hunspell-it) è caricato.
+
+    Senza, `conosce` sa solo le parole dichiarate nel repository: una parola italiana vera che non vi compare
+    («saltato», «quarta») sembra un refuso. Chi corregge le parole verso un lessico deve allora astenersi, perché non
+    può più distinguere un refuso da una parola che esiste («saltato» non è «saldato», «quarta» non è «quaranta»).
+    """
+    from .hunspell import dizionario_italiano
+
+    return dizionario_italiano().disponibile
+
+
+__all__ = ["ITALIANO_NUCLEO", "PERCORSI_DIZIONARIO", "RIGHE_MASSIME", "conosce", "vocabolario_completo", "dizionario_di_sistema", "parole_conosciute", "parole_dichiarate"]

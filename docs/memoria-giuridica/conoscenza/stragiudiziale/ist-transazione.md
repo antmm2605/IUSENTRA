@@ -1,6 +1,6 @@
 # Transazione
 
-- ID: `ist-transazione` · materia: stragiudiziale · revisione 2 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-transazione` · materia: stragiudiziale · revisione 2 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** contratto di transazione per iscritto.

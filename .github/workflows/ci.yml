@@ -854,6 +854,13 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
+      # Il dizionario italiano dell'immagine di produzione (Dockerfile: hunspell + hunspell-it): senza, i correttori di
+      # Lex non correggono i refusi e i test che li misurano non direbbero com'è la produzione (CI del 25/11/2026).
+      - name: Dizionario italiano come in produzione
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends hunspell-it
+          test -f /usr/share/hunspell/it_IT.aff && test -f /usr/share/hunspell/it_IT.dic
       - name: Install runtime deps
         run: |
           python -m pip install --upgrade pip wheel setuptools
@@ -978,6 +985,13 @@ jobs:
         with:
           name: ${{ needs.critical-coverage-environment.outputs.environment_artifact }}
           path: .ci-critical-env
+      # Il dizionario italiano dell'immagine di produzione (Dockerfile: hunspell + hunspell-it): senza, i correttori di
+      # Lex non correggono i refusi e i test che li misurano non direbbero com'è la produzione (CI del 25/11/2026).
+      - name: Dizionario italiano come in produzione
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends hunspell-it
+          test -f /usr/share/hunspell/it_IT.aff && test -f /usr/share/hunspell/it_IT.dic
       - name: Install frozen measurement dependencies
         run: pip install -r .ci-critical-env/critical-env-freeze.txt
 
@@ -1052,6 +1066,13 @@ jobs:
         with:
           name: ${{ needs.critical-coverage-environment.outputs.environment_artifact }}
           path: .ci-critical-env
+      # Il dizionario italiano dell'immagine di produzione (Dockerfile: hunspell + hunspell-it): senza, i correttori di
+      # Lex non correggono i refusi e i test che li misurano non direbbero com'è la produzione (CI del 25/11/2026).
+      - name: Dizionario italiano come in produzione
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends hunspell-it
+          test -f /usr/share/hunspell/it_IT.aff && test -f /usr/share/hunspell/it_IT.dic
       - name: Installa lo stesso ambiente congelato
         run: pip install -r .ci-critical-env/critical-env-freeze.txt
       - name: Misura la precedente versione accettata

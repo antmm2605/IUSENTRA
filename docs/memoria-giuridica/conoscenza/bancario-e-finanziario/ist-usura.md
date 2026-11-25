@@ -1,6 +1,6 @@
 # Usura bancaria
 
-- ID: `ist-usura` · materia: bancario e finanziario · revisione 6 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-usura` · materia: bancario e finanziario · revisione 7 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di accertamento della nullità della clausola degli interessi e di ripetizione (mediazione preventiva obbligatoria).
@@ -56,7 +56,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative.
-- Questione della regola ban_usura non riportata (senza norma citata): «Consiglio operativo: usura sopravvenuta e rilevanza degli interessi di mora: verificare l'orientamento della Cassazione nell'archivio.»
+- Avvertenza della regola ban_usura non riportata (senza norma citata): «Usura sopravvenuta — Cass. SU n. 24675/2017, come riportata da Cass., sez. I, n. 404/2025 (dep. 08/01/2025): non rileva l'usura sopravvenuta»
+- Avvertenza della regola ban_usura non riportata (senza norma citata): «Interessi di mora — Cass., sez. III, n. 23433/2026 (dep. 17/07/2026), con Cass. n. 23424/2023 e n. 18540/2024: la disciplina antiusura si ap»
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
@@ -91,3 +92,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

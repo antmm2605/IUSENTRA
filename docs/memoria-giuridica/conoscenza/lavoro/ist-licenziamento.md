@@ -1,6 +1,6 @@
 # Impugnazione del licenziamento
 
-- ID: `ist-licenziamento` · materia: lavoro · revisione 8 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-licenziamento` · materia: lavoro · revisione 9 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 25 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
@@ -65,7 +65,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 441-bis c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): assente al 17/10/2022 (articolo introdotto dalla riforma)
 - art. 441-bis c.p.c. (Controversie in materia di licenziamento) — testo vigente, aggiornamento archivio n.d., versione `a3b138c9e66d77de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art441bis
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
-- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `9d996db86d16b772` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
 - art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
 - art. 2964 c.c. (Inapplicabilità di regole della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `69c1057339253ee7` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2964
 - art. 32 l. 183/2010 (Decadenze e disposizioni in materia di contratto di lavoro a tempo determinato) — testo vigente, aggiornamento archivio 10/10/2025, versione `b2b61406eb4fe21e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2010-11-04;183~art32
@@ -95,3 +95,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r6 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 25/11/2026 14:39 · fonti cambiate: norma:cpc:416

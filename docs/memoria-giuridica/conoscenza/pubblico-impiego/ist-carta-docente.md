@@ -1,6 +1,6 @@
 # Carta del docente per i supplenti
 
-- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 9 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-carta-docente` · materia: pubblico impiego · revisione 10 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per l'accertamento del diritto alla carta per gli anni scolastici indicati e la condanna del Ministero all'attribuzione o al risarcimento per equivalente; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
@@ -70,14 +70,17 @@
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Questione della regola pi_carta_docente non riportata (senza norma citata): «Consiglio operativo: prescrizione e ammontare per gli anni passati: verificare l'orientamento della Cassazione nell'archivio SentenzeWeb pri»
+- Avvertenza della regola pi_carta_docente non riportata (senza norma citata): «Giurisprudenza letta — Cass., sez. lav., n. 29961/2023 (dep. 27/10/2023), principi di diritto: la carta spetta ai docenti non di ruolo con i»
+- Avvertenza della regola pi_carta_docente non riportata (senza norma citata): «Prescrizione — Cass., sez. lav., n. 17494/2025 (dep. 29/06/2025): l'azione di adempimento si prescrive in cinque anni dalla data del conferi»
+- Avvertenza della regola pi_carta_docente non riportata (senza norma citata): «Corte di giustizia UE, ord. 18/05/2022, C-450/21: la clausola 4, punto 1, dell'accordo quadro sul lavoro a tempo determinato osta a riservar»
+- Avvertenza della regola pi_carta_docente non riportata (senza norma citata): «Questione aperta — Cass., sez. lav., ord. n. 24317/2026 (31/07/2026) ha rimesso nuove questioni alla Corte di giustizia sospendendo il giudi»
 - Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023). Per i procedimenti pendenti a quella data vale il testo anteriore, registrato fra le fonti (vigente al 17/10/2022): il difetto di giurisdizione verso la pubblica amministrazione o i giudici speciali è rilevato, anche d'ufficio, «in qualunque stato e grado del processo», senza la regola dello specifico motivo. I limiti posti dalla giurisprudenza a quel testo (giudicato implicito) sono fra le questioni interpretative, dalle pronunce lette.
 
 ## Fonti con versione
 - art. 63 d.lgs. 165/2001 (Controversie relative ai rapporti di lavoro) — testo vigente, aggiornamento archivio 11/11/2026, versione `de186351b585f541` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2001-03-30;165~art63
 - art. 1 l. 107/2015 (art. 1 l. 107/2015) — testo vigente, aggiornamento archivio 23/11/2026, versione `e4973e67f1becb3e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2015-07-13;107~art1
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
-- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `9d996db86d16b772` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
 - art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
 - art. 37 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `510bf49202afe7a8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37!vig=2022-10-17
 - art. 37 c.p.c. (Difetto di giurisdizione) — testo vigente, aggiornamento archivio n.d., versione `f1bb0e5c6533e2d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37
@@ -120,3 +123,4 @@
 - r7 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r9 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte di Cassazione — civile|10418/2026, pronuncia:Corte di Cassazione — civile|13227/2026, pronuncia:Corte di Cassazione — civile|16640/2022, pronuncia:Corte di Cassazione — civile|18718/2024, pronuncia:Corte di Cassazione — civile|21012/2026, pronuncia:Corte di Cassazione — civile|22195/2026, pronuncia:Corte di Cassazione — civile|33240/2025, pronuncia:Corte di Cassazione — civile|3384
+- r10 · 25/11/2026 14:39 · fonti cambiate: norma:cpc:416

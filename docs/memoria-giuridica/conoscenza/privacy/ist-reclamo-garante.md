@@ -1,6 +1,6 @@
 # Reclamo al Garante privacy
 
-- ID: `ist-reclamo-garante` · materia: privacy · revisione 2 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-reclamo-garante` · materia: privacy · revisione 2 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** reclamo al Garante (in alternativa al ricorso al giudice per lo stesso oggetto).
@@ -42,7 +42,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
-- art. 77 Reg. UE 2016/679 (Diritto di proporre reclamo all'autorità di controllo) — testo vigente, aggiornamento archivio n.d., versione `0a909aa17489905f` — 
+- art. 77 Reg. UE 2016/679 (Diritto di proporre reclamo all'autorità di controllo) — testo vigente, aggiornamento archivio n.d., versione `0a909aa17489905f`
 - art. 140-bis d.lgs. 196/2003 (Forme alternative di tutela) — testo vigente, aggiornamento archivio 21/11/2026, versione `f7e80cf5e516308f` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2003-06-30;196~art140bis
 - art. 141 d.lgs. 196/2003 (Reclamo al Garante) — testo vigente, aggiornamento archivio 21/11/2026, versione `4573b9be7ff869a1` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2003-06-30;196~art141
 - art. 142 d.lgs. 196/2003 (Proposizione del reclamo) — testo vigente, aggiornamento archivio 21/11/2026, versione `4d5254e2a4f7f810` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2003-06-30;196~art142

@@ -59,11 +59,22 @@ def _parola_nota(parola: str) -> bool:
         return False
 
 
+def _vocabolario_completo() -> bool:
+    """Senza il dizionario italiano di sistema non si corregge: una parola vera non dichiarata nel repository
+    («saltato», «quarta») sembrerebbe un refuso e diventerebbe un'altra parola («saldato», «quaranta»)."""
+    try:
+        from legal_ocr.lessico.italiano import vocabolario_completo
+
+        return bool(vocabolario_completo())
+    except Exception:
+        return False
+
+
 @lru_cache(maxsize=8192)
 def _corretta(parola: str) -> str:
     """Solo refusi evidenti e con una sola correzione possibile: lettere scambiate, una lettera mancante (non in fondo),
     una lettera raddoppiata per errore, una lettera sbagliata nelle parole lunghe. Le desinenze diverse non si toccano."""
-    if len(parola) < 5 or _parola_nota(parola):
+    if len(parola) < 5 or _parola_nota(parola) or not _vocabolario_completo():
         return parola
     candidati = []
     for s in get_close_matches(parola, lessico(), n=5, cutoff=0.8):

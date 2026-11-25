@@ -1,6 +1,6 @@
 # Ricerca telematica dei beni (art. 492-bis)
 
-- ID: `ist-ricerca-beni` · materia: esecuzione · revisione 3 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-ricerca-beni` · materia: esecuzione · revisione 3 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 5 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di ricerca telematica dei beni all'ufficiale giudiziario (o al presidente del tribunale se c'è pericolo nel ritardo).

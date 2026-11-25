@@ -1,6 +1,6 @@
 # Ricorso al giudice per violazione dei dati personali
 
-- ID: `ist-ricorso-giudice-privacy` · materia: privacy · revisione 2 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-ricorso-giudice-privacy` · materia: privacy · revisione 2 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 4 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al tribunale (rito del lavoro) del luogo del titolare o dell'interessato.
@@ -43,8 +43,8 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
-- art. 79 Reg. UE 2016/679 (Ricorso giurisdizionale) — testo vigente, aggiornamento archivio n.d., versione `54190b13058105e8` — 
-- art. 82 Reg. UE 2016/679 (Diritto al risarcimento) — testo vigente, aggiornamento archivio n.d., versione `e9e84dff5c92b2ed` — 
+- art. 79 Reg. UE 2016/679 (Ricorso giurisdizionale) — testo vigente, aggiornamento archivio n.d., versione `54190b13058105e8`
+- art. 82 Reg. UE 2016/679 (Diritto al risarcimento) — testo vigente, aggiornamento archivio n.d., versione `e9e84dff5c92b2ed`
 - art. 152 d.lgs. 196/2003 (Autorità giudiziaria ordinaria) — testo vigente, aggiornamento archivio 21/11/2026, versione `0896b01850b9e75b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2003-06-30;196~art152
 - art. 10 d.lgs. 150/2011 ((Delle controversie in materia di applicazione delle disposizioni in materia di protezione dei dati personali)) — testo vigente, aggiornamento archivio n.d., versione `8f7b677c2be2c8fd` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art10
 

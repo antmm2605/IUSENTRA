@@ -1,6 +1,6 @@
 # Opposizione al verbale davanti al giudice di pace (art. 204-bis cod. strada, art. 7 d.lgs. 150/2011)
 
-- ID: `ist-ricorso-gdp-cds` · materia: violazioni amministrative · revisione 3 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-ricorso-gdp-cds` · materia: violazioni amministrative · revisione 4 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 10 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 204-bis d.lgs. 285/1992 (cod. strada), art. 7 d.lgs. 150/2011.
@@ -11,7 +11,7 @@
 - In alternativa al giudice di pace, se non si è pagato in misura ridotta, si può proporre ricorso al prefetto del luogo della violazione entro sessanta giorni dalla contestazione o dalla notificazione, presentandolo all'organo accertatore o inviandolo con raccomandata o PEC. Le due strade sono alternative: scelta l'una, l'altra non è più percorribile per lo stesso verbale. — _art. 203 d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Non pagare e non proporre ricorso al prefetto: l'opposizione al giudice di pace è ammessa se non è stato effettuato il pagamento in misura ridotta, ed è inammissibile se è stato presentato prima ricorso al prefetto. — _art. 204-bis d.lgs. 285/1992 (codice della strada); art. 7 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -45,8 +45,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Opposizione a verbale di violazione del codice della strada — `/template-atti?scheda=GDP_004`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Avvertenza della regola opposizione_verbale_cds non riportata (senza norma citata): «Non pagare e non proporre ricorso al prefetto: il ricorso al giudice di pace è inammissibile se è stato presentato prima ricorso al prefetto»
+- Sezioni senza fonte: Termini, Rimedi e forme, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 204-bis d.lgs. 285/1992 (cod. strada) (art. 204-bis d.lgs. 285/1992 (cod. strada)) — testo vigente, aggiornamento archivio 21/11/2026, versione `c97ff73abe25f3f3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art204bis
@@ -64,3 +63,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cds:204bis, norma:dlgs150_11:7, norma:dlgs150:7
 - r3 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|462/2006, pronuncia:Corte di Cassazione — civile|15992/2026, pronuncia:Corte di Cassazione — civile|17694/2026, pronuncia:Corte di Cassazione — civile|2857/2026, pronuncia:Corte di Cassazione — civile|29409/2026, pronuncia:Corte costituzionale|69/2012
+- r4 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

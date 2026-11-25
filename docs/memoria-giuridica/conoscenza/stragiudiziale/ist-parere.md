@@ -1,6 +1,6 @@
 # Parere legale scritto
 
-- ID: `ist-parere` · materia: stragiudiziale · revisione 2 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-parere` · materia: stragiudiziale · revisione 2 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** parere scritto: quesito, fatti, norme e giurisprudenza, soluzione, rischi e alternative.

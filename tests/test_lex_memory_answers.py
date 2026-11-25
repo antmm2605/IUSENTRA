@@ -62,6 +62,9 @@ def _chiedi_2043(tmp_path: Path, monkeypatch, *, con_fiducia: bool) -> str:
     # Il testo dell'art. 2043 può arrivare anche da altre fonti ufficiali:
     # questa prova isola il canale memoria, senza rete o inferenze del modello.
     monkeypatch.setattr(normativa, "_official_archive_sources", lambda *args, **kwargs: [])
+    monkeypatch.setattr("lex.harness.risposta_norma", lambda _: None)
+    monkeypatch.setattr("lex.orchestrator_http._risposta_certa_http", lambda _: "")
+    monkeypatch.setattr("lex.harness.rubriche.rispondi_da_rubrica", lambda *args: None)
     monkeypatch.setattr(ProviderRegistry, "pick", lambda *args, **kwargs: DeterministicProvider())
     letture = search_learning_memory("art. 2043 c.c.", memory_dir=tmp_path / "data-root" / "intelligence" / "lex_memory")
     assert bool(letture) is con_fiducia
@@ -70,7 +73,7 @@ def _chiedi_2043(tmp_path: Path, monkeypatch, *, con_fiducia: bool) -> str:
         _login(client, studio, admin)
         response = client.post(
             "/api/assistente/context",
-            json={"question": "Cosa stabilisce l'art. 2043 c.c.?"},
+            json={"question": "Spiegami cosa stabilisce l'art. 2043 c.c.?"},
         )
     payload = response.get_json() or {}
     assert response.status_code == 200 and payload.get("ok") is True

@@ -1,7 +1,7 @@
 # Impugnazione della delibera condominiale (art. 1137)
 
-- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 05:39
-- Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-delibera-condominio` · materia: diritti reali e condominio · revisione 7 · ultimo controllo 25/11/2026 14:39
+- Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 1137 c.c., art. 71-quater disp. att. c.c., art. 5 d.lgs. 28/2010.
 
@@ -9,6 +9,7 @@
 - Mediazione obbligatoria: la controversia in materia di condominio rientra nell'elenco dell'art. 5, comma 1, d.lgs. 28/2010; l'esperimento del procedimento di mediazione è condizione di procedibilità della domanda. — _art. 5 d.lgs. 28/2010, comma 1; art. 5 d.lgs. 28/2010, comma 2_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
+- La domanda di mediazione, dal momento in cui la comunicazione perviene alle altre parti, impedisce la decadenza per una sola volta: va depositata entro i trenta giorni. — _art. 8 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - L'incompetenza per materia, valore e territorio si eccepisce, a pena di decadenza, nella comparsa di risposta tempestivamente depositata; l'eccezione di incompetenza per territorio deve indicare il giudice competente. — _art. 38 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il convenuto propone nella comparsa di risposta, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 167 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Mancata mediazione obbligatoria: l'improcedibilità è eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice non oltre la prima udienza. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
@@ -47,7 +48,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Giudice e rito, Documenti e dati da verificare, Questioni interpretative.
-- Questione della regola impugnazione_delibera non riportata (senza norma citata): «La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: depositala entro i trenta giorni.»
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
@@ -57,6 +57,8 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 71-quater disp. att. c.c. (art. 71-quater disp. att. c.c.) — testo vigente, aggiornamento archivio n.d., versione `e0408ae6b5914a61` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-30;318~art71quater
 - art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
+- art. 8 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `6df9d7666472a6e6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8!vig=2022-10-17
+- art. 8 d.lgs. 28/2010 (Procedimento) — testo vigente, aggiornamento archivio 19/06/2025, versione `5e15fd9c44cea6e9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art8
 - art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
 - art. 167 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `bd6d7602771dbd96` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167!vig=2022-10-17
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
@@ -78,3 +80,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:20 · contenuto delle regole cambiato con le stesse fonti
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 25/11/2026 14:39 · fonti cambiate: norma:dlgs28:8

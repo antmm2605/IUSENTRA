@@ -1,6 +1,6 @@
 # Opposizione alla convalida di sfratto e termine di grazia
 
-- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 8 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-opposizione-convalida` · materia: locazioni · revisione 9 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 29 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** comparsa di costituzione e opposizione alla convalida (art. 665 c.p.c.), non l'istanza di termine di grazia dell'art. 55 l. 392/1978.
@@ -13,7 +13,8 @@
 - Con l'opposizione e il mutamento del rito scatta la mediazione obbligatoria in materia di locazione. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-- La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente. — _art. 55 l. 392/1978_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 55 l. 392/1978: atto dedotto dalle norme citate dalla stessa regola)
+- La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: la sanatoria riguarda la morosità «di cui all'articolo 5», cioè la locazione abitativa; va detto espressamente al cliente. — _art. 55 l. 392/1978_ (ancora letterale trovata nel testo vigente)
+- La convalida per morosità richiede che la morosità persista all'udienza: l'unico modo per evitarla con certezza è pagare integralmente canoni, interessi e spese entro l'udienza. — _art. 663 c.p.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Prescrizione quinquennale dei canoni e di ogni altro corrispettivo di locazione. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
@@ -67,8 +68,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Giudice e rito, Questioni interpretative.
-- Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»
-- Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Tentare subito un accordo con la locatrice sul piano di rientro.»
+- Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Consiglio operativo: tentare subito un accordo con la locatrice sul piano di rientro.»
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
@@ -113,3 +113,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r9 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

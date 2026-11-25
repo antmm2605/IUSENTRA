@@ -1,7 +1,7 @@
 # Sospensiva e misure cautelari al TAR
 
-- ID: `ist-sospensiva` · materia: amministrativo · revisione 4 · ultimo controllo 24/11/2026 05:39
-- Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-sospensiva` · materia: amministrativo · revisione 5 · ultimo controllo 25/11/2026 14:39
+- Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** domanda cautelare collegiale nel ricorso o con atto separato; in estrema urgenza istanza di decreto monocratico.
 
@@ -9,7 +9,10 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- I sessanta giorni non valgono per tutti i riti: per gli atti delle procedure di affidamento di lavori, servizi e forniture il ricorso si propone nel termine di trenta giorni. — _art. 120 c.p.a._ (ancora letterale trovata nel testo vigente)
+- Nelle materie del rito abbreviato i termini processuali ordinari sono dimezzati, ma non quello per notificare il ricorso introduttivo. — _art. 119 c.p.a._ (ancora letterale trovata nel testo vigente)
+- Contro il silenzio dell'amministrazione si agisce finché perdura l'inadempimento e comunque non oltre un anno dalla scadenza del termine di conclusione del procedimento. — _art. 31 c.p.a._ (ancora letterale trovata nel testo vigente)
+- Per l'accesso ai documenti il rito è speciale: il ricorso si propone entro trenta giorni dalla conoscenza della determinazione o dalla formazione del silenzio. — _art. 116 c.p.a._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - La sospensione feriale dei termini (1-31 agosto) si applica anche ai termini del processo amministrativo. — _art. 1 l. 742/1969_ (ancora letterale trovata nel testo vigente)
@@ -49,12 +52,15 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Questione della regola ricorso_tar non riportata (senza norma citata): «Riti speciali (appalti, accesso agli atti, silenzio) hanno termini dimezzati o diversi: verifica il rito.»
+- Sezioni senza fonte: Presupposti, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 55 c.p.a. (Misure cautelari collegiali) — testo vigente, aggiornamento archivio 23/11/2026, versione `e3838346afdf798e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art55
 - art. 56 c.p.a. (Misure cautelari monocratiche) — testo vigente, aggiornamento archivio 23/11/2026, versione `e7e7f3347006a819` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art56
+- art. 120 c.p.a. (Disposizioni specifiche ai giudizi in materia di contratti pubblici) — testo vigente, aggiornamento archivio 12/12/2025, versione `9c267b4072c524b6` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art120
+- art. 119 c.p.a. (Materie di rito abbreviato) — testo vigente, aggiornamento archivio 12/12/2025, versione `64b3dfd3e7b8701c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art119
+- art. 31 c.p.a. (Azione avverso il silenzio e declaratoria di nullità) — testo vigente, aggiornamento archivio 12/12/2025, versione `e524ff92f123c5ec` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art31
+- art. 116 c.p.a. (Rito in materia di accesso ai documenti amministrativi) — testo vigente, aggiornamento archivio 23/11/2026, versione `9f35fc588a356789` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art116
 - art. 1 l. 742/1969 (Sospensione dei termini nel periodo feriale) — testo vigente, aggiornamento archivio n.d., versione `d2f33fde36c6cab2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1
 - art. 29 c.p.a. (Azione di annullamento) — testo vigente, aggiornamento archivio 12/12/2025, versione `fc8a6ac96a40c784` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art29
 - art. 41 c.p.a. (Notificazione del ricorso e suoi destinatari) — testo vigente, aggiornamento archivio 12/12/2025, versione `1f125f48b5d2bf6b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-07-02;104~art41
@@ -70,3 +76,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cpa:55, norma:cpa:56
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti
+- r5 · 25/11/2026 14:39 · fonti cambiate: norma:cpa:116, norma:cpa:119, norma:cpa:120, norma:cpa:31

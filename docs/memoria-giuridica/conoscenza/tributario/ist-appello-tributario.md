@@ -1,6 +1,6 @@
 # Appello tributario
 
-- ID: `ist-appello-tributario` · materia: tributario · revisione 2 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-appello-tributario` · materia: tributario · revisione 2 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** appello alla Corte di giustizia tributaria di secondo grado.

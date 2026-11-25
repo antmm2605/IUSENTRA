@@ -1,12 +1,12 @@
 # Danno da attività pericolose (art. 2050 c.c.)
 
-- ID: `ist-attivita-pericolose` · materia: responsabilità civile · revisione 3 · ultimo controllo 24/11/2026 05:39
-- Stato: lacune · fonti dirette: 19 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-attivita-pericolose` · materia: responsabilità civile · revisione 4 · ultimo controllo 25/11/2026 14:39
+- Stato: lacune · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 2050 c.c., art. 2043 c.c., art. 2947 c.c..
+**Sintesi.** domanda di risarcimento contro chi esercita l'attività, con la presunzione di responsabilità dell'art. 2050 c.c.
 
 ## Presupposti
-_Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
+- È diversa dalla responsabilità per le cose in custodia, che riguarda il danno causato dalla cosa e si supera provando il caso fortuito. — _art. 2051 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -18,15 +18,16 @@ _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 - La prescrizione è interrotta dalla notificazione dell'atto che inizia il giudizio e da ogni atto che valga a costituire in mora il debitore. — _art. 2943 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
-_Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
+- Il diritto al risarcimento si prescrive in cinque anni dal giorno del fatto (più a lungo se il fatto è reato). — _art. 2947 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Rimedi e forme
-_Sezione mancante: nessuna conclusione verificata nelle regole dell'istituto._
+- Chi cagiona danno nello svolgimento di un'attività pericolosa, per sua natura o per la natura dei mezzi adoperati, risarcisce il danno se non prova di avere adottato tutte le misure idonee a evitarlo: il danneggiato prova l'attività, il danno e il nesso; spetta a chi la esercita la prova liberatoria. — _art. 2050 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
 
 ## Prove e oneri
+- Ed è diversa dalla regola generale del fatto illecito, dove il danneggiato deve provare il dolo o la colpa di chi ha causato il danno. — _art. 2043 c.c._ (ancora letterale trovata nel testo vigente)
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
 - Le presunzioni semplici sono lasciate alla prudenza del giudice, che ammette solo presunzioni gravi, precise e concordanti; non sono ammesse dove la legge esclude la prova per testimoni. — _art. 2729 c.c._ (ancora letterale trovata nel testo vigente)
 - Il giudice pone a fondamento della decisione le prove proposte dalle parti e i fatti non specificamente contestati dalla parte costituita. — _art. 115 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -34,7 +35,10 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - Chi cagiona danno nello svolgimento di un'attività pericolosa risarcisce se non prova di avere adottato tutte le misure idonee a evitare il danno. — _art. 2050 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- attività svolta e chi la esercitava (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data e dinamica del danno (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- danni e prove (foto, testimoni, certificati) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- misure di sicurezza adottate o mancanti (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -47,16 +51,17 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - in caso di rigetto delle questioni sollevate, sarebbe preclusa la costituzione di parte civile nel procedimento penale divenendo automatica l'archiviazione del medesimo e sarebbe, altresì, preclusa l'azione civile in ossequio ai principi giurisprudenziali di legittimità elaborati in materia di prescrizione dell'azione civile nel giudizio civile ex art. 2947 codice civile. — _Corte costituzionale, n. 324/2008_ (passaggio letto nel testo integrale della pronuncia)
 
 ## Strumenti del software
-- nessuno
+- Regola di Lex «rc_attivita_pericolose»
+- Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Nessuna regola di Lex per questo istituto: la scheda riporta le norme di riferimento e le voci ancorate al loro testo.
-- Sezioni senza fonte: Presupposti, Termini, Rimedi e forme, Giudice e rito, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Giudice e rito, Questioni interpretative.
 
 ## Fonti con versione
 - art. 2050 c.c. (Responsabilità per l'esercizio di attività pericolose) — testo vigente, aggiornamento archivio n.d., versione `8c9a88bb01ed4377` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2050
 - art. 2043 c.c. (Risarcimento per fatto illecito) — testo vigente, aggiornamento archivio n.d., versione `d103379584946b25` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043
 - art. 2947 c.c. (Prescrizione del diritto al risarcimento del danno) — testo vigente, aggiornamento archivio 29/04/2026, versione `f792d4d582c83466` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2947
+- art. 2051 c.c. (Danno cagionato da cosa in custodia) — testo vigente, aggiornamento archivio n.d., versione `0d8e2da95364c8e0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2051
 - art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
 - art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
 - art. 2934 c.c. (Estinzione dei diritti) — testo vigente, aggiornamento archivio n.d., versione `2ee6bf29315198c9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2934
@@ -79,3 +84,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 04:24 · prima generazione
 - r2 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r3 · 24/11/2026 05:39 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 25/11/2026 14:39 · fonti cambiate: norma:cc:2051

@@ -1,6 +1,6 @@
 # Differenze retributive e crediti di lavoro
 
-- ID: `ist-differenze-retributive` · materia: lavoro · revisione 7 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-differenze-retributive` · materia: lavoro · revisione 8 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro (o decreto ingiuntivo con le buste paga); Tribunale in funzione di giudice del lavoro.
@@ -74,7 +74,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 2099 c.c. (art. 2099 c.c.) — testo vigente, aggiornamento archivio n.d., versione `778f854c2773f93a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2099
 - art. 429 c.p.c. (Pronuncia della sentenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `bd356badf417fb65` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art429
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
-- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `9d996db86d16b772` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
 - art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
 - art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
 - art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
@@ -106,3 +106,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r5 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27991/2026
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
 - r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 25/11/2026 14:39 · fonti cambiate: norma:cpc:416

@@ -199,8 +199,9 @@ def pagina_scheda(s: dict[str, Any]) -> str:
                          f"{ta['stato']}" + (f", versione `{ta['versione']}` — {ta['url']}" if ta.get("versione") else ""))
             if f.get("nota_commi"):
                 r.append(f"- {f['citazione']}, comma {f.get('comma_pertinente', '')} (pertinente): {f['nota_commi']}")
+            link = f" — {f['url']}" if f.get("url") else ""
             r.append(f"- {f['citazione']} ({f.get('rubrica', '')}) — testo vigente, aggiornamento archivio "
-                     f"{f.get('aggiornamento') or 'n.d.'}, versione `{f.get('versione', '')}` — {f.get('url', '')}")
+                     f"{f.get('aggiornamento') or 'n.d.'}, versione `{f.get('versione', '')}`{link}")
         else:
             r.append(f"- {f['citazione']} ({f.get('tipo_testo', '')}) — versione `{f.get('versione', '')}` — {f.get('url', '')}")
     if s.get("norme_abrogate"):

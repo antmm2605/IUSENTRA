@@ -1,6 +1,6 @@
 # Diffida e messa in mora
 
-- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 7 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-diffida-messa-mora` · materia: stragiudiziale · revisione 8 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** lettera di diffida e messa in mora via PEC o raccomandata, con termine per adempiere.
@@ -13,7 +13,7 @@
 - Se invece si agisse con causa ordinaria per il pagamento di somme non eccedenti € 50.000, l'invito alla negoziazione assistita sarebbe condizione di procedibilità. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Gli interessi moratori si indicano al tasso legale di mora (tasso di riferimento della BCE maggiorato di otto punti) ma si calcolano a parte, per semestri, con il tasso in vigore il 1° gennaio e il 1° luglio. — _art. 5 d.lgs. 231/2002; art. 2 d.lgs. 231/2002_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -51,9 +51,8 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - Procedura guidata: Recupero credito in via monitoria — `/legal-skills/percorsi?percorso=recupero_credito_monitorio`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Termini, Giudice e rito.
-- Avvertenza della regola diffida_commerciale non riportata (senza norma citata): «Gli interessi moratori si indicano al tasso legale di mora ma si calcolano a parte, per semestri, con il tasso di riferimento della BCE.»
-- Avvertenza della regola diffida_commerciale non riportata (senza norma citata): «Il termine di 15 giorni decorre dal ricevimento della diffida.»
+- Sezioni senza fonte: Termini, Giudice e rito.
+- Avvertenza della regola diffida_commerciale non riportata (senza norma citata): «Consiglio operativo: il termine di 15 giorni assegnato nella diffida si conta dal ricevimento; conservare la ricevuta di consegna della PEC.»
 - 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
 ## Fonti con versione
@@ -81,3 +80,4 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - r5 · 24/11/2026 04:14 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27716/2026
 - r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti
 - r7 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

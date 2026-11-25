@@ -1,6 +1,6 @@
 # Querela
 
-- ID: `ist-querela` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-querela` · materia: penale · revisione 4 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 9 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** querela scritta o orale all'autorità giudiziaria o alla polizia giudiziaria entro tre mesi dalla notizia del fatto.
@@ -9,7 +9,7 @@
 _Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Il termine di tre mesi vale salvo che la legge disponga altrimenti: alcuni reati hanno termini diversi, da verificare sulla norma del reato specifico. — _art. 124 c.p._ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'istituto._
@@ -47,8 +47,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «pen_querela»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Eccezioni e tranelli, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Questione della regola termine_querela non riportata (senza norma citata): «Alcuni reati hanno termini diversi stabiliti dalla legge: verifica la norma del reato specifico.»
+- Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 120 c.p. (Diritto di querela) — testo vigente, aggiornamento archivio n.d., versione `480c64af733379ec` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1930-10-19;1398~art120
@@ -65,3 +64,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r1 · 24/11/2026 00:20 · prima generazione
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cp:120
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
+- r4 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

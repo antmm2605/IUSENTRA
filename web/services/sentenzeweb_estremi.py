@@ -15,7 +15,10 @@ _ROMANI = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7":
 _DA_ROMANO = {valore: chiave for chiave, valore in _ROMANI.items()}
 
 _NUMERO_ANNO = re.compile(
-    r"(?<![\d/])(?:n(?:r|um(?:ero)?)?\.?\s*)?(\d{1,6})\s*(?:/|-|,|\s+del(?:l'anno)?\s+|\s+anno\s+|\s+)\s*((?:19|20)\d{2})(?!\d)",
+    # Fra numero e anno: «/», «-» o «,» con spazi facoltativi, oppure spazi con «del», «dell'anno», «anno» facoltativi.
+    # Ogni spazio ha un solo modo di essere letto: prima «\s*(…|\s+…)\s*» dava tempo polinomiale su molti spazi
+    # (CodeQL py/polynomial-redos).
+    r"(?<![\d/])(?:n(?:r|um(?:ero)?)?\.?\s*)?(\d{1,6})(?:\s*[/,-]\s*|\s+(?:del(?:l'anno)?\s+|anno\s+)?)((?:19|20)\d{2})(?!\d)",
     re.IGNORECASE,
 )
 _SEZIONI_UNITE = re.compile(r"\bsez(?:ioni|\.)?\s*un(?:ite|\.)?|\bs\.\s*u\.|\bss\.\s*uu\.|\bsezioni\s+unite\b", re.IGNORECASE)

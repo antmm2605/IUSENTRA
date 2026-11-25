@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import inspect
+from urllib.parse import urlsplit
 
 from lex.operational_knowledge.agents import DEFAULT_OPERATIONAL_AGENTS
 from lex.operational_knowledge.models import OperationalQueryContext
@@ -66,5 +67,5 @@ def test_cassazione_e_archivio(monkeypatch):
                                                ("archivio dello studio (Consulta e fonti pubbliche)", _Corpus())])
     tools = OperationalKnowledgeTools()
     r = tools.search_verified_cassazione("9449/2016", _contesto("ai.usa"))
-    assert r.ok and r.data[0]["numero"] == "9449" and r.data[0]["url"].startswith("https://www.italgiure")
+    assert r.ok and r.data[0]["numero"] == "9449" and urlsplit(r.data[0]["url"]).hostname == "www.italgiure.giustizia.it"
     assert tools.get_giurisprudenza_items("9449/2016", _contesto("ai.usa")).ok

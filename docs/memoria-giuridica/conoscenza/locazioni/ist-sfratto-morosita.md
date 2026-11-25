@@ -1,6 +1,6 @@
 # Intimazione di sfratto per morosità e citazione per la convalida
 
-- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 10 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-sfratto-morosita` · materia: locazioni · revisione 11 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 34 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con contestuale citazione per la convalida e richiesta di ingiunzione per i canoni (art. 658 c.p.c.); nessun invito alla negoziazione assistita; Tribunale del luogo dell'immobile.
@@ -18,7 +18,9 @@
 - Con l'opposizione e il mutamento del rito scatta la mediazione obbligatoria in materia di locazione. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-- La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: va detto espressamente al cliente. — _art. 55 l. 392/1978_ (norme citate esistenti nel testo vigente; affermazione non ancorata parola per parola; art. 55 l. 392/1978: atto dedotto dalle norme citate dalla stessa regola)
+- Il conduttore può sanare in prima udienza o chiedere il termine di grazia fino a novanta giorni: la convalida richiede che la morosità persista. — _art. 55 l. 392/1978; art. 663 c.p.c._ (ancora letterale trovata nel testo vigente)
+- La richiesta (termine di grazia di novanta giorni ex art. 55) è inadatta alla locazione commerciale: la sanatoria riguarda la morosità «di cui all'articolo 5», cioè la locazione abitativa; va detto espressamente al cliente. — _art. 55 l. 392/1978_ (ancora letterale trovata nel testo vigente)
+- La convalida per morosità richiede che la morosità persista all'udienza: l'unico modo per evitarla con certezza è pagare integralmente canoni, interessi e spese entro l'udienza. — _art. 663 c.p.c._ (ancora letterale trovata nel testo vigente)
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Prescrizione quinquennale dei canoni e di ogni altro corrispettivo di locazione. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
@@ -73,10 +75,8 @@
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Avvertenza della regola negoziazione_locazione_inadatta non riportata (senza norma citata): «Il conduttore può sanare in prima udienza o chiedere il termine di grazia fino a novanta giorni: la convalida richiede che la morosità persi»
-- Avvertenza della regola negoziazione_locazione_inadatta non riportata (senza norma citata): «Il deposito cauzionale non va imputato ai canoni nell'atto.»
-- Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «L'unico modo per evitare con certezza la convalida è pagare integralmente canoni, interessi e spese entro l'udienza.»
-- Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Tentare subito un accordo con la locatrice sul piano di rientro.»
+- Avvertenza della regola negoziazione_locazione_inadatta non riportata (senza norma citata): «Consiglio operativo: il deposito cauzionale non va imputato ai canoni nell'atto.»
+- Avvertenza della regola opposizione_sfratto_commerciale non riportata (senza norma citata): «Consiglio operativo: tentare subito un accordo con la locatrice sul piano di rientro.»
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 - 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
@@ -129,3 +129,4 @@
 - r8 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r9 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti
 - r10 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti
+- r11 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

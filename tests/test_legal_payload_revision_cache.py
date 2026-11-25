@@ -20,13 +20,14 @@ def route_key():
 def test_changed_revision_and_owner_cannot_reuse_cached_payload(monkeypatch):
     snapshot = {"context": "tenant-user-a", "revisions": {"normativa": 11}}
     monkeypatch.setattr("web.services.operational_read_revision.read_authorized_revision_snapshot",
-                        lambda _: snapshot)
+                        lambda _, *, include_vertical: snapshot if not include_vertical else {})
     key = route_key()
     cache = ReactPayloadTTLCache()
     with Flask(__name__).test_request_context("/ricerca-legale"):
         g.tenant = SimpleNamespace(slug="studio-a")
         g.utente_corrente = object()
         first = key("ricerca-legale")
+        assert first is not None
         cache.set(first, b"previous projection")
         assert cache.get(key("ricerca-legale")) == b"previous projection"
         snapshot["revisions"]["normativa"] = 12
@@ -40,7 +41,7 @@ def test_changed_revision_and_owner_cannot_reuse_cached_payload(monkeypatch):
 
 
 def test_unconfirmed_revision_disables_cache_and_queries_remain_live(monkeypatch):
-    def unavailable(_):
+    def unavailable(_, *, include_vertical):
         raise RuntimeError("revision unavailable")
     monkeypatch.setattr("web.services.operational_read_revision.read_authorized_revision_snapshot", unavailable)
     key = route_key()

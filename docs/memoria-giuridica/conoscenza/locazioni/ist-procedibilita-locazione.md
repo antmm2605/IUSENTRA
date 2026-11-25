@@ -1,6 +1,6 @@
 # Condizioni di procedibilità nelle cause di locazione
 
-- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 6 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-procedibilita-locazione` · materia: locazioni · revisione 7 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** intimazione di sfratto per morosità con citazione per la convalida, senza mediazione preventiva; mediazione da avviare dopo il mutamento del rito, se il giudizio prosegue nel merito; Tribunale del luogo dell'immobile.
@@ -17,6 +17,8 @@
 - La negoziazione assistita non è condizione di procedibilità: la locazione rientra nei casi di mediazione obbligatoria che l'art. 3 d.l. 132/2014 esclude. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
+- Dopo il mutamento del rito conviene che sia il locatore, che ha interesse alla risoluzione, a depositare subito la domanda di mediazione: senza mediazione la domanda di merito diventa improcedibile. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
+- Una citazione ordinaria per la sola risoluzione o per i soli canoni richiede invece la mediazione prima della causa. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - Mancata mediazione obbligatoria: l'improcedibilità è eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice non oltre la prima udienza. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
@@ -52,8 +54,6 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Prove e oneri, Documenti e dati da verificare.
-- Avvertenza della regola procedibilita_locazione non riportata (senza norma citata): «Dopo il mutamento del rito conviene che sia il locatore, che ha interesse alla risoluzione, a depositare subito la domanda di mediazione: se»
-- Avvertenza della regola procedibilita_locazione non riportata (senza norma citata): «Una citazione ordinaria per la sola risoluzione o per i soli canoni richiede invece la mediazione prima della causa.»
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 - 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
 
@@ -81,3 +81,4 @@ _Sezione mancante: nessun dato da raccogliere indicato dalle regole._
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte di Cassazione — civile|29672/2026, pronuncia:Corte di Cassazione — civile|23217/2026
 - r5 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r6 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

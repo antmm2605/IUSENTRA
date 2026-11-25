@@ -1,6 +1,6 @@
 # TFR (trattamento di fine rapporto)
 
-- ID: `ist-tfr` · materia: lavoro · revisione 13 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-tfr` · materia: lavoro · revisione 14 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 35 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** diffida, poi decreto ingiuntivo o ricorso al giudice del lavoro; con datore insolvente domanda al Fondo di garanzia INPS; Tribunale in funzione di giudice del lavoro.
@@ -90,7 +90,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 3 d.l. 132/2014 (Improcedibilità) — testo vigente, aggiornamento archivio n.d., versione `71186d080e513109` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3
 - art. 5 d.lgs. 28/2010 — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `c12928637f95f443` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5!vig=2022-10-17
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
-- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `9d996db86d16b772` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
 - art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
 - art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
 - art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
@@ -131,3 +131,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r11 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r12 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r13 · 24/11/2026 04:46 · contenuto delle regole cambiato con le stesse fonti
+- r14 · 25/11/2026 14:39 · fonti cambiate: norma:cpc:416

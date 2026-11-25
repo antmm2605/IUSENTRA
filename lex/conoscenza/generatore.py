@@ -345,7 +345,12 @@ def genera_scheda(ist: Istituto, *, oggi: date | None = None) -> dict[str, Any]:
         scheda_h = _schede_harness().get(regola)
         for s in (scheda_h.scadenze if scheda_h else []):
             _aggiungi(sez["termini"], _termine_calcolabile(s, regola), sez)
+        from lex.harness.modello import Punto
+
         for testo in a.avvertenze:
+            if isinstance(testo, Punto):
+                _aggiungi(sez["eccezioni"], _voce_punto(testo, prov), sez)
+                continue
             v, perche = _voce_testo_libero(testo, prov, chiavi_regola)
             _aggiungi(sez["eccezioni"], v, sez)
             if v is None:

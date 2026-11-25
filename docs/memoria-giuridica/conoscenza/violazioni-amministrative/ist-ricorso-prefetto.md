@@ -1,6 +1,6 @@
 # Ricorso al Prefetto contro il verbale (art. 203 cod. strada)
 
-- ID: `ist-ricorso-prefetto` · materia: violazioni amministrative · revisione 4 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-ricorso-prefetto` · materia: violazioni amministrative · revisione 5 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 11 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso al Prefetto entro sessanta giorni (in alternativa al giudice di pace entro trenta).
@@ -11,7 +11,7 @@
 - In alternativa al giudice di pace, se non si è pagato in misura ridotta, si può proporre ricorso al prefetto del luogo della violazione entro sessanta giorni dalla contestazione o dalla notificazione, presentandolo all'organo accertatore o inviandolo con raccomandata o PEC. Le due strade sono alternative: scelta l'una, l'altra non è più percorribile per lo stesso verbale. — _art. 203 d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
-_Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
+- Non pagare e non proporre ricorso al prefetto: l'opposizione al giudice di pace è ammessa se non è stato effettuato il pagamento in misura ridotta, ed è inammissibile se è stato presentato prima ricorso al prefetto. — _art. 204-bis d.lgs. 285/1992 (codice della strada); art. 7 d.lgs. 150/2011_ (ancora letterale trovata nel testo vigente)
 
 ## Termini
 - Ricorso al Prefetto entro 60 giorni, con la decorrenza indicata dalla norma citata (con sospensione feriale); la data si calcola dal fatto del fascicolo con il motore dei termini. — _art. 203 d.lgs. 285/1992 (codice della strada)_ (ancora letterale trovata nel testo vigente)
@@ -50,8 +50,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Eccezioni e tranelli, Giudice e rito, Prove e oneri, Questioni interpretative.
-- Avvertenza della regola opposizione_verbale_cds non riportata (senza norma citata): «Non pagare e non proporre ricorso al prefetto: il ricorso al giudice di pace è inammissibile se è stato presentato prima ricorso al prefetto»
+- Sezioni senza fonte: Giudice e rito, Prove e oneri, Questioni interpretative.
 
 ## Fonti con versione
 - art. 203 d.lgs. 285/1992 (cod. strada) (Ricorso al prefetto) — testo vigente, aggiornamento archivio 21/11/2026, versione `06a4c782126e7d7a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-04-30;285~art203
@@ -71,3 +70,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r2 · 24/11/2026 01:07 · fonti cambiate: norma:cds:203, norma:cds:204
 - r3 · 24/11/2026 01:12 · contenuto delle regole cambiato con le stesse fonti
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|462/2006, pronuncia:Corte di Cassazione — civile|15992/2026, pronuncia:Corte di Cassazione — civile|17694/2026, pronuncia:Corte di Cassazione — civile|2857/2026, pronuncia:Corte di Cassazione — civile|29409/2026, pronuncia:Corte costituzionale|69/2012
+- r5 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

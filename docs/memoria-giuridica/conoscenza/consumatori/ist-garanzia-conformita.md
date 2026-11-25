@@ -1,7 +1,7 @@
 # Garanzia legale di conformità
 
-- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 8 · ultimo controllo 24/11/2026 05:39
-- Stato: verificata · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-garanzia-conformita` · materia: consumatori · revisione 9 · ultimo controllo 25/11/2026 14:39
+- Stato: verificata · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta scritta al venditore di riparazione o sostituzione gratuita; in subordine riduzione del prezzo o risoluzione del contratto.
 
@@ -24,6 +24,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - La risoluzione si esercita con una dichiarazione al venditore; il bene si restituisce a spese del venditore, che rimborsa il prezzo. — _art. 135-quater d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 - Il venditore risponde verso il consumatore dei difetti di conformità esistenti alla consegna e manifestati entro due anni. — _art. 133 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 - Il consumatore ha diritto al ripristino della conformità (riparazione o sostituzione), o alla riduzione del prezzo o alla risoluzione alle condizioni di legge. — _art. 135-bis d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
+- Per il difetto di conformità il consumatore ha diritto al ripristino della conformità, a una riduzione proporzionale del prezzo o alla risoluzione del contratto, alle condizioni di legge. — _art. 135-bis d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
+- Il venditore finale che ha soddisfatto il consumatore può agire in regresso, entro un anno dall'esecuzione della prestazione, contro chi nella catena distributiva è responsabile del difetto. — _art. 134 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Foro del consumatore: per la causa resta competente il giudice del luogo di residenza o domicilio elettivo del consumatore; è vessatoria la clausola che fissa un foro diverso. — _art. 33 d.lgs. 206/2005 (codice del consumo)_ (ancora letterale trovata nel testo vigente)
@@ -41,6 +43,8 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - data di consegna (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - difetto e quando si è manifestato (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - richieste già fatte al venditore (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data di comparsa del difetto e descrizione (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- fattura di acquisto dal fornitore (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 - 20110 del 2/9/2013);la corte di merito, anche là dove afferma che si applica no con priorità le norme del Codice del Consumo, è conforme all’orientamento di questa Corte secondo cui “Nell'attuale assetto normativo della compravendita, ove ricorrano i presupposti individuati dall'art. 128 del D.lgs. n. 206 del 2005 e, dunque, si tratti di vendita di "beni di consumo" (intendendosi per tale "qualsiasi bene mobile") operata da un soggetto qualificabile in termini di "venditore" alla stregua di tale disciplina speciale (e, cioè, "qualsiasi persona fisica o giuridica pubblica o privata che, nell'esercizio della propria attività imprenditoriale o professionale, u — _Corte di Cassazione — civile, sez. 3, n. 14390/2024_ (passaggio letto nel testo integrale della pronuncia)
@@ -56,6 +60,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 ## Strumenti del software
 - Regola di Lex «garanzia_conformita»
 - Regola di Lex «cons_garanzia»
+- Regola di Lex «garanzia_venditore»
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -74,6 +79,7 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - art. 5 d.lgs. 28/2010 (Condizione di procedibilità e rapporti con il processo) — testo vigente, aggiornamento archivio 19/06/2025, versione `0316e6a116391430` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5
 - art. 135-bis d.lgs. 206/2005 (codice del consumo) (Rimedi per il difetto di conformità) — testo vigente, aggiornamento archivio 11/11/2026, versione `3ad7decbe6df4893` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art135bis
 - art. 135-quater d.lgs. 206/2005 (codice del consumo) (Riduzione del prezzo e risoluzione) — testo vigente, aggiornamento archivio 11/11/2026, versione `6284256586d3379b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art135quater
+- art. 134 d.lgs. 206/2005 (codice del consumo) (Diritto di regresso) — testo vigente, aggiornamento archivio 11/11/2026, versione `c01023f1b0332ecb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art134
 - art. 33 d.lgs. 206/2005 (codice del consumo) (Clausole vessatorie nel contratto tra professionista e consumatore) — testo vigente, aggiornamento archivio 11/11/2026, versione `24dbfba1db5d9c63` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206~art33
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
@@ -96,3 +102,4 @@ _Sezione mancante: nessuna avvertenza della regola con norma citata verificata._
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte costituzionale|266/2019, pronuncia:Corte di Cassazione — civile|28758/2026
+- r9 · 25/11/2026 14:39 · fonti cambiate: norma:dlgs206:134

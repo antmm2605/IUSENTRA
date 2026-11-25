@@ -1,12 +1,12 @@
 # Danni da parti comuni e liti condominiali
 
-- ID: `ist-lite-condominio` · materia: diritti reali e condominio · revisione 6 · ultimo controllo 24/11/2026 05:39
-- Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-lite-condominio` · materia: diritti reali e condominio · revisione 7 · ultimo controllo 25/11/2026 14:39
+- Stato: lacune · fonti dirette: 15 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
-**Sintesi.** Norme di riferimento: art. 1117 c.c., art. 2051 c.c., art. 5 d.lgs. 28/2010.
+**Sintesi.** partecipazione alla mediazione e costituzione in giudizio per il condominio, con notizia immediata all'assemblea quando la lite esce dalle attribuzioni dell'amministratore.
 
 ## Presupposti
-_Sezione mancante: nessuna regola con inquadramento ancorato al testo vigente._
+- Il condominio è materia di mediazione obbligatoria: la mediazione è condizione di procedibilità della domanda del condomino. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 - L'incompetenza per materia, valore e territorio si eccepisce, a pena di decadenza, nella comparsa di risposta tempestivamente depositata; l'eccezione di incompetenza per territorio deve indicare il giudice competente. — _art. 38 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -18,6 +18,7 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - Mediazione obbligatoria: la controversia in materia di condominio rientra nell'elenco dell'art. 5, comma 1, d.lgs. 28/2010; l'esperimento del procedimento di mediazione è condizione di procedibilità della domanda. — _art. 5 d.lgs. 28/2010, comma 1; art. 5 d.lgs. 28/2010, comma 2_ (ancora letterale trovata nel testo vigente)
+- L'amministratore può essere convenuto in giudizio per qualunque azione sulle parti comuni; se la citazione esorbita dalle sue attribuzioni deve darne senza indugio notizia all'assemblea, altrimenti può essere revocato e risponde dei danni. — _art. 1131 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -29,7 +30,8 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - Il giudice valuta le prove secondo prudente apprezzamento e può desumere argomenti di prova dal contegno delle parti nel processo. — _art. 116 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Documenti e dati da verificare
-_Sezione mancante: nessun dato da raccogliere indicato dalle regole._
+- verbale della delibera e data della comunicazione al condomino (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data del primo incontro di mediazione (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -43,9 +45,10 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Strumenti del software
 - Regola di Lex «lite_condominio»
+- Regola di Lex «difesa_condominio»
 
 ## Limiti e lacune dichiarate
-- Sezioni senza fonte: Presupposti, Termini, Giudice e rito, Documenti e dati da verificare, Questioni interpretative.
+- Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative.
 - Corte costituzionale, n. 98/2014: disponibile solo la massima; fatti e motivazione non letti.
 
 ## Fonti con versione
@@ -56,6 +59,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 38 c.p.c. (Incompetenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `72001d1a46f88212` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art38
 - art. 167 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `bd6d7602771dbd96` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167!vig=2022-10-17
 - art. 167 c.p.c. (Comparsa di risposta) — testo vigente, aggiornamento archivio 05/03/2026, versione `7257d32f84e2c086` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art167
+- art. 1131 c.c. (Rappresentanza) — testo vigente, aggiornamento archivio 29/04/2026, versione `d90c396151a817e0` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art1131
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
 - art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
@@ -73,3 +77,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r4 · 24/11/2026 04:20 · fonti cambiate: pronuncia:Corte costituzionale|97/2019, pronuncia:Corte costituzionale|98/2014, pronuncia:Corte di Cassazione — civile|28205/2026, pronuncia:Corte di Cassazione — civile|29096/2026, pronuncia:Corte di Cassazione — civile|29672/2026
 - r5 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116
 - r6 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r7 · 25/11/2026 14:39 · fonti cambiate: norma:cc:1131

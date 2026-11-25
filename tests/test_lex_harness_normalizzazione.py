@@ -7,11 +7,16 @@ from lex.harness.comprensione import comprendi
 from lex.harness.fatti import leggi_fatti
 from lex.harness.fattispecie import scegli
 from lex.harness.normalizzazione import correggi_refusi, normalizza_richiesta
+from legal_ocr.lessico.italiano import vocabolario_completo
+
+# Correggere un refuso richiede il dizionario italiano (hunspell-it, nell'immagine e nella CI): senza, non si corregge.
+CON_DIZIONARIO = pytest.mark.skipif(not vocabolario_completo(), reason="dizionario italiano hunspell-it non installato")
 
 
 @pytest.mark.parametrize("scritto,atteso", [("stipendo", "stipendio"), ("condutore", "conduttore"), ("sfrato", "sfratto"),
                                             ("opposizone", "opposizione"), ("decretto", "decreto"),
                                             ("aplello", "appello"), ("sentensa", "sentenza"), ("pignoramneto", "pignoramento")])
+@CON_DIZIONARIO
 def test_refusi_corretti_solo_con_un_candidato(scritto, atteso):
     assert correggi_refusi(f"il {scritto} del cliente") == f"il {atteso} del cliente"
 
@@ -61,8 +66,22 @@ def test_una_parola_del_lessico_non_si_corregge_mai_in_un_altra(parola):
 
 
 @pytest.mark.parametrize("scritto,atteso", [("prefeto", "prefetto"), ("appelo", "appello")])
+@CON_DIZIONARIO
 def test_refusi_delle_coppie_vicine_vanno_alla_parola_giusta(scritto, atteso):
     assert correggi_refusi(f"il {scritto} del cliente") == f"il {atteso} del cliente"
+
+
+@pytest.mark.parametrize("scritto", ["saltato", "quarta", "stipendo"])
+def test_senza_dizionario_italiano_il_refuso_resta_com_e(scritto, monkeypatch):
+    """Senza hunspell-it una parola vera non dichiarata («saltato») sembra un refuso: non si corregge nulla."""
+    import lex.harness.normalizzazione as normalizzazione
+
+    monkeypatch.setattr(normalizzazione, "_vocabolario_completo", lambda: False)
+    normalizzazione._corretta.cache_clear()
+    try:
+        assert correggi_refusi(f"il {scritto} del cliente") == f"il {scritto} del cliente"
+    finally:
+        normalizzazione._corretta.cache_clear()
 
 
 def test_refuso_con_due_candidati_non_si_corregge():

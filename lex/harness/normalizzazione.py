@@ -97,6 +97,15 @@ def _parola_italiana(parola: str) -> bool:
         return False
 
 
+def _vocabolario_completo() -> bool:
+    try:
+        from legal_ocr.lessico.italiano import vocabolario_completo
+
+        return bool(vocabolario_completo())
+    except Exception:
+        return False
+
+
 def _stessa_parola(a: str, b: str) -> bool:
     k = 0
     while k < min(len(a), len(b)) and a[k] == b[k]:
@@ -136,6 +145,10 @@ REFUSI_NEL_DIZIONARIO: frozenset[str] = frozenset({
 def _corretta(parola: str) -> str:
     if parola in lessico() or (_parola_italiana(parola) and parola not in REFUSI_NEL_DIZIONARIO):
         return parola
+    if not _vocabolario_completo():
+        # Senza il dizionario italiano di sistema una parola vera non dichiarata nel repository sembra un refuso
+        # («saltato» diventerebbe «saldato»): non si può distinguere, quindi non si corregge.
+        return parola
     # Come legal_ocr/lessico: si corregge solo se UNA SOLA parola del lessico è un refuso tipico della parola letta
     # (le forme flesse della stessa parola, «sfratto» e «sfratti», contano come una sola).
     simili = [x for x in get_close_matches(parola, lessico(), n=8, cutoff=0.8) if _refuso_di(parola, x)]
@@ -148,9 +161,14 @@ def _corretta(parola: str) -> str:
     return s
 
 
+_REFUSI_IMPERATIVI = {"scrvi": "scrivi", "redgi": "redigi"}
+
+
 def correggi_refusi(testo: str) -> str:
     def sost(m: re.Match) -> str:
         w = m.group(0)
+        if w in _REFUSI_IMPERATIVI:
+            return _REFUSI_IMPERATIVI[w]
         if w[0].isupper() or not w.isalpha() or len(w) < 6:
             return w
         c = _corretta(w)

@@ -15,6 +15,10 @@ from lex.strumenti.normalizzazione import normalizza_domanda
 from lex.strumenti.scelta import scegli
 from lex.strumenti.scelta_calcoli import calcolatore
 from lex.strumenti.usi_calcolatori import CAMPI_DA_USO, USI
+from legal_ocr.lessico.italiano import vocabolario_completo
+
+# Correggere un refuso richiede il dizionario italiano (hunspell-it, nell'immagine e nella CI): senza, non si corregge.
+CON_DIZIONARIO = pytest.mark.skipif(not vocabolario_completo(), reason="dizionario italiano hunspell-it non installato")
 
 
 def test_ogni_calcolatore_ha_un_uso_e_le_scelte_esistono():
@@ -28,14 +32,29 @@ def test_ogni_calcolatore_ha_un_uso_e_le_scelte_esistono():
 
 
 @pytest.mark.parametrize("scritto,atteso", [
-    ("qunato costa il contributo unifcato", "quanto costa il contributo unificato"),
-    ("sentneza notificta il 2/2/2026", "sentenza notificata il 2/2/2026"),
+    pytest.param("qunato costa il contributo unifcato", "quanto costa il contributo unificato", marks=CON_DIZIONARIO),
+    pytest.param("sentneza notificta il 2/2/2026", "sentenza notificata il 2/2/2026", marks=CON_DIZIONARIO),
     ("Come si procede per ricorso al TAR?", "Come si procede per ricorso al TAR?"),
     ("lavoratore licenziato", "lavoratore licenziato"),
     ("accertamento tecnico preventivo", "accertamento tecnico preventivo"),
 ])
 def test_normalizzazione_corregge_solo_refusi(scritto, atteso):
     assert normalizza_domanda(scritto).split(" [")[0] == atteso
+
+
+@pytest.mark.parametrize("scritto", ["Ho saltato la scadenza dell'F24", "la quarta PEC del deposito",
+                                     "qunato costa il contributo unifcato"])
+def test_senza_dizionario_italiano_non_si_corregge_nessuna_parola(scritto, monkeypatch):
+    """CI del 25/11/2026, senza hunspell-it: «saltato» diventava «saldato» e «quarta» «quaranta». Senza dizionario non si
+    può distinguere un refuso da una parola vera, quindi la domanda resta com'è scritta."""
+    import lex.strumenti.normalizzazione as normalizzazione
+
+    monkeypatch.setattr(normalizzazione, "_vocabolario_completo", lambda: False)
+    normalizzazione._corretta.cache_clear()
+    try:
+        assert normalizzazione.correggi_refusi(scritto) == scritto
+    finally:
+        normalizzazione._corretta.cache_clear()
 
 
 @pytest.mark.parametrize("domanda,atteso", [

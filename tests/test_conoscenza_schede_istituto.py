@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import replace
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -45,7 +46,7 @@ def test_scheda_esecuzione_contro_pa_dalle_regole_con_fonti_versionate(monkeypat
     voce = next(v for v in termini["voci"] if v.get("calcolo"))
     assert voce["calcolo"]["quantita"] == 120 and voce["calcolo"]["calcolatore"] == "/scadenziario/calcola-termini"
     f = voce["fonti"][0]
-    assert f["chiave"] == "dl669:14" and len(f["versione"]) == 16 and f["url"].startswith("https://www.normattiva.it")
+    assert f["chiave"] == "dl669:14" and len(f["versione"]) == 16 and urlsplit(f["url"]).hostname == "www.normattiva.it"
     # Ogni voce compilata porta fonte e tipo di verifica; ogni sezione vuota è dichiarata con il motivo.
     for nome, sez in s["sezioni"].items():
         if sez["stato"] == "compilata":

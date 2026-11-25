@@ -1,6 +1,6 @@
 # Sequestro ante causam: efficacia e inizio del giudizio di merito
 
-- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 5 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-sequestro-ante-causam` · materia: cautelare e urgenza · revisione 5 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 16 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per sequestro conservativo ante causam al giudice competente per il merito; poi esecuzione entro trenta giorni e inizio del merito nel termine perentorio; Tribunale competente per territorio sul merito.

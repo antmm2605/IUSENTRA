@@ -1,6 +1,6 @@
 # Concordato preventivo
 
-- ID: `ist-concordato` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-concordato` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso per concordato preventivo (anche con riserva) al tribunale del centro degli interessi principali.

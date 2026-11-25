@@ -1,6 +1,6 @@
 # Negoziazione assistita familiare
 
-- ID: `ist-negoziazione-familiare` · materia: famiglia e minori · revisione 4 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-negoziazione-familiare` · materia: famiglia e minori · revisione 4 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 1 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** convenzione di negoziazione assistita da almeno un avvocato per parte e trasmissione dell'accordo al pubblico ministero.

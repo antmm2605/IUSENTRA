@@ -1,6 +1,6 @@
 # Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
 
-- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 11 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-ricorso-dipendente-pubblico` · materia: pubblico impiego · revisione 12 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 44 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. al giudice del lavoro per la condanna dell'amministrazione al pagamento delle differenze; Tribunale in funzione di giudice del lavoro del luogo dell'ufficio al quale il dipendente è addetto.
@@ -94,7 +94,8 @@
 - Contributo unificato e spese — `/strumenti-legali/`
 
 ## Limiti e lacune dichiarate
-- Questione della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Consiglio operativo: regime dei docenti immessi in ruolo prima dell'a.s. 2023/2024 e decorrenza della prescrizione: verificare l'orientament»
+- Avvertenza della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Giurisprudenza letta — Cass. n. 31149/2019, principio riportato da Cass., sez. 6-L, n. 37650/2022 (dep. 23/12/2022): per i docenti a termine»
+- Avvertenza della regola pi_ricostruzione_carriera non riportata (senza norma citata): «Prescrizione — Cass., sez. lav., n. 15840/2024 (dep. 06/06/2024): l'anzianità di servizio non è un diritto autonomo e può essere accertata s»
 - Art. 37 c.p.c.: il testo citato è quello del d.lgs. 149/2022 (procedimenti instaurati dopo il 28/02/2023). Per i procedimenti pendenti a quella data vale il testo anteriore, registrato fra le fonti (vigente al 17/10/2022): il difetto di giurisdizione verso la pubblica amministrazione o i giudici speciali è rilevato, anche d'ufficio, «in qualunque stato e grado del processo», senza la regola dello specifico motivo. I limiti posti dalla giurisprudenza a quel testo (giudicato implicito) sono fra le questioni interpretative, dalle pronunce lette.
 
 ## Fonti con versione
@@ -104,7 +105,7 @@
 - art. 22 l. 724/1994 (Disposizioni in materia di trattamenti economici (comma 36: divieto di cumulo)) — testo vigente, aggiornamento archivio 23/11/2026, versione `726196f223d51bd9` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1994-12-23;724~art22
 - art. 16 l. 412/1991 (Disposizioni varie in materia previdenziale (comma 6: interessi e rivalutazione)) — testo vigente, aggiornamento archivio 23/11/2026, versione `4865fcf12899e02e` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1991-12-30;412~art16
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
-- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `9d996db86d16b772` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
 - art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
 - art. 37 c.p.c. — testo anteriore al d.lgs. 149/2022 (vigente al 17/10/2022): testo anteriore, versione `510bf49202afe7a8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37!vig=2022-10-17
 - art. 37 c.p.c. (Difetto di giurisdizione) — testo vigente, aggiornamento archivio n.d., versione `f1bb0e5c6533e2d4` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art37
@@ -156,3 +157,4 @@
 - r9 · 24/11/2026 04:27 · contenuto delle regole cambiato con le stesse fonti
 - r10 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r11 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte di Cassazione — civile|10418/2026, pronuncia:Corte di Cassazione — civile|13227/2026, pronuncia:Corte di Cassazione — civile|16640/2022, pronuncia:Corte di Cassazione — civile|18718/2024, pronuncia:Corte di Cassazione — civile|21012/2026, pronuncia:Corte di Cassazione — civile|22195/2026, pronuncia:Corte di Cassazione — civile|33240/2025, pronuncia:Corte di Cassazione — civile|3384
+- r12 · 25/11/2026 14:39 · fonti cambiate: norma:cpc:416

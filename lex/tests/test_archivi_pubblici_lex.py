@@ -5,6 +5,8 @@ file quando mancano.
 """
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 from lex.contracts import LexRequest
 from lex.retrieval import archivi_pubblici as ap
 from lex.retrieval.sources.archivi_pubblici import GazzettaSource, GiustiziaAmministrativaSource, PrassiSource
@@ -73,7 +75,7 @@ def test_adattatori_del_retrieval(tmp_path, monkeypatch):
     prassi = PrassiSource().search(["congedo parentale"], req("Circolare INPS sul congedo parentale"), {})
     assert prassi[0].source_type == "prassi" and prassi[0].official_url == "https://www.inps.it/circolare-45"
     gu = GazzettaSource().search(["mediazione"], req("Gazzetta: mediazione"), {})
-    assert gu[0].official_url.startswith("https://www.gazzettaufficiale.it")
+    assert urlsplit(gu[0].official_url).scheme == "https" and urlsplit(gu[0].official_url).hostname == "www.gazzettaufficiale.it"
     ga = GiustiziaAmministrativaSource().search(["x"], req("TAR Lazio n. 1234/2021"), {})
     assert ga and ga[0].source_type == "giurisprudenza" and "1234/2021" in ga[0].title
 

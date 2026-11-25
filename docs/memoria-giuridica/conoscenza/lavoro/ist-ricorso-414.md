@@ -1,6 +1,6 @@
 # Ricorso nel rito del lavoro (art. 414)
 
-- ID: `ist-ricorso-414` · materia: lavoro · revisione 7 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-ricorso-414` · materia: lavoro · revisione 8 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 28 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** impugnazione stragiudiziale scritta (se non già fatta) e ricorso ex art. 414 c.p.c. al tribunale in funzione di giudice del lavoro del luogo di lavoro; Tribunale in funzione di giudice del lavoro.
@@ -9,6 +9,7 @@
 - Sui crediti di lavoro il giudice, oltre agli interessi nella misura legale, determina il maggior danno per la diminuzione di valore del credito (rivalutazione). — _art. 429 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Prescrizione: si prescrivono in cinque anni le somme da pagare periodicamente ad anno o in termini più brevi, come le retribuzioni. — _art. 2948 c.c._ (ancora letterale trovata nel testo vigente)
 - Il tentativo di conciliazione è facoltativo: chi intende agire «può promuovere» il tentativo previsto dall'art. 410 c.p.c.; mediazione e negoziazione assistita non sono condizioni di procedibilità per queste controversie. — _art. 410 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Nella stessa memoria va presa posizione precisa sui fatti affermati dal lavoratore, non con una contestazione generica, e vanno indicati a pena di decadenza i mezzi di prova, depositando subito i documenti. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
 - Rito del lavoro: il convenuto si costituisce almeno dieci giorni prima dell'udienza e propone nella memoria difensiva, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
@@ -31,11 +32,13 @@
 - Le controversie dei rapporti di lavoro subordinato privato seguono il rito del lavoro. — _art. 409 c.p.c._ (ancora letterale trovata nel testo vigente)
 - È competente il giudice del luogo in cui è sorto il rapporto o si trova l'azienda o la dipendenza cui è addetto il lavoratore. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Il ricorso deve contenere, fra l'altro, l'esposizione dei fatti e degli elementi di diritto e l'indicazione specifica dei mezzi di prova e dei documenti, a pena di decadenza. — _art. 414 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Il datore convenuto si costituisce almeno dieci giorni prima dell'udienza depositando una memoria difensiva, nella quale propone, a pena di decadenza, le domande riconvenzionali e le eccezioni processuali e di merito non rilevabili d'ufficio. — _art. 416 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 - Giudice: il tribunale in funzione di giudice del lavoro, per le controversie relative a rapporti di lavoro subordinato privato. — _art. 409 c.p.c.; art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Foro: è competente il giudice nella cui circoscrizione è sorto il rapporto ovvero si trova l'azienda o la dipendenza alla quale è addetto il lavoratore [luogo da completare]. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Rito del lavoro: la domanda si propone con ricorso depositato nella cancelleria del giudice competente. — _art. 414 c.p.c._ (ancora letterale trovata nel testo vigente)
+- Sulle controversie di lavoro decide il tribunale in funzione di giudice del lavoro. — _art. 413 c.p.c._ (ancora letterale trovata nel testo vigente)
 
 ## Prove e oneri
 - Chi agisce prova i fatti costitutivi del diritto; chi eccepisce che il diritto è inefficace, modificato o estinto prova i fatti su cui l'eccezione si fonda. — _art. 2697 c.c._ (ancora letterale trovata nel testo vigente)
@@ -51,6 +54,9 @@
 - luogo del rapporto e sede dell'azienda (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - domande (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - mezzi di prova e documenti (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data dell'udienza fissata nel decreto (per il termine di costituzione) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data di assunzione e dimensioni dell'azienda (regime di tutela) (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- motivo del licenziamento (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -70,6 +76,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - Regola di Lex «impugnazione_licenziamento»
 - Ricorso per impugnazione del licenziamento e reintegrazione — `/template-atti?scheda=LAV_003`
 - Regola di Lex «lav_ricorso_414»
+- Regola di Lex «difesa_datore_lavoro»
 - Calcolo dei termini processuali — `/scadenziario/calcola-termini`
 
 ## Limiti e lacune dichiarate
@@ -82,7 +89,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 429 c.p.c. (Pronuncia della sentenza) — testo vigente, aggiornamento archivio 05/03/2026, versione `bd356badf417fb65` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art429
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
 - art. 410 c.p.c. (Tentativo di conciliazione) — testo vigente, aggiornamento archivio 05/03/2026, versione `5fd598e16753a87a` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art410
-- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `9d996db86d16b772` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
 - art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
 - art. 2938 c.c. (Non rilevabilità d'ufficio) — testo vigente, aggiornamento archivio n.d., versione `32b6891035863c22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2938
 - art. 112 c.p.c. (Corrispondenza tra il chiesto e il pronunciato) — testo vigente, aggiornamento archivio n.d., versione `c96e9319aa0379db` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art112
@@ -113,3 +120,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r5 · 24/11/2026 04:05 · fonti cambiate: pronuncia:Corte di Cassazione — civile|27991/2026
 - r6 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
 - r7 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r8 · 25/11/2026 14:39 · fonti cambiate: norma:cpc:416

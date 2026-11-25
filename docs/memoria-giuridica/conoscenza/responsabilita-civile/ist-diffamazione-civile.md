@@ -1,6 +1,6 @@
 # Diffamazione: risarcimento civile
 
-- ID: `ist-diffamazione-civile` · materia: responsabilità civile · revisione 7 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-diffamazione-civile` · materia: responsabilità civile · revisione 7 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** citazione per risarcimento del danno (mediazione obbligatoria se a mezzo stampa o altro mezzo di pubblicità).

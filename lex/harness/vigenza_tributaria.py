@@ -34,7 +34,9 @@ def _testo(s: str) -> str:
         if not all(nuovi):
             return m.group(0)
         return ("artt. " if len(nuovi) > 1 else "art. ") + " e ".join(nuovi) + " d.lgs. 175/2024"
-    return re.sub(r"\bartt?\. ((?:\d+(?:-bis)?(?:, | e )?)+) d\.lgs\. 546/1992", sost, s)
+    # Elenco «12», «12 e 14», «12, 13 e 14»: il separatore è obbligatorio fra un numero e l'altro, così il motore
+    # delle espressioni regolari non prova tutti i modi di spezzare le cifre («0000…»: tempo esponenziale, CodeQL py/redos).
+    return re.sub(r"\bartt?\. (\d+(?:-bis)?(?:(?:, | e )\d+(?:-bis)?)*) d\.lgs\. 546/1992", sost, s)
 
 
 def applica(a: Analisi, oggi: date) -> None:

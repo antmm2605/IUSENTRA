@@ -1,6 +1,6 @@
 # Mobbing, straining e demansionamento
 
-- ID: `ist-mobbing` · materia: lavoro · revisione 5 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-mobbing` · materia: lavoro · revisione 6 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 14 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** ricorso ex art. 414 c.p.c. per la reintegra nelle mansioni e il risarcimento del danno alla salute e alla professionalità; Tribunale in funzione di giudice del lavoro.
@@ -57,7 +57,7 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 ## Fonti con versione
 - art. 2087 c.c. (Tutela delle condizioni di lavoro) — testo vigente, aggiornamento archivio n.d., versione `53e6c4685d187cc3` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2087
 - art. 2103 c.c. (Prestazione del lavoro) — testo vigente, aggiornamento archivio n.d., versione `4cfac226e220c790` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2103
-- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio n.d., versione `f322fbe1c5770bbc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
+- art. 416 c.p.c. (Costituzione del convenuto) — testo vigente, aggiornamento archivio 05/03/2026, versione `9d996db86d16b772` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art416
 - art. 420 c.p.c. (Udienza di discussione della causa) — testo vigente, aggiornamento archivio n.d., versione `288cd4959fa66d5c` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art420
 - art. 2946 c.c. (Prescrizione ordinaria) — testo vigente, aggiornamento archivio 29/04/2026, versione `171d36c6eb2e8610` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2946
 - art. 3 l. 742/1969 (Esclusioni) — testo vigente, aggiornamento archivio n.d., versione `261cf56a55f7c3a2` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art3
@@ -76,3 +76,4 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - r3 · 24/11/2026 04:04 · fonti cambiate: norma:cc:1218, norma:cc:2697
 - r4 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cpc:115, norma:cpc:116, norma:cpc:416, norma:cpc:420, norma:cpc:421
 - r5 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
+- r6 · 25/11/2026 14:39 · fonti cambiate: norma:cpc:416

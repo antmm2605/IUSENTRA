@@ -156,7 +156,9 @@ def testo_della_pagina(contenuto: bytes) -> tuple[str, str]:
     grezzo = contenuto.decode("utf-8", errors="replace")
     grezzo = re.sub(r"(?is)<(script|style)\b.*?</\1>", " ", grezzo)
     grezzo = re.sub(r"(?i)<br\s*/?>|</p>|</div>|</tr>|</h\d>", "\n", grezzo)
-    testo = html.unescape(re.sub(r"<[^>]+>", " ", grezzo))
+    # «[^<>]» e non «[^>]»: una pagina con molti «<» senza chiusura non fa ripartire la ricerca fino in fondo a ogni
+    # «<» (tempo quadratico, CodeQL py/polynomial-redos); i tag veri non contengono «<».
+    testo = html.unescape(re.sub(r"<[^<>]+>", " ", grezzo))
     righe = [" ".join(r.split()) for r in testo.split("\n")]
     testo = "\n".join(r for r in righe if r)
     pubblicato = re.search(r"Pubblicato il (\d{2}/\d{2}/\d{4})", testo)
@@ -437,8 +439,10 @@ def sedi_dell_organo(organo: str) -> set[str] | None:
 def estremi_nel_testo(testo: str, numero: str, ricorso: str) -> bool:
     """Il testo ufficiale riporta il numero della sentenza («N. 01731/2025 REG.PROV.COLL.») e del ricorso (« REG.RIC.»)."""
     def presente(valore: str, registro: str) -> bool:
-        return bool(re.search(rf"N\.\s*0*{int(valore[4:])}/{valore[:4]}\s*{registro}", testo))
-    return (len(numero) == 9 and len(ricorso) == 9 and ricorso.isdigit()
+        # Solo cifre (controllate sotto) e comunque protette con re.escape: il numero arriva dalla domanda
+        # dell'avvocato e non deve poter diventare un'espressione regolare (CodeQL py/regex-injection).
+        return bool(re.search(rf"N\.\s*0*{int(valore[4:])}/{re.escape(valore[:4])}\s*{registro}", testo))
+    return (len(numero) == 9 and len(ricorso) == 9 and numero.isascii() and numero.isdigit() and ricorso.isascii() and ricorso.isdigit()
             and presente(numero, r"REG\.?\s*PROV\.?\s*COLL") and presente(ricorso, r"REG\.?\s*RIC"))
 
 

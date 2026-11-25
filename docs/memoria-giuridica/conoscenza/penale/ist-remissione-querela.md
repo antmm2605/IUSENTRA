@@ -1,6 +1,6 @@
 # Remissione della querela
 
-- ID: `ist-remissione-querela` · materia: penale · revisione 3 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-remissione-querela` · materia: penale · revisione 3 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 2 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** dichiarazione di remissione all'autorità procedente (o a un ufficiale di polizia giudiziaria) e accettazione del querelato.

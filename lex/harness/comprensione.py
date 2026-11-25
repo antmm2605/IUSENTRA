@@ -165,6 +165,29 @@ def comprendi(testo: str) -> Comprensione:
     # whatsapp» o «via pec» resta un fatto.
     comunicazione = re.search(r"\b(?:pec|email|e-mail|mail|messaggio|whatsapp)\b", t) and not atto and not racconto and not re.search(
         r"\b(?:ha|hanno|aveva|avevano) (?:scritto|mandato|inviato|pubblicato|detto)|danni|diffam|offes|minacc|querel|risarc", t)
+    from lex.operational_knowledge.query_router import (
+        _domanda_della_control_tower,
+        _looks_like_communication_attachment_question,
+    )
+
+    if not racconto and (
+        _domanda_della_control_tower(t)
+        or _looks_like_communication_attachment_question(t)
+        or re.search(r"\br\.?\s*g\.?\s*(?:n\.?\s*)?\d{1,7}/\d{4}\b", t)
+        and re.search(r"\b(?:ricorso|sentenza|questione|provvedimento|allegat\w*|ordinanza)\b", t)
+    ):
+        return Comprensione("operativa", atto, False, False, ["consultazione di un archivio"])
+    if not racconto and re.search(
+        r"\b(?:posta ordinaria|email ordinaria|template|modelli? (?:di )?att[oi]|tariffario|"
+        r"dati (?:del|della) cliente|scheda (?:cliente|soggetto)|"
+        r"documenti (?:presenti nel fascicolo|del fascicolo|ci sono)|punti importanti(?: del documento)?)\b|"
+        r"^(?:e )?(?:i |le |il |la )?(?:pagament\w*|fattur[ae]|conferiment\w*)\b|"
+        r"\b(?:riepilog\w*|riassum\w*|controll\w*|verific\w*|mostra\w*|cerca|trova|quali|quanto)\b.{0,45}"
+        r"\b(?:preventiv\w*|conferiment\w*|fatturazion\w*|fattur[ae]|parcell\w*|pagament\w*|incass\w*|"
+        r"quadro economico|documenti (?:mancanti|del fascicolo))\b",
+        t,
+    ):
+        return Comprensione("operativa", atto, False, False, ["consultazione di dati dello studio"])
     if verbo and atto and not comunicazione:
         motivi.append(f"verbo di redazione e atto «{atto}»")
         return Comprensione("redazione", atto, racconto, True, motivi)

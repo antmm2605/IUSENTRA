@@ -1,7 +1,7 @@
 # Restituzione del canone non registrato o in nero
 
-- ID: `ist-canone-nero` · materia: locazioni · revisione 9 · ultimo controllo 24/11/2026 05:39
-- Stato: lacune · fonti dirette: 21 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
+- ID: `ist-canone-nero` · materia: locazioni · revisione 10 · ultimo controllo 25/11/2026 14:39
+- Stato: lacune · fonti dirette: 22 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** azione di restituzione entro sei mesi dalla riconsegna dell'immobile.
 
@@ -10,8 +10,10 @@
 - È un termine di decadenza: non si interrompe con una diffida; lo impedisce solo il compimento dell'atto previsto. — _art. 2964 c.c.; art. 2966 c.c._ (ancora letterale trovata nel testo vigente)
 - La materia è a mediazione obbligatoria (locazione); la domanda di mediazione comunicata alle altre parti impedisce la decadenza per una sola volta. — _art. 5 d.lgs. 28/2010; art. 8 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - La materia rientra fra quelle per cui la mediazione è condizione di procedibilità. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
+- La locazione è materia di mediazione obbligatoria. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
+- La domanda di mediazione comunicata al locatore impedisce la decadenza per una sola volta: conta la data in cui è pervenuta. — _art. 8 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Mancata mediazione obbligatoria: l'improcedibilità è eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice non oltre la prima udienza. — _art. 5 d.lgs. 28/2010_ (ancora letterale trovata nel testo vigente)
@@ -24,6 +26,8 @@ _Sezione mancante: nessun termine ancorato al testo vigente nelle regole dell'is
 
 ## Rimedi e forme
 - È nulla ogni pattuizione che fissi un canone superiore a quello del contratto scritto e registrato; il conduttore può chiedere la restituzione delle somme pagate in più entro sei mesi dalla riconsegna dell'immobile. — _art. 13 l. 431/1998_ (ancora letterale trovata nel testo vigente)
+- Il patto sul canone superiore a quello registrato è nullo e il conduttore può chiedere la restituzione, ma con azione proponibile nel termine di sei mesi dalla riconsegna dell'immobile. — _art. 13 l. 431/1998_ (ancora letterale trovata nel testo vigente)
+- La decadenza non può essere rilevata d'ufficio dal giudice: va eccepita dal locatore. — _art. 2969 c.c._ (ancora letterale trovata nel testo vigente)
 
 ## Giudice e rito
 _Sezione mancante: nessun punto su competenza o rito verificato._
@@ -39,6 +43,7 @@ _Sezione mancante: nessun punto su competenza o rito verificato._
 - contratto registrato e canone (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - somme pagate in più e prove (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 - data di riconsegna (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
+- data di riconsegna dell'immobile (dato da raccogliere indicato dalla regola (non è un'affermazione giuridica))
 
 ## Questioni interpretative
 _Sezione mancante: nessuna questione interpretativa con norma citata verificata._
@@ -54,6 +59,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 ## Strumenti del software
 - Regola di Lex «restituzione_canone_non_registrato»
 - Regola di Lex «loc_canone_nero»
+- Regola di Lex «locatore_canone_nero»
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Termini, Giudice e rito, Questioni interpretative.
@@ -73,6 +79,7 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - art. 2948 c.c. (Prescrizione di cinque anni) — testo vigente, aggiornamento archivio 29/04/2026, versione `2a98b667c3d09a22` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2948
 - art. 2935 c.c. (Decorrenza della prescrizione) — testo vigente, aggiornamento archivio 29/04/2026, versione `2f938970c298cd9b` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2935
 - art. 2943 c.c. (Interruzione da parte del titolare) — testo vigente, aggiornamento archivio 29/04/2026, versione `0bc42deb2daabefc` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2943
+- art. 2969 c.c. (Rilievo d'ufficio) — testo vigente, aggiornamento archivio 29/04/2026, versione `e37c9a7a4052dc35` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2969
 - art. 2697 c.c. (Onere della prova) — testo vigente, aggiornamento archivio 29/04/2026, versione `96cac2d7c8ce98b8` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2697
 - art. 2729 c.c. (Presunzioni semplici) — testo vigente, aggiornamento archivio n.d., versione `a16b98911d2be3bb` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2729
 - art. 115 c.p.c. (Disponibilità delle prove) — testo vigente, aggiornamento archivio n.d., versione `8874c35c61f6d6de` — https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art115
@@ -94,3 +101,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r7 · 24/11/2026 04:24 · fonti cambiate: norma:cc:2729, norma:cc:2934, norma:cc:2938, norma:cpc:112, norma:cpc:115, norma:cpc:116
 - r8 · 24/11/2026 04:26 · contenuto delle regole cambiato con le stesse fonti
 - r9 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
+- r10 · 25/11/2026 14:39 · fonti cambiate: norma:cc:2969

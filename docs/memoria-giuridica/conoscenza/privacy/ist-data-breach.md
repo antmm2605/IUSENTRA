@@ -1,6 +1,6 @@
 # Violazione dei dati personali (data breach)
 
-- ID: `ist-data-breach` · materia: privacy · revisione 2 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-data-breach` · materia: privacy · revisione 2 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** Norme di riferimento: art. 4 Reg. UE 2016/679, art. 33 Reg. UE 2016/679, art. 34 Reg. UE 2016/679.
@@ -42,9 +42,9 @@ _Sezione mancante: nessuna pronuncia con il passaggio letto che cita le norme de
 - Sezioni senza fonte: Rimedi e forme, Giudice e rito, Prove e oneri, Questioni interpretative, Giurisprudenza che cita le norme (orientamenti da valutare).
 
 ## Fonti con versione
-- art. 4 Reg. UE 2016/679 (Definizioni (n. 12: violazione dei dati personali)) — testo vigente, aggiornamento archivio n.d., versione `c36c131809438b9d` — 
-- art. 33 Reg. UE 2016/679 (Notifica di una violazione dei dati personali all'autorità di controllo) — testo vigente, aggiornamento archivio n.d., versione `f5af0e5859b6969a` — 
-- art. 34 Reg. UE 2016/679 (Comunicazione di una violazione dei dati personali all'interessato) — testo vigente, aggiornamento archivio n.d., versione `0220d41930937f8a` — 
+- art. 4 Reg. UE 2016/679 (Definizioni (n. 12: violazione dei dati personali)) — testo vigente, aggiornamento archivio n.d., versione `c36c131809438b9d`
+- art. 33 Reg. UE 2016/679 (Notifica di una violazione dei dati personali all'autorità di controllo) — testo vigente, aggiornamento archivio n.d., versione `f5af0e5859b6969a`
+- art. 34 Reg. UE 2016/679 (Comunicazione di una violazione dei dati personali all'interessato) — testo vigente, aggiornamento archivio n.d., versione `0220d41930937f8a`
 
 ## Cronologia delle revisioni
 - r1 · 24/11/2026 05:38 · prima generazione

@@ -1,6 +1,6 @@
 # Esdebitazione (anche del debitore incapiente)
 
-- ID: `ist-esdebitazione` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-esdebitazione` · materia: crisi d'impresa e sovraindebitamento · revisione 2 · ultimo controllo 25/11/2026 14:39
 - Stato: lacune · fonti dirette: 3 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** istanza di esdebitazione al tribunale (per l'incapiente tramite l'OCC).

@@ -5570,3 +5570,258 @@ rinominate: 0
 invariate: 154
 ritirate: 0
 schede: 156
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Separazione personale (giudiziale e consensuale)
+event_id: b7035e94d013c46ec122
+scheda: ist-separazione
+status: completato
+revision: 8 -> 9
+motivo: fonti cambiate: norma:cc:158, norma:dl132:12, norma:dl132:6
+fonti_aggiunte: norma:cc:158, norma:dl132:12, norma:dl132:6
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Azione di riduzione (lesione di legittima)
+event_id: ba60ecdb6aa2f36ee501
+scheda: ist-riduzione
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Impugnazione della delibera condominiale (art. 1137)
+event_id: a35b9714634bc1cfd446
+scheda: ist-delibera-condominio
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: norma:dlgs28:8
+fonti_aggiunte: norma:dlgs28:8
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Danni da parti comuni e liti condominiali
+event_id: 00d035ae1e742f17cee0
+scheda: ist-lite-condominio
+status: completato
+revision: 6 -> 7
+motivo: fonti cambiate: norma:cc:1131
+fonti_aggiunte: norma:cc:1131
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Sinistro stradale: richiesta di risarcimento (art. 148 cod. ass.)
+event_id: 619d3f3360d58d6d814d
+scheda: ist-sinistro-stradale
+status: completato
+revision: 9 -> 10
+motivo: fonti cambiate: norma:cc:1913, norma:cc:1917, norma:dlgs209:144
+fonti_aggiunte: norma:cc:1913, norma:cc:1917, norma:dlgs209:144
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Negoziazione assistita per sinistri stradali
+event_id: a2afe60133b70f047f09
+scheda: ist-negoziazione-sinistri
+status: completato
+revision: 9 -> 10
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Impugnazione del licenziamento
+event_id: ef98be5dd1b9532a72aa
+scheda: ist-licenziamento
+status: completato
+revision: 8 -> 9
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Differenze retributive e crediti di lavoro
+event_id: 4edf4077bd669645724a
+scheda: ist-differenze-retributive
+status: completato
+revision: 7 -> 8
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | TFR (trattamento di fine rapporto)
+event_id: 8be270b219ddbc0dd8a6
+scheda: ist-tfr
+status: completato
+revision: 13 -> 14
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Mobbing, straining e demansionamento
+event_id: 05572235554a3f088e95
+scheda: ist-mobbing
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Ricorso nel rito del lavoro (art. 414)
+event_id: 20c90e576b0de0cd72ab
+scheda: ist-ricorso-414
+status: completato
+revision: 7 -> 8
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Ricorso del dipendente pubblico al giudice del lavoro (art. 63 d.lgs. 165/2001)
+event_id: 63974f8f9462efa672b7
+scheda: ist-ricorso-dipendente-pubblico
+status: completato
+revision: 11 -> 12
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Carta del docente per i supplenti
+event_id: ef6386780aa15ca9b1be
+scheda: ist-carta-docente
+status: completato
+revision: 9 -> 10
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Abuso dei contratti a termine nella PA (art. 36 d.lgs. 165/2001)
+event_id: e1b03108631ccb01acef
+scheda: ist-abuso-termine-pa
+status: completato
+revision: 10 -> 11
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Controversie previdenziali (artt. 442-443 c.p.c.)
+event_id: cb7fca37a67f9ea320d9
+scheda: ist-ricorso-442
+status: completato
+revision: 5 -> 6
+motivo: fonti cambiate: norma:cpc:416
+fonti_cambiate: norma:cpc:416
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Intimazione di sfratto per morosità e citazione per la convalida
+event_id: dbd224be259eb3a0e75b
+scheda: ist-sfratto-morosita
+status: completato
+revision: 10 -> 11
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Opposizione alla convalida di sfratto e termine di grazia
+event_id: 0021e89bfad3c151e5f7
+scheda: ist-opposizione-convalida
+status: completato
+revision: 8 -> 9
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Restituzione del canone non registrato o in nero
+event_id: e3bc16fb07c79e8de90a
+scheda: ist-canone-nero
+status: completato
+revision: 9 -> 10
+motivo: fonti cambiate: norma:cc:2969
+fonti_aggiunte: norma:cc:2969
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Garanzia legale di conformità
+event_id: 3dd99a37d49891da50cf
+scheda: ist-garanzia-conformita
+status: completato
+revision: 8 -> 9
+motivo: fonti cambiate: norma:dlgs206:134
+fonti_aggiunte: norma:dlgs206:134
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Usura bancaria
+event_id: a790f87c0e7cc10846d1
+scheda: ist-usura
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Ricorso al TAR (art. 29 c.p.a.)
+event_id: d631980cf75e592f7415
+scheda: ist-ricorso-tar
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cpa:116, norma:cpa:119, norma:cpa:120, norma:cpa:31
+fonti_aggiunte: norma:cpa:116, norma:cpa:119, norma:cpa:120, norma:cpa:31
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Sospensiva e misure cautelari al TAR
+event_id: 93c95fc327960e961b0c
+scheda: ist-sospensiva
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:cpa:116, norma:cpa:119, norma:cpa:120, norma:cpa:31
+fonti_aggiunte: norma:cpa:116, norma:cpa:119, norma:cpa:120, norma:cpa:31
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Accesso agli atti (l. 241/1990, art. 116 c.p.a.)
+event_id: 9521bc3e905d71bcd43d
+scheda: ist-accesso-atti
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cpa:116
+fonti_cambiate: norma:cpa:116
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Ricorso tributario di primo grado
+event_id: 87a9c65049c4732d28a0
+scheda: ist-ricorso-tributario
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:dlgs218:6
+fonti_aggiunte: norma:dlgs218:6
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Querela
+event_id: 5eb289ff535fc9b5542d
+scheda: ist-querela
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Ricorso al Prefetto contro il verbale (art. 203 cod. strada)
+event_id: a8c1569ae7bdec84d164
+scheda: ist-ricorso-prefetto
+status: completato
+revision: 4 -> 5
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Opposizione al verbale davanti al giudice di pace (art. 204-bis cod. strada, art. 7 d.lgs. 150/2011)
+event_id: fe9f31ae7bc2662f7f30
+scheda: ist-ricorso-gdp-cds
+status: completato
+revision: 3 -> 4
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Ricorso contro il diniego di protezione internazionale
+event_id: bdd1a22ae48f987efd66
+scheda: ist-protezione-internazionale
+status: completato
+revision: 4 -> 5
+motivo: fonti cambiate: norma:dl100_2026:17, norma:dlgs25_ante2026:35bis, norma:dlgs25_ante2026:35ter, norma:reg1348:67, norma:reg1348:68
+fonti_aggiunte: norma:dl100_2026:17, norma:dlgs25_ante2026:35bis, norma:dlgs25_ante2026:35ter, norma:reg1348:67, norma:reg1348:68
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Diniego o revoca del permesso di soggiorno ed espulsione
+event_id: fcbc78a68d3a60f2684c
+scheda: ist-permesso-soggiorno
+status: completato
+revision: 5 -> 6
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Diffida e messa in mora
+event_id: 55b6bb8d98561d50017a
+scheda: ist-diffida-messa-mora
+status: completato
+revision: 7 -> 8
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Condizioni di procedibilità nelle cause di locazione
+event_id: dcb3287660237c921530
+scheda: ist-procedibilita-locazione
+status: completato
+revision: 6 -> 7
+motivo: contenuto delle regole cambiato con le stesse fonti
+
+## [2026-11-25T14:39:34+01:00] aggiornamento | Danno da attività pericolose (art. 2050 c.c.)
+event_id: bfcb22acbdd256e0a49b
+scheda: ist-attivita-pericolose
+status: completato
+revision: 3 -> 4
+motivo: fonti cambiate: norma:cc:2051
+fonti_aggiunte: norma:cc:2051
+
+## [2026-11-25T14:39:34+01:00] controllo | passaggio di controllo
+event_id: f6db99c46e9c0dabc3f7
+status: completato
+generate: 0
+aggiornate: 32
+rinominate: 0
+invariate: 124
+ritirate: 0
+schede: 156

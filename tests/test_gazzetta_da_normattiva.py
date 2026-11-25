@@ -121,11 +121,50 @@ def test_tempo_massimo_conserva_il_cursore_e_riprende(tmp_path):
     assert ripresa["edizioni_nuove"] == 2 and ripresa["indice_completo"] and ripresa["collegati"] == 1
 
 
+def _biblioteca_ricostruita(percorso):
+    """Una biblioteca nuova con gli stessi identificativi ma edizioni diverse: l'id 3 è un altro atto."""
+    percorso.unlink()
+    _normattiva(percorso)
+    with sqlite3.connect(percorso) as conn:
+        conn.execute("UPDATE normative_documents SET xml_entry='2026-11-12_26G00300_ORIGINALE_V0.xml', numero='1', "
+                     "data_atto='2026-10-30', urn='urn:nir:stato:legge:2026-10-30;1', redazione_id='2026-11-12' WHERE id=3")
+        conn.execute("UPDATE normative_articles SET article_text='Art. 1. Nuovo atto.' WHERE document_id=3")
+
+
 def test_biblioteca_sostituita_ricostruisce_l_indice(tmp_path):
     archivio = _archivio_con_atto(tmp_path, codice="26G00300", numero="1")
     _normattiva(tmp_path / "n.sqlite")
     collega(archivio, tmp_path / "n.sqlite")
-    (tmp_path / "n.sqlite").unlink()
-    _normattiva(tmp_path / "n.sqlite")  # file nuovo, stessi identificativi
+    _biblioteca_ricostruita(tmp_path / "n.sqlite")  # file nuovo, stessi identificativi, edizioni diverse
     esito = collega(archivio, tmp_path / "n.sqlite")
-    assert esito["indice_ricostruito"] and esito["edizioni_nuove"] == 3
+    assert esito["indice_ricostruito"] and esito["edizioni_nuove"] == 3 and esito["collegati"] == 1
+
+
+def test_biblioteca_sostituita_con_lo_stesso_inode_ricostruisce_l_indice(tmp_path, monkeypatch):
+    """CI del 25/11/2026: su ext4 il file ricreato riprende l'inode di quello cancellato; decide l'impronta."""
+    import pct.gazzetta.da_normattiva as modulo
+
+    monkeypatch.setattr(modulo, "_identita_biblioteca", lambda percorso: f"{percorso}|inode-riusato")
+    archivio = _archivio_con_atto(tmp_path, codice="26G00300", numero="1")
+    _normattiva(tmp_path / "n.sqlite")
+    assert collega(archivio, tmp_path / "n.sqlite")["collegati"] == 0
+    _biblioteca_ricostruita(tmp_path / "n.sqlite")
+    esito = collega(archivio, tmp_path / "n.sqlite")
+    assert esito["indice_ricostruito"] and esito["edizioni_nuove"] == 3 and esito["collegati"] == 1
+    # La stessa biblioteca che si allunga non riparte da capo.
+    with sqlite3.connect(tmp_path / "n.sqlite") as conn:
+        conn.execute("INSERT INTO normative_documents VALUES (4,'Normattiva','2026-11-13_26G00301_ORIGINALE_V0.xml','2',"
+                     "'2026-10-31','urn:nir:stato:legge:2026-10-31;2','2026-11-13')")
+    ancora = collega(archivio, tmp_path / "n.sqlite")
+    assert not ancora["indice_ricostruito"] and ancora["edizioni_nuove"] == 1
+
+
+def test_cursore_senza_impronta_resta_valido(tmp_path):
+    """Un archivio con il cursore scritto prima dell'impronta non si ricostruisce per questo."""
+    archivio = _archivio_con_atto(tmp_path, codice="26G00300", numero="1")
+    _normattiva(tmp_path / "n.sqlite")
+    collega(archivio, tmp_path / "n.sqlite")
+    with sqlite3.connect(tmp_path / "gu.sqlite") as gu:
+        gu.execute("UPDATE normattiva_cursore SET impronta=''")
+    esito = collega(archivio, tmp_path / "n.sqlite")
+    assert not esito["indice_ricostruito"] and esito["edizioni_nuove"] == 0

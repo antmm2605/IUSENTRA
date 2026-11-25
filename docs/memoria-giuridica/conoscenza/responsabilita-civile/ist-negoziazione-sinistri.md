@@ -1,6 +1,6 @@
 # Negoziazione assistita per sinistri stradali
 
-- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 9 · ultimo controllo 24/11/2026 05:39
+- ID: `ist-negoziazione-sinistri` · materia: responsabilità civile · revisione 10 · ultimo controllo 25/11/2026 14:39
 - Stato: verificata · fonti dirette: 20 · tipo di pagina: scheda di istituto generata (vista, non fonte primaria)
 
 **Sintesi.** richiesta di risarcimento all'assicurazione, attesa dei termini, poi invito alla negoziazione assistita tramite avvocato; giudice di pace competente per territorio (luogo del sinistro o residenza del convenuto).
@@ -13,6 +13,8 @@
 - L'invito alla negoziazione avverte che la mancata risposta entro trenta giorni dalla ricezione o il rifiuto possono essere valutati dal giudice. — _art. 4 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 
 ## Eccezioni e tranelli
+- I termini per l'offerta dell'assicuratore e per la proponibilità dell'azione decorrono dalla richiesta di risarcimento, che non è ancora stata inviata. — _art. 148 d.lgs. 209/2005; art. 145 d.lgs. 209/2005_ (ancora letterale trovata nel testo vigente)
+- La negoziazione assistita è obbligatoria per il danno da circolazione a prescindere dal valore: la soglia dei cinquantamila euro vale solo per le domande di pagamento. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
 - La prescrizione va eccepita dalla parte: il giudice non può rilevarla d'ufficio, come ogni eccezione riservata alle parti. — _art. 2938 c.c.; art. 112 c.p.c._ (ancora letterale trovata nel testo vigente)
 - Ogni diritto si prescrive se non esercitato nel tempo di legge; non si prescrivono i diritti indisponibili e gli altri indicati dalla legge. — _art. 2934 c.c._ (ancora letterale trovata nel testo vigente)
 - Mancata negoziazione assistita obbligatoria: l'improcedibilità deve essere eccepita dal convenuto, a pena di decadenza, o rilevata d'ufficio dal giudice, non oltre la prima udienza. — _art. 3 d.l. 132/2014_ (ancora letterale trovata nel testo vigente)
@@ -62,8 +64,6 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 
 ## Limiti e lacune dichiarate
 - Sezioni senza fonte: Questioni interpretative.
-- Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «I termini per l'offerta e per la proponibilità decorrono dalla ricezione della richiesta, non ancora inviata.»
-- Avvertenza della regola sinistro_stradale non riportata (senza norma citata): «La negoziazione assistita è obbligatoria per il danno da circolazione a prescindere dal valore.»
 - la regola «negoziazione_obbligatoria» richiede fatti concreti (ValueError)
 - Corte costituzionale, n. 137/2011: disponibile solo la massima; fatti e motivazione non letti.
 - 1 passaggi con la motivazione della Corte scartati dalle questioni perché fuori tema (nella stessa finestra mancano la norma o un termine dell'istituto): Corte di Cassazione — civile, sez. 3, n. 28758/2026.
@@ -101,3 +101,4 @@ _Sezione mancante: nessuna questione interpretativa con norma citata verificata.
 - r7 · 24/11/2026 04:34 · contenuto delle regole cambiato con le stesse fonti
 - r8 · 24/11/2026 04:46 · fonti cambiate: pronuncia:Corte di Cassazione — penale|25009/2026, pronuncia:Corte di Cassazione — civile|28758/2026
 - r9 · 24/11/2026 05:34 · contenuto delle regole cambiato con le stesse fonti
+- r10 · 25/11/2026 14:39 · contenuto delle regole cambiato con le stesse fonti

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from io import BytesIO
 from time import monotonic
 from typing import Any
@@ -108,6 +109,12 @@ def _harness_http_payload(question: str, *, attachments, data: dict[str, Any]):
                         {"rule": "fascicolo_non_accessibile"})
 
     fascicolo_id = clean_spaces(data.get("fascicolo_id"))  # già controllato da _con_fascicolo_controllato
+    # Il percorso documentale identifica il cliente e chiede quale pratica collegare prima di redigere.
+    if not fascicolo_id and re.search(r"\b(?:per (?:il|la) cliente|per (?:il mio|la mia) assistit[oa])\b", question, re.I):
+        from .harness.comprensione import comprendi
+
+        if comprendi(question).tipo == "redazione":
+            return None
     payload = payload_harness(question, risposta_certa=_risposta_certa_http, fascicolo_id=fascicolo_id)
     dettaglio = (payload or {}).get("lex_harness") or {}
     if fascicolo_id and dettaglio.get("kind") == "redazione" and dettaglio.get("draft"):

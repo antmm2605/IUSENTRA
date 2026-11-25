@@ -38,6 +38,7 @@ atto/T
 
 @pytest.fixture()
 def dizionario(tmp_path: Path, monkeypatch) -> DizionarioItaliano:
+    monkeypatch.delenv(hunspell.VARIABILE_CARTELLA, raising=False)
     (tmp_path / "it_IT.aff").write_text(AFF, encoding="utf-8")
     (tmp_path / "it_IT.dic").write_text(DIC, encoding="utf-8")
     monkeypatch.setattr(hunspell, "PERCORSI_AFF", (str(tmp_path / "it_IT.aff"),))
@@ -150,7 +151,10 @@ def test_parole_comuni_vere_non_si_correggono(parola):
     from legal_ocr.lessico.italiano import conosce
     from lex.harness.normalizzazione import correggi_refusi
 
-    if not conosce("udienze"):
+    from legal_ocr.lessico.italiano import vocabolario_completo
+
+    # «udienze» è anche nel lessico forense dichiarato: non dice se il dizionario di sistema c'è.
+    if not vocabolario_completo():
         pytest.skip("dizionario italiano non disponibile su questo host")
     assert conosce(parola)
     assert correggi_refusi(f"il mio {parola} ieri") == f"il mio {parola} ieri"

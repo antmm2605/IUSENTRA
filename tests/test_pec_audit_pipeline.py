@@ -1788,6 +1788,8 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path, da
 def test_pec_remote_hearing_link_acquisition_instruction_arrives_in_scadenziario_and_agenda(tmp_path):
     from pct.agenda import Agenda
     from pct.scadenziario import GestioneScadenziario, TipoTermine
+    # Udienza sempre futura: con una data fissa il test scadeva il giorno dopo l'udienza (23/11/2026).
+    hearing_day = date.today() + timedelta(days=30)
 
     scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
     agenda_db = tmp_path / "agenda" / "appuntamenti.json"
@@ -1805,12 +1807,12 @@ def test_pec_remote_hearing_link_acquisition_instruction_arrives_in_scadenziario
     msg["Message-ID"] = "<udienza-link-da-acquisire@example.test>"
     msg.set_content("Comunicazione di cancelleria: udienza con strumenti audiovisivi. Istruzioni nel PDF allegato.")
     msg.add_attachment(
-        """
+        f"""
         <Comunicazione>
           <NumeroRuolo>393/2026/VG</NumeroRuolo>
           <Oggetto>NOMINA TUTORE DEFINITIVO FISSAZIONE UDIENZA DI GIURAMENTO</Oggetto>
           <Contenuto><![CDATA[
-          Descrizione: NOMINATO TUTORE DEFINITIVO E FISSATA UDIENZA IL 23/11/2026 15:00 con strumenti audiovisivi
+          Descrizione: NOMINATO TUTORE DEFINITIVO E FISSATA UDIENZA IL {hearing_day:%d/%m/%Y} 15:00 con strumenti audiovisivi
           ]]></Contenuto>
         </Comunicazione>
         """.encode("utf-8"),
@@ -1853,7 +1855,7 @@ def test_pec_remote_hearing_link_acquisition_instruction_arrives_in_scadenziario
     assert len(agenda_items) == 2
     assert len(receipts) == len(hearings) == 1
     assert receipts[0].data_ora == "2026-07-06T09:02:00"
-    assert hearings[0].data_ora.startswith("2026-11-23T15:00")
+    assert hearings[0].data_ora.startswith(f"{hearing_day.isoformat()}T15:00")
     assert hearings[0].remote_hearing_pdf_required is True
     assert "Istruzioni per acquisire il link udienza" in hearings[0].remote_hearing_access_info
     assert hearings[0].remote_hearing_platform == ""

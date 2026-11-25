@@ -1063,8 +1063,11 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert ".iu-ag-highlight{" in css
     assert ".iu-source-document-reader__state" in css
     assert ".iu-ag-source-modal__box--fullscreen" in css
-    # Il ruolo della settimana viene prima della scheda di lavorazione (la scheda sostituisce il pannello inferiore).
-    assert agenda_page.index('className="iu-ruolo-vista"') < agenda_page.index('<AgendaScheda')
+    # Una sola scheda: a lato dopo il calendario, oppure nella finestra su schermo stretto.
+    assert agenda_page.count("<AgendaScheda ") == 1
+    assert agenda_page.index('className="iu-ruolo-vista"') < agenda_page.index("{!schedaSovrapposta ? scheda : null}")
+    assert "{schedaSovrapposta && detailPreview ? (" in agenda_page
+    assert 'boxClassName="iu-agenda-scheda-sovrapposta" onClose={chiudiSchedaAgenda}>\n          {scheda}' in agenda_page
     assert ".iu-agenda-page>.iu-ag-kpis{order:2}" in css
     assert ".iu-agenda-page>.iu-ag-planner{order:3}" in css
     assert ".iu-agenda-page>.iu-ag-lower-grid{order:4}" in css

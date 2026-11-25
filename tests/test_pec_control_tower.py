@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 from flask import Flask, g
 
-from lex.operational_knowledge.models import OperationalQueryContext, OperationalRoute
+from lex.operational_knowledge.models import OperationalQueryContext, OperationalRoute, OperationalToolResult
 from lex.operational_knowledge.response_composer import OperationalResponseComposer
 from lex.operational_knowledge.tools import OperationalKnowledgeTools
 from pct.pec_control_tower import PecControlTowerRepository, build_synthetic_pec_eml, classify_legal
@@ -417,3 +417,76 @@ def test_pec_control_tower_api_ingest_list_and_confirm_deadline(tmp_path, monkey
         audit = client.get("/api/audit/")
         assert audit.status_code == 200
         assert audit.get_json()["chain"]["ok"] is True
+
+
+def test_risposta_operativa_distingue_consegna_mancante_e_accettazione_provata():
+    question = "Qual è la prova della notifica?"
+    answer = OperationalResponseComposer().compose(
+        question=question,
+        route=OperationalRoute("pec_control_tower", "pec_control_tower", ("pec_control_tower",), question),
+        results=[
+            OperationalToolResult(
+                ok=True,
+                source_id="pec_control_tower",
+                data={
+                    "answer_kind": "complete_proof",
+                    "items": [
+                        {
+                            "title": "Notifica del provvedimento",
+                            "recipient": "destinatario@example.test",
+                            "received_at": "2026-03-31T22:20:00Z",
+                            "status": "partial",
+                            "proof_complete": False,
+                            "missing_roles": ["delivery"],
+                            "proofs": [
+                                {"role": "acceptance", "receipt_at": "2026-03-31T22:20:00Z"}
+                            ],
+                        }
+                    ],
+                },
+            )
+        ],
+    )
+
+    assert "Prova: incompleta - manca ricevuta di consegna" in answer.answer
+    assert "Ricevute collegate: ricevuta di accettazione - 1 aprile 2026 alle 00:20" in answer.answer
+    assert "Destinatario: destinatario@example.test" in answer.answer
+    assert "Prova: completa" not in answer.answer
+
+
+def test_risposta_operativa_collega_anomalia_pec_e_proposta_con_data_italiana():
+    question = "Quali comunicazioni PEC risultano da controllare?"
+    answer = OperationalResponseComposer().compose(
+        question=question,
+        route=OperationalRoute("communications_lookup", "communications_lookup", ("pec_audit",), question),
+        results=[
+            OperationalToolResult(
+                ok=True,
+                source_id="pec_audit",
+                data=[
+                    {
+                        "title": "Esito controlli del deposito",
+                        "event_type": "esito_controlli",
+                        "quality_status": "controlli da completare",
+                        "issues_count": 1,
+                        "deposit_lifecycle": {
+                            "current_stage": {"label": "Controlli automatici"},
+                            "communication": "Attesa esito della cancelleria.",
+                        },
+                        "deadline_proposal": {
+                            "auto_create": True,
+                            "due_date": "2026-04-02",
+                            "reason": "Promemoria di controllo",
+                        },
+                        "issues": [{"title": "Esito mancante", "detail": "Cercare la ricevuta successiva"}],
+                        "agent_questions": ["È disponibile la ricevuta della cancelleria?"],
+                    }
+                ],
+            )
+        ],
+    )
+
+    assert "Fase deposito: Controlli automatici" in answer.answer
+    assert "Scadenza operativa automatica: 2 aprile 2026 - Promemoria di controllo" in answer.answer
+    assert "Da controllare: Esito mancante - Cercare la ricevuta successiva" in answer.answer
+    assert "È disponibile la ricevuta della cancelleria?" in answer.answer

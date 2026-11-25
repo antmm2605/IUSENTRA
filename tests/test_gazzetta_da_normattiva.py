@@ -165,6 +165,10 @@ def test_cursore_senza_impronta_resta_valido(tmp_path):
     _normattiva(tmp_path / "n.sqlite")
     collega(archivio, tmp_path / "n.sqlite")
     with sqlite3.connect(tmp_path / "gu.sqlite") as gu:
-        gu.execute("UPDATE normattiva_cursore SET impronta=''")
+        identita, ultimo, aggiornato = gu.execute(
+            "SELECT biblioteca, ultimo_id, aggiornato_il FROM normattiva_cursore WHERE chiave='normattiva'"
+        ).fetchone()
+        gu.execute("INSERT OR REPLACE INTO normattiva_cursore VALUES ('normattiva', ?, ?, ?)",
+                   (identita.rsplit("|", 1)[0], ultimo, aggiornato))
     esito = collega(archivio, tmp_path / "n.sqlite")
     assert not esito["indice_ricostruito"] and esito["edizioni_nuove"] == 0

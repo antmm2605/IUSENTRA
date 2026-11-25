@@ -18,7 +18,7 @@ sostituita (altro file, o identificativi più bassi del cursore) l'indice si ric
 
 Il percorso e l'inode non bastano a riconoscere un file nuovo: ext4 riassegna subito l'inode di un file cancellato,
 quindi una biblioteca cancellata e ricreata può avere lo stesso inode (la CI del 25/11/2026 lo ha mostrato). Il cursore
-conserva anche l'impronta dell'ultima edizione copiata (identificativo, nome del file ufficiale, data di redazione): se
+conserva nell'identità della biblioteca anche l'impronta dell'ultima edizione copiata (identificativo, nome del file ufficiale, data di redazione): se
 nella biblioteca quell'identificativo non porta più la stessa edizione, gli identificativi non valgono più e l'indice
 si ricostruisce. L'impronta non cambia quando la stessa biblioteca si allunga con edizioni nuove.
 """
@@ -46,14 +46,8 @@ _SCHEMA_INDICE = (
     "numero TEXT, data_atto TEXT, urn TEXT, redazione_id TEXT)",
     "CREATE INDEX IF NOT EXISTS normattiva_edizioni_codice ON normattiva_edizioni (codice)",
     "CREATE TABLE IF NOT EXISTS normattiva_cursore (chiave TEXT PRIMARY KEY, biblioteca TEXT NOT NULL, "
-    "ultimo_id INTEGER NOT NULL, aggiornato_il TEXT NOT NULL, impronta TEXT NOT NULL DEFAULT '')",
+    "ultimo_id INTEGER NOT NULL, aggiornato_il TEXT NOT NULL)",
 )
-
-
-def _assicura_colonna_impronta(gu: sqlite3.Connection) -> None:
-    colonne = {str(r[1]) for r in gu.execute("PRAGMA table_info(normattiva_cursore)")}
-    if "impronta" not in colonne:
-        gu.execute("ALTER TABLE normattiva_cursore ADD COLUMN impronta TEXT NOT NULL DEFAULT ''")
 
 
 def _impronta_edizione(conn: sqlite3.Connection, ident: int) -> str:
@@ -75,20 +69,23 @@ def aggiorna_indice(conn: sqlite3.Connection, gu: sqlite3.Connection, *, bibliot
     """Copia nell'archivio della Gazzetta le edizioni nuove con codice redazionale, a lotti fino a ``scadenza``."""
     for istruzione in _SCHEMA_INDICE:
         gu.execute(istruzione)
-    _assicura_colonna_impronta(gu)
-    riga = gu.execute("SELECT biblioteca, ultimo_id, impronta FROM normattiva_cursore WHERE chiave='normattiva'").fetchone()
-    massimo = conn.execute("SELECT COALESCE(MAX(id), 0) FROM normative_documents").fetchone()[0]
-    ultimo = int(riga[1]) if riga and riga[0] == biblioteca else 0
+    riga = gu.execute("SELECT biblioteca, ultimo_id FROM normattiva_cursore WHERE chiave='normattiva'").fetchone()
+    identita_salvata = str(riga[0]) if riga else ""
+    origine, _, impronta_salvata = identita_salvata.rpartition("|")
+    stessa_biblioteca = bool(riga and (identita_salvata == biblioteca or origine == biblioteca))
+    ultimo = int(riga[1]) if stessa_biblioteca else 0
+    if identita_salvata == biblioteca:
+        impronta_salvata = ""
     impronta = _impronta_edizione(conn, ultimo) if ultimo else ""
-    edizione_cambiata = bool(ultimo and (not impronta or (riga[2] and impronta != riga[2])))
-    ricostruito = not riga or riga[0] != biblioteca or ultimo > massimo or edizione_cambiata
+    edizione_cambiata = bool(ultimo and (not impronta or (impronta_salvata and impronta != impronta_salvata)))
+    ricostruito = not stessa_biblioteca or edizione_cambiata
     if ricostruito:
         gu.execute("DELETE FROM normattiva_edizioni")
         gu.execute("DELETE FROM normattiva_cursore WHERE chiave='normattiva'")
         ultimo = 0
-    elif ultimo and not riga[2]:
-        # Inizializza i cursori precedenti anche quando l'indice ha raggiunto l'ultima edizione.
-        gu.execute("UPDATE normattiva_cursore SET impronta=? WHERE chiave='normattiva'", (impronta,))
+    elif ultimo and not impronta_salvata:
+        # Mantiene le quattro colonne del cursore, così anche il lettore precedente può scriverlo.
+        gu.execute("UPDATE normattiva_cursore SET biblioteca=? WHERE chiave='normattiva'", (f"{biblioteca}|{impronta}",))
     nuove, completo = 0, False
     while True:
         if orologio() >= scadenza:
@@ -105,10 +102,10 @@ def aggiorna_indice(conn: sqlite3.Connection, gu: sqlite3.Connection, *, bibliot
                            (riga_doc[0], trovato.group(1), *riga_doc[1:]))
                 nuove += 1
         ultimo = int(righe[-1][0])
-        gu.execute("INSERT INTO normattiva_cursore (chiave, biblioteca, ultimo_id, aggiornato_il, impronta) "
-                   "VALUES ('normattiva', ?, ?, ?, ?) ON CONFLICT(chiave) DO UPDATE SET biblioteca=excluded.biblioteca, "
-                   "ultimo_id=excluded.ultimo_id, aggiornato_il=excluded.aggiornato_il, impronta=excluded.impronta",
-                   (biblioteca, ultimo, quando, _impronta_edizione(conn, ultimo)))
+        identita = f"{biblioteca}|{_impronta_edizione(conn, ultimo)}"
+        gu.execute("INSERT INTO normattiva_cursore VALUES ('normattiva', ?, ?, ?) ON CONFLICT(chiave) DO UPDATE SET "
+                   "biblioteca=excluded.biblioteca, ultimo_id=excluded.ultimo_id, aggiornato_il=excluded.aggiornato_il",
+                   (identita, ultimo, quando))
         gu.commit()
     gu.commit()
     return {"edizioni_nuove": nuove, "indice_completo": completo, "indice_ricostruito": ricostruito}

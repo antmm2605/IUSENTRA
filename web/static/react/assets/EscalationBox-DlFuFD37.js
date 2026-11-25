@@ -1,0 +1,1 @@
+import{dn as e,in as t}from"./lettura-fascicolo-BsJirMJn.js";import{n,r,t as i}from"./alert-BBrM_qhV.js";var a=t();function o({title:t=`Verifica richiesta`,message:o}){return(0,a.jsxs)(i,{className:`border-amber-200 bg-amber-50 text-amber-950`,children:[(0,a.jsx)(e,{"aria-hidden":`true`}),(0,a.jsx)(r,{children:t}),(0,a.jsx)(n,{children:o})]})}export{o as t};

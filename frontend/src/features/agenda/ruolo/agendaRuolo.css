@@ -1,7 +1,8 @@
 /* Agenda come ruolo dello studio: una voce per impegno, banda del tipo, titolo legale e riga del fascicolo.
    Il sigillo oro segna il lavoro preparato dal software; la scheda a destra raccoglie la lavorazione. */
 
-.iu-ruolo-pagina {
+.iu-ruolo-pagina,
+.iu-agenda-scheda-sovrapposta {
   --ru-notte: #0b1b35;
   --ru-istituzionale: #123d72;
   --ru-azione: #2563eb;
@@ -18,6 +19,8 @@
   --ru-cancelleria: #123d72;
   --ru-notifica: #6d28d9;
   --ru-studio: #0f766e;
+}
+.iu-ruolo-pagina {
   display: grid;
   gap: 14px;
   min-width: 0;
@@ -225,9 +228,24 @@
 .iu-ruolo-scheda__piede button:disabled { background: #d8dde6; border-color: #d8dde6; color: #fff; cursor: default; }
 .iu-ruolo-scheda__vuota { padding: 40px 24px; color: var(--ru-tenue); text-align: center; margin: auto 0; }
 
+.iu-ag-source-modal.iu-managed-window:has(> .iu-agenda-scheda-sovrapposta) {
+  pointer-events: auto;
+  background: rgb(15 23 42 / .4);
+}
+body:has(.iu-managed-window:not(.is-minimized) > .iu-agenda-scheda-sovrapposta) { overflow: hidden !important; }
+.iu-agenda-scheda-sovrapposta .iu-ruolo-scheda {
+  position: static;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+}
+.iu-agenda-scheda-sovrapposta .iu-ruolo-scheda__scorre { overscroll-behavior: contain; }
+.iu-agenda-scheda-sovrapposta .iu-ruolo-scheda__piede { flex-wrap: wrap; }
+
 @media (max-width: 1180px) {
   .iu-ruolo-corpo { grid-template-columns: minmax(0, 1fr); }
-  .iu-ruolo-scheda { position: static; max-height: none; }
   .iu-ruolo-vista { max-height: none; }
 }
 @media (max-width: 720px) {

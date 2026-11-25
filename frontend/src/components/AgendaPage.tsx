@@ -423,6 +423,8 @@ function MessageCircleIcon() {
   return <Bell size={15}/>
 }
 
+const AGENDA_SCHEDA_SOVRAPPOSTA = '(max-width: 1180px)'
+
 export function AgendaPage() {
   const plannerRef = useRef<HTMLElement>(null)
   const calendarGridRef = useRef<HTMLDivElement>(null)
@@ -450,7 +452,16 @@ export function AgendaPage() {
   const [plannerExpanded, setPlannerExpanded] = useState(false)
   const [sourcePreview, setSourcePreview] = useState<AgendaEvent | null>(null)
   const [detailPreview, setDetailPreview] = useState<AgendaEvent | null>(null)
+  const [schedaSovrapposta, setSchedaSovrapposta] = useState(() => window.matchMedia(AGENDA_SCHEDA_SOVRAPPOSTA).matches)
   const selectedId = routeAgendaId()
+
+  useEffect(() => {
+    const media = window.matchMedia(AGENDA_SCHEDA_SOVRAPPOSTA)
+    const aggiorna = () => setSchedaSovrapposta(media.matches)
+    aggiorna()
+    media.addEventListener('change', aggiorna)
+    return () => media.removeEventListener('change', aggiorna)
+  }, [])
 
   useEffect(() => {
     const syncFullscreenState = () => setPlannerExpanded(document.fullscreenElement === plannerRef.current)
@@ -532,8 +543,24 @@ export function AgendaPage() {
   }, [events])
 
   const openAgendaDetail = (event: AgendaEvent) => {
-    window.history.pushState(window.history.state, '', `/agenda/${encodeURIComponent(event.id)}${window.location.search}`)
+    const href = `/agenda/${encodeURIComponent(event.id)}${window.location.search}`
+    const idAperto = routeAgendaId()
+    if (schedaSovrapposta && idAperto) {
+      window.history.replaceState(window.history.state, '', href)
+    } else {
+      window.history.pushState({ ...window.history.state, impegnoDaAgenda: !idAperto }, '', href)
+    }
+    setGroupPreview([])
     setDetailPreview(event)
+  }
+
+  const chiudiSchedaAgenda = () => {
+    if (window.history.state?.impegnoDaAgenda) {
+      window.history.back()
+      return
+    }
+    window.history.replaceState(window.history.state, '', `/agenda${window.location.search}`)
+    setDetailPreview(null)
   }
 
 
@@ -645,7 +672,9 @@ export function AgendaPage() {
 
   const filtriRapidi: Array<[FiltroRapido, string]> = [['lavoro', 'Da lavorare'], ['udienza', 'Udienze'], ['termine', 'Termini'], ['notifica', 'Notifiche'], ['cancelleria', 'Comunicazioni']]
   const contaFiltro = (valore: FiltroRapido) => researchedEvents.filter((event) => corrispondeFiltro(event, valore)).length
-  const schedaEvent = detailPreview || highlightEvents.find(daLavorare) || agenda.summary.nextEvent || highlightEvents[0] || null
+  const schedaEvent = schedaSovrapposta ? detailPreview : detailPreview || highlightEvents.find(daLavorare) || agenda.summary.nextEvent || highlightEvents[0] || null
+  const scheda = <AgendaScheda event={schedaEvent} onChanged={() => { void refresh(true) }} onOpenSource={setSourcePreview}
+    azioni={schedaEvent ? <AzioniImpegno event={schedaEvent} onPrepare={openPreparation}/> : null}/>
   const apriGiorno = (iso: string) => { setAnchorDate(new Date(`${iso.slice(0, 10)}T12:00:00`)); setView('day') }
 
   return (
@@ -707,10 +736,15 @@ export function AgendaPage() {
           <AgendaRuolo view={view} days={displayDays} selectedId={schedaEvent?.id || ''} onOpen={openAgendaDetail} onOpenDay={apriGiorno}
             onCreateSlot={openNewAppointment} onDropEvent={moveEvent}/>
         </div>
-        <AgendaScheda event={schedaEvent} onChanged={() => { void refresh(true) }} onOpenSource={setSourcePreview}
-          azioni={schedaEvent ? <AzioniImpegno event={schedaEvent} onPrepare={openPreparation}/> : null}/>
+        {!schedaSovrapposta ? scheda : null}
       </section>
 
+      {schedaSovrapposta && detailPreview ? (
+        <OperationalModal open ariaLabel="Dettaglio impegno" eyebrow="Agenda" title="Scheda dell’impegno"
+          draggable={false} fullscreen boxClassName="iu-agenda-scheda-sovrapposta" onClose={chiudiSchedaAgenda}>
+          {scheda}
+        </OperationalModal>
+      ) : null}
       <FloatingLex />
       <OperationalModal open={Boolean(groupPreview.length)} ariaLabel="Attività coincidenti" eyebrow="Agenda" title={`${groupPreview.length} attività da affrontare`}
         subtitle={groupPreview[0] ? formatDateIt(groupPreview[0].start) : ''} onClose={() => setGroupPreview([])}>

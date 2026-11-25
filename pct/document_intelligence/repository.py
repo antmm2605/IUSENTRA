@@ -1354,18 +1354,21 @@ class DocumentAIRepository:
         rows = self._conn().execute(sql, (tenant_id, fascicolo_id)).fetchall()
         return [assignment for row in rows if (assignment := self._catalog_assignment_from_row(row)) is not None]
 
-    def list_contributo_labels(self, tenant_id: str, fascicolo_id: str) -> list[tuple[str, str, str, int]]:
-        """(documento, voce, stato, affidabilità) delle sole voci «contributo unificato» attive, per i presìdi economici."""
+    def list_contributo_labels(self, tenant_id: str, fascicolo_id: str) -> list[tuple[str, str, str, int, str]]:
+        """Voci attive del contributo, comprese le autocertificazioni con denominazione personalizzata."""
+        from pct.document_intelligence.sezioni import NATURA_AUTOCERTIFICAZIONE_CU
+
         self._require_catalog_sql()
         rows = self._conn().execute(
-            "SELECT document_id, document_label, status, confidence FROM document_catalog_assignments "
+            "SELECT document_id, document_label, status, confidence, document_nature FROM document_catalog_assignments "
             "WHERE tenant_id = ? AND fascicolo_id = ? AND status NOT IN ('superseded', 'rejected') "
-            "AND LOWER(document_label) LIKE 'contributo unificato%' ORDER BY updated_at DESC, document_label ASC",
-            (tenant_id, fascicolo_id),
+            "AND (document_nature = ? OR LOWER(document_label) LIKE 'contributo unificato%') "
+            "ORDER BY updated_at DESC, document_label ASC",
+            (tenant_id, fascicolo_id, NATURA_AUTOCERTIFICAZIONE_CU),
         ).fetchall()
-        voci = [self._dict_row(row) for row in rows]
         return [(str(v.get("document_id") or ""), str(v.get("document_label") or ""), str(v.get("status") or ""),
-                 int(v.get("confidence") or 0)) for v in voci]
+                 int(v.get("confidence") or 0), str(v.get("document_nature") or ""))
+                for v in map(self._dict_row, rows)]
 
     def catalog_status_by_document(self, tenant_id: str, fascicolo_id: str) -> dict[str, str]:
         """Lo stato di catalogazione più avanzato per documento (confermato > proposto > da rivedere), in una query."""
@@ -1682,12 +1685,21 @@ class DocumentAIRepository:
         self._require_catalog_sql()
         clean_label = str(document_label or "").strip()
         clean_note = str(note or "").strip()
-        from pct.document_intelligence.sezioni import SEZIONI_DOCUMENTO
+        from pct.document_intelligence.sezioni import (
+            DENOMINAZIONE_AUTOCERTIFICAZIONE_CU,
+            NATURA_AUTOCERTIFICAZIONE_CU,
+            SEZIONI_DOCUMENTO,
+        )
 
+        if document_nature == NATURA_AUTOCERTIFICAZIONE_CU:
+            clean_label = clean_label or DENOMINAZIONE_AUTOCERTIFICAZIONE_CU
+            document_section = document_section or "pagamenti"
+            deposit_role = deposit_role or "contributo_unificato"
         allowed_sections = set(SEZIONI_DOCUMENTO)
         allowed_natures = {
             "atto_principale", "atto_processuale", "provvedimento", "procura", "notifica",
             "comunicazione", "contratto", "economico", "documento_identita", "allegato", "da_verificare",
+            NATURA_AUTOCERTIFICAZIONE_CU, "dichiarazione_reddito_spese",
         }
         allowed_deposit_roles = {
             "atto_principale", "procura", "allegato", "prova_notifica",

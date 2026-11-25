@@ -461,6 +461,11 @@
   overflow-wrap: anywhere;
 }
 
+.iu-modal__panel:has(.iu-gazzetta-lettura) {
+  width: min(750px, calc(100vw - 28px));
+  max-height: min(72dvh, calc(100dvh - 110px));
+}
+
 .iu-gazzetta-lettura {
   min-width: 0;
   padding: 16px 20px 20px;

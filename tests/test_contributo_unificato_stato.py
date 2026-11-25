@@ -7,6 +7,34 @@ import json
 from pct.contributo_unificato_stato import e_fonte_del_contributo, solo_fonti_del_contributo, stato_contributo
 from pct.fascicolo_conto_economico import riga_contributo
 
+def test_correzione_catalogo_collega_autocertificazione_e_riusa_lettura_e_deposito(monkeypatch):
+    from types import SimpleNamespace
+
+    from pct.document_intelligence.sezioni import NATURA_AUTOCERTIFICAZIONE_CU
+    from web.services import contributo_stato_runtime as runtime
+
+    documento = SimpleNamespace(id="D1", nome="Autocertificazione.PDF", data_deposito_portale="")
+    fascicolo = SimpleNamespace(id="F1", tipo="LAVORO", documenti=[documento])
+    prova = {"id": "D1", "etichetta": "Dichiarazione dell’assistito", "natura": NATURA_AUTOCERTIFICAZIONE_CU,
+             "confermato": True, "nome": documento.nome, "href": runtime.href_documento("F1", "D1")}
+    monkeypatch.setattr(runtime, "documenti_contributo", lambda _: [prova])
+    monkeypatch.setattr(
+        "web.services.archivio_letture_runtime.testi_indice_archivio",
+        lambda _: {"D1": "Dichiaro per l’anno 2022 un reddito non superiore a euro 38.514,03."},
+    )
+
+    senza_deposito = runtime.stato_contributo_fascicolo(fascicolo, {})
+    assert senza_deposito["etichetta"] == "Da verificare"
+    assert senza_deposito["documento"]["href"] == prova["href"]
+    assert "deposito" in senza_deposito["dettaglio"]
+
+    documento.data_deposito_portale = "2023-09-13"
+    esito = runtime.stato_contributo_fascicolo(fascicolo, {})
+    assert esito["etichetta"] == "Esente"
+    assert "2022" in esito["dettaglio"]
+    assert esito["documento"]["id"] == "D1"
+
+
 _AUTOCERT = {"etichetta": "Contributo unificato / esenzione", "id": "D1", "nome": "AUTOCERTIFICAZIONE_REDDITO.PDF",
              "href": "/fascicoli/F1/documenti/D1/visualizza", "confermato": False}
 _RICEVUTA = {"etichetta": "Contributo unificato / pagamento", "id": "D2", "nome": "Ricevuta pagoPA.pdf",

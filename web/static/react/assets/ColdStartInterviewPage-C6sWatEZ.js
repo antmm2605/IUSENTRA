@@ -1,0 +1,1 @@
+import{in as e}from"./lettura-fascicolo-DLJ7FB67.js";import{t}from"./LegalSkillsProfilePage-CdiA66MX.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as ColdStartInterviewPage};

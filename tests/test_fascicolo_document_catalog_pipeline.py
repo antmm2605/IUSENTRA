@@ -631,6 +631,42 @@ def test_resolver_non_promuove_un_solo_presidio_a_identita_documentale(monkeypat
     assert "segnalazione processuale" in resolution.reason
 
 
+def test_autocertificazione_manuale_resta_fonte_del_contributo_anche_con_nome_personalizzato(tmp_path):
+    from pct.document_intelligence.sezioni import (
+        DENOMINAZIONE_AUTOCERTIFICAZIONE_CU,
+        NATURA_AUTOCERTIFICAZIONE_CU,
+    )
+
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id, fascicolo_id, document_id = "studio-test", "FASC-CU", "DOC-CU"
+    fonte = _ready_source(
+        repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id, document_id=document_id,
+        filename="Autocertificazione.PDF", sha256="7" * 64,
+    )
+    FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id,
+        fascicolo=SimpleNamespace(id=fascicolo_id, tipo="LAVORO", tribunale="Tribunale di Roma"),
+        sources=[fonte],
+        actor="operatore",
+        process=True,
+    )
+    valori = {
+        "tenant_id": tenant_id, "fascicolo_id": fascicolo_id, "document_id": document_id,
+        "actor": "avvocato", "document_section": "", "document_nature": NATURA_AUTOCERTIFICAZIONE_CU,
+        "deposit_role": "", "deposit_candidate": False,
+    }
+    controllato = repo.override_catalog_assignment(**valori, document_label="")
+    assert controllato.document_label == DENOMINAZIONE_AUTOCERTIFICAZIONE_CU
+    assert controllato.document_section == "pagamenti"
+    assert controllato.deposit_role == "contributo_unificato"
+    aggiornato = repo.override_catalog_assignment(**valori, document_label="Autocertificazione della parte")
+    assert aggiornato.id == controllato.id
+    assert repo.list_contributo_labels(tenant_id, fascicolo_id) == [
+        (document_id, "Autocertificazione della parte", "confirmed", aggiornato.confidence, NATURA_AUTOCERTIFICAZIONE_CU)
+    ]
+    assert repo.list_contributo_labels("altro-studio", fascicolo_id) == []
+
+
 def test_pipeline_non_sovrascrive_correzione_manuale_neppure_con_retry(tmp_path):
     repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
     tenant_id = "studio-test"

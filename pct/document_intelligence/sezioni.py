@@ -12,4 +12,7 @@ SEZIONI_DOCUMENTO: tuple[str, ...] = (
     "contratti", "pagamenti", "identita", "allegati", "da-verificare",
 )
 
-__all__ = ["SEZIONI_DOCUMENTO"]
+NATURA_AUTOCERTIFICAZIONE_CU = "autocertificazione_esenzione_reddito_cu"
+DENOMINAZIONE_AUTOCERTIFICAZIONE_CU = "Contributo unificato / esenzione per reddito"
+
+__all__ = ["SEZIONI_DOCUMENTO", "NATURA_AUTOCERTIFICAZIONE_CU", "DENOMINAZIONE_AUTOCERTIFICAZIONE_CU"]

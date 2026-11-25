@@ -82,7 +82,7 @@ function TestoAtto({ id }: { id: string }) {
   const fonte = collegamentoUfficiale(testoAtto.textUrl)
   return (
     <section className="iu-gazzetta-atto__testo" aria-label="Testo completo dell’atto">
-      <pre>{testoAtto.text}</pre>
+      <pre>{testoAtto.text.split(/\r?\n/).map((riga) => riga.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim()}</pre>
       <p className="iu-gazzetta-atto__testo-fonte">
         Fonte del testo: {testo(testoAtto.source || 'Gazzetta Ufficiale, vista «originario»')}{testoAtto.articles ? `, ${testoAtto.articles} articoli` : ''}, acquisito il {formatDateTimeIt(testoAtto.readAt)}
         {fonte ? <> · <a href={fonte} target="_blank" rel="noopener noreferrer">fonte ufficiale</a></> : null}

@@ -20,6 +20,8 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import quote
 
+from pct.document_intelligence.sezioni import NATURA_AUTOCERTIFICAZIONE_CU
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,12 +47,13 @@ def documenti_contributo(fascicolo: Any) -> list[dict[str, Any]]:
         logger.debug("Catalogo del contributo non disponibile per %s: %s", fid, exc)
         return []
     risultato = []
-    for documento_id, etichetta, stato, affidabilita in voci:
+    for documento_id, etichetta, stato, affidabilita, natura in voci:
         if documento_id not in nomi:
             continue  # allegati PEC: la fonte si apre dalla comunicazione
         # Riconosciuto con certezza dal contenuto vale come confermato: l'avvocato non deve riverificarlo.
         risultato.append({"etichetta": etichetta, "id": documento_id, "nome": nomi[documento_id] or etichetta,
-                          "href": href_documento(fid, documento_id), "confermato": lettura_certa(stato, affidabilita)})
+                          "href": href_documento(fid, documento_id), "confermato": lettura_certa(stato, affidabilita),
+                          "natura": natura})
     return risultato
 
 
@@ -151,10 +154,14 @@ _DEPOSITO = ("deposito telematico",)
 _ESENZIONE = re.compile(r"autocertific|dichiarazione\s+sostitutiva|esenzione", re.IGNORECASE)
 
 
-def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, Any]:
+def verifiche_contributo(
+    fascicolo: Any,
+    voce: Mapping[str, Any],
+    documenti_catalogati: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Confronto del versato con il dovuto (pct.contributo_dovuto) e autocertificazione depositata contro la soglia
     vigente al deposito (pct.esenzione_reddito_cu). Solo testi già salvati: nessuna lettura di file."""
-    from pct.contributo_dovuto import categoria, confronta, contributo_dovuto
+    from pct.contributo_dovuto import LAVORO, PREVIDENZA, categoria, confronta, contributo_dovuto
     from pct.esenzione_reddito_cu import CAMPO_ANNO_REDDITO, invito_rideposito, leggi_autocertificazione, verifica
 
     esito: dict[str, Any] = {}
@@ -186,8 +193,12 @@ def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, A
                                          testi=_testi_atti_di_parte(fascicolo, testi or {}))
         if esenzione:
             esito["confronto"] = confronto_esente(esenzione, letti)
-    if testi is None:
+    classificati_cu = {
+        d["id"] for d in documenti_catalogati or [] if d.get("natura") == NATURA_AUTOCERTIFICAZIONE_CU
+    }
+    if testi is None and not classificati_cu:
         return esito
+    testi = testi or {}
     documenti = {_testo(getattr(d, "id", "")): d for d in getattr(fascicolo, "documenti", []) or []}
     depositi = {oid: d for oid, d in documenti.items() if any(t in _testo(getattr(d, "nome", "")).casefold() for t in _DEPOSITO)}
     verifiche = []
@@ -196,23 +207,36 @@ def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, A
     for oid, documento in documenti.items():
         testo = testi.get(oid, "")
         nome = _testo(getattr(documento, "nome", ""))
-        if not testo or not (_ESENZIONE.search(nome) or _ESENZIONE.search(testo[:1500])):
+        catalogato_cu = oid in classificati_cu
+        if not catalogato_cu and (not testo or not (_ESENZIONE.search(nome) or _ESENZIONE.search(testo[:1500]))):
             continue
         if invito_rideposito(testo):
             inviti.append({"id": oid, "nome": nome, "href": href_documento(_testo(fascicolo.id), oid)})
             continue
         letta = leggi_autocertificazione(testo)
-        if letta["soglia"] is None:
+        if letta["soglia"] is None and not catalogato_cu:
             continue
-        # Depositata: è la PEC del deposito, o il file è fra gli allegati di una PEC di deposito del fascicolo.
-        if oid in depositi:
+        if catalogato_cu and cat not in {LAVORO, PREVIDENZA}:
+            verifiche.append({"documento_id": oid, "certa": False,
+                              "motivo": "Verificare il rito del fascicolo per l’esenzione per reddito."})
+            continue
+
+        # Un deposito del portale identifica il documento. In alternativa si usa la PEC che lo contiene.
+        data_portale = _testo(getattr(documento, "data_deposito_portale", ""))[:10]
+        try:
+            data = date.fromisoformat(data_portale) if catalogato_cu and data_portale else None
+        except ValueError:
+            data = None
+        if data is None and oid in depositi:
             data = _data_documento(documento)
-        else:
+        elif data is None:
             stelo = nome.rsplit(".", 1)[0].casefold()
-            contenitore = next((d for did, d in depositi.items() if stelo and stelo in testi.get(did, "").casefold()), None)
-            if contenitore is None:
-                continue  # autocertificazione non depositata: non conta (art. 9, comma 1-bis)
-            data = _data_documento(contenitore)
+            riferimento = nome.casefold() if catalogato_cu else stelo
+            contenitore = next((d for did, d in depositi.items() if did != oid and riferimento
+                                 and riferimento in testi.get(did, "").casefold()), None)
+            if contenitore is None and not catalogato_cu:
+                continue
+            data = _data_documento(contenitore) if contenitore is not None else None
         anno = letta["anno"]
         if not letta["anni"]:
             if anni_archiviati is None:
@@ -230,9 +254,11 @@ def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, A
             anno = next(iter(anni)) if len(anni) == 1 else None
         verifiche.append({"documento_id": oid, **verifica(anno=anno, soglia=letta["soglia"], data_deposito=data)})
     esito["invitiRideposito"] = inviti
+    if classificati_cu:
+        verifiche = [verifica_doc for verifica_doc in verifiche if verifica_doc["documento_id"] in classificati_cu]
     certe = [v for v in verifiche if v.get("certa")]
-    if certe or verifiche:
-        esito["esenzioneVerificata"] = certe[0] if certe else verifiche[0]
+    if verifiche:
+        esito["esenzioneVerificata"] = (certe or verifiche)[0]
     return esito
 
 
@@ -241,11 +267,12 @@ def stato_contributo_fascicolo(fascicolo: Any, voce: Mapping[str, Any] | None = 
 
     grezza = voce if voce is not None else voce_corrente(fascicolo)
     pronta = voce_contributo(fascicolo, grezza or {})
+    documenti = documenti_contributo(fascicolo)
     try:
-        pronta.update(verifiche_contributo(fascicolo, pronta))
+        pronta.update(verifiche_contributo(fascicolo, pronta, documenti))
     except Exception as exc:  # le verifiche sciolgono dubbi: senza, lo stato resta quello della voce
         logger.warning("Verifiche del contributo non eseguite per %s: %s", getattr(fascicolo, "id", ""), exc)
-    return stato_contributo(pronta, documenti_contributo(fascicolo))
+    return stato_contributo(pronta, documenti)
 
 
 def applica_stato_contributo(items: dict[str, dict[str, Any]], fascicolo: Any, voce: Mapping[str, Any]) -> None:

@@ -151,6 +151,11 @@ def test_contributo_unificato_f23_pagopa_equitalia_e_dichiarazione_152():
     assert _voce(ricorso) != "Contributo unificato / pagamento"
 
 
+def test_dichiarazione_anche_per_il_contributo_con_formula_non_dovuto():
+    testo = DICHIARAZIONE_152 + " Dichiara inoltre che il contributo unificato non è dovuto per reddito."
+    assert _voce(testo) == "Contributo unificato / esenzione"
+
+
 SENTENZA_CASSAZIONE = (
     "Numero registro generale 10072/2023 Numero di raccolta generale 29961/2023 REPUBBLICA ITALIANA IN NOME DEL POPOLO "
     "ITALIANO LA CORTE SUPREMA DI CASSAZIONE SEZIONE LAVORO ha pronunciato la seguente SENTENZA")

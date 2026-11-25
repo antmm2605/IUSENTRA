@@ -755,14 +755,23 @@ def _content_identity(
     pagamento = _pagamento_spese_di_giustizia(raw, head)
     if pagamento is not None:
         return replace(result(**pagamento[0]), fonte=pagamento[1])
+    dichiarazione_cu = re.search(
+        r"esenzione dal(?:l)? (?:pagamento del )?contributo unificato"
+        r"|contributo unificato non (?:[eè] )?dovuto"
+        r"|non (?:[eè] )?tenut\w* al pagamento del contributo unificato",
+        head[:2000],
+    )
+    riferimento_spese = re.search(
+        r"\bart\w*\s*152\s*(?:d\s*a|disp\w*\s*att\w*)\s*(?:del\s*)?c\s*p\s*c\b", head[:2500],
+    )
     # La dichiarazione del reddito nelle conclusioni dei giudizi previdenziali e assistenziali (art. 152 disp. att.
     # c.p.c.) esonera dalle spese di lite: non è l'esenzione dal contributo unificato (art. 9, comma 1-bis, D.P.R.
     # 115/2002), che ha presupposti e soglia diversi (revisione del 10/11/2026: 173 dichiarazioni lette come
     # «Dichiarazione sostitutiva» generica).
     if (re.search(r"\b(?:autocertificazione|dichiarazione sostitutiva|dichiara)\b", head[:1500])
-            and re.search(r"\bart\w*\s*152\s*(?:d\s*a|disp\w*\s*att\w*)\s*(?:del\s*)?c\s*p\s*c\b", head[:2500])
+            and riferimento_spese
             and not re.search(r"\brappresentat\w*\s+e\s+difes\w*\b|\bnote scritte\b|\btrattazione scritta\b", head[:4000])
-            and not re.search(r"esenzione dal(?:l)? (?:pagamento del )?contributo unificato", head[:2000])):
+            and not dichiarazione_cu):
         return replace(result(role="dichiarazione_reddito_spese", label="Dichiarazione di reddito ex art. 152 disp. att. c.p.c.",
                               section="allegati", confidence=97,
                               evidence="dichiarazione sostitutiva del reddito per l'esonero dalle spese nei giudizi previdenziali e assistenziali (art. 152 disp. att. c.p.c.)",
@@ -776,14 +785,17 @@ def _content_identity(
     # (revisione del 10/11/2026: 25 autocertificazioni lasciate «da verificare» con affidabilità 60). La barra della
     # tabella OCR prima del titolo diventa una «I» («|AUTOCERTIFICAZIONE» → «iautocertificazione»).
     if (re.search(r"(?:\b|\bi)(?:autocertificazione|autodichiarazione|dichiarazione sostitutiva)\b", head[:1500])
-            and re.search(r"esenzione dal(?:l)? (?:pagamento del )?contributo unificato", head[:2000])
+            and dichiarazione_cu
             and re.search(r"\breddit\w*\b", head[:3000])
             and not re.search(r"\brappresentat\w*\s+e\s+difes\w*\b|\bnell interesse d\w+\b", head[:4000])
-            and not re.search(r"\bricorso\b", head[:300])):
-        return replace(result(role="contributo_unificato", label="Contributo unificato / esenzione", section="pagamenti", confidence=97,
+            and not re.search(r"\bricorso\b.*\b(?:autocertificazione|autodichiarazione|dichiarazione sostitutiva)\b", head[:500])):
+        from pct.document_intelligence.sezioni import NATURA_AUTOCERTIFICAZIONE_CU
+
+        natura = NATURA_AUTOCERTIFICAZIONE_CU if riferimento_spese else "contributo_unificato"
+        return replace(result(role=natura, label="Contributo unificato / esenzione", section="pagamenti", confidence=97,
                               evidence="autocertificazione della situazione reddituale (art. 46 D.P.R. 445/2000) per l'esenzione dal contributo unificato (art. 9, comma 1-bis, e art. 76 D.P.R. 115/2002)",
                               tipo_documento=TipoDocumento.DEPOSITO_PCT, deposit_role="contributo_unificato", deposit_candidate=True,
-                              excerpt_pattern=r"esenzione\s+dal\s+contributo\s+unificato"),
+                              excerpt_pattern=r"esenzione\s+dal\s+contributo\s+unificato|contributo\s+unificato"),
                        fonte="normattiva_dpr_115_2002_art9_contributo_unificato")
     if re.search(r"studio legale", head[:250]) and re.search(r"oggetto\W*richiesta\s*(?:di\s*)?pagamento", head[:1300]) and not re.search(r"^tribunale", head):
         return result(role="comunicazione", label="Richiesta stragiudiziale di pagamento", section="comunicazioni", confidence=97, evidence="Carta intestata dello studio, destinatari e oggetto Richiesta pagamento espressi nella lettera.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="allegato", deposit_candidate=True, excerpt_pattern=r"Oggetto: Richiesta pagamento")

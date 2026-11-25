@@ -22,6 +22,8 @@ import json
 import re
 from typing import Any, Iterable, Mapping
 
+from pct.document_intelligence.sezioni import NATURA_AUTOCERTIFICAZIONE_CU
+
 NORMA_CU = "art. 13 D.P.R. 115/2002"
 NORMA_ESENZIONE_CU = "art. 9, comma 1-bis, D.P.R. 115/2002"
 NORMA_ANTICIPAZIONE_FORFETTARIA = "art. 30 D.P.R. 115/2002"
@@ -162,8 +164,10 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
     documenti = list(documenti)
     inviti = [_documento(d) for d in voce.get("invitiRideposito") or []]
     id_inviti = {d["id"] for d in inviti}
-    esenzioni = [d for d in documenti if _ETICHETTA_ESENZIONE in _testo(d.get("etichetta")).lower()
-                 and _testo(d.get("id")) not in id_inviti]
+    esenzioni = [d for d in documenti if _testo(d.get("id")) not in id_inviti and (
+        d.get("natura") == NATURA_AUTOCERTIFICAZIONE_CU
+        or _ETICHETTA_ESENZIONE in _testo(d.get("etichetta")).lower()
+    )]
     # Un atto di parte (ricorso, istanza, citazione) cita il contributo ma non è la ricevuta del versamento (G-16).
     versamenti = [d for d in documenti if _ETICHETTA_VERSAMENTO in _testo(d.get("etichetta")).lower()
                   and not _ATTO_DI_PARTE.match(_testo(d.get("nome")))]
@@ -175,9 +179,13 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
     documento_voce = {"id": _testo(voce.get("documento_id")), "nome": nome_voce, "href": _testo(voce.get("href"))}
     if not esenzioni and documento_voce["id"] not in id_inviti and any(p in nome_voce.lower() for p in _INDIZI_ESENZIONE):
         esenzioni = [{**documento_voce, "confermato": manuale and stato_voce == "non_previsto"}]
+    specifiche = [d for d in esenzioni if d.get("natura") == NATURA_AUTOCERTIFICAZIONE_CU]
+    if specifiche and not any(d.get("id") == verificata.get("documento_id") for d in esenzioni):
+        verificata = {}
     if esenzioni and not any(d.get("confermato") for d in versamenti):
         versamenti = []
-    if not versamenti and not esenzioni and stato_voce == "pagato" and nome_voce:
+    if (not versamenti and (not esenzioni or specifiche) and stato_voce == "pagato" and nome_voce
+            and not any(d.get("id") == documento_voce["id"] for d in specifiche)):
         # Ricevuta registrata nella voce (dall'avvocato o dall'archivio delle letture) senza voce di catalogo.
         versamenti = [{**documento_voce, "confermato": manuale}]
     importo = _numero(voce.get("importo"))
@@ -196,7 +204,7 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
                        + (f" Da chiarire: {confronto['dubbio']}." if confronto.get("dubbio") else ""))
         stato["esenzioneLegge"] = {k: confronto.get(k) for k in ("norma", "motivo", "anticipazione", "dettaglio", "dubbio")}
         return stato
-    if versamenti and esenzioni and verificata.get("certa"):
+    if versamenti and esenzioni and verificata.get("certa") and not specifiche:
         versamenti = []  # esenzione certa: la ricevuta proposta non prevale
     if versamenti:
         fonti = [_documento(d) for d in versamenti]
@@ -226,7 +234,12 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
         if verificata.get("certa"):
             return _esito("esente", importo=None, norma=NORMA_ESENZIONE_CU, fonti=[_documento(d) for d in esenzioni],
                           ruolo_fonti="autocertificazione del reddito", dettaglio=verificata["motivo"])
-        confermata = any(d.get("confermato") for d in esenzioni)
+        confermata = any(d.get("confermato") for d in esenzioni if d.get("natura") != NATURA_AUTOCERTIFICAZIONE_CU)
+        if specifiche and not confermata:
+            return _esito("da_verificare", importo=None, norma=NORMA_ESENZIONE_CU,
+                          fonti=[_documento(d) for d in esenzioni], ruolo_fonti="autocertificazione del reddito",
+                          dettaglio=verificata.get("motivo") or
+                          "Autocertificazione collegata. Verificare la prova di deposito, l’anno di reddito e la soglia.")
         if not confermata and verificata.get("motivo"):
             return _esito("esente_da_confermare", importo=None, norma=NORMA_ESENZIONE_CU, fonti=[_documento(d) for d in esenzioni],
                           ruolo_fonti="autocertificazione del reddito", dettaglio=verificata["motivo"])

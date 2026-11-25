@@ -440,7 +440,8 @@ def override_document_catalog_assignment(
                 "prima": {"voce": str(getattr(precedente, "document_label", "") or ""),
                           "sezione": str(getattr(precedente, "document_section", "") or ""),
                           "origine": str(getattr(precedente, "source_state", "") or "")},
-                "dopo": {"voce": str(document_label or ""), "sezione": str(document_section or "")},
+                "dopo": {"voce": assignment.document_label, "sezione": assignment.document_section,
+                         "natura": assignment.document_nature},
             },
         }
     )

@@ -1851,14 +1851,28 @@ type CatalogOverrideDraft = {
   note: string
 }
 
-const MANUAL_CATALOG_NATURES = new Set([
-  'atto_principale', 'atto_processuale', 'provvedimento', 'procura', 'notifica',
-  'comunicazione', 'contratto', 'economico', 'allegato', 'da_verificare',
-])
+const NATURA_AUTOCERTIFICAZIONE_CU = 'autocertificazione_esenzione_reddito_cu'
+const DENOMINAZIONE_AUTOCERTIFICAZIONE_CU = 'Contributo unificato / esenzione per reddito'
+
+const MANUAL_CATALOG_NATURES = [
+  ['atto_principale', 'Atto principale'],
+  ['atto_processuale', 'Atto processuale'],
+  ['provvedimento', 'Provvedimento'],
+  ['procura', 'Procura'],
+  ['notifica', 'Notifica'],
+  ['comunicazione', 'Comunicazione'],
+  ['contratto', 'Contratto o incarico'],
+  ['economico', 'Documento economico'],
+  [NATURA_AUTOCERTIFICAZIONE_CU, 'Autocertificazione per esenzione dal contributo unificato per reddito'],
+  ['dichiarazione_reddito_spese', 'Dichiarazione di reddito ex art. 152 disp. att. c.p.c.'],
+  ['documento_identita', 'Documento d’identità'],
+  ['allegato', 'Allegato'],
+  ['da_verificare', 'Da verificare'],
+] as const
 
 function catalogNatureForManualCorrection(value: string): CatalogOverrideDraft['document_nature'] {
   const normalized = String(value || '').trim()
-  if (MANUAL_CATALOG_NATURES.has(normalized)) return normalized
+  if (MANUAL_CATALOG_NATURES.some(([natura]) => natura === normalized)) return normalized
   if (['relata', 'prova_notifica', 'attestazione_conformita'].includes(normalized)) return 'notifica'
   if (['contributo_unificato', 'gratuito_patrocinio', 'liquidazione_spese_giustizia', 'economia_fascicolo'].includes(normalized)) return 'economico'
   if (['relazione_peritale_ctu', 'nomina_ctp'].includes(normalized)) return 'allegato'
@@ -1886,12 +1900,33 @@ function CatalogCorrectionForm({
     note: '',
   })
   const update = <K extends keyof CatalogOverrideDraft>(key: K, value: CatalogOverrideDraft[K]) => setDraft((current) => ({ ...current, [key]: value }))
+  const cambiaNatura = (natura: string) => {
+    if (natura === NATURA_AUTOCERTIFICAZIONE_CU) {
+      setDraft((current) => ({
+        ...current, document_nature: natura, document_section: 'pagamenti',
+        document_label: DENOMINAZIONE_AUTOCERTIFICAZIONE_CU, deposit_role: 'contributo_unificato',
+      }))
+    } else {
+      setDraft((current) => ({
+        ...current,
+        ...(current.document_nature === NATURA_AUTOCERTIFICAZIONE_CU &&
+            current.document_label === DENOMINAZIONE_AUTOCERTIFICAZIONE_CU ? {
+            document_label: '', document_section: 'da-verificare', deposit_role: 'allegato',
+          } : {}),
+        document_nature: natura,
+      }))
+    }
+  }
   return (
     <form className="iu-fas-catalog__correction" onSubmit={(event) => { event.preventDefault(); onSubmit(draft) }}>
       <strong>Correggi la catalogazione nel fascicolo</strong>
       <label>Denominazione<input value={draft.document_label} maxLength={160} required onChange={(event) => update('document_label', event.currentTarget.value)} /></label>
       <label>Sezione<select value={draft.document_section} onChange={(event) => update('document_section', event.currentTarget.value)}>{SEZIONI_DOCUMENTO.map((sezione) => <option key={sezione.id} value={sezione.id}>{sezione.label}</option>)}</select></label>
-      <label>Natura<select value={draft.document_nature} onChange={(event) => update('document_nature', event.currentTarget.value)}><option value="atto_principale">Atto principale</option><option value="atto_processuale">Atto processuale</option><option value="provvedimento">Provvedimento</option><option value="procura">Procura</option><option value="notifica">Notifica</option><option value="comunicazione">Comunicazione</option><option value="contratto">Contratto o incarico</option><option value="economico">Documento economico</option><option value="documento_identita">Documento d’identità</option><option value="allegato">Allegato</option><option value="da_verificare">Da verificare</option></select></label>
+      <label>Natura
+        <select value={draft.document_nature} onChange={(event) => cambiaNatura(event.currentTarget.value)}>
+          {MANUAL_CATALOG_NATURES.map(([natura, label]) => <option key={natura} value={natura}>{label}</option>)}
+        </select>
+      </label>
       <label>Ruolo deposito<select value={draft.deposit_role} onChange={(event) => update('deposit_role', event.currentTarget.value)}><option value="atto_principale">Atto principale</option><option value="procura">Procura</option><option value="allegato">Allegato</option><option value="prova_notifica">Prova di notifica</option><option value="contributo_unificato">Contributo unificato</option><option value="fuori_busta">Fuori busta</option></select></label>
       <label className="iu-fas-catalog__check"><input type="checkbox" checked={draft.deposit_candidate} onChange={(event) => update('deposit_candidate', event.currentTarget.checked)} /> Valuta per il deposito</label>
       <label>Motivazione della correzione<textarea value={draft.note} maxLength={2000} onChange={(event) => update('note', event.currentTarget.value)} placeholder="Facoltativa: resta nella revisione del fascicolo." /></label>

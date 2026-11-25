@@ -11,7 +11,9 @@ Regole e norme:
 * ``termine-scritto`` — il termine per le note è quello assegnato dal giudice (art. 127-ter, primo
   comma, c.p.c.), perentorio per legge; la seconda diserzione estingue (artt. 181, 631 c.p.c.);
 * ``collettivi`` — il provvedimento che elenca più gruppi di cause vale, per ogni data, solo per il
-  gruppo che contiene il ruolo del fascicolo (art. 175 c.p.c.; art. 484 c.p.c.).
+  gruppo che contiene il ruolo del fascicolo (art. 175 c.p.c.; art. 484 c.p.c.);
+* ``atto-introduttivo`` — le date del deposito del ricorso, dell'iscrizione a ruolo e della notifica della
+  citazione decidono il testo applicabile (art. 35 d.lgs. 149/2022); le copie PolisWeb portano il depositante.
 
 Modulo puro: riceve i fatti e le versioni delle letture, restituisce gli oggetti da rileggere.
 """
@@ -28,10 +30,15 @@ REGOLA_RUOLO_ALLEGATO = "ruolo-allegato-pec:v1"
 #: le premesse che richiamano l'art. 127-ter non dispongono le note (termine_scritto.dispone_note_scritte)
 REGOLA_PREMESSE_127_TER = "premesse-127ter:v1"
 REGOLA_IDENTITA_LIQUIDAZIONE = "identita-liquidazione:v1"
+#: le date dell'atto introduttivo (date_campi_modello, 24/11/2026)
+REGOLA_ATTO_INTRODUTTIVO = "atto-introduttivo:v1"
 
 _RE_127_TER = re.compile(r"127\W{0,3}ter|trattazione\s+scritta|note\s+(?:scritte|in\s+sost)", re.I)
 _RE_ELENCO_RUOLI = re.compile(r"\d{1,6}\s*/\s*\d{2,4}(?:\s*\+\s*sub\.?\s*\d+)?\s*[;,]\s*(?:n\.?\s*)?\d{1,6}\s*/\s*\d{2,4}", re.I)
 _CAMPI = {"udienza", "termine", "costituzione"}
+_RE_ATTO_INTRODUTTIVO = re.compile(
+    r"tipologia:\s*atto\s+principale|nota\s+d.?\s*iscrizione\s+a\s+ruolo|ricorso\b[^;]{0,120}?depositat|"
+    r"iscritt\w*\s+a(?:l)?\s+ruolo|citazione\b[^;]{0,120}?notificat", re.I)
 
 
 def motivo_rilettura(fatti_oggetto: Iterable[Any]) -> str:
@@ -89,9 +96,14 @@ def oggetti_da_rileggere(
             and f.verifica in {"verificata", "corretta", "plausibile"} for f in elenco
         ):
             motivo = "liquidazione giudiziale: verificare se le fonti riproducono lo stesso dispositivo"
+        if not motivo and REGOLA_ATTO_INTRODUTTIVO not in versione and any(
+            f.categoria == "data" and f.campo in {"deposito", "notifica", "consegna", "data_atto", "provvedimento"}
+            and _RE_ATTO_INTRODUTTIVO.search(str(f.contesto or "")) for f in elenco
+        ):
+            motivo = "data dell'atto introduttivo: leggere deposito del ricorso, iscrizione a ruolo o notifica della citazione"
         if motivo:
             esito[chiave] = motivo
     return esito
 
 
-__all__ = ["REGOLA_IDENTITA_LIQUIDAZIONE", "REGOLA_PREMESSE_127_TER", "REGOLE_TERMINE_SCRITTO", "motivo_rilettura", "oggetti_da_rileggere"]
+__all__ = ["REGOLA_ATTO_INTRODUTTIVO", "REGOLA_IDENTITA_LIQUIDAZIONE", "REGOLA_PREMESSE_127_TER", "REGOLE_TERMINE_SCRITTO", "motivo_rilettura", "oggetti_da_rileggere"]

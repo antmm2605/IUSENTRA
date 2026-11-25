@@ -20,7 +20,8 @@ from .ancoraggio import VERSIONE_DATE_PROCESSUALI
 from .collaudo import Contesto, collauda_tutti
 from .motore_documenti import leggi_testo
 from .riletture_mirate import (
-    REGOLA_IDENTITA_LIQUIDAZIONE, REGOLA_NOTE_ANTECEDENTI, REGOLA_PREMESSE_127_TER, REGOLE_TERMINE_SCRITTO,
+    REGOLA_ATTO_INTRODUTTIVO, REGOLA_IDENTITA_LIQUIDAZIONE, REGOLA_NOTE_ANTECEDENTI, REGOLA_PREMESSE_127_TER,
+    REGOLE_TERMINE_SCRITTO,
 )
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA
@@ -40,6 +41,10 @@ VERSIONE_MOTORE_PEC += "+" + REGOLA_IDENTITA_LIQUIDAZIONE
 # Letture dell'8080 locale (18/11/2026): identità della liquidazione senza le premesse sull'art. 127-ter.
 # Restano compatibili; le premesse si riapplicano con la rilettura mirata (riletture_mirate).
 VERSIONE_MOTORE_PEC_LOCALE_SENZA_PREMESSE = VERSIONE_MOTORE_PEC_PRE_PREMESSE_127_TER + "+" + REGOLA_IDENTITA_LIQUIDAZIONE
+# Date dell'atto introduttivo (24/11/2026): le letture precedenti restano compatibili; le sole PEC che le
+# contengono si rileggono una volta (riletture_mirate, regola «atto-introduttivo»).
+VERSIONE_MOTORE_PEC_PRE_ATTO_INTRODUTTIVO = VERSIONE_MOTORE_PEC
+VERSIONE_MOTORE_PEC += "+" + REGOLA_ATTO_INTRODUTTIVO
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),

@@ -409,6 +409,42 @@ class FattiMixin:
             riammessi.append(nuovo)
         return riammessi
 
+    def concorda_instaurazione(self, tenant_id: str, fascicolo_id: str, *, oggetti_correnti: Iterable[tuple[str, str, str]] | None = None) -> list[Fatto]:
+        """Rende verificate le date dell'atto introduttivo lette con l'OCR che un'altra fonte conferma.
+
+        Regola in pct/archivio_letture/instaurazione.py. Solo SQL già registrato, nessun documento riletto;
+        compare-and-swap sull'intera riga come `riammetti_ruoli`: le decisioni dell'avvocato non si toccano.
+        """
+        from pct.archivio_letture.instaurazione import date_concordi
+
+        tenant = _testo(tenant_id)
+        # Lettura mirata sull'indice (tenant, fascicolo, categoria, verifica): gira anche a ciclo fermo.
+        righe = {r.get("id"): r for verifica in ("verificata", "plausibile", "corretta")
+                 for r in self._seleziona_fatti("tenant_id = ? AND fascicolo_id = ? AND categoria = ? AND verifica = ?",
+                                                (tenant, fascicolo_id, "metadato_fascicolo", verifica))
+                 if not (r.get("risolta_da") or r.get("risolta_il"))}
+        correnti = set(oggetti_correnti) if oggetti_correnti is not None else None
+        fatti = [self._fatto(r) for r in righe.values()]
+        if correnti is not None:
+            fatti = [f for f in fatti if (f.tipo, f.oggetto_id, f.sha256) in correnti]
+        if not fatti:
+            return []
+        promossi: list[Fatto] = []
+        adesso = self._adesso()  # type: ignore[attr-defined]
+        for nuovo in date_concordi(fatti):
+            raw = righe[nuovo.id]
+            conditions = ' AND '.join(f'("{column}" = ? OR ("{column}" IS NULL AND ? IS NULL))' for column in COLONNE_FATTI)
+            expected = tuple(value for column in COLONNE_FATTI for value in (raw.get(column), raw.get(column)))
+            with self.connection() as conn:  # type: ignore[attr-defined]
+                cursor = conn.execute(
+                    f'UPDATE "letture_fatti" SET "verifica" = ?, "prove_json" = ?, "aggiornato_il" = ? WHERE {conditions} RETURNING "id"',
+                    (nuovo.verifica, json.dumps(nuovo.prove, ensure_ascii=False, sort_keys=True), adesso, *expected),
+                )
+                if cursor.fetchone() is None:
+                    continue
+            promossi.append(nuovo)
+        return promossi
+
     def riassunto_fatti(self, tenant_id: str, fascicolo_id: str) -> dict[str, Any]:
         """Quanti fatti, per verdetto e per categoria; per i presìdi e per il pannello."""
         per_verifica = {chiave: 0 for chiave in VERIFICHE}

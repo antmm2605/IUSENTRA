@@ -6,7 +6,7 @@ import re
 
 from pct.formatting import DISPLAY_TIMEZONE, format_date_it, format_euro_it
 from pct.template_atti_prefill import build_prefill_context, resolve_field
-from pct.archivio_letture.date_campi_modello import CAMPI_DATE
+from pct.archivio_letture.date_campi_modello import CAMPI_DATE, CAMPI_INSTAURAZIONE
 from pct.editor_stamp import editor_stamp_lines
 from pct.note_127_ter.bozza import CAMPI_NOTE_EDITOR
 
@@ -44,7 +44,8 @@ for address, group in [("indirizzo_residenza", "Residenza"), ("indirizzo_domicil
 FIELDS += [("cliente.recapiti." + key, label, "Recapiti") for key, label in {"telefono": "Telefono", "cellulare": "Cellulare", "email": "Email", "pec": "PEC"}.items()]
 FIELDS += [("cliente.documento." + key, label, "Documento d’identità") for key, label in {"numero": "Numero documento", "rilasciato_da": "Rilasciato da", "data_rilascio": "Data rilascio", "data_scadenza": "Scadenza documento"}.items()]
 FIELDS += [("fascicolo." + key, label, "Fascicolo") for key, label in MATTER_FIELDS.items()]
-FIELDS += [("fascicolo." + key, label, "Date processuali") for key, label in CAMPI_DATE.items()]
+# La data di notifica della citazione è già un campo dell'anagrafica: la lettura dei documenti la completa.
+FIELDS += [("fascicolo." + key, label, "Date processuali") for key, label in CAMPI_DATE.items() if key not in MATTER_FIELDS]
 FIELDS += [("studio_timbro." + key, label, "Studio e avvocato") for key, label in {
     "studio_nome": "Nome studio", "professionista_nome": "Avvocato",
     "indirizzo_riga": "Indirizzo studio", "cap_citta_provincia": "Località studio",
@@ -119,9 +120,17 @@ def linked_fields_catalog(*, cliente=None, fascicolo=None, config=None, studio_t
         if key == "documento.data_atto":
             field.update(source="today", source_label="Data odierna (Europe/Rome)", confidence="high")
         if key.removeprefix("fascicolo.") in CAMPI_DATE:
-            field = (date_processuali or {}).get(key, {
-                **field, "value": "", "missing_reason": "Data non ancora riscontrata in una fonte del procedimento.",
-            })
+            letta = (date_processuali or {}).get(key)
+            if key.removeprefix("fascicolo.") in MATTER_FIELDS and str(field.get("value") or "").strip():
+                # Il dato scritto dallo studio resta; se le fonti lette dicono altro, lo si segnala.
+                if letta and letta.get("value") and format_date_it(letta["value"]) != format_date_it(field["value"]):
+                    field = {**field, "conflict": True, "alternatives": letta.get("alternatives", []),
+                             "missing_reason": "La data dell'anagrafica è diversa da quella letta nei documenti: "
+                                               + format_date_it(letta["value"]) + "."}
+            else:
+                field = letta or {
+                    **field, "value": "", "missing_reason": "Data non ancora riscontrata in una fonte del procedimento.",
+                }
         if key in CAMPI_NOTE_EDITOR:
             valore = (dati_note_scritte or {}).get(CAMPI_NOTE_EDITOR[key][1], "")
             field.update(value=valore, source="fascicolo", source_label="Bozza da provvedimento",
@@ -141,6 +150,12 @@ def linked_fields_catalog(*, cliente=None, fascicolo=None, config=None, studio_t
     return result
 
 
+# Le date dell'atto introduttivo hanno anche fonti senza l'intestazione completa: il provvedimento con ruolo e
+# ufficio del fascicolo, la copia PolisWeb attestata, la relata della citazione (date_campi_modello).
+_CODICI_IDENTITA = {campo: {"identita_congiunta_provvedimento", "identita_ruolo_ufficio", "identita_fonte_atti"}
+                    for campo in CAMPI_INSTAURAZIONE}
+
+
 def date_modello_da_fatti(fatti, *, fascicolo_id, oggetti):
     """Proietta fatti SQL correnti, mantenendo discordanza e documento probatorio."""
     current = {(o.tipo, o.oggetto_id, o.impronta) for o in oggetti if o.presente}
@@ -150,7 +165,7 @@ def date_modello_da_fatti(fatti, *, fascicolo_id, oggetti):
                       and f.categoria == "metadato_fascicolo" and f.campo == field
                       and f.verifica in {"verificata", "corretta"}
                       and (f.tipo, f.oggetto_id, f.sha256) in current
-                      and any(p.get("codice") == "identita_congiunta_provvedimento"
+                      and any(p.get("codice") in _CODICI_IDENTITA.get(field, {"identita_congiunta_provvedimento"})
                               and p.get("esito") == "ok" for p in f.prove)]
         values = {f.valore for f in candidates}
         if not values:

@@ -1469,7 +1469,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Security | Security | tests/test_security_headers.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_uffici_giudiziari_security.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_upload_security.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Security | Security | tests/test_web_security.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Security | Security | tests/test_web_security.py | 401 anonimo, 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Tenant isolation | tests/test_daily_plan_security.py | 403/RBAC, tenant, feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Tenant isolation | tests/test_document_intelligence_security.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Tenant isolation | tests/test_lex_workflow_agents_security.py | 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |

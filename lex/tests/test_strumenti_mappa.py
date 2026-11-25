@@ -110,3 +110,27 @@ def test_descrizione_per_il_modello_contiene_tutti_gli_strumenti():
     testo = per_il_modello()
     assert all(f"- {s['nome']}(" in testo for s in mappa()["strumenti"])
     assert json.loads(FILE_MAPPA.read_text(encoding="utf-8"))["schema"] == "iusentra.lex_mappa_strumenti.v1"
+
+
+def test_generatore_mappa_scrive_e_riconosce_file_obsoleto(tmp_path, monkeypatch, capsys):
+    from lex.strumenti import genera
+
+    percorso = tmp_path / "mappa.json"
+    monkeypatch.setattr(genera, "FILE_MAPPA", percorso)
+    assert genera.main(["--controlla"]) == 1
+    assert "mappa.json non aggiornata" in capsys.readouterr().out
+    assert not percorso.exists()
+
+    assert genera.main([]) == 0
+    assert percorso.read_text(encoding="utf-8") == genera.testo_mappa()
+    assert genera.main(["--controlla"]) == 0
+    assert "copertura completa" in capsys.readouterr().out
+
+
+def test_generatore_distingue_sorgenti_mancanti_e_voci_superate():
+    from lex.strumenti.genera import lacune
+
+    risultato = lacune({"calcolatori": {"mancanti": ["nuovo"], "inesistenti": ["superato"]}})
+    assert len(risultato) == 2
+    assert "nuovo" in risultato[0] and "nel codice ma non in mappa" in risultato[0]
+    assert "superato" in risultato[1] and "in mappa ma non nel codice" in risultato[1]

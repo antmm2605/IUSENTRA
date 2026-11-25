@@ -65,3 +65,31 @@ def test_senza_variabile_nessuna_risposta_grezza_su_disco(tmp_path, monkeypatch)
     attiva_registro_grezzi()
     SP.scrivi_per_punto(SCHEMA, "openai:x|prova")
     assert file.exists() and oct(os.stat(file).st_mode & 0o777) == "0o600"
+
+
+def test_stesura_integrale_conserva_ancore_importi_e_date(monkeypatch):
+    schema = SCHEMA.replace("La separazione giudiziale si chiede per fatti",
+                            "Il 12/03/2026 è stato richiesto un contributo di € 850. La separazione si chiede per fatti")
+    def risposta(_, richiesta, *args, **kwargs):
+        return richiesta.split("\\n\\nSegnaposto da usare", 1)[0]
+
+    monkeypatch.setattr(SP, "_chiama", risposta)
+    esito = SP.scrivi_con_segnaposto(schema, "openai:x|prova")
+    assert esito.accettata, esito.motivo
+    assert "12/03/2026" in esito.testo and "€ 850" in esito.testo
+    assert "art. 151 c.c." in esito.testo and "{{" not in esito.testo
+
+
+def test_stesura_integrale_sostituzione_e_fallback(monkeypatch):
+    assert SP.sostituisci("Somma euro {{IMPORTO_1}}", {"IMPORTO_1": "€ 850"}) == "Somma € 850"
+
+    monkeypatch.setattr(SP, "_chiama", lambda *args, **kwargs: "{{NORMA_999}}")
+    proposta = SP.scrivi_con_segnaposto(SCHEMA, "openai:x|prova")
+    assert not proposta.accettata and "segnaposto inesistenti" in proposta.motivo and proposta.testo == SCHEMA
+
+    def indisponibile(*args, **kwargs):
+        raise TimeoutError("Timeout del servizio")
+
+    monkeypatch.setattr(SP, "_chiama", indisponibile)
+    proposta = SP.scrivi_con_segnaposto(SCHEMA, "openai:x|prova")
+    assert not proposta.accettata and "TimeoutError" in proposta.motivo and proposta.testo == SCHEMA

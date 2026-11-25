@@ -11,7 +11,8 @@ Il workflow conserva i dodici shard critici esistenti. Un ulteriore gruppo di do
 | Copertura preservata o migliorata | Confronto ammesso se ambiente e perimetro sono omogenei. |
 | Calo della percentuale | Blocco senza tolleranza numerica; confronto tramite frazioni esatte. |
 | Riga prima coperta persa nel sorgente invariato | Blocco anche se altre righe fanno crescere il totale. |
-| Ambiente, configurazione o moduli misurati differenti | Confronto non omogeneo e blocco esplicito; nessuna nuova baseline accettata automaticamente. |
+| Moduli aggiunti con dichiarazione e impronte esatte | Stessa baseline, ambiente e moduli esistenti. La soglia vale sul perimetro comune, sul totale e su ciascun modulo aggiunto con istruzioni. I file senza istruzioni restano nell'inventario con l'impronta, senza un rapporto di copertura da calcolare. |
+| Ambiente, configurazione o moduli misurati differenti senza dichiarazione compatibile | Confronto non omogeneo e blocco esplicito; nessuna nuova baseline accettata automaticamente. |
 | Nuovi test, stesso perimetro | Variazione dei test registrata; confronto mantenuto sulle stesse istruzioni. |
 | Sorgente aggiornato nello stesso modulo | Differenza indicata nel report; la percentuale resta confrontata. Le righe delle due versioni non vengono confuse. |
 | Artefatto o metadato mancante, duplicato o discordante | Blocco con causa registrata. |

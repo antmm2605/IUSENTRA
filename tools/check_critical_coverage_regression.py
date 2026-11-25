@@ -158,7 +158,7 @@ def compare_measurements(baseline: dict[str, Any], candidate: dict[str, Any],
         report["added_measurements"] = {path: new[path] for path in added}
         regression = (bool(report["previously_covered_lines_lost"])
                       or Fraction(common_covered, common_statements) < baseline_ratio
-                      or any(not new[path]["statements"] or Fraction(
+                      or any(new[path]["statements"] and Fraction(
                           new[path]["covered"], new[path]["statements"]) < baseline_ratio for path in added)
                       or Fraction(totals["candidate"]["covered"], totals["candidate"]["statements"]) < baseline_ratio)
         report.update(status="regression" if regression else "accepted_scope_addition", blocking=regression,

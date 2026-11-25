@@ -162,6 +162,18 @@ def test_declared_scope_addition_cannot_mask_regressions(common, new_covered, ex
     assert report["added_measurements"]["lex/new.py"]["covered"] == new_covered
 
 
+def test_declared_init_without_executable_statements_keeps_scope_check():
+    baseline = _synthetic_measurement()
+    candidate = deepcopy(baseline)
+    candidate["files"]["lex/new/__init__.py"] = {"covered": 0, "statements": 0, "source_sha256": "b" * 64}
+    assert compare_measurements(baseline, candidate)["blocking"]
+
+    declaration = {"reason": "Pacchetto senza istruzioni", "files": {"lex/new/__init__.py": "b" * 64}}
+    report = compare_measurements(baseline, candidate, declaration)
+    assert report["status"] == "accepted_scope_addition"
+    assert report["candidate"] == report["baseline"]
+
+
 @pytest.mark.parametrize("mutation", ["hash", "extra", "environment", "removed", "reason"])
 def test_declared_scope_addition_fails_closed(mutation):
     baseline = _synthetic_measurement()

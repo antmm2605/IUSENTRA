@@ -94,3 +94,20 @@ def test_la_mappa_aggiunge_gli_archivi(monkeypatch):
     assert "GazzettaSource" in fonti("Che decreti legislativi sono usciti in Gazzetta Ufficiale questo mese?")
     assert "GiustiziaAmministrativaSource" in fonti("Giurisprudenza del Consiglio di Stato sul soccorso istruttorio")
     assert fonti("TAR Lazio n. 3456/2019")[0] == "GiustiziaAmministrativaSource"
+
+
+def test_retrieval_archivi_pubblici_continua_se_un_archivio_non_risponde(monkeypatch):
+    from types import SimpleNamespace
+    from lex.retrieval.sources import archivi_pubblici as fonti
+
+    def non_disponibile(*args, **kwargs):
+        raise OSError("Archivio temporaneamente non disponibile")
+
+    domanda = SimpleNamespace(query="Agenzia delle Entrate")
+    for sorgente, metodo in (
+        (fonti.PrassiSource(), "cerca_prassi"),
+        (fonti.GazzettaSource(), "cerca_gazzetta"),
+        (fonti.GiustiziaAmministrativaSource(), "cerca_testi_ga"),
+    ):
+        monkeypatch.setattr(fonti, metodo, non_disponibile)
+        assert sorgente.search([], domanda, {}) == []

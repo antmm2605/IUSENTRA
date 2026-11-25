@@ -69,3 +69,21 @@ def test_cassazione_e_archivio(monkeypatch):
     r = tools.search_verified_cassazione("9449/2016", _contesto("ai.usa"))
     assert r.ok and r.data[0]["numero"] == "9449" and urlsplit(r.data[0]["url"]).hostname == "www.italgiure.giustizia.it"
     assert tools.get_giurisprudenza_items("9449/2016", _contesto("ai.usa")).ok
+
+
+def test_archivi_dichiarano_indisponibilita_al_posto_di_risultati(monkeypatch):
+    from lex.harness import giurisprudenza
+
+    class ArchivioNonDisponibile:
+        def cerca(self, *args, **kwargs):
+            raise OSError("Archivio non disponibile")
+
+    tools = OperationalKnowledgeTools(repositories={"ricerca_studio": ArchivioNonDisponibile()})
+    assert not tools.search_studio_index("revocatoria", _contesto("ai.usa", "fascicoli.leggi")).ok
+    assert not tools.lookup_uffici_giudiziari("Milano", _contesto("ai.usa")).ok
+    monkeypatch.setattr("pct.uffici_giudiziari.get_gestore", ArchivioNonDisponibile)
+    assert not tools.lookup_uffici_giudiziari("Milano", _contesto("ai.usa", "telematico.leggi")).ok
+
+    monkeypatch.setattr(giurisprudenza, "archivi", lambda: [])
+    esito = tools.search_verified_cassazione("9449/2016", _contesto("ai.usa"))
+    assert not esito.data and any("non disponibile" in testo for testo in esito.coverage_gaps)

@@ -7,7 +7,9 @@ import pytest
 
 from deploy.openga import update_worker as worker
 from deploy.openga.verify_reading import (
-    MISSING_PAGE_SHA256, UNAVAILABLE_IDENTITY, UNAVAILABLE_REFERENCE,
+    MISSING_PAGE_SHA256,
+    UNAVAILABLE_IDENTITY,
+    UNAVAILABLE_REFERENCE,
     expected_unavailability,
 )
 
@@ -112,6 +114,46 @@ def test_a_restored_official_source_must_pass_the_normal_reading_checks(tmp_path
     proofs = release_case(tmp_path, monkeypatch, missing=read_proof())
     assert all(p["lettura_confermata"] for p in proofs)
     assert "FONTE_INDISPONIBILE_SERVER_JSON=" not in capsys.readouterr().out
+
+
+def blocked_proof():
+    from hashlib import sha256
+
+    return {
+        **read_proof(),
+        "stato": "intervento_necessario",
+        "lettura_confermata": False,
+        "caratteri": 0,
+        "html_consultabile_verificato": False,
+        "relazione_id": "roma-one",
+        "diagnostica": [
+            {"variante": "01", "trasporto": "robots_blocked", "stato_http": 0,
+             "byte": 0, "sha256": sha256(b"").hexdigest()}
+        ],
+    }
+
+def test_robots_block_defers_without_counting_a_read(tmp_path, monkeypatch, capsys):
+    blocked = blocked_proof()
+    with pytest.raises(worker.OfficialReadingBlocked) as exc:
+        release_case(tmp_path, monkeypatch, positive=blocked)
+    assert exc.value.proof == blocked
+    assert "LETTURA_UFFICIALE_SERVER_JSON" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("alterazione", ["dati", "identita", "coda", "trasporto"])
+def test_riscontri_non_certificati_non_attivano_il_rinvio(tmp_path, monkeypatch, alterazione):
+    blocked = blocked_proof()
+    if alterazione == "dati":
+        blocked["diagnostica"][0]["byte"] = 1
+    elif alterazione == "identita":
+        blocked["relazione_id"] = "altra-pronuncia"
+    elif alterazione == "coda":
+        blocked["coda_persistente_verificata"] = False
+    else:
+        blocked["diagnostica"][0]["trasporto"] = "network_error"
+
+    with pytest.raises(ValueError, match="coda"):
+        release_case(tmp_path, monkeypatch, positive=blocked)
 
 
 def test_an_incomplete_other_read_still_blocks_release(tmp_path, monkeypatch):

@@ -45,8 +45,25 @@ def expected_unavailability(identity, reference, result):
         for row, variant in zip(evidence, ("01", "20", "11")))
 
 
+def robots_blocks_reading(result):
+    """Riconosce il blocco della policy prima che arrivino byte del documento."""
+    if (not isinstance(result, dict) or result.get("stato") != "intervento_necessario" or result.get("documento")
+            or result.get("lettura_confermata") is True
+            or result.get("approvazione_automatica") is True
+            or result.get("approvazione_avvocato") is True):
+        return False
+    evidence = result.get("diagnostica")
+    if not isinstance(evidence, list) or len(evidence) != 1 or not isinstance(evidence[0], dict):
+        return False
+    row = evidence[0]
+    return (row.get("trasporto") == "robots_blocked" and row.get("stato_http") == 0
+            and row.get("byte") == 0 and row.get("sha256") == sha256(b"").hexdigest()
+            and row.get("variante") in {"01", "11"})
+
+
 def verify(identity, reference):
     from flask import Flask
+
     from web.services.lettore_sentenze import _asset_lettore, payload_testo_ufficiale
     from web.services.openga_document_jobs import _queue, start, status
 
@@ -62,6 +79,14 @@ def verify(identity, reference):
             time.sleep(0.5)
             result = status(path, result["job_id"])
         if result.get("stato") != "acquisito":
+            if robots_blocks_reading(result):
+                job = _queue(path).get(result["job_id"])
+                if job.status != "completed" or not robots_blocks_reading(job.result or {}):
+                    raise RuntimeError("Blocco robots non riscontrato nella coda persistente")
+                return {"stato": result["stato"], "lettura_confermata": False, "caratteri": 0,
+                        "approvazione_automatica": False, "scritture_dati_studio": False,
+                        "coda_persistente_verificata": True, "html_consultabile_verificato": False,
+                        "relazione_id": reference["relazione_id"], "diagnostica": result["diagnostica"]}
             if expected_unavailability(identity, reference, result):
                 return {"stato": "non_trovato", "fonte_indisponibile_verificata": True,
                         "lettura_confermata": False, "caratteri": 0,

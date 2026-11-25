@@ -79,6 +79,19 @@ def gazzetta_ufficiale_testo(atto_id: str):
         return jsonify({"ok": False, "message": _NON_DISPONIBILE}), 200
 
 
+@api_v1_gazzetta.get("/gazzetta-ufficiale/atti/<atto_id>/sommario")
+@_richiedi_auth
+def gazzetta_ufficiale_sommario(atto_id: str):
+    from web.services import gazzetta_runtime as vista
+
+    try:
+        payload = vista.sommario_del_fascicolo(vista.archivio_in_lettura(current_app.config), atto_id)
+        return _senza_cache(payload), (404 if payload.get("notFound") else 200)
+    except Exception:
+        current_app.logger.exception("Sommario della Gazzetta Ufficiale non disponibile")
+        return jsonify({"ok": False, "message": _NON_DISPONIBILE}), 503
+
+
 @api_v1_gazzetta.post("/gazzetta-ufficiale/aggiorna")
 @_richiedi_auth
 def gazzetta_ufficiale_aggiorna():

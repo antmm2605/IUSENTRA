@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, FileText, Landmark, RefreshCw, Search, X } from 'lucide-react'
 import { Page } from '../ui/Page'
+import { Modal } from '../ui/legalPrimitives'
 import { Button, ButtonLink } from '../ui/Button'
 import { CampoData } from '../ui/CampoData'
 import { useBusyActivity } from '../ui/useBusyActivity'
@@ -14,6 +15,7 @@ import {
   gazzettaVuota,
   loadGazzetta,
   loadGazzettaTesto,
+  loadGazzettaSommario,
   refreshGazzetta,
   type GazzettaAtto,
   type GazzettaPayload,
@@ -80,7 +82,6 @@ function TestoAtto({ id }: { id: string }) {
   const fonte = collegamentoUfficiale(testoAtto.textUrl)
   return (
     <section className="iu-gazzetta-atto__testo" aria-label="Testo completo dell’atto">
-      {testoAtto.heading ? <h4>{testo(testoAtto.heading)}</h4> : null}
       <pre>{testoAtto.text}</pre>
       <p className="iu-gazzetta-atto__testo-fonte">
         Fonte del testo: {testo(testoAtto.source || 'Gazzetta Ufficiale, vista «originario»')}{testoAtto.articles ? `, ${testoAtto.articles} articoli` : ''}, acquisito il {formatDateTimeIt(testoAtto.readAt)}
@@ -90,10 +91,37 @@ function TestoAtto({ id }: { id: string }) {
   )
 }
 
-function RigaAtto({ atto }: { atto: GazzettaAtto }) {
-  const url = collegamentoUfficiale(atto.officialUrl)
-  const sommario = collegamentoUfficiale(atto.issueUrl)
-  const [testoAperto, setTestoAperto] = useState(false)
+type Dettaglio = { vista: 'atto' | 'sommario'; atto: GazzettaAtto }
+
+function SommarioFascicolo({ atto, apriAtto }: { atto: GazzettaAtto; apriAtto: (atto: GazzettaAtto) => void }) {
+  const [atti, setAtti] = useState<GazzettaAtto[] | null>(null)
+  const [errore, setErrore] = useState('')
+  useEffect(() => {
+    const controllo = new AbortController()
+    loadGazzettaSommario(atto.id, controllo.signal)
+      .then((dati) => { if (!controllo.signal.aborted) setAtti(dati.items) })
+      .catch((motivo: unknown) => { if (!controllo.signal.aborted) setErrore(motivo instanceof Error ? motivo.message : 'Sommario non disponibile.') })
+    return () => controllo.abort()
+  }, [atto.id])
+
+  if (errore) return <p role="alert">{errore}</p>
+  if (!atti) return <p role="status">Caricamento del sommario…</p>
+  if (!atti.length) return <p>Il sommario non contiene atti consultabili.</p>
+  return (
+    <ul className="iu-gazzetta-lettura__sommario">
+      {atti.map((voce, indice) => (
+        <li key={voce.id}>
+          {voce.section && voce.section !== atti[indice - 1]?.section ? <h4>{testo(voce.section)}</h4> : null}
+          <button type="button" onClick={() => apriAtto(voce)}>{testo(voce.title)}</button>
+          {voce.description ? <p>{testo(voce.description)}</p> : null}
+          {voce.authority || voce.page || voce.editorialCode ? <small>{[voce.authority, voce.page && `pag. ${voce.page}`, voce.editorialCode].filter(Boolean).map((valore) => testo(valore)).join(' · ')}</small> : null}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function RigaAtto({ atto, apri }: { atto: GazzettaAtto; apri: (dettaglio: Dettaglio) => void }) {
   return (
     <li className="iu-gazzetta-atto">
       <span className={`iu-gazzetta-atto__serie is-${atto.series.toLowerCase()}`} title={testo(atto.seriesLabel)}>{testo(atto.seriesShort)}</span>
@@ -102,7 +130,7 @@ function RigaAtto({ atto }: { atto: GazzettaAtto }) {
           <span className="iu-gazzetta-atto__tipo">{testo(atto.kindLabel)}</span>
           {atto.authority ? <span className="iu-gazzetta-atto__ente">{testo(atto.authority)}</span> : null}
         </div>
-        <h3>{url ? <a href={url} target="_blank" rel="noopener noreferrer">{testo(atto.title)}</a> : testo(atto.title)}</h3>
+        <h3>{testo(atto.title)}</h3>
         {atto.description ? <p>{testo(atto.description)}</p> : null}
         <p className="iu-gazzetta-atto__estremi">
           {estremiGazzetta(atto, dataIt)}
@@ -110,16 +138,10 @@ function RigaAtto({ atto }: { atto: GazzettaAtto }) {
           {atto.section ? ` · ${testo(atto.section)}` : ''}
           {atto.editorialCode ? ` · codice redazionale ${atto.editorialCode}` : ''}
         </p>
-        {testoAperto ? <TestoAtto id={atto.id} /> : null}
       </div>
       <div className="iu-gazzetta-atto__azioni">
-        {atto.hasText ? (
-          <button type="button" className="iu-gazzetta-atto__leggi" aria-expanded={testoAperto} onClick={() => setTestoAperto((aperto) => !aperto)}>
-            <FileText size={14} /> {testoAperto ? 'Chiudi il testo' : 'Leggi il testo'}
-          </button>
-        ) : null}
-        {url ? <a className="iu-gazzetta-atto__apri" href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Apri l’atto</a> : null}
-        {sommario ? <a href={sommario} target="_blank" rel="noopener noreferrer"><FileText size={14} /> Sommario del fascicolo</a> : null}
+        <button type="button" className="iu-gazzetta-atto__leggi" onClick={() => apri({ vista: 'atto', atto })}><FileText size={14} /> Apri l’atto</button>
+        <button type="button" className="iu-gazzetta-atto__leggi" onClick={() => apri({ vista: 'sommario', atto })}>Sommario del fascicolo</button>
       </div>
     </li>
   )
@@ -135,6 +157,7 @@ export function GazzettaUfficialePage() {
   const [aggiornamento, setAggiornamento] = useState(false)
   const [errore, setErrore] = useState('')
   const [avviso, setAvviso] = useState('')
+  const [dettaglio, setDettaglio] = useState<Dettaglio | null>(null)
   useBusyActivity(caricamento, 'Ricerca nella Gazzetta Ufficiale…')
   useBusyActivity(aggiornamento, 'Lettura dei sommari ufficiali…')
 
@@ -194,7 +217,7 @@ export function GazzettaUfficialePage() {
   return (
     <Page
       title="Gazzetta Ufficiale"
-      subtitle="Gli atti pubblicati nelle sei serie della Gazzetta Ufficiale, letti dai sommari ufficiali: cerca, filtra e apri l’atto sul sito istituzionale."
+      subtitle="Cerca gli atti delle sei serie e consulta il testo originale o il sommario dell’edizione."
       className="iu-gazzetta"
       actions={(
         <>
@@ -293,7 +316,7 @@ export function GazzettaUfficialePage() {
             <div className="iu-gazzetta__caricamento" role="status"><span /><span /><span /></div>
           ) : dati.items.length ? (
             <ul className={`iu-gazzetta__elenco ${caricamento ? 'is-loading' : ''}`}>
-              {dati.items.map((atto) => <RigaAtto key={atto.id} atto={atto} />)}
+              {dati.items.map((atto) => <RigaAtto key={atto.id} atto={atto} apri={setDettaglio} />)}
             </ul>
           ) : (
             <div className="iu-gazzetta__vuoto">
@@ -316,6 +339,30 @@ export function GazzettaUfficialePage() {
           <ul>{dati.sourceStates.map((stato) => <StatoSerie key={stato.id} stato={stato} />)}</ul>
         </aside>
       </div>
+      <Modal open={Boolean(dettaglio)} title={dettaglio?.vista === 'sommario' ? 'Sommario del fascicolo' : 'Testo dell’atto'} onClose={() => setDettaglio(null)}>
+        {dettaglio ? (
+          <div className="iu-gazzetta-lettura" key={`${dettaglio.vista}-${dettaglio.atto.id}`}>
+            <p className="iu-gazzetta-lettura__estremi">{estremiGazzetta(dettaglio.atto, dataIt)}</p>
+            {dettaglio.vista === 'sommario' ? (
+              <>
+                {collegamentoUfficiale(dettaglio.atto.issueUrl) ? <a href={collegamentoUfficiale(dettaglio.atto.issueUrl)} target="_blank" rel="noopener noreferrer">Sommario sul sito ufficiale <ExternalLink size={14} /></a> : null}
+                <SommarioFascicolo atto={dettaglio.atto} apriAtto={(atto) => setDettaglio({ vista: 'atto', atto })} />
+              </>
+            ) : (
+              <>
+                <h3>{testo(dettaglio.atto.title)}</h3>
+                {dettaglio.atto.description ? <p>{testo(dettaglio.atto.description)}</p> : null}
+                {dettaglio.atto.editorialCode ? <p className="iu-gazzetta-lettura__estremi">Codice redazionale {dettaglio.atto.editorialCode}</p> : null}
+                <div className="iu-gazzetta-lettura__azioni">
+                  {collegamentoUfficiale(dettaglio.atto.officialUrl) ? <a href={collegamentoUfficiale(dettaglio.atto.officialUrl)} target="_blank" rel="noopener noreferrer">Atto sul sito ufficiale <ExternalLink size={14} /></a> : null}
+                  <button type="button" onClick={() => setDettaglio({ ...dettaglio, vista: 'sommario' })}>Sommario del fascicolo</button>
+                </div>
+                {dettaglio.atto.hasText ? <TestoAtto id={dettaglio.atto.id} /> : <p>Il testo originale è in acquisizione. Puoi consultare l’atto sul sito ufficiale.</p>}
+              </>
+            )}
+          </div>
+        ) : null}
+      </Modal>
     </Page>
   )
 }

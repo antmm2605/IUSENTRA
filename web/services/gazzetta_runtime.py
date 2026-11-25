@@ -148,6 +148,13 @@ def testo_dell_atto(archivio: ArchivioGazzetta | None, atto_id: str) -> dict[str
     }
 
 
+def sommario_del_fascicolo(archivio: ArchivioGazzetta | None, atto_id: str) -> dict[str, Any]:
+    atti = archivio.atti_del_fascicolo(atto_id) if archivio is not None and re.fullmatch(r"gu_[0-9a-f]{24}", atto_id) else []
+    if not atti:
+        return {"ok": False, "notFound": True, "message": "Sommario non trovato nell’archivio della Gazzetta Ufficiale."}
+    return {"ok": True, "items": [voce(atto) for atto in atti]}
+
+
 def stato_delle_serie(
     archivio: ArchivioGazzetta | None, *, adesso: datetime | None = None,
 ) -> list[dict[str, Any]]:

@@ -322,6 +322,21 @@ def test_endpoint_filtri_paginazione_e_voce(tmp_path: Path, archivio: ArchivioGa
     assert sbagliati["total"] == 6 and sbagliati["pageSize"] == 100
 
 
+def test_sommario_restituisce_solo_la_stessa_edizione_in_ordine(tmp_path: Path, archivio: ArchivioGazzetta):
+    client = _client(tmp_path, db=archivio.percorso)
+    base = "/api/v1/ui/gazzetta-ufficiale"
+    atti = client.get(f"{base}?serie=SG&numero=261").get_json()["items"]
+    percorso = f"{base}/atti/{atti[-1]['id']}/sommario"
+
+    risposta = client.get(percorso)
+    assert risposta.status_code == 200
+    assert risposta.headers["Cache-Control"].startswith("no-store")
+    assert risposta.get_json()["items"] == atti
+    assert len(atti) == 3
+    assert _client(tmp_path, autenticato=False, db=archivio.percorso).get(percorso).status_code == 401
+    assert client.get(f"{base}/atti/inesistente/sommario").status_code == 404
+
+
 def test_endpoint_ultime_cinque_per_la_panoramica(tmp_path: Path, archivio: ArchivioGazzetta):
     dati = _client(tmp_path, db=archivio.percorso).get("/api/v1/ui/gazzetta-ufficiale/ultime").get_json()
     assert len(dati["items"]) == 5

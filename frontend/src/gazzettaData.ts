@@ -181,6 +181,10 @@ export function loadGazzettaTesto(id: string, signal?: AbortSignal): Promise<Gaz
   return leggi<GazzettaTesto>(`/api/v1/ui/gazzetta-ufficiale/atti/${encodeURIComponent(id)}/testo`, { signal })
 }
 
+export function loadGazzettaSommario(id: string, signal?: AbortSignal): Promise<{ items: GazzettaAtto[] }> {
+  return leggi(`/api/v1/ui/gazzetta-ufficiale/atti/${encodeURIComponent(id)}/sommario`, { signal })
+}
+
 export function refreshGazzetta(query: GazzettaQuery): Promise<GazzettaPayload> {
   return leggiElencoGazzetta(`/api/v1/ui/gazzetta-ufficiale/aggiorna${gazzettaQueryString({ ...query, pagina: 1 })}`, {
     method: 'POST',

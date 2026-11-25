@@ -10,9 +10,15 @@ import time
 from pathlib import Path
 
 if __package__:
-    from .verify_reading import expected_unavailability
+    from .verify_reading import expected_unavailability, robots_blocks_reading
 else:
-    from verify_reading import expected_unavailability
+    from verify_reading import expected_unavailability, robots_blocks_reading
+
+
+class OfficialReadingBlocked(RuntimeError):
+    def __init__(self, proof):
+        super().__init__("La policy robots della fonte impedisce il collaudo della lettura ufficiale.")
+        self.proof = proof
 
 
 def command(*args):
@@ -128,6 +134,15 @@ def verify_reading(repo, container):
                 raise ValueError("Lettura pubblica e coda non verificate")
             readings.add(reference["relazione_id"])
             print("LETTURA_UFFICIALE_SERVER_JSON=" + json.dumps(proof))
+        elif (robots_blocks_reading(proof)
+                and proof.get("relazione_id") == reference["relazione_id"]
+                and proof.get("lettura_confermata") is False
+                and proof.get("caratteri") == 0
+                and proof.get("coda_persistente_verificata") is True
+                and proof.get("html_consultabile_verificato") is False
+                and proof.get("approvazione_automatica") is False
+                and proof.get("scritture_dati_studio") is False):
+            raise OfficialReadingBlocked(proof)
         elif (expected_unavailability(identity["identita"], reference, proof)
                 and proof.get("fonte_indisponibile_verificata") is True
                 and proof.get("lettura_confermata") is False
@@ -234,7 +249,18 @@ def run(sha):
         if candidate != baseline:
             raise ValueError("Ricerca di controllo diversa: collegamento preservato")
         verify_sources(repo, name)
-        verify_reading(repo, name)
+        try:
+            verify_reading(repo, name)
+        except OfficialReadingBlocked as exc:
+            subprocess.run(["docker", "stop", name], check=True)
+            active_inventory = request("iusentra-app", "http://openga-search:8092/inventory")
+            if active_inventory != inventory:
+                raise ValueError("Inventario del servizio precedente non corrispondente") from exc
+            print("OPENGA_AGGIORNAMENTO_RINVIATO_JSON=" + json.dumps({
+                "commit": sha, "servizio_precedente": old_name, "motivo": "robots_blocked",
+                "lettura": exc.proof,
+            }))
+            return
         subprocess.run(["docker", "network", "disconnect", network, old_name], check=True)
         switched = True
         subprocess.run(["docker", "network", "disconnect", network, name], check=True)

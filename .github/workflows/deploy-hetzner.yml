@@ -402,10 +402,15 @@ jobs:
         if: ${{ steps.gate.outputs.superato != 'true' }}
         run: |
           set -euo pipefail
+          rapporto=$(mktemp)
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
               -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
               "$HETZNER_USER@$HETZNER_HOST" \
-              "cd /opt/iusentra/repo && flock -w 30 /opt/iusentra/deploy.lock python3 deploy/openga/update_worker.py '$GITHUB_SHA'"
+              "cd /opt/iusentra/repo && flock -w 30 /opt/iusentra/deploy.lock python3 deploy/openga/update_worker.py '$GITHUB_SHA'" | tee "$rapporto"
+          if grep -q '^OPENGA_AGGIORNAMENTO_RINVIATO_JSON=' "$rapporto"; then
+            echo "::warning title=Aggiornamento OpenGA rinviato::Il portale ufficiale blocca il collaudo della lettura. Resta attivo il servizio OpenGA precedente."
+            echo "OpenGA: aggiornamento rinviato per blocco della fonte ufficiale. È attivo il servizio precedente." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Verifiche post-deploy (rotte HTTPS pubbliche)
         if: ${{ steps.gate.outputs.superato != 'true' && env.HETZNER_DOMAIN != '' }}

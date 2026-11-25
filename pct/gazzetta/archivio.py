@@ -448,6 +448,21 @@ class ArchivioGazzetta:
             for codice in set(stati) | set(ultimi)
         }
 
+    def atti_del_fascicolo(self, atto_id: str) -> list[dict[str, Any]]:
+        """Legge il sommario già archiviato, nello stesso ordine della fonte."""
+        with closing(self._connetti()) as conn:
+            testi = conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'testi'").fetchone()
+            con_testo = "EXISTS(SELECT 1 FROM testi WHERE testi.id = atti.id)" if testi else "0"
+            righe = conn.execute(
+                f"""SELECT atti.*, {con_testo} AS con_testo FROM atti
+                    WHERE (serie, data_gu, numero_gu) = (
+                        SELECT serie, data_gu, numero_gu FROM atti WHERE id = ?
+                    )
+                    ORDER BY posizione, id""",
+                (atto_id,),
+            ).fetchall()
+        return [dict(riga) for riga in righe]
+
     def cerca(self, filtri: Filtri) -> dict[str, Any]:
         inizio = (max(1, filtri.pagina) - 1) * filtri.per_pagina
         with closing(self._connetti()) as conn:

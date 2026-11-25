@@ -1,0 +1,1 @@
+import{in as e}from"./lettura-fascicolo-DB5sO4zz.js";import{t}from"./ImpostazioniPage-CRsXvpXX.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

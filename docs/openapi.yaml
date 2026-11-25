@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.490.2
+  version: 2.490.3
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -6263,7 +6263,7 @@ paths:
       tags:
       - Ricerca legale
       summary: 'Schede di istituto: GET /api/v1/ui/conoscenza/norma/{chiave}'
-      description: 'Contratto fase 6 derivato da `norma` in `web/blueprints/api_v1_conoscenza.py:105`. Pagina/area collegata:
+      description: 'Contratto fase 6 derivato da `norma` in `web/blueprints/api_v1_conoscenza.py:133`. Pagina/area collegata:
         Schede di istituto. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_norma_get
       security:
@@ -6315,7 +6315,7 @@ paths:
       tags:
       - Ricerca legale
       summary: 'Schede di istituto: GET /api/v1/ui/conoscenza/registro'
-      description: 'Contratto fase 6 derivato da `registro` in `web/blueprints/api_v1_conoscenza.py:119`. Pagina/area collegata:
+      description: 'Contratto fase 6 derivato da `registro` in `web/blueprints/api_v1_conoscenza.py:152`. Pagina/area collegata:
         Schede di istituto. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_registro_get
       security:
@@ -6413,7 +6413,7 @@ paths:
       tags:
       - Ricerca legale
       summary: 'Schede di istituto: POST /api/v1/ui/conoscenza/schede/{scheda_id}/annotazioni'
-      description: 'Contratto fase 6 derivato da `annota` in `web/blueprints/api_v1_conoscenza.py:135`. Pagina/area collegata:
+      description: 'Contratto fase 6 derivato da `annota` in `web/blueprints/api_v1_conoscenza.py:168`. Pagina/area collegata:
         Schede di istituto. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_annota_post
       security:

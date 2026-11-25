@@ -1,3 +1,12 @@
+## 2.490.3 — Presidio economico stabile, date di instaurazione, Lex per materia e schede di istituto
+
+- Presidio dei fascicoli e dell'economia non più saltato: Gazzetta Ufficiale in corsia propria con giro a tempo e collegamento incrementale alla biblioteca Normattiva (cursore e tempo massimo); registro delle letture con transazioni brevi; connessioni ai database chiuse; calcolatore dei pannelli raccolto senza processi «defunct».
+- Letture: date dell'atto introduttivo da fonti certe (iscrizione a ruolo, notifica della citazione, depositante PolisWeb, PEC di notifica e di deposito), con riscontro fra fonti.
+- Lex: regole con il lato della parte, errori pericolosi corretti per categoria, nuove materie e fonti (pubblico impiego, previdenza, divorzio immediato per maltrattamenti, art. 3, n. 1, lett. d, l. 898/1970).
+- Lex: mappa degli strumenti del software generata dal codice e scelta dello strumento giusto (calcolatori, ricerche, pratiche nominate).
+- Conoscenza — schede di istituto: 156 schede per materia collegate alle procedure guidate, testo applicabile in base alla data di instaurazione della causa, artt. 4, 33 e 34 GDPR per la violazione dei dati personali.
+- Bundle React ricompilato.
+
 ## 2.490.2 — Ricerche veloci, sentenze per norma, commi dalla fonte ufficiale e collaudo del 21/11
 
 - Ricerche veloci e server stabile: numero d'articolo per indice (da 240 s a 0,4 s), indice esterno dei numeri per gli archivi in sola lettura, tempo massimo che ferma davvero le ricerche nella giurisprudenza con posti contati per utente, controllo di salute senza processi orfani.

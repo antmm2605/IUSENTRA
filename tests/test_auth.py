@@ -627,3 +627,115 @@ def test_utente_admin_espone_i_metadati_del_ruolo(gu):
     admin = gu.get_by_username("admin")
     assert admin.colore_ruolo == "danger"
     assert admin.icona_ruolo == "bi-shield-fill"
+
+
+def test_reset_password_consuma_il_token_e_rifiuta_un_token_scaduto(gu):
+    from datetime import datetime, timedelta
+
+    utente = gu.crea(username="reset-test", password="PrimaPassword-test", ruolo=RuoloUtente.AVVOCATO,
+                     email="reset@example.invalid")
+    assert gu.genera_reset_token("assente@example.invalid") is None
+    scaduto = gu.genera_reset_token(utente.email)
+    assert scaduto and scaduto != utente.reset_token
+    utente.reset_token_scade = (datetime.now() - timedelta(minutes=1)).isoformat()
+    assert not gu.reset_password_con_token(scaduto, "SecondaPassword-test")
+
+    valido = gu.genera_reset_token(utente.email)
+    assert valido
+    with pytest.raises(ValueError, match="almeno 8 caratteri"):
+        gu.reset_password_con_token(valido, "breve")
+    assert gu.reset_password_con_token(valido, "SecondaPassword-test")
+    assert utente.reset_token == utente.reset_token_scade == ""
+    assert not gu.reset_password_con_token(valido, "TerzaPassword-test")
+    assert gu.autentica(utente.username, "SecondaPassword-test") is not None
+
+
+def test_permessi_individuali_segnalano_codice_sconosciuto_e_conflitto(gu):
+    utente = gu.crea(username="permessi-test", password="PasswordPermessi-test", ruolo=RuoloUtente.AVVOCATO)
+    permesso = "fascicoli.leggi"
+    assert utente.ha_permesso(permesso)
+    with pytest.raises(ValueError, match="non riconosciuto"):
+        gu.aggiorna_permessi(utente.id, ["permesso.inesistente"], [])
+    with pytest.raises(ValueError, match="in conflitto"):
+        gu.aggiorna_permessi(utente.id, [permesso], [permesso])
+    assert utente.ha_permesso(permesso)
+    aggiornato = gu.aggiorna_permessi(utente.id, [], [permesso, permesso])
+    assert aggiornato.permessi_negati == [permesso]
+    assert not aggiornato.ha_permesso(permesso)
+    assert gu.aggiorna_permessi(utente.id, [], []).ha_permesso(permesso)
+
+
+@pytest.mark.parametrize("protezione", ["permesso", "ruolo"])
+def test_decoratori_ruoli_e_permessi_rifiutano_contesto_non_autorizzato(protezione):
+    from types import SimpleNamespace
+
+    from flask import Flask, g
+    from pct.auth import permesso_richiesto, ruolo_richiesto
+
+    app = Flask(__name__)
+    guardia = (permesso_richiesto("fascicoli.leggi") if protezione == "permesso"
+               else ruolo_richiesto(RuoloUtente.AVVOCATO))
+
+    @app.get("/risorsa")
+    @guardia
+    def risorsa():
+        return "Risorsa visibile"
+
+    with app.test_request_context("/risorsa"):
+        assert app.full_dispatch_request().status_code == 403
+        g.utente_corrente = SimpleNamespace(ha_permesso=lambda _: False, ha_ruolo=lambda *_: False)
+        assert app.full_dispatch_request().status_code == 403
+        g.utente_corrente = SimpleNamespace(ha_permesso=lambda _: True, ha_ruolo=lambda *_: True)
+        assert app.full_dispatch_request().get_data(as_text=True) == "Risorsa visibile"
+
+
+def test_totp_verifica_formato_e_una_finestra_temporale(monkeypatch):
+    import base64
+    from pct import auth
+
+    chiave = b"12345678901234567890"
+    segreto = base64.b32encode(chiave).decode()
+    monkeypatch.setattr(auth._time, "time", lambda: 59)
+    codice = f"{auth._hotp(chiave, 1):06d}"
+    assert auth.verifica_totp(segreto.lower(), codice, finestra=0)
+    assert not auth.verifica_totp("segreto malformato", codice)
+    monkeypatch.setattr(auth._time, "time", lambda: 60)
+    assert auth.verifica_totp(segreto, codice, finestra=1)
+    assert not auth.verifica_totp(segreto, codice, finestra=0)
+
+
+def test_amministratore_piattaforma_aggiorna_il_proprio_account_senza_duplicarlo(gu):
+    precedente = gu.ensure_platform_superadmin()
+    aggiornato = gu.genera_superadmin_piattaforma(
+        username=" ADMIN ", password="PasswordAggiornata-test", email="admin@example.invalid",
+        nome_completo="Amministratore di prova", must_change_password=False,
+    )
+    assert aggiornato.id == precedente.id
+    assert aggiornato.email == "admin@example.invalid" and not aggiornato.must_change_password
+    assert [utente.id for utente in gu.per_ruolo(RuoloUtente.SUPERADMIN)] == [precedente.id]
+    assert gu.autentica("admin", "PasswordAggiornata-test").id == precedente.id
+
+
+def test_amministratore_piattaforma_promuove_un_account_globale_esistente(gu):
+    precedente = gu.ensure_platform_superadmin()
+    candidato = gu.crea("piattaforma-test", "PasswordPrecedente-test", RuoloUtente.AMMINISTRATORE)
+
+    risultato = gu.genera_superadmin_piattaforma(
+        username=candidato.username, password="PasswordNuova-test", email="ufficio@example.invalid",
+    )
+    assert risultato.id == candidato.id and risultato.ruolo is RuoloUtente.SUPERADMIN
+    assert gu.get(precedente.id).ruolo is RuoloUtente.AMMINISTRATORE
+    assert gu.autentica(candidato.username, "PasswordNuova-test").id == candidato.id
+
+
+def test_amministratore_piattaforma_conserva_il_ruolo_se_il_salvataggio_fallisce(gu, monkeypatch):
+    precedente = gu.ensure_platform_superadmin()
+
+    def trasferimento_non_disponibile(**_):
+        raise OSError("Registro non disponibile")
+
+    monkeypatch.setattr(gu, "trasferisci_superadmin_piattaforma", trasferimento_non_disponibile)
+    with pytest.raises(OSError, match="Registro non disponibile"):
+        gu.genera_superadmin_piattaforma(username="candidato-test", password="PasswordCandidato-test")
+    assert gu.get_by_username("candidato-test") is None
+    assert gu.get(precedente.id).ruolo is RuoloUtente.SUPERADMIN

@@ -18,7 +18,7 @@ from lex.legal_skills import (
     SkillRunRequest,
     SkillRunStorage,
 )
-from lex.legal_skills.exceptions import ProfileIncompleteError
+from lex.legal_skills.exceptions import ProfileIncompleteError, SkillNotFoundError, StorageError
 from lex.legal_skills.parser import parse_skill_markdown
 from tests.test_web_bootstrap import _cfg_web, _seed_tenant_admin, _write_studio_config
 from web.app import create_app
@@ -255,3 +255,128 @@ def test_route_legal_skills_serve_shell_react_autenticata(tmp_path: Path):
         page = client.get("/legal-skills")
         assert page.status_code == 200
         assert "IUSENTRA - React Shell" in page.get_data(as_text=True)
+
+
+@pytest.fixture
+def motore_con_registro(tmp_path):
+    profilo = LegalSkillProfileStore(tmp_path / "profilo.json")
+    profilo.cold_start(
+        {"firm_name": "Studio Test", "jurisdictions": ["IT"], "practice_areas": ["contratti"],
+         "preferred_source_mode": "strict"},
+        actor="pytest",
+    )
+    eventi = []
+    archivio = SkillRunStorage(tmp_path / "esiti.json")
+    motore = LegalSkillWorkflowEngine(
+        registry=LegalSkillRegistry(feature_enabled=_enabled),
+        profile_store=profilo, storage=archivio, audit=lambda *evento: eventi.append(evento),
+    )
+    return motore, archivio, eventi
+
+
+def test_workflow_strict_senza_documenti_salva_lacuna_e_audit(motore_con_registro):
+    motore, archivio, eventi = motore_con_registro
+    esito = motore.run(
+        SkillRunRequest(pack_id="commercial_legal", skill_id="contract_review",
+                        question="Rivedi il contratto sulla base delle fonti", requested_source_mode="strict"),
+        actor="avvocato-test",
+    )
+    assert esito.status == "degraded"
+    assert esito.confidence == "low" and esito.needs_review
+    assert esito.findings[0].title == "Base informativa insufficiente"
+    assert archivio.get(esito.run_id)["status"] == "degraded"
+    assert eventi[0][:3] == ("legal_skills_run_completed", "legal_skills", esito.run_id)
+
+
+def test_workflow_cronologia_usa_documenti_e_consente_revisione(motore_con_registro):
+    motore, archivio, eventi = motore_con_registro
+    esito = motore.run(SkillRunRequest(
+        pack_id="litigation_legal", skill_id="chronology_builder",
+        question="Ricostruisci la cronologia dei fatti",
+        documents=[{"name": "Prova di comunicazione", "content": "Comunicazione ricevuta il 25/11/2026."}],
+    ))
+    assert esito.status == "completed" and esito.needs_review
+    assert esito.findings[0].title == "Sequenza temporale"
+    assert esito.citations[0].label == "Prova di comunicazione"
+    assert "25/11/2026" in esito.citations[0].excerpt
+    revisionato = archivio.update(esito.run_id, {"review_status": "reviewed"})
+    assert revisionato["review_status"] == "reviewed"
+    assert archivio.get(esito.run_id)["review_status"] == "reviewed"
+    with pytest.raises(SkillNotFoundError):
+        archivio.get("esito-inesistente")
+    with pytest.raises(SkillNotFoundError):
+        archivio.update("esito-inesistente", {"review_status": "reviewed"})
+    assert len(eventi) == 1
+
+
+def test_registro_skill_non_sovrascrive_file_illeggibile(tmp_path, motore_con_registro):
+    motore, archivio, _ = motore_con_registro
+    archivio.runs_path.write_text("{", encoding="utf-8")
+    with pytest.raises(StorageError, match="non leggibile"):
+        archivio.get("esito-inesistente")
+    with pytest.raises(StorageError, match="non leggibile"):
+        motore.run(SkillRunRequest(pack_id="commercial_legal", skill_id="contract_review"))
+    assert archivio.runs_path.read_text(encoding="utf-8") == "{"
+
+
+def test_registro_skill_distingue_errori_di_scrittura(tmp_path, motore_con_registro):
+    motore, archivio, _ = motore_con_registro
+    cartella_occupata = tmp_path / "non-cartella"
+    cartella_occupata.write_text("preservare", encoding="utf-8")
+    archivio.runs_path = cartella_occupata / "esiti.json"
+    with pytest.raises(StorageError, match="non salvabile"):
+        motore.run(SkillRunRequest(pack_id="commercial_legal", skill_id="contract_review"))
+    assert cartella_occupata.read_text(encoding="utf-8") == "preservare"
+
+
+def test_parser_conserva_i_metadati_del_modello_di_studio():
+    parsed = parse_skill_markdown(
+        """---
+name: Cronologia atti
+description: Ordina le date documentate
+argument-hint: Indica la pratica
+allowed-tools: document_context
+required-context: [fascicolo, documenti]
+output-schema:
+  sections: [Date, Atti]
+source-mode: strict
+---
+Leggi gli atti già collegati al fascicolo.
+""",
+        pack_id="studio", skill_id="cronologia", area="civile",
+    )
+    assert parsed.skill.trust_status == "clean"
+    assert parsed.skill.source_mode == "strict"
+    assert parsed.skill.frontmatter.allowed_tools == ["document_context"]
+    assert parsed.skill.frontmatter.required_context == ["fascicolo", "documenti"]
+    assert parsed.skill.frontmatter.output_schema == {"sections": ["Date", "Atti"]}
+    assert parsed.findings == []
+
+
+@pytest.mark.parametrize("markdown", [
+    "Solo il testo, senza metadati.",
+    "---\nname: Cronologia",
+    "---\n- elenco\n---\nTesto.",
+])
+def test_parser_segnala_metadati_assenti_o_non_strutturati(markdown):
+    parsed = parse_skill_markdown(markdown, pack_id="studio", skill_id="cronologia", area="civile")
+    assert parsed.skill.trust_status == "material_concern"
+    assert len([rilievo for rilievo in parsed.findings if rilievo.code == "missing_metadata"]) == 2
+
+
+def test_parser_applica_modalita_standard_e_segnala_fonte_non_riconosciuta():
+    parsed = parse_skill_markdown(
+        """---
+name: Controllo fonti
+description: Consulta i riferimenti
+source-mode: sconosciuta
+output-schema: [Fonti]
+---
+Riferimento editoriale https://rivista.example.invalid/notizie
+""",
+        pack_id="studio", skill_id="fonti", area="civile",
+    )
+    assert parsed.skill.trust_status == "warning"
+    assert parsed.skill.source_mode == "balanced"
+    assert parsed.skill.frontmatter.output_schema == {"sections": ["Fonti"]}
+    assert [rilievo.code for rilievo in parsed.findings] == ["external_url_review"]

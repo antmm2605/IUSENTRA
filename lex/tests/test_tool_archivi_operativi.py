@@ -87,3 +87,50 @@ def test_archivi_dichiarano_indisponibilita_al_posto_di_risultati(monkeypatch):
     monkeypatch.setattr(giurisprudenza, "archivi", lambda: [])
     esito = tools.search_verified_cassazione("9449/2016", _contesto("ai.usa"))
     assert not esito.data and any("non disponibile" in testo for testo in esito.coverage_gaps)
+
+
+def test_risoluzione_archivio_pec_usa_solo_alias_dello_studio(tmp_path):
+    import sqlite3
+
+    percorso = tmp_path / "ricevute.sqlite"
+    with sqlite3.connect(percorso) as conn:
+        conn.execute("CREATE TABLE legal_communications (tenant_id TEXT)")
+        conn.execute("CREATE TABLE pec_receipt_events (tenant_id TEXT)")
+        conn.executemany("INSERT INTO legal_communications VALUES (?)",
+                         [("studio-alfa",), ("archivio-alfa",), ("studio-beta",)])
+        conn.executemany("INSERT INTO pec_receipt_events VALUES (?)",
+                         [("archivio-alfa",), *[("studio-beta",)] * 6])
+    tools = OperationalKnowledgeTools()
+    risolvi = tools._resolve_sqlite_tenant_id
+    assert risolvi(percorso, "studio-alfa", ["archivio-alfa"]) == "archivio-alfa"
+    assert risolvi(percorso, "studio-alfa", []) == "studio-alfa"
+    assert risolvi(percorso, "studio-gamma", []) == "studio-gamma"
+    assert risolvi(tmp_path / "assente.sqlite", "", []) == "default"
+
+
+def test_alias_dello_studio_riconosce_la_chiave_storica_registrata(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    from flask import Flask, g
+
+    monkeypatch.chdir(tmp_path)
+    directory = {
+        "users": {"prova": {"tenant_slug": "studio-alfa", "tenant_id": "alfa-legacy",
+                            "tenant_storage_key": "alfa-storage"}},
+        "emails": {"prova": {"tenant_slug": "studio-beta", "tenant_id": "beta-legacy"}},
+    }
+    (tmp_path / "tenant_user_directory.json").write_text(json.dumps(directory), encoding="utf-8")
+    root_corrotto = tmp_path / "radice-incompleta"
+    root_corrotto.mkdir()
+    (root_corrotto / "tenant_user_directory.json").write_text("{", encoding="utf-8")
+    app = Flask(__name__)
+    app.config.update(DATA_DIR=str(root_corrotto), RUNTIME_DATA_DIR=str(tmp_path),
+                      TENANTS_REGISTRY=str(tmp_path / "tenants.json"))
+    with app.app_context():
+        g.tenant_slug = "studio-alfa"
+        g.data_paths = {"PEC": str(tmp_path / "tenants" / "alfa-storage" / "pec.sqlite"), "VUOTO": ""}
+        context = SimpleNamespace(tenant_id="studio-alfa", user=SimpleNamespace(tenant_slug="studio-alfa"))
+        aliases = OperationalKnowledgeTools()._tenant_aliases(context)
+    assert aliases[0] == "studio-alfa"
+    assert set(aliases) == {"studio-alfa", "alfa-storage", "alfa-legacy"}

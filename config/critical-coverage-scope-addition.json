@@ -90,6 +90,6 @@
     "lex/tests/test_strumenti_estrazione.py": "df93ba883cc71329eb4f780420ada1981838681da1d6a35c5e1a560a038873eb",
     "lex/tests/test_strumenti_mappa.py": "274d1fd571eaf02ea7ddd565764fab7942b47fb2a0d3df0aae6cb366629f5968",
     "lex/tests/test_strumenti_usi.py": "7fe8b91ee01afc5094795e5e3e9d109acc95bf1c9d225a431528489b84119e96",
-    "lex/tests/test_tool_archivi_operativi.py": "7fdff94c68785d647196c4da671a8e4cf0c42b0ee4acc566f355482dddebdd21"
+    "lex/tests/test_tool_archivi_operativi.py": "c4a9b49a4a1204416bbb9f6ae64975988c7448a11fef694e8dfca5ff010ddf2a"
   }
 }

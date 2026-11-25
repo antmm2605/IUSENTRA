@@ -14,6 +14,7 @@ import logging
 import os
 import shutil
 import subprocess
+import threading
 import sys
 import tempfile
 import time
@@ -69,6 +70,17 @@ def in_esecuzione() -> bool:
     return False
 
 
+def raccogli_alla_fine(processo: subprocess.Popen) -> threading.Thread:
+    """Attende il calcolatore in un thread di servizio, così il processo finito non resta «defunct».
+
+    Verifica del 24/11/2026 sull'8080: senza attesa il calcolatore concluso restava nella tabella dei processi
+    dello scheduler (stato Z) fino al successivo ``Popen`` del processo.
+    """
+    attesa = threading.Thread(target=processo.wait, name="attesa-pannelli-pronti", daemon=True)
+    attesa.start()
+    return attesa
+
+
 def sveglia_calcolatore(tenant: str = "", fascicolo_id: str = "") -> bool:
     """Avvia un solo processo anche se più pannelli arrivano durante il suo avvio."""
     with FILE_LOCK.with_suffix(".avvio").open("a+") as avvio:
@@ -88,8 +100,9 @@ def sveglia_calcolatore(tenant: str = "", fascicolo_id: str = "") -> bool:
             comando = ["ionice", "-c", "3", *comando]
         if tenant and fascicolo_id:
             comando.extend((tenant, fascicolo_id))
-        subprocess.Popen(comando, cwd=str(radice),
-                         stdout=subprocess.DEVNULL, stderr=None, start_new_session=True, close_fds=True)
+        processo = subprocess.Popen(comando, cwd=str(radice),
+                                    stdout=subprocess.DEVNULL, stderr=None, start_new_session=True, close_fds=True)
+        raccogli_alla_fine(processo)
         avvio.seek(0)
         avvio.truncate()
         avvio.write(str(adesso))

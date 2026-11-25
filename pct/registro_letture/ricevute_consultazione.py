@@ -75,10 +75,14 @@ def _source_dates(conn, tenant, sources):
         if not keys:
             continue
         condition = ' OR '.join("(fascicolo_id=? AND tipo=? AND oggetto_id=? AND sha256=? AND ((motore=? AND versione_motore=?) OR verifica='corretta'))" for _ in keys)
+        # «fascicolo_id IN» fuori dall'OR: senza, SQLite usava l'indice solo su tenant_id e leggeva tutti i fatti
+        # dello studio a ogni pagina (verifica del 24/11/2026, registro di 1,4 GB su disco lento).
+        cases = list(dict.fromkeys(key[0] for key in keys))
         rows = conn.execute('SELECT fascicolo_id,tipo,oggetto_id,sha256,motore,versione_motore,campo,valore,verifica FROM letture_fatti '
-            "WHERE tenant_id=? AND categoria='data' AND campo IN ('accettazione','consegna') "
+            "WHERE tenant_id=? AND fascicolo_id IN (" + ','.join('?' for _ in cases) + ") AND categoria='data' "
+            "AND campo IN ('accettazione','consegna') "
             "AND verifica IN ('verificata','corretta') AND (" + condition + ') LIMIT 10001',
-            (tenant, *(value for key in keys for value in key))).fetchall()
+            (tenant, *cases, *(value for key in keys for value in key))).fetchall()
         if len(rows) > 10000:
             for key in keys:
                 found[key] = {'overflow': True}

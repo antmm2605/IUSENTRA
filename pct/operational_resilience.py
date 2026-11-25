@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 from pct.formatting import format_euro_it
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime
 import importlib.util
@@ -97,6 +98,23 @@ CRASH_PHASES: tuple[CrashPhase, ...] = (
         fallback_check_id="observability_operator",
     ),
 )
+
+
+@contextmanager
+def _cartella_di_controllo(prefix: str):
+    """Cartella temporanea di un controllo operativo che chiude anche i database aperti al suo interno.
+
+    Verifica del 24/11/2026 sull'8080: dopo il controllo del mattino lo scheduler teneva aperti oltre cento
+    descrittori su ``/tmp/iusentra-crash-*/studio.db`` già cancellati, perché le istanze di ``StudioDB`` restavano
+    nella cache del processo con le loro connessioni.
+    """
+    with TemporaryDirectory(prefix=prefix) as tmp:
+        try:
+            yield tmp
+        finally:
+            from pct.storage import StudioDB
+
+            StudioDB.invalidate_sotto(tmp)
 
 
 def _now_iso() -> str:
@@ -266,7 +284,7 @@ def _run_runtime_dirty_data_check(runtime_context: dict[str, Any] | None = None)
     from pct.clienti import GestioneClienti, TipoCliente
     from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 
-    with TemporaryDirectory(prefix="iusentra-crash-dirty-") as tmp:
+    with _cartella_di_controllo(prefix="iusentra-crash-dirty-") as tmp:
         root = Path(tmp)
         clienti = GestioneClienti(db_path=str(root / "clienti" / "anagrafica.json"))
         fascicoli = GestioneFascicoli(
@@ -348,7 +366,7 @@ def _run_runtime_business_flow_check(runtime_context: dict[str, Any] | None = No
     from pct.timesheet import GestioneTimesheet, StatoTimesheet
     from pct.workflow_commerciale import apri_fascicolo_automatico
 
-    with TemporaryDirectory(prefix="iusentra-crash-business-") as tmp:
+    with _cartella_di_controllo(prefix="iusentra-crash-business-") as tmp:
         root = Path(tmp)
         clienti = GestioneClienti(db_path=str(root / "clienti" / "anagrafica.json"))
         preventivi = GestionePreventivi(db_path=str(root / "preventivi" / "preventivi.json"))
@@ -500,7 +518,7 @@ def _run_runtime_ai_pipeline_check(runtime_context: dict[str, Any] | None = None
     from web.services.legal_coverage_surface import build_repository
 
     base_config = dict((runtime_context or {}).get("base_config") or {})
-    with TemporaryDirectory(prefix="iusentra-crash-ai-") as tmp:
+    with _cartella_di_controllo(prefix="iusentra-crash-ai-") as tmp:
         root = Path(tmp)
         cfg = _build_isolated_app_config(base_config, root)
         app = create_app({**cfg, "STUDIO_DB": str(root / "studio.db")})
@@ -612,7 +630,7 @@ def _run_runtime_publish_safety_check(runtime_context: dict[str, Any] | None = N
     from web.services.legal_coverage_surface import build_repository, run_action
 
     base_config = dict((runtime_context or {}).get("base_config") or {})
-    with TemporaryDirectory(prefix="iusentra-crash-publish-") as tmp:
+    with _cartella_di_controllo(prefix="iusentra-crash-publish-") as tmp:
         root = Path(tmp)
         cfg = _build_isolated_app_config(base_config, root)
         app = create_app({**cfg, "STUDIO_DB": str(root / "studio.db")})
@@ -730,7 +748,7 @@ def _run_runtime_migration_rollback_check(runtime_context: dict[str, Any] | None
     from web.services.migration_assistant import build_migration_assistant, execute_migration_assistant
 
     base_config = dict((runtime_context or {}).get("base_config") or {})
-    with TemporaryDirectory(prefix="iusentra-crash-migration-") as tmp:
+    with _cartella_di_controllo(prefix="iusentra-crash-migration-") as tmp:
         root = Path(tmp)
         cfg = _build_isolated_app_config(base_config, root)
         manager = GestioneTenant(cfg["TENANTS_REGISTRY"])
@@ -810,7 +828,7 @@ def _run_runtime_observability_check(runtime_context: dict[str, Any] | None = No
     import web.services.system_health_surface as system_health_surface
 
     base_config = dict((runtime_context or {}).get("base_config") or {})
-    with TemporaryDirectory(prefix="iusentra-crash-observability-") as tmp:
+    with _cartella_di_controllo(prefix="iusentra-crash-observability-") as tmp:
         root = Path(tmp)
         cfg = _build_isolated_app_config(base_config, root)
         app = create_app(cfg)

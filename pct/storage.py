@@ -170,6 +170,10 @@ class StudioDB:
             raise ValueError("Una consultazione non può inizializzare lo schema SQL.")
         self.db_path = resolve_sqlite_path(db_path)
         self._local = threading.local()
+        # Tutte le connessioni dei thread, per chiuderle insieme quando il database se ne va (24/11/2026: i
+        # controlli operativi del mattino lasciavano aperti decine di studio.db temporanei già cancellati).
+        self._connessioni: list[sqlite3.Connection] = []
+        self._connessioni_lock = threading.Lock()
         self._readonly_only = bool(readonly)
         self._existing_only = not initialize_schema
         if initialize_schema:
@@ -187,6 +191,21 @@ class StudioDB:
         except Exception:
             return False
 
+    def _registra_connessione(self, conn: sqlite3.Connection) -> sqlite3.Connection:
+        self._local._conn = conn
+        elenco = getattr(self, "_connessioni", None)
+        if elenco is not None:
+            with self._connessioni_lock:
+                elenco.append(conn)
+        return conn
+
+    def _dimentica_connessione(self, conn: sqlite3.Connection) -> None:
+        elenco = getattr(self, "_connessioni", None)
+        if elenco is not None:
+            with self._connessioni_lock:
+                if conn in elenco:
+                    elenco.remove(conn)
+
     def _close_thread_connection(self) -> None:
         conn = getattr(self._local, "_conn", None)
         if conn is not None:
@@ -194,7 +213,24 @@ class StudioDB:
                 conn.close()
             except sqlite3.Error:
                 pass
+            self._dimentica_connessione(conn)
         self._local._conn = None
+
+    def chiudi_tutte(self) -> int:
+        """Chiude le connessioni di tutti i thread (non solo del thread corrente); restituisce quante."""
+        elenco = getattr(self, "_connessioni", None)
+        if elenco is None:
+            self.chiudi()
+            return 0
+        with self._connessioni_lock:
+            da_chiudere, elenco[:] = list(elenco), []
+        for conn in da_chiudere:
+            try:
+                conn.close()
+            except sqlite3.Error:
+                pass
+        self._local._conn = None
+        return len(da_chiudere)
 
     def _conn_per_scrittura(self) -> sqlite3.Connection:
         if getattr(self, '_readonly_only', False):
@@ -207,9 +243,7 @@ class StudioDB:
         last_error: sqlite3.OperationalError | None = None
         for attempt in range(8):
             try:
-                conn = self._connect_writable()
-                self._local._conn = conn
-                return conn
+                return self._registra_connessione(self._connect_writable())
             except sqlite3.OperationalError as exc:
                 last_error = exc
                 message = str(exc).lower()
@@ -250,6 +284,17 @@ class StudioDB:
             instance.chiudi()
 
     @classmethod
+    def invalidate_sotto(cls, cartella: str | Path) -> int:
+        """Chiude e toglie dalla cache tutti i database sotto ``cartella`` (cartelle temporanee dei controlli)."""
+        radice = Path(cartella).resolve()
+        with _instances_lock:
+            chiavi = [k for k in _instances if Path(k) == radice or radice in Path(k).parents]
+            istanze = [_instances.pop(k) for k in chiavi]
+        for istanza in istanze:
+            istanza.chiudi_tutte()
+        return len(istanze)
+
+    @classmethod
     def from_data_path(cls, any_data_file: str) -> "StudioDB":
         """
         Deriva il percorso studio.db dalla posizione di un qualunque file dati.
@@ -271,7 +316,8 @@ class StudioDB:
     def conn(self) -> sqlite3.Connection:
         """Connessione per-thread. Apre e configura al primo accesso."""
         if not hasattr(self._local, "_conn") or self._local._conn is None:
-            self._local._conn = self._connect_readonly() if getattr(self, '_readonly_only', False) else self._connect()
+            self._registra_connessione(
+                self._connect_readonly() if getattr(self, '_readonly_only', False) else self._connect())
         return self._local._conn
 
     def _connect(self) -> sqlite3.Connection:
@@ -432,8 +478,7 @@ class StudioDB:
     def _ensure_schema_once(self) -> None:
         conn = getattr(self._local, "_conn", None)
         if conn is None:
-            conn = self._connect()
-            self._local._conn = conn
+            conn = self._registra_connessione(self._connect())
         conn.executescript(_schema_sql())
         from pct.transactional_outbox import ensure_outbox_schema
         ensure_outbox_schema(conn)
@@ -700,4 +745,5 @@ class StudioDB:
         """Chiude la connessione del thread corrente."""
         if hasattr(self._local, "_conn") and self._local._conn:
             self._local._conn.close()
+            self._dimentica_connessione(self._local._conn)
             self._local._conn = None

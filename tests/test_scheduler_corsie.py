@@ -10,12 +10,14 @@ from pathlib import Path
 
 from pct.scheduler_corsie import (
     CORSIA_ACQUISIZIONE_PEC,
+    CORSIA_GAZZETTA,
     CORSIA_GIURISPRUDENZA,
     CORSIA_INFRASTRUTTURA,
     CORSIA_LUNGA,
     CORSIA_NOTTURNA,
     CORSIA_POSTA,
     CORSIA_RAPIDA,
+    LAVORI_GAZZETTA,
     LAVORI_GIURISPRUDENZA,
     LAVORI_INFRASTRUTTURA,
     LAVORI_POSTA,
@@ -35,6 +37,7 @@ def test_i_lavori_elencati_nelle_corsie_esistono_nello_scheduler():
     assert LAVORI_RAPIDI <= ids, LAVORI_RAPIDI - ids
     assert LAVORI_INFRASTRUTTURA <= ids, LAVORI_INFRASTRUTTURA - ids
     assert LAVORI_GIURISPRUDENZA <= ids, LAVORI_GIURISPRUDENZA - ids
+    assert LAVORI_GAZZETTA <= ids, LAVORI_GAZZETTA - ids
     assert set(TOLLERANZA_RITARDO_SECONDI) <= ids, set(TOLLERANZA_RITARDO_SECONDI) - ids
 
 
@@ -146,11 +149,14 @@ def test_tolleranza_di_ritardo_per_i_lavori_a_orario_fisso_della_corsia_lunga():
     scheduler.add_job(nulla, CronTrigger(minute="3-58/10"), id="archivio_letture_automatico", misfire_grace_time=120)
     scheduler.add_job(nulla, CronTrigger(minute=25), id="gazzetta_ufficiale_sommari", misfire_grace_time=3000)
     scheduler.add_job(nulla, CronTrigger(minute="*/1"), id="pannelli_pronti_ricalcolo")
+    scheduler.add_job(nulla, CronTrigger(minute="13-58/15"), id="fascicoli_document_economic_presidio", misfire_grace_time=600)
     assegna_corsie(scheduler)
     tolleranze = {job.id: getattr(job, "misfire_grace_time", "predefinita") for job in scheduler.get_jobs()}
     assert tolleranze["operational_crash_evening"] == 2 * 3600
     assert tolleranze["time_tracking_passivo"] == 3600
     assert tolleranze["archivio_letture_automatico"] == 8 * 60
+    # Sotto la cadenza di 15 minuti: due giri del presidio non si sommano.
+    assert tolleranze["fascicoli_document_economic_presidio"] == 14 * 60
     # Le tolleranze già più ampie e i lavori non elencati restano come sono.
     assert tolleranze["gazzetta_ufficiale_sommari"] == 3000
     assert tolleranze["pannelli_pronti_ricalcolo"] == "predefinita"
@@ -199,6 +205,36 @@ def test_la_posta_non_blocca_agenda_relata_ed_esiti_deposito():
     try:
         assert casella_ferma.wait(3)
         assert all(evento.wait(3) for evento in fatti.values()), "un presidio è rimasto dietro la posta"
+    finally:
+        sblocca.set()
+        scheduler.shutdown(wait=True)
+
+
+def test_la_gazzetta_non_ferma_il_presidio_documentale_ed_economico():
+    """Verifica del 24/11/2026 sull'8080: la Gazzetta ha tenuto la corsia lunga dalle 08:52 alle 10:35 e il presidio
+    fascicoli/economia è stato saltato per oltre due ore. Ora la Gazzetta ha una corsia propria."""
+    from apscheduler.schedulers.background import BackgroundScheduler
+
+    assert corsia_del_lavoro("gazzetta_ufficiale_sommari") == CORSIA_GAZZETTA
+    assert corsia_del_lavoro("manual_gazzetta_ufficiale_sommari_1a2b3c4d") == CORSIA_GAZZETTA
+    assert corsia_del_lavoro("fascicoli_document_economic_presidio") == CORSIA_LUNGA
+    scheduler = BackgroundScheduler(executors=esecutori())
+    gazzetta_avviata = threading.Event()
+    sblocca = threading.Event()
+    presidio_eseguito = threading.Event()
+
+    def gazzetta():
+        gazzetta_avviata.set()
+        sblocca.wait(5)
+
+    scheduler.add_job(gazzetta, id="gazzetta_ufficiale_sommari")
+    assegna_corsie(scheduler)
+    scheduler.start()
+    try:
+        assert gazzetta_avviata.wait(3)
+        scheduler.add_job(presidio_eseguito.set, id="fascicoli_document_economic_presidio",
+                          executor=corsia_del_lavoro("fascicoli_document_economic_presidio"))
+        assert presidio_eseguito.wait(2), "il presidio è rimasto in coda dietro la Gazzetta"
     finally:
         sblocca.set()
         scheduler.shutdown(wait=True)

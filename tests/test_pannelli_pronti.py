@@ -1031,6 +1031,7 @@ def test_di_giorno_il_lotto_cede_il_semaforo_allo_scadere_del_tetto(monkeypatch,
     monkeypatch.setattr(pannelli_pronti_runtime, "fonti_per_percorsi", lambda percorsi: object())
     monkeypatch.setattr(pannelli_pronti_sfondo, "da_ricalcolare", lambda *a, **k: ["v1", "v2"])
     monkeypatch.setattr(calcolatore, "_prepara_bozze", lambda *a, **k: None)
+    monkeypatch.setattr(calcolatore, "_guardiano", lambda *a, **k: None)
     tempo = {"t": 0.0}
     monkeypatch.setattr(calcolatore.time, "monotonic", lambda: tempo["t"])
     visti = {}

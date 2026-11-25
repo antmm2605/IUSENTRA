@@ -515,6 +515,16 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             built_in=True,
         ),
         SchedulerTemplate("legal_monitor_daily", "Monitor legale giornaliero", "Aggiornamenti legali", "Presidia le fonti legali principali.", "cron", "5", "45", built_in=True),
+        SchedulerTemplate(
+            "conoscenza_schede_riconvalida",
+            "Riconvalida delle schede di istituto",
+            "Aggiornamenti legali",
+            "Ogni notte, dopo l'aggiornamento degli archivi ufficiali, confronta le norme e le pronunce delle schede di istituto con il testo che il software legge oggi e rigenera solo le schede con una fonte cambiata; poi controlla la wiki (schede senza fonti, norme abrogate, collegamenti rotti, riesami fermi da oltre 30 giorni). Tutto finisce nel registro della conoscenza. Non tocca le annotazioni dello studio.",
+            "cron",
+            "4",
+            "50",
+            built_in=True,
+        ),
         SchedulerTemplate("legal_sources_daily_check", "Controllo giornaliero delle fonti ufficiali", "Aggiornamenti legali", "Confronta impronta e testo delle fonti ufficiali della Ricerca legale e propone le variazioni da approvare.", "cron", "6", "5", built_in=True),
         SchedulerTemplate("legal_monitor_pst", "Monitor PST", "Aggiornamenti legali", "Controlla aggiornamenti PST durante la giornata.", "cron", "6,12,18", "15", built_in=True),
         SchedulerTemplate(

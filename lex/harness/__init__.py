@@ -161,6 +161,8 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
         return RispostaHarness(testo_dati_mancanti(_nome_regola(regola[0]), ["valore della causa (l'importo chiesto o "
                                "contestato)"]), "chiarimento", "chiarimento_dati", 1.0,
                                registro={"rule": "chiarimento_dati", "regola_scelta": regola[0]})
+    # Prima la scheda di istituto (conoscenza già verificata dalle stesse fonti), poi la verifica delle fonti.
+    scheda = _scheda_istituto(regola[0])
     try:
         analisi = regola[2](c, f)
     except (ValueError, KeyError, IndexError, TypeError, AttributeError):
@@ -170,6 +172,10 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
         return RispostaHarness(testo_dati_mancanti(_nome_regola(regola[0]), ["fatti essenziali: parti, date, importi e atti "
                                "ricevuti o da proporre"]), "chiarimento", "chiarimento_dati", 1.0,
                                registro={"rule": "chiarimento_dati", "regola_scelta": regola[0]})
+    analisi.scheda_istituto = scheda
+    if scheda and scheda["stato"] == "da_riesaminare":
+        analisi.dubbi.append("La scheda di istituto «" + scheda["titolo"] + "» è da riesaminare (" + "; ".join(scheda["motivi"])[:300]
+                             + "): la risposta usa comunque solo norme verificate oggi sul testo vigente.")
     from .coerenza import verifica as _coerenza
 
     analisi.dubbi += [d for d in _coerenza(analisi, f) if d not in analisi.dubbi]
@@ -192,6 +198,30 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
     return RispostaHarness(testo, c.tipo, analisi.regola, _affidabilita(esito, len(analisi.punti())), fonti,
                            esito.norme_verificate, esito.affermazioni_tolte, esito.citazioni_non_verificate, analisi.bozza,
                            registro(c, f, analisi, esito))
+
+
+def _scheda_istituto(regola: str) -> dict[str, Any] | None:
+    """La scheda di istituto della regola (lex/conoscenza), con lo stato di oggi. Nessuna scheda: si prosegue."""
+    import os
+
+    if os.environ.get("LEX_HARNESS_SCHEDE", "1") == "0":
+        return None
+    try:
+        from lex.conoscenza.consultazione import scheda_per_regola, stato_attuale
+
+        s = scheda_per_regola(regola)
+        if s is None:
+            return None
+        st = stato_attuale(s)
+        return {"id": s["id"], "titolo": s["titolo"], "materia": s["materia"], "revisione": s.get("revisione"),
+                "stato": st["stato"], "motivi": st["motivi"], "sezioni_mancanti": s.get("sezioni_mancanti", []),
+                "orientamenti": [v["fonti"][0]["citazione"] for v in s["sezioni"]["orientamenti"]["voci"]][:4],
+                "collegamento": f"/ricerca-legale/conoscenza?scheda={s['id']}"}
+    except Exception:  # noqa: BLE001 - la scheda è un aiuto: la sua assenza non blocca la risposta verificata
+        import logging
+
+        logging.getLogger(__name__).warning("harness: scheda di istituto non leggibile", exc_info=True)
+        return None
 
 
 def _giurisprudenza(c: Comprensione, a):
@@ -301,6 +331,7 @@ def registro(c: Comprensione, f, a, esito: EsitoControllo) -> dict[str, Any]:
         "14_modello_atto": {"scheda": a.modello, "presente_nel_catalogo": bool(scheda and scheda.is_file()),
                             "bozza": bool(a.bozza), "requisiti": getattr(a, "requisiti_bozza", None)},
         "4b_vigenza_alla_data_dei_fatti": getattr(a, "vigenza", None),
+        "0_scheda_istituto": getattr(a, "scheda_istituto", None),
         "15_controlli": {"affermazioni_non_verificate_escluse": esito.affermazioni_tolte,
                          "citazioni_non_verificate": esito.citazioni_non_verificate, "dubbi": list(a.dubbi)},
     }

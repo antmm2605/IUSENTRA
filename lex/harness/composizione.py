@@ -77,6 +77,11 @@ def componi(domanda_tipo: str, a: Analisi, esito: EsitoControllo, domanda: str =
     if esito.citazioni_non_verificate:
         righe += ["", "Attenzione: questi riferimenti non sono stati verificati sull'archivio e vanno controllati prima "
                       "dell'uso: " + ", ".join(esito.citazioni_non_verificate) + "."]
+    scheda = getattr(a, "scheda_istituto", None)
+    if scheda:
+        stato = {"verificata": "verificata", "lacune": "con lacune dichiarate", "da_riesaminare": "da riesaminare"}
+        righe += ["", f"Scheda di istituto consultata: «{scheda['titolo']}» (revisione {scheda['revisione']}, "
+                      f"{stato.get(scheda['stato'], scheda['stato'])}) — Conoscenza, {scheda['collegamento']}."]
     righe += ["", "_Risposta costruita passo per passo dall'harness di Lex (comprensione, fatti, norme vigenti, regole, "
                   "controlli). È un supporto all'avvocato: nessun atto è stato salvato, firmato, notificato o depositato._"]
     return "\n".join(righe)

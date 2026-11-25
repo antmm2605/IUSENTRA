@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 0.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 338.
+- Route Flask GET candidate rilevate fuori manifest: 342.
 
 ### Distribuzione rischio
 
@@ -754,6 +754,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /catalogo-apertura | GET | web/blueprints/api_v1_amministrativo.py | non rilevato |
 | /catalogo-apertura | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /catalogo-apertura | GET | web/blueprints/api_v1_tributario.py | non rilevato |
+| /cerca | GET | web/blueprints/api_v1_conoscenza.py | non rilevato |
 | /cerca | GET | web/bootstrap/search_routes.py | non rilevato |
 | /checklist/{id_template} | GET | web/bootstrap/checklist_routes.py | non rilevato |
 | /clienti/export.csv | GET | web/bootstrap/export_routes.py | non rilevato |
@@ -833,7 +834,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /favicon.ico | GET | web/bootstrap/pwa_routes.py | non rilevato |
 | /fonti/{source_id} | GET | web/blueprints/api_v1_ricerca_legale.py | non rilevato |
 | /fonts | GET | web/blueprints/api_v1_document_tools.py | non rilevato |
-| /fonts/{token}/{kind} | GET | web/blueprints/api_v1_document_tools.py | non rilevato |
 
 ## Regola operativa fase 4
 

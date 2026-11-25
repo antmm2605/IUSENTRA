@@ -203,4 +203,5 @@ export type Pathway = {
   passi?: PathwayStep[]
   fascicolo_id?: string
   prossimo_passo?: string
+  schede_istituto?: { id: string; titolo: string; collegamento: string }[]
 }

@@ -4797,6 +4797,42 @@
    "vigente": false,
    "origine": "testo anteriore vigente al 11/06/2026 (Normattiva, multivigenza)",
    "sha256": "105161236a9cdd6b3dab75dc9da6fd234e732b324dfb254dcb4c662881d6442d"
+  },
+  "gdpr:4": {
+   "citazione": "art. 4 Reg. UE 2016/679",
+   "testo": "12) «violazione dei dati personali»: la violazione di sicurezza che comporta accidentalmente o in modo illecito la distruzione, la perdita, la modifica, la divulgazione non autorizzata o l'accesso ai dati personali trasmessi, conservati o comunque trattati;",
+   "url": "",
+   "titolo_atto": "Reg. UE 2016/679 — Regolamento (UE) 2016/679 del Parlamento europeo e del Consiglio, del 27 aprile 2016, relativo alla protezione delle persone fisiche con riguardo al trattamento dei dati personali, nonché alla libera circolazione di tali dati e che abroga la direttiva 95/46/CE (regolamento generale sulla protezione dei dati). [Testo consolidato al 04/05/2016, Ufficio delle pubblicazioni UE]",
+   "aggiornamento": "",
+   "vigente": true,
+   "document_id": "158",
+   "article_id": "27817",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "c36c131809438b9d43b238b80b5946c9a7d1d1d15dd20fbac3e9ef9c0b421644"
+  },
+  "gdpr:33": {
+   "citazione": "art. 33 Reg. UE 2016/679",
+   "testo": "Art. 33. (Notifica di una violazione dei dati personali all'autorità di controllo). 1. In caso di violazione dei dati personali, il titolare del trattamento notifica la violazione all'autorità di controllo competente a norma dell'articolo 55 senza ingiustificato ritardo e, ove possibile, entro 72 ore dal momento in cui ne è venuto a conoscenza, a meno che sia improbabile che la violazione dei dati personali presenti un rischio per i diritti e le libertà delle persone fisiche. Qualora la notifica all'autorità di controllo non sia effettuata entro 72 ore, è corredata dei motivi del ritardo. 2. Il responsabile del trattamento informa il titolare del trattamento senza ingiustificato ritardo dopo essere venuto a conoscenza della violazione. 3. La notifica di cui al paragrafo 1 deve almeno: a) descrivere la natura della violazione dei dati personali compresi, ove possibile, le categorie e il numero approssimativo di interessati in questione nonché le categorie e il numero approssimativo di registrazioni dei dati personali in questione; b) comunicare il nome e i dati di contatto del responsabile della protezione dei dati o di altro punto di contatto presso cui ottenere più informazioni; c) descrivere le probabili conseguenze della violazione dei dati personali; d) descrivere le misure adottate o di cui si propone l'adozione da parte del titolare del trattamento per porre rimedio alla violazione dei dati personali e anche, se del caso, per attenuarne i possibili effetti negativi. 4. Qualora e nella misura in cui non sia possibile fornire le informazioni contestualmente, le informazioni possono essere fornite in fasi successive senza ulteriore ingiustificato ritardo. 5. Il titolare del trattamento documenta qualsiasi violazione dei dati personali, comprese le circostanze a essa relative, le sue conseguenze e i provvedimenti adottati per porvi rimedio. Tale documentazione consente all'autorità di controllo di verificare il rispetto del presente articolo.",
+   "url": "",
+   "titolo_atto": "Reg. UE 2016/679 — Regolamento (UE) 2016/679 del Parlamento europeo e del Consiglio, del 27 aprile 2016, relativo alla protezione delle persone fisiche con riguardo al trattamento dei dati personali, nonché alla libera circolazione di tali dati e che abroga la direttiva 95/46/CE (regolamento generale sulla protezione dei dati). [Testo consolidato al 04/05/2016, Ufficio delle pubblicazioni UE]",
+   "aggiornamento": "",
+   "vigente": true,
+   "document_id": "158",
+   "article_id": "27846",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "f5af0e5859b6969a8c2ad492dab58dff5da9ab2e20822f5c48420d984f125d33"
+  },
+  "gdpr:34": {
+   "citazione": "art. 34 Reg. UE 2016/679",
+   "testo": "Art. 34. (Comunicazione di una violazione dei dati personali all'interessato). 1. Quando la violazione dei dati personali è suscettibile di presentare un rischio elevato per i diritti e le libertà delle persone fisiche, il titolare del trattamento comunica la violazione all'interessato senza ingiustificato ritardo. 2. La comunicazione all'interessato di cui al paragrafo 1 del presente articolo descrive con un linguaggio semplice e chiaro la natura della violazione dei dati personali e contiene almeno le informazioni e le misure di cui all'articolo 33, paragrafo 3, lettere b), c) e d). 3. Non è richiesta la comunicazione all'interessato di cui al paragrafo 1 se è soddisfatta una delle seguenti condizioni: a) il titolare del trattamento ha messo in atto le misure tecniche e organizzative adeguate di protezione e tali misure erano state applicate ai dati personali oggetto della violazione, in particolare quelle destinate a rendere i dati personali incomprensibili a chiunque non sia autorizzato ad accedervi, quali la cifratura; b) il titolare del trattamento ha successivamente adottato misure atte a scongiurare il sopraggiungere di un rischio elevato per i diritti e le libertà degli interessati di cui al paragrafo 1; c) detta comunicazione richiederebbe sforzi sproporzionati. In tal caso, si procede invece a una comunicazione pubblica o a una misura simile, tramite la quale gli interessati sono informati con analoga efficacia. 4. Nel caso in cui il titolare del trattamento non abbia ancora comunicato all'interessato la violazione dei dati personali, l'autorità di controllo può richiedere, dopo aver valutato la probabilità che la violazione dei dati personali presenti un rischio elevato, che vi provveda o può decidere che una delle condizioni di cui al paragrafo 3 è soddisfatta.",
+   "url": "",
+   "titolo_atto": "Reg. UE 2016/679 — Regolamento (UE) 2016/679 del Parlamento europeo e del Consiglio, del 27 aprile 2016, relativo alla protezione delle persone fisiche con riguardo al trattamento dei dati personali, nonché alla libera circolazione di tali dati e che abroga la direttiva 95/46/CE (regolamento generale sulla protezione dei dati). [Testo consolidato al 04/05/2016, Ufficio delle pubblicazioni UE]",
+   "aggiornamento": "",
+   "vigente": true,
+   "document_id": "158",
+   "article_id": "27847",
+   "origine": "biblioteca di consultazione (testo vigente Normattiva)",
+   "sha256": "0220d41930937f8aed7b3b9e0c138858ba4c8aec59ba627d9da261e38ec76c06"
   }
  },
  "mancanti": {

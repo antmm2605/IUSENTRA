@@ -71,7 +71,7 @@ FASI: tuple[Fase, ...] = (
          usa_ai_locale=True, memoria_minima_mb=2000),
     Fase(7, "Aggiornamenti normativi e fonti ufficiali",
          "Fonti pubbliche: non dipendono dai fascicoli, quindi vengono dopo i lavori dello studio.",
-         (Passo("legal_official_archives_daily"), Passo("legal_updates_batch"), Passo("cassazione_sentenzeweb_nightly"),
+         (Passo("legal_official_archives_daily"), Passo("conoscenza_schede_riconvalida"), Passo("legal_updates_batch"), Passo("cassazione_sentenzeweb_nightly"),
           Passo("corte_costituzionale_opendata_weekly", giorni=(VENERDI,)), Passo("mediazione_sources_refresh"),
           Passo("sync_tabelle_normative_daily"), Passo("sync_uffici"),
           Passo("pst_certificati_cifratura_weekly", giorni=(SABATO,)), Passo("legal_monitor_daily"),

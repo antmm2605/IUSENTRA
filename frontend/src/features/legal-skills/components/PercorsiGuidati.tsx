@@ -27,6 +27,15 @@ export function PercorsiGuidati() {
           return
         }
         setPercorsi(payload.percorsi || [])
+        // Arrivo dalla scheda di istituto: «?percorso=ID» apre la procedura.
+        try {
+          const richiesto = new URLSearchParams(window.location.search).get('percorso')
+          if (richiesto && (payload.percorsi || []).some((p) => p.percorso_id === richiesto)) {
+            fetchPathway(richiesto, fascicoloDaUrl()?.id).then((dettaglio) => {
+              if (dettaglio.ok && dettaglio.percorso) setSelezionato(dettaglio.percorso)
+            })
+          }
+        } catch { /* indirizzo non leggibile: elenco senza selezione */ }
       })
       .finally(() => setLoading(false))
     return () => controller.abort()
@@ -118,6 +127,14 @@ export function PercorsiGuidati() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><Scale aria-hidden="true" /> {selezionato.nome}</CardTitle>
                   <p className="text-sm text-muted-foreground">{selezionato.descrizione}</p>
+                  {selezionato.schede_istituto?.length ? (
+                    <p className="text-sm">
+                      <BookMarked aria-hidden="true" className="inline" /> Scheda di istituto:{' '}
+                      {selezionato.schede_istituto.map((scheda, i) => (
+                        <span key={scheda.id}>{i ? ' · ' : ''}<a href={scheda.collegamento}>{scheda.titolo}</a></span>
+                      ))}
+                    </p>
+                  ) : null}
                   {fascicolo ? (
                     <p className="text-sm text-muted-foreground">
                       Avanzamento: {completati}/{passi.length} passi completati per {fascicolo.etichetta || `fascicolo ${fascicolo.id}`}.

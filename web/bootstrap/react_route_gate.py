@@ -126,6 +126,7 @@ _REACT_EXACT = {
     "/registro-attivita",
     "/ricerca-legale",
     "/ricerca-legale/codici",
+    "/ricerca-legale/conoscenza",
     "/ricerca-legale/gazzetta-ufficiale",
     "/ricerca-legale/mediazione",
     "/ricerca-legale/news",
@@ -471,6 +472,7 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/ricerca-legale/") and lower not in {
         "/ricerca-legale/codici",
+        "/ricerca-legale/conoscenza",
         "/ricerca-legale/gazzetta-ufficiale",
         "/ricerca-legale/mediazione",
         "/ricerca-legale/news",

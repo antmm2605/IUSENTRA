@@ -1196,6 +1196,30 @@ def start_scheduler(app):
                 logger.error("[scheduler] Riconvalida profili procedurali fallita: %s", e)
                 return {"ok": False, "job": "profili_procedurali_riconvalida", "error": str(e)}
 
+    # ---- Riconvalida delle schede di istituto (lex/conoscenza), dopo gli archivi ufficiali ----
+    # Confronta la versione di ogni fonte delle schede con quella letta oggi e rigenera solo le schede con una fonte
+    # cambiata o non più leggibile; poi il controllo della wiki. Tutto nel registro della conoscenza, nella cartella
+    # dei dati (il codice installato non si scrive).
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", hour=4, minute=50),
+        id="conoscenza_schede_riconvalida",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    def _conoscenza_schede_riconvalida():
+        with app.app_context():
+            try:
+                from lex.conoscenza.notturno import riconvalida_notturna
+
+                esito = riconvalida_notturna()
+                logger.info("[scheduler] Schede di istituto: %d rigenerate su %d, lint %s",
+                            len(esito.get("rigenerate") or []), int(esito.get("schede") or 0), esito.get("lint"))
+                return esito
+            except Exception as e:
+                logger.error("[scheduler] Riconvalida delle schede di istituto fallita: %s", e)
+                return {"ok": False, "job": "conoscenza_schede_riconvalida", "error": str(e)}
+
     # ---- Guardiano della catena dei fascicoli (pct/catena) ----
     # Di giorno il guardiano gira dopo ogni Lettura ricalcolata; di notte ripassa tutti i fascicoli non archiviati.
     @scheduler.scheduled_job(

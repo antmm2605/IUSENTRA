@@ -41,6 +41,69 @@ def _n(chiave: str, estremi: str, citazione: str, rubrica: str = "") -> Norma:
 _CC, _CPC, _CP, _CPP = "r.d. 262/1942", "r.d. 1443/1940", "r.d. 1398/1930", "d.p.r. 447/1988"
 
 NORME: dict[str, Norma] = {n.chiave: n for n in (
+    # Lato della parte (24/11/2026): difesa del datore, del condominio, del responsabile del sinistro, del venditore
+    _n("cpc:416", f"art. 416 {_CPC}", "art. 416 c.p.c.", "Costituzione del convenuto"),
+    _n("cc:1131", f"art. 1131 {_CC}", "art. 1131 c.c.", "Rappresentanza"),
+    _n("cc:1913", f"art. 1913 {_CC}", "art. 1913 c.c.", "Avviso all'assicuratore in caso di sinistro"),
+    _n("cc:1917", f"art. 1917 {_CC}", "art. 1917 c.c.", "Assicurazione della responsabilità civile"),
+    _n("cc:2969", f"art. 2969 {_CC}", "art. 2969 c.c.", "Rilievo d'ufficio"),
+    # Testo unico della giustizia tributaria (d.lgs. 175/2024): si applica dal 1° gennaio 2027 (art. 131)
+    _n("dlgs175:64", "art. 64 d.lgs. 175/2024", "art. 64 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Il ricorso"),
+    _n("dlgs175:67", "art. 67 d.lgs. 175/2024", "art. 67 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Termine per la proposizione del ricorso"),
+    _n("dlgs175:68", "art. 68 d.lgs. 175/2024", "art. 68 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Costituzione in giudizio del ricorrente"),
+    _n("dlgs175:87", "art. 87 d.lgs. 175/2024", "art. 87 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Sospensione del processo"),
+    _n("dlgs175:96", "art. 96 d.lgs. 175/2024", "art. 96 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Sospensione dell'atto impugnato"),
+    _n("dlgs175:105", "art. 105 d.lgs. 175/2024", "art. 105 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Termini di impugnazione"),
+    _n("dlgs175:106", "art. 106 d.lgs. 175/2024", "art. 106 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Giudice competente e legittimazione ad appellare"),
+    _n("dlgs175:107", "art. 107 d.lgs. 175/2024", "art. 107 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Termine per appellare"),
+    _n("dlgs175:130", "art. 130 d.lgs. 175/2024", "art. 130 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Abrogazioni"),
+    _n("dlgs175:131", "art. 131 d.lgs. 175/2024", "art. 131 d.lgs. 175/2024 (testo unico della giustizia tributaria)", "Decorrenza"),
+    # Separazione consensuale (24/11/2026)
+    _n("cpc:473bis51", f"art. 473-bis.51 {_CPC}", "art. 473-bis.51 c.p.c.", "Procedimento su domanda congiunta"),
+    _n("cc:158", f"art. 158 {_CC}", "art. 158 c.c.", "Separazione consensuale"),
+    _n("dl132:12", "art. 12 d.l. 132/2014", "art. 12 d.l. 132/2014", "Separazione consensuale davanti all'ufficiale dello stato civile"),
+    _n("dlgs206:134", "art. 134 d.lgs. 206/2005", "art. 134 d.lgs. 206/2005 (codice del consumo)", "Diritto di regresso"),
+    # Correzioni delle deviazioni (copertura degli strumenti, 23/11/2026)
+    _n("l689:22", "art. 22 l. 689/1981", "art. 22 l. 689/1981", "Opposizione all'ordinanza-ingiunzione"),
+    _n("dlgs150:6", "art. 6 d.lgs. 150/2011", "art. 6 d.lgs. 150/2011", "Dell'opposizione ad ordinanza-ingiunzione"),
+    _n("cpa:119", "art. 119 d.lgs. 104/2010", "art. 119 c.p.a.", "Materie di rito abbreviato"),
+    _n("cpa:120", "art. 120 d.lgs. 104/2010", "art. 120 c.p.a.", "Disposizioni specifiche ai giudizi in materia di contratti pubblici"),
+    _n("cpa:116", "art. 116 d.lgs. 104/2010", "art. 116 c.p.a.", "Rito in materia di accesso ai documenti amministrativi"),
+    _n("cpa:117", "art. 117 d.lgs. 104/2010", "art. 117 c.p.a.", "Ricorsi avverso il silenzio"),
+    _n("cpa:31", "art. 31 d.lgs. 104/2010", "art. 31 c.p.a.", "Azione avverso il silenzio e declaratoria di nullità"),
+    _n("cpa:43", "art. 43 d.lgs. 104/2010", "art. 43 c.p.a.", "Motivi aggiunti"),
+    _n("cpa:112", "art. 112 d.lgs. 104/2010", "art. 112 c.p.a.", "Disposizioni generali sul giudizio di ottemperanza"),
+    _n("cpa:114", "art. 114 d.lgs. 104/2010", "art. 114 c.p.a.", "Procedimento"),
+    _n("l241:25", "art. 25 l. 241/1990", "art. 25 l. 241/1990", "Modalità di esercizio del diritto di accesso e ricorsi"),
+    _n("dpr1199:8", "art. 8 d.p.r. 1199/1971", "art. 8 d.p.r. 1199/1971", "Ricorso straordinario"),
+    _n("dpr1199:10", "art. 10 d.p.r. 1199/1971", "art. 10 d.p.r. 1199/1971", "Trasposizione in sede giurisdizionale"),
+    _n("dlgs546:38", "art. 38 d.lgs. 546/1992", "art. 38 d.lgs. 546/1992", "Richiesta di copie e notificazione della sentenza"),
+    _n("dlgs546:47", "art. 47 d.lgs. 546/1992", "art. 47 d.lgs. 546/1992", "Sospensione dell'atto impugnato"),
+    _n("dlgs546:51", "art. 51 d.lgs. 546/1992", "art. 51 d.lgs. 546/1992", "Termini d'impugnazione"),
+    _n("dlgs546:52", "art. 52 d.lgs. 546/1992", "art. 52 d.lgs. 546/1992", "Giudice competente e legittimazione ad appellare"),
+    _n("dlgs546:53", "art. 53 d.lgs. 546/1992", "art. 53 d.lgs. 546/1992", "Forma dell'appello"),
+    _n("dlgs546:17bis", "art. 17-bis d.lgs. 546/1992", "art. 17-bis d.lgs. 546/1992", "Il reclamo e la mediazione"),
+    _n("dlgs165:63", "art. 63 d.lgs. 165/2001", "art. 63 d.lgs. 165/2001", "Controversie relative ai rapporti di lavoro"),
+    _n("cpc:442", f"art. 442 {_CPC}", "art. 442 c.p.c.", "Controversie in materia di previdenza e di assistenza obbligatorie"),
+    _n("cpc:443", f"art. 443 {_CPC}", "art. 443 c.p.c.", "Rapporti con i procedimenti amministrativi"),
+    _n("cpc:444", f"art. 444 {_CPC}", "art. 444 c.p.c.", "Giudice competente"),
+    _n("dlgs286:30", "art. 30 d.lgs. 286/1998", "art. 30 d.lgs. 286/1998", "Permesso di soggiorno per motivi familiari"),
+    _n("dlgs286:6", "art. 6 d.lgs. 286/1998", "art. 6 d.lgs. 286/1998", "Facoltà ed obblighi inerenti al soggiorno"),
+    _n("dlgs150:20", "art. 20 d.lgs. 150/2011", "art. 20 d.lgs. 150/2011", "Delle controversie in materia di unità familiare"),
+    _n("cpc:473bis29", f"art. 473-bis.29 {_CPC}", "art. 473-bis.29 c.p.c.", "Revisione dei provvedimenti in materia di famiglia"),
+    _n("cpc:473bis69", f"art. 473-bis.69 {_CPC}", "art. 473-bis.69 c.p.c.", "Ordini di protezione contro gli abusi familiari"),
+    _n("cpc:473bis70", f"art. 473-bis.70 {_CPC}", "art. 473-bis.70 c.p.c.", "Contenuto degli ordini di protezione"),
+    _n("dl132:6", "art. 6 d.l. 132/2014", "art. 6 d.l. 132/2014", "Convenzione di negoziazione assistita per la separazione e il divorzio"),
+    _n("dlgs285:203", "art. 203 d.lgs. 285/1992", "art. 203 d.lgs. 285/1992 (codice della strada)", "Ricorso al prefetto"),
+    _n("cc:1386", f"art. 1386 {_CC}", "art. 1386 c.c.", "Caparra penitenziale"),
+    _n("cc:1373", f"art. 1373 {_CC}", "art. 1373 c.c.", "Recesso unilaterale"),
+    _n("dl669:14", "art. 14 d.l. 669/1996", "art. 14 d.l. 669/1996", "Esecuzione forzata nei confronti di pubbliche amministrazioni"),
+    _n("cpc:545", f"art. 545 {_CPC}", "art. 545 c.p.c.", "Crediti impignorabili"),
+    _n("cpc:608", f"art. 608 {_CPC}", "art. 608 c.p.c.", "Modo dell'esecuzione"),
+    _n("cpc:605", f"art. 605 {_CPC}", "art. 605 c.p.c.", "Precetto per consegna o rilascio"),
+    _n("cpc:666", f"art. 666 {_CPC}", "art. 666 c.p.c.", "Contestazione dell'ammontare del canone"),
+    _n("cpc:659", f"art. 659 {_CPC}", "art. 659 c.p.c.", "Licenza per finita locazione"),
+    _n("l392:79", "art. 79 l. 392/1978", "art. 79 l. 392/1978", "Patti contrari alla legge"),
     # Codice civile
     _n("cc:151", f"art. 151 {_CC}", "art. 151 c.c.", "Separazione giudiziale"),
     _n("cc:337ter", f"art. 337-ter {_CC}", "art. 337-ter c.c.", "Provvedimenti riguardo ai figli"),
@@ -165,6 +228,8 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("cpc:663", f"art. 663 {_CPC}", "art. 663 c.p.c.", "Mancata comparizione o mancata opposizione dell'intimato"),
     _n("cpc:665", f"art. 665 {_CPC}", "art. 665 c.p.c.", "Opposizione e provvedimenti del giudice"),
     _n("cpc:667", f"art. 667 {_CPC}", "art. 667 c.p.c.", "Mutamento del rito"),
+    _n("cpc:669bis", f"art. 669-bis {_CPC}", "art. 669-bis c.p.c.", "Forma della domanda"),
+    _n("cpc:669ter", f"art. 669-ter {_CPC}", "art. 669-ter c.p.c.", "Competenza anteriore alla causa"),
     _n("cpc:669octies", f"art. 669-octies {_CPC}", "art. 669-octies c.p.c.", "Provvedimento di accoglimento"),
     _n("cpc:669novies", f"art. 669-novies {_CPC}", "art. 669-novies c.p.c.", "Inefficacia del provvedimento cautelare"),
     _n("cpc:671", f"art. 671 {_CPC}", "art. 671 c.p.c.", "Sequestro conservativo"),
@@ -209,13 +274,27 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("l241:21nonies", "art. 21-nonies l. 241/1990", "art. 21-nonies l. 241/1990", "Annullamento d'ufficio"),
     _n("dlgs206:33", "art. 33 d.lgs. 206/2005", "art. 33 d.lgs. 206/2005 (codice del consumo)", "Clausole vessatorie nel contratto tra professionista e consumatore"),
     _n("dlgs206:128", "art. 128 d.lgs. 206/2005", "art. 128 d.lgs. 206/2005 (codice del consumo)", "Ambito di applicazione e definizioni"),
+    _n("dlgs206:129", "art. 129 d.lgs. 206/2005", "art. 129 d.lgs. 206/2005 (codice del consumo)", "Conformità dei beni al contratto"),
+    _n("dlgs206:130", "art. 130 d.lgs. 206/2005", "art. 130 d.lgs. 206/2005 (codice del consumo)", "Requisiti oggettivi di conformità"),
+    _n("dlgs206:132", "art. 132 d.lgs. 206/2005", "art. 132 d.lgs. 206/2005 (codice del consumo)", "Vizi giuridici"),
     _n("dlgs206:133", "art. 133 d.lgs. 206/2005", "art. 133 d.lgs. 206/2005 (codice del consumo)", "Termini"),
+    _n("dlgs206:135", "art. 135 d.lgs. 206/2005", "art. 135 d.lgs. 206/2005 (codice del consumo)", "Onere della prova"),
     _n("dlgs206:135bis", "art. 135-bis d.lgs. 206/2005", "art. 135-bis d.lgs. 206/2005 (codice del consumo)", "Rimedi per il difetto di conformità"),
+    _n("dlgs206:135ter", "art. 135-ter d.lgs. 206/2005", "art. 135-ter d.lgs. 206/2005 (codice del consumo)", "Modalità di ripristino della conformità"),
+    _n("dlgs206:135quater", "art. 135-quater d.lgs. 206/2005", "art. 135-quater d.lgs. 206/2005 (codice del consumo)", "Riduzione del prezzo e risoluzione"),
     _n("dpr1199:9", "art. 9 d.p.r. 1199/1971", "art. 9 d.P.R. 1199/1971", "Termine del ricorso straordinario"),
     _n("dpr115:10", "art. 10 d.p.r. 115/2002", "art. 10 d.P.R. 115/2002", "Esenzioni"),
     _n("dpr115:30", "art. 30 d.p.r. 115/2002", "art. 30 d.P.R. 115/2002", "Anticipazione forfettaria"),
     _n("dpr115:13", "art. 13 d.p.r. 115/2002", "art. 13 d.P.R. 115/2002", "Contributo unificato"),
 )}
+
+# Norme delle fattispecie per materia (lex/harness/norme_materie.py, istantanea dati/norme_vigenti_materie.json):
+# si aggiungono senza sostituire le voci del catalogo principale.
+from .norme_materie import NORME_MATERIE as _NORME_MATERIE  # noqa: E402
+
+for _voce in _NORME_MATERIE:
+    NORME.setdefault(_voce[0], Norma(*_voce[:4]))
+ISTANTANEA_MATERIE = CARTELLA_DATI / "norme_vigenti_materie.json"
 
 
 def normalizza(testo: str) -> str:
@@ -245,9 +324,16 @@ class TestoNorma:
 @lru_cache(maxsize=1)
 def _istantanea() -> dict[str, dict[str, Any]]:
     try:
-        return json.loads(ISTANTANEA.read_text(encoding="utf-8")).get("norme", {})
+        norme = json.loads(ISTANTANEA.read_text(encoding="utf-8")).get("norme", {})
     except (OSError, ValueError):
-        return {}
+        norme = {}
+    try:
+        for chiave, riga in json.loads(ISTANTANEA_MATERIE.read_text(encoding="utf-8")).get("norme", {}).items():
+            if not (norme.get(chiave) or {}).get("testo"):
+                norme[chiave] = riga
+    except (OSError, ValueError):
+        pass
+    return norme
 
 
 def _archivio_dal_vivo(norma: Norma) -> dict[str, Any] | None:

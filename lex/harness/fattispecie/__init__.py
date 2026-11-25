@@ -4,39 +4,66 @@ L'ordine conta a parità di punteggio: le fattispecie specifiche vengono prima d
 """
 from __future__ import annotations
 
+import re
+
 from collections.abc import Callable
 
 from ..comprensione import Comprensione
 from ..fatti import Fatti
 from ..modello import Analisi
-from . import appalto, civile, domande, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
+from ..norme import piano
+from . import amministrativo, appalto, civile, consumo, difese, domande, pubblico, esecuzione, famiglia, lavoro, locazione, monitorio, stragiudiziale, varie
 
 Regola = tuple[str, Callable[[Comprensione, Fatti], int], Callable[[Comprensione, Fatti], Analisi]]
 
 REGOLE: tuple[Regola, ...] = (
+    # Chi subisce l'iniziativa dell'altra parte (lato.py): rispondono solo con il lato passivo dichiarato nel racconto.
+    ("difesa_datore_lavoro", difese.riconosci_difesa_datore, difese.analizza_difesa_datore),
+    ("difesa_condominio", difese.riconosci_difesa_condominio, difese.analizza_difesa_condominio),
+    ("sinistro_responsabile", difese.riconosci_sinistro_responsabile, difese.analizza_sinistro_responsabile),
+    ("garanzia_venditore", difese.riconosci_garanzia_venditore, difese.analizza_garanzia_venditore),
+    ("locatore_canone_nero", difese.riconosci_locatore_canone_nero, difese.analizza_locatore_canone_nero),
     ("opposizione_precetto", esecuzione.riconosci_opposizione_precetto, esecuzione.analizza_opposizione_precetto),
     ("opposizione_decreto_ingiuntivo", monitorio.riconosci_opposizione_di, monitorio.analizza_opposizione_di),
     ("opposizione_sfratto_commerciale", locazione.riconosci_sfratto_commerciale, locazione.analizza_sfratto_commerciale),
     ("negoziazione_locazione_inadatta", locazione.riconosci_negoziazione_locazione, locazione.analizza_negoziazione_locazione),
+    ("procedibilita_locazione", locazione.riconosci_procedibilita_locazione, locazione.analizza_procedibilita_locazione),
     ("restituzione_canone_non_registrato", locazione.riconosci_indebito_locazione, locazione.analizza_indebito_locazione),
     ("sequestro_conservativo", varie.riconosci_sequestro, varie.analizza_sequestro),
+    ("sequestro_ante_causam", varie.riconosci_sequestro_ante_causam, varie.analizza_sequestro_ante_causam),
+    ("garanzia_conformita", consumo.riconosci_garanzia_consumo, consumo.analizza_garanzia_consumo),
     ("opposizione_verbale_cds", varie.riconosci_verbale_cds, varie.analizza_verbale_cds),
     ("disconoscimento_paternita", varie.riconosci_disconoscimento, varie.analizza_disconoscimento),
     ("chiamato_nel_possesso", varie.riconosci_eredita_possesso, varie.analizza_eredita_possesso),
     ("diffida_commerciale", stragiudiziale.riconosci_diffida_commerciale, stragiudiziale.analizza_diffida_commerciale),
+    ("diffida_messa_mora", stragiudiziale.riconosci_diffida_messa_mora, stragiudiziale.analizza_diffida_messa_mora),
+    ("diffida_1454", stragiudiziale.riconosci_diffida_1454, stragiudiziale.analizza_diffida_1454),
     ("sinistro_stradale", stragiudiziale.riconosci_sinistro, stragiudiziale.analizza_sinistro),
     ("vizi_appalto", appalto.riconosci_vizi_appalto, appalto.analizza_vizi_appalto),
     ("termini_precetto", esecuzione.riconosci_termini_precetto, esecuzione.analizza_termini_precetto),
+    ("pignoramento_terzi", esecuzione.riconosci_pignoramento_terzi, esecuzione.analizza_pignoramento_terzi),
+    ("ricerca_beni", esecuzione.riconosci_ricerca_beni, esecuzione.analizza_ricerca_beni),
     ("caparra_confirmatoria", civile.riconosci_caparra, civile.analizza_caparra),
+    ("recesso_contratto", civile.riconosci_recesso_contratto, civile.analizza_recesso_contratto),
     ("impugnazione_licenziamento", lavoro.riconosci_licenziamento, lavoro.analizza_licenziamento),
     ("appello_lavoro", domande.riconosci_appello_lavoro, domande.analizza_appello_lavoro),
+    ("ricorso_dipendente_pubblico", pubblico.riconosci_dipendente_pubblico, pubblico.analizza_dipendente_pubblico),
+    ("esecuzione_contro_pa", pubblico.riconosci_esecuzione_pa, pubblico.analizza_esecuzione_pa),
+    ("ordinanza_ingiunzione", pubblico.riconosci_ordinanza_ingiunzione, pubblico.analizza_ordinanza_ingiunzione),
     ("crediti_lavoro", lavoro.riconosci_crediti, lavoro.analizza_crediti),
     ("competenza_lavoro", lavoro.riconosci_competenza_lavoro, lavoro.analizza_competenza_lavoro),
     ("divorzio_tempi", famiglia.riconosci_divorzio_tempi, famiglia.analizza_divorzio_tempi),
     ("figlio_maggiorenne", famiglia.riconosci_maggiorenne, famiglia.analizza_maggiorenne),
+    ("separazione_consensuale", famiglia.riconosci_separazione_consensuale, famiglia.analizza_separazione_consensuale),
     ("separazione_giudiziale", famiglia.riconosci_separazione, famiglia.analizza_separazione),
+    ("modifica_condizioni", famiglia.riconosci_modifica_condizioni, famiglia.analizza_modifica_condizioni),
+    ("negoziazione_familiare", famiglia.riconosci_negoziazione_familiare, famiglia.analizza_negoziazione_familiare),
+    ("ordini_protezione", famiglia.riconosci_ordini_protezione, famiglia.analizza_ordini_protezione),
     ("sanatoria_morosita", locazione.riconosci_sanatoria, locazione.analizza_sanatoria),
     ("sfratto_morosita", locazione.riconosci_sfratto, locazione.analizza_sfratto),
+    ("sfratto_finita_locazione", locazione.riconosci_finita, locazione.analizza_finita_locazione),
+    ("rilascio", locazione.riconosci_rilascio, locazione.analizza_rilascio),
+    ("opposizione_convalida", locazione.riconosci_opposizione_convalida, locazione.analizza_opposizione_convalida),
     ("causa_locazione", locazione.riconosci_cause_locazione, locazione.analizza_cause_locazione),
     ("notifica_decreto_ingiuntivo", monitorio.riconosci_notifica_di, monitorio.analizza_notifica_di),
     ("decreto_ingiuntivo", monitorio.riconosci_ricorso_di, monitorio.analizza_ricorso_di),
@@ -45,6 +72,15 @@ REGOLE: tuple[Regola, ...] = (
     ("lite_condominio", domande.riconosci_lite_condominio, domande.analizza_lite_condominio),
     ("consumatore", domande.riconosci_consumatore, domande.analizza_consumatore),
     ("ricorso_tar", domande.riconosci_tar, domande.analizza_tar),
+    ("appalti_120", amministrativo.riconosci_appalti, amministrativo.analizza_appalti),
+    ("accesso_atti", amministrativo.riconosci_accesso, amministrativo.analizza_accesso),
+    ("silenzio", amministrativo.riconosci_silenzio, amministrativo.analizza_silenzio),
+    ("motivi_aggiunti", amministrativo.riconosci_motivi_aggiunti, amministrativo.analizza_motivi_aggiunti),
+    ("ottemperanza", amministrativo.riconosci_ottemperanza, amministrativo.analizza_ottemperanza),
+    ("permesso_soggiorno", amministrativo.riconosci_unita_familiare, amministrativo.analizza_unita_familiare),
+    ("appello_tributario", amministrativo.riconosci_appello_tributario, amministrativo.analizza_appello_tributario),
+    ("sospensione_tributaria", amministrativo.riconosci_sospensione_tributaria, amministrativo.analizza_sospensione_tributaria),
+    ("reclamo_mediazione_tributaria", amministrativo.riconosci_reclamo_tributario, amministrativo.analizza_reclamo_tributario),
     ("ricorso_tributario", domande.riconosci_tributario, domande.analizza_tributario),
     ("ricorso_straordinario", domande.riconosci_straordinario, domande.analizza_straordinario),
     ("termine_querela", domande.riconosci_querela, domande.analizza_querela),
@@ -56,11 +92,93 @@ REGOLE: tuple[Regola, ...] = (
     ("competenza_pagamento", civile.riconosci_pagamento, civile.analizza_pagamento),
 )
 
+# Regole per materia (schede in materia_*.py): in coda, vincono solo con un punteggio più alto.
+from .materie import REGOLE_MATERIE  # noqa: E402
+
+REGOLE = REGOLE + REGOLE_MATERIE
+
+
+def _peso_della_richiesta(c: Comprensione, f: Fatti, punteggi, migliore: Regola) -> Regola:
+    """La richiesta pesa più del preambolo (richiesta.py): se la regola migliore non si riconosce nella zona della
+    richiesta, vince fra le regole riconosciute sulla sola richiesta (poi sulla zona) quella con il punteggio più alto sul
+    testo intero."""
+    from ..richiesta import fatti_parziali
+
+    attive = [(r, p) for r, p in punteggi if p > 0]
+    if len(attive) < 2:
+        return migliore
+    parziali = fatti_parziali(f)
+    if not parziali or migliore[1](c, parziali[0]) > 0:
+        return migliore                              # nessun preambolo, o la regola migliore vive già nella zona della richiesta
+    for parte in reversed(parziali):                 # prima la sola richiesta, poi la zona della richiesta
+        vive = [(r, p) for r, p in attive if r[1](c, parte) > 0]
+        if vive:
+            return max(vive, key=lambda rp: rp[1])[0]
+    return migliore
+
 
 def scegli(c: Comprensione, f: Fatti) -> Regola | None:
+    from ..lato import RUOLI, famiglia, lato_della_parte, regole_del_lato
+
+    punteggi = [(regola, regola[1](c, f)) for regola in REGOLE]
     migliore, punteggio = None, 0
-    for regola in REGOLE:
-        p = regola[1](c, f)
+    for regola, p in punteggi:
         if p > punteggio:
             migliore, punteggio = regola, p
+    if migliore is None:
+        return None
+    # Parità fra regole di strumenti diversi: decide la vicinanza di significato fra i fatti e lo strumento, non l'ordine
+    # dell'elenco. A parità anche di significato resta la prima dell'elenco (le regole più specifiche vengono prima).
+    # Le schede complementari cedono sempre alla regola principale (materia_complementi.py): non entrano nello spareggio.
+    from .materia_complementi import SCHEDE as _COMPLEMENTARI
+
+    complementari = {sc.regola for sc in _COMPLEMENTARI}
+    pari = [r for r, p in punteggi if p == punteggio and r[0] not in complementari]
+    if migliore[0] in complementari and pari:
+        migliore = pari[0]
+    if len(pari) > 1:
+        from ..significato import cerca
+
+        vicini = {v.regola: s for v, s in cerca(f.testo, k=len(REGOLE))}
+        primo = max(pari, key=lambda r: (round(vicini.get(r[0], 0.0), 2), -pari.index(r)))
+        # Si cambia solo se la prima dell'elenco è lontana dai fatti e l'altra è chiaramente vicina.
+        if vicini.get(migliore[0], 0.0) < 0.22 and vicini.get(primo[0], 0.0) >= 0.30:
+            migliore = primo
+    migliore = _peso_della_richiesta(c, f, punteggi, migliore)
+    # Il lato della parte assistita decide lo strumento dentro la stessa famiglia (decreto ingiuntivo o opposizione,
+    # precetto o opposizione, pignoramento o difesa dell'esecutato, sfratto o difesa del conduttore).
+    fam = famiglia(migliore[0])
+    lato = lato_della_parte(f.testo, fam[0]) if fam else None
+    if fam and lato and fam[1] != lato:
+        nomi = regole_del_lato(fam[0], lato)
+        candidati = [(r, p) for r, p in punteggi if r[0] in nomi and p > 0]
+        if candidati:
+            return max(candidati, key=lambda rp: rp[1])[0]
+        if fam[0] in RUOLI:
+            return migliore                          # famiglie a ruoli: la difesa risponde solo se si riconosce da sé
+        per_nome = {r[0]: r for r in REGOLE}
+        t_lato = piano(f.testo)
+        if fam[0] == "pignoramento" and lato == "passivo":
+            # Il debitore che chiede i limiti su stipendio o pensione riceve l'art. 545 (regola del pignoramento presso terzi).
+            if re.search(r"stipendi|pension|salari", t_lato) and re.search(r"quinto|quanto|limit|tutt|inter[ao]|minimo vitale|impignorab", t_lato):
+                return migliore
+            for cue, nome in ((r"terz[oa]\b|sono miei|di mia proprieta|di nostra proprieta|vero proprietari|non (?:e|sono) del debitore",
+                               "es_opposizione_terzo"),
+                              (r"pagare per evitare|evitare (?:la vendita|l asta)|conversion|pagare a rate|rateizz", "es_conversione_pignoramento")):
+                if re.search(cue, t_lato) and nome in per_nome:
+                    return per_nome[nome]
+        # Licenza o rilascio per finita locazione dal lato del conduttore: opposizione alla convalida, non la sanatoria
+        # della morosità (art. 55 l. 392/1978), che riguarda solo lo sfratto per morosità.
+        if fam[0] == "sfratto" and lato == "passivo" and migliore[0] in {"sfratto_finita_locazione", "rilascio"} \
+                and "opposizione_convalida" in per_nome:
+            return per_nome["opposizione_convalida"]
+        if fam[0] == "precetto" and lato == "passivo" and re.search(r"prescri|non (?:e|era) dovut|gia pagat|estint", t_lato):
+            return per_nome.get("opposizione_precetto", per_nome[nomi[0]])
+        # Decreto ingiuntivo conosciuto solo dopo, per notifica viziata o con il termine scaduto: opposizione tardiva (art. 650).
+        if fam[0] == "monitorio" and "mon_opposizione_tardiva" in per_nome and re.search(
+                r"notific\w* (?:nulla|sbagliat|irregolar|viziat)|indirizzo sbagliato|non (?:ho|abbiamo|ha) mai ricevut|saputo solo|"
+                r"scoperto (?:solo )?(?:dal|con il|quando)|termine (?:e )?scadut|oltre (?:il termine|i quaranta)|quaranta giorni sono passati",
+                piano(f.testo)):
+            return per_nome["mon_opposizione_tardiva"]
+        return per_nome[nomi[0]]
     return migliore

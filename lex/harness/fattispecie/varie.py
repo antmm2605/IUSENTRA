@@ -68,6 +68,8 @@ def analizza_sequestro(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- verbale del codice della strada non contestato
 def riconosci_verbale_cds(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
+    if re.search(r"ricorso al prefetto|ricorrere al prefetto|al prefetto", t) and not re.search(r"giudice di pace|opposizion|meglio|oppure|o il", t):
+        return 0
     return 5 if re.search(r"autovelox|verbale n\.|multa|codice della strada|rilevamento della velocita|eccesso di velocita|"
                           r"limite di velocita|semaforo rosso|divieto di sosta|\bztl\b|infrazione stradal|verbale (?:di|per) "
                           r"(?:contestazione|violazione|eccesso|sosta|accertamento)", t) and re.search(
@@ -110,8 +112,11 @@ def analizza_verbale_cds(c: Comprensione, f: Fatti) -> Analisi:
         a.termini.append(Punto(f"Verbale notificato il {data_breve(notifica)}: ricorso al giudice di pace entro {data_breve(ric)} "
                                "(termine processuale: sospensione feriale e proroga del sabato e dei festivi).",
                                [Rif("dlgs150:7", "entro trenta giorni")]))
-    a.avvertenze = ["Non pagare e non proporre ricorso al prefetto: il ricorso al giudice di pace è inammissibile se è stato "
-                    "presentato prima ricorso al prefetto."]
+    a.avvertenze = [Punto("Non pagare e non proporre ricorso al prefetto: l'opposizione al giudice di pace è ammessa se non "
+                          "è stato effettuato il pagamento in misura ridotta, ed è inammissibile se è stato presentato prima "
+                          "ricorso al prefetto.",
+                          [Rif("dlgs285:204bis", "qualora non sia stato effettuato il pagamento in misura ridotta"),
+                           Rif("dlgs150:7", "inammissibile se e' stato previamente presentato ricorso ai sensi dell'articolo 203")])]
     a.dati_mancanti = ["codice fiscale della ricorrente", "copia del verbale e della relata di notifica"]
     if c.tipo == "redazione":
         from ..bozze import ricorso_generico
@@ -124,6 +129,15 @@ def analizza_verbale_cds(c: Comprensione, f: Fatti) -> Analisi:
              "Tempestività del ricorso: proposto entro trenta giorni dalla notificazione (art. 7 d.lgs. 150/2011)."],
             "annullare il verbale e dichiarare estinta l'obbligazione di pagamento; con vittoria di spese.",
             "verbale, busta e relata di notifica, visura P.R.A.", "art. 7 d.lgs. 150/2011")
+    a.inquadramento.append(Punto(
+        "In alternativa al giudice di pace, se non si è pagato in misura ridotta, si può proporre ricorso al prefetto del luogo "
+        "della violazione entro sessanta giorni dalla contestazione o dalla notificazione, presentandolo all'organo accertatore "
+        "o inviandolo con raccomandata o PEC. Le due strade sono alternative: scelta l'una, l'altra non è più percorribile per "
+        "lo stesso verbale.",
+        [Rif("dlgs285:203", "nel termine di giorni sessanta dalla contestazione o dalla notificazione"),
+         Rif("dlgs285:203", "possono proporre ricorso al prefetto del luogo della commessa violazione")]))
+    if re.search(r"prefett", t):
+        a.rimedio += "; in alternativa, ricorso al prefetto entro sessanta giorni (art. 203 cod. strada)"
     return a
 
 
@@ -187,7 +201,12 @@ def analizza_disconoscimento(c: Comprensione, f: Fatti) -> Analisi:
 # ------------------------------------------------------------------- chiamato all'eredità nel possesso dei beni
 def riconosci_eredita_possesso(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    return 5 if re.search(r"eredit|rinuncia all eredita|chiamat", t) and re.search(r"debiti|rinunci", t) else 0
+    if not (re.search(r"eredit|rinuncia all eredita|chiamat", t) and re.search(r"debiti|rinunci", t)):
+        return 0
+    # La regola è quella del chiamato nel possesso dei beni (art. 485 c.c.): senza possesso rispondono rinuncia e beneficio
+    # d'inventario.
+    return 5 if re.search(r"possess|\bchiamat|abit\w* (?:nella|la) casa|vive nella casa|ha le chiavi|chiavi|"
+                          r"usat[oa] (?:il|la|i|le)|conto (?:del|corrente del) defunt|gestisc|incassat|ritirat|preso (?:i|il|la)", t) else 0
 
 
 def analizza_eredita_possesso(c: Comprensione, f: Fatti) -> Analisi:
@@ -221,4 +240,107 @@ def analizza_eredita_possesso(c: Comprensione, f: Fatti) -> Analisi:
         a.conclusione.append(Punto(f"Attivo ereditario {euro(attivo)}; debiti comunicati {euro(debiti)}; eccedenza dei debiti "
                                    f"sull'attivo {euro(debiti - attivo)}.", [Rif("cc:485", "erede puro e semplice")]))
     a.dati_mancanti = ["contratti di finanziamento e piani di ammortamento", "eventuali polizze assicurative sui finanziamenti"]
+    return a
+
+
+# ------------------------------------------------------------------- sequestro conservativo da chiedere prima della causa
+_SEQ_CHIESTO = (r"sequestr|blocc\w* (?:\w+ ){0,3}(?:beni|conto|conti|immobil|somme|casa|quot|appartament|auto)|congel\w* "
+                r"(?:\w+ ){0,3}(?:beni|conto|conti|somme)|mettere al sicuro (?:il|la nostra|il nostro) credit")
+_PERICOLO = (r"vend|alien|svuot|dissip|trasferi|intest|cede|cessione|donaz|don\w+ (?:la|il|i|le) |fondo patrimonial|trust|"
+             r"espatri|trasferirsi all estero|garanzia del (?:suo |mio |nostro )?credito|prelev|sottrar|disfa|liquidando|"
+             r"chiudendo (?:i|il) cont|svend")
+_SEQ_ALTRO = (r"ordinanza|ottenuto il sequestro|accolto|accoglimento|concesso il sequestro|autorizzato il sequestro|sequestro "
+              r"(?:penale|preventivo|probatorio|giudiziario)|gia (?:eseguito|disposto)")
+
+
+def riconosci_sequestro_ante_causam(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    if re.search(_SEQ_ALTRO, t) or not re.search(_SEQ_CHIESTO, t) or not re.search(_PERICOLO, t):
+        return 0
+    return 6 if f.importi or re.search(r"credit|debit|prestit|fattur|ci deve|gli deve|le deve|mi deve", t) else 0
+
+
+def analizza_sequestro_ante_causam(c: Comprensione, f: Fatti) -> Analisi:
+    a = Analisi("sequestro_ante_causam", "cautelare", modello="CAU_005", forma=forma(c))
+    t = piano(f.testo)
+    valore = max((i.valore for i in f.importi), default=None)
+    a.valore = valore
+    pericolo = frase(f, _PERICOLO)
+    a.capito = ["Credito" + (f" di {euro(valore)}" if valore else " [importo da completare]") + " da tutelare prima della "
+                "causa di merito con il sequestro conservativo dei beni del debitore."]
+    if pericolo:
+        a.capito.append("Pericolo indicato: " + pericolo.strip().rstrip(".") + ".")
+    a.rimedio = ("ricorso per sequestro conservativo ante causam al giudice competente per il merito; poi esecuzione entro "
+                 "trenta giorni e inizio del merito nel termine perentorio")
+    a.inquadramento = [
+        Punto("Il sequestro conservativo può essere autorizzato su istanza del creditore che ha fondato timore di perdere la "
+              "garanzia del proprio credito, su beni mobili o immobili del debitore o su somme e cose a lui dovute, nei limiti "
+              "in cui la legge ne permette il pignoramento.",
+              [Rif("cpc:671", "fondato timore di perdere la garanzia del proprio credito"),
+               Rif("cpc:671", "nei limiti in cui la legge ne permette il pignoramento")]),
+        Punto("Occorrono quindi due requisiti da provare nel ricorso: la probabile esistenza del credito (fumus boni iuris) "
+              "e il fondato timore di perderne la garanzia (periculum in mora), da dimostrare con fatti concreti come "
+              "vendite, donazioni o svuotamento dei conti, non con il solo inadempimento.",
+              [Rif("cpc:671", "fondato timore di perdere la garanzia del proprio credito")]),
+    ]
+    a.rito = [Punto("La domanda cautelare si propone con ricorso.", [Rif("cpc:669bis", "La domanda si propone con ricorso")])]
+    a.competenza = [Punto("Prima dell'inizio della causa di merito, la domanda si propone al giudice competente a conoscere "
+                          "del merito.", [Rif("cpc:669ter", "Prima dell'inizio della causa di merito la domanda si propone "
+                                                            "al giudice competente a conoscere del merito")])]
+    giudice = "Tribunale"
+    if valore:
+        merito, punti = P.giudice_per_valore(valore)
+        a.competenza += punti
+        if merito == "Giudice di pace":
+            a.competenza.append(Punto(
+                "Se il merito spetta al giudice di pace, la domanda cautelare va comunque al tribunale: l'art. 669-ter, "
+                "comma 2, c.p.c. lo dice con riferimento al conciliatore, l'ufficio poi sostituito dal giudice di pace.",
+                [Rif("cpc:669ter", "Se competente per la causa di merito e' il conciliatore, la domanda si propone al tribunale")]))
+    citta, punti_foro = P.foro_convenuto(f)
+    a.competenza += punti_foro
+    a.giudice = P.ufficio(giudice, citta) if citta else "Tribunale competente per territorio sul merito"
+    a.procedibilita = [Punto("Mediazione e negoziazione assistita, anche dove sono condizioni di procedibilità del merito, non "
+                             "impediscono di chiedere e ottenere subito i provvedimenti cautelari.",
+                             [Rif("dlgs28:5", "non preclude in ogni caso la concessione dei provvedimenti urgenti e cautelari"),
+                              Rif("dl132:3", "non preclude la concessione di provvedimenti urgenti e cautelari")])]
+    a.termini = [
+        Punto("Il provvedimento che autorizza il sequestro perde efficacia se non è eseguito entro trenta giorni dalla pronuncia.",
+              [Rif("cpc:675", "trenta giorni dalla pronuncia")]),
+        Punto("Se il sequestro è concesso prima della causa, l'ordinanza fissa un termine perentorio non superiore a sessanta "
+              "giorni per iniziare il merito; se non lo fissa, il merito va iniziato entro sessanta giorni, che decorrono dalla "
+              "pronuncia in udienza o altrimenti dalla comunicazione. Se il merito non inizia in tempo il sequestro perde "
+              "efficacia.",
+              [Rif("cpc:669octies", "termine perentorio non superiore a sessanta giorni"),
+               Rif("cpc:669octies", "dalla sua comunicazione"), Rif("cpc:669novies", "perde la sua efficacia")]),
+    ]
+    a.conclusione = [Punto(f"Ricorso per sequestro conservativo ante causam al {a.giudice}"
+                           + (f" a tutela del credito di {euro(valore)}" if valore else "")
+                           + ", con la prova del credito e dei fatti che fanno temere la perdita della garanzia; ottenuto il "
+                           "provvedimento, eseguirlo entro trenta giorni e iniziare il merito entro il termine fissato o, in "
+                           "mancanza, entro sessanta giorni.",
+                           [Rif("cpc:671", "fondato timore di perdere la garanzia del proprio credito"),
+                            Rif("cpc:669ter", "giudice competente a conoscere del merito"),
+                            Rif("cpc:675", "trenta giorni dalla pronuncia"), Rif("cpc:669octies", "sessanta giorni")])]
+    a.cosa_fare = ["Raccogliere la prova scritta del credito (contratto, fatture, riconoscimenti di debito).",
+                   "Documentare il pericolo: visure, atti di vendita o donazione, annunci, estratti dei conti.",
+                   "Indicare i beni da sequestrare e il loro valore, entro l'importo del credito.",
+                   "Preparare subito l'atto di merito, e se serve l'invito alla negoziazione o la mediazione, per non "
+                   "perdere il termine di sessanta giorni."]
+    if not re.search(r"immobil|conto|cont[io] corrent|auto|quot|stipendi|beni", t):
+        a.dati_mancanti.append("beni del debitore da sottoporre a sequestro")
+    if not citta:
+        a.dati_mancanti.append("residenza o sede del debitore (competenza per territorio)")
+    if c.tipo == "redazione":
+        from ..bozze import ricorso_generico
+
+        a.bozza = ricorso_generico(
+            "Ricorso per sequestro conservativo ante causam (artt. 669-bis, 669-ter e 671 c.p.c.)", a.giudice, f,
+            "autorizzazione al sequestro conservativo dei beni del debitore",
+            ["Credito del ricorrente: " + (euro(valore) if valore else "[da completare]") + ", fondato su [titolo da completare].",
+             "Fondato timore di perdere la garanzia del credito: " + (pericolo.strip() if pericolo else "[fatti da completare]") + ".",
+             "Beni da sottoporre a sequestro: [da completare], nei limiti in cui la legge ne permette il pignoramento."],
+            "autorizzare il sequestro conservativo dei beni mobili e immobili del resistente e delle somme e cose a lui "
+            "dovute fino alla concorrenza di " + (euro(valore) if valore else "[importo]") + ", fissando il termine per "
+            "l'inizio del giudizio di merito; con vittoria di spese.", "titolo del credito, documenti sul pericolo.",
+            "artt. 669-bis, 669-ter, 669-octies e 671 c.p.c.")
     return a

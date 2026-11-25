@@ -105,8 +105,8 @@ _SEGNALI = {
     "professionista_impresa": r"\bimpres|\bsocieta\b|s\.r\.l|srl\b|s\.p\.a|spa\b|professionista|negozio|venditore professionale",
     "circolazione": r"incidente stradale|sinistro stradale|circolazione|tamponament|veicol",
     "abitativo": r"abitativ|appartamento|abitazione",
-    "locazione": r"locazion|conduttor|locator|canon",
-    "morosita": r"moros|non paga|mancato pagamento|canoni non pagati|non ha pagato",
+    "locazione": r"locazion|conduttor|locator|canon|inquilin|affitt(?!o (?:d |di |dell )?(?:azienda|ramo))|pigion",
+    "morosita": r"moros|non (?:mi |ci |gli |le )?paga|mancato pagamento|canoni non pagati|non (?:mi |ci |gli |le )?ha pagato|non versa|arretrat|insolut",
     "figli_minori": r"figli\w* minor|minore|minorenn",
     "lavoro_subordinato": r"dipendent|subordinat|lavorator|datore di lavoro",
     "licenziamento": r"licenzia",
@@ -140,6 +140,13 @@ def _qualifica(contesto: str) -> str:
 TESTO_MASSIMO = 20000
 IMPORTI_MASSIMI = 200
 EVENTI_MASSIMI = 200
+
+
+# Formule della richiesta in qualunque punto della frase («la cliente vuole sapere…», «voglio fare ricorso»).
+_CHIEDE_OVUNQUE = re.compile(
+    r"\b(?:voglio|vogliamo|vorrei|vorremmo|vuole (?:sapere|fare|chiedere|presentare|proporre|impugnare|opporsi|agire|"
+    r"aspettare|querelare|denunciare)|posso|possiamo|devo|dobbiamo|come faccio|come facciamo|come procedo|mi chiede|"
+    r"ci chiede|chiede se|intendo|intendiamo|e possibile|si puo)\b")
 
 
 def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
@@ -249,6 +256,6 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
             frasi_testo = re.split(r"(?<=[.?!])\s+(?=[A-ZÀ-Ý])", grezzo)
             chieste = [x for x in frasi_testo if "?" in x or re.match(
                 r"(?i)(?:prepar|redig|scriv|predispon|stend|fammi|mi serve|vorrei|valuta|dimmi|indica|cosa|come|quale|"
-                r"possiamo|devo|dobbiamo)", x.strip())]
+                r"possiamo|devo|dobbiamo)", x.strip()) or _CHIEDE_OVUNQUE.search(piano(x))]
             f.richiesta = piano(" ".join(chieste))
     return f

@@ -14,7 +14,8 @@ from .norme import piano
 
 # Atti che l'avvocato chiede di redigere (ordine: dal più specifico).
 ATTI: tuple[tuple[str, str], ...] = (
-    ("opposizione a decreto ingiuntivo", r"opposizion\w*.{0,60}(?:decreto ingiuntivo|ingiunzione)"),
+    ("opposizione a ordinanza-ingiunzione", r"opposizion\w*.{0,60}ordinanza[- ]ingiunzion|ordinanza[- ]ingiunzion"),
+    ("opposizione a decreto ingiuntivo", r"opposizion\w*.{0,60}(?:decreto ingiuntivo|(?<!ordinanza-)(?<!ordinanza )ingiunzione)"),
     ("opposizione a precetto", r"opposizion\w*.{0,60}precett|precett.{0,80}\bopposizion"),
     ("opposizione alla convalida di sfratto", r"opposizion\w*.{0,40}convalida"),
     ("memoria", r"\bmemori[ae]\b"),
@@ -30,6 +31,20 @@ ATTI: tuple[tuple[str, str], ...] = (
     ("memoria", r"\bmemori[ae]\b"),
     ("ricorso", r"\bricorso\b"),
     ("querela", r"\bquerela\b"),
+    ("atto di opposizione di terzo", r"opposizione di terzo"),
+    ("atto di revocazione", r"\brevocazion"),
+    ("reclamo", r"\breclamo\b"),
+    ("istanza", r"\bistanz[ae]\b"),
+    ("atto di pignoramento", r"atto di pignoramento|\bpignoramento\b"),
+    ("denuncia", r"\bdenuncia\b|\besposto\b"),
+    ("domanda", r"\bdomanda (?:di|per) (?:mediazione|adesione|ammissione|rateizzazione|dilazione|definizione|accesso)"),
+    ("convenzione di negoziazione assistita", r"convenzione di negoziazione"),
+    ("transazione", r"\btransazione\b|accordo transattivo"),
+    ("richiesta", r"\brichiesta di (?:riesame|archiviazione|patteggiamento|rito abbreviato|messa alla prova|sospensione|rinvio)"),
+    ("opposizione", r"\bopposizione\b"),
+    ("lettera", r"\blettera\b"),
+    ("contratto", r"\bcontratto\b|\bscrittura privata\b"),
+    ("atto", r"\batto\b"),
 )
 _VERBI_REDAZIONE = (r"\b(?:redig\w*|rediger\w*|scriv\w*|prepar\w*|predispo\w*|stend\w*|compil\w*|imposta\w*|elabor\w*|"
                     r"fammi|mi serve (?:una |la |un )?(?:bozza|atto)|bozza (?:di|del|dell|della|per))\b")
@@ -43,7 +58,13 @@ _PARERE = (r"\bvaluta\w*|come ci difendiamo|come ci muoviamo|come procediamo|com
            r"serve (?:la|il|una|un)\b|occorre|quale giudice|giudice competente|chi e competente|e competente|competen|\brito\b|"
            r"procedibil|mediazione|negoziazione|conviene|in che modo|quando posso|si puo|e possibile|indica la norma|"
            r"che norma|quale norma|sana\w*|cosa prevede|che cosa prevede|\bpuo\b|\bpossono\b|(?:che|quale|quali) tutel\w*|"
-           r"possiamo (?:chiedere|fare|ottenere|agire)")
+           r"possiamo (?:chiedere|fare|ottenere|agire)|\brimedi\w*|quali (?:sono i )?(?:termini|rimedi|requisiti|presupposti)|"
+           r"come (?:impugn\w*|si (?:chiede|fa|ottiene|impugna|contesta|propone|calcola|scrive|esegue|ritira|cancella)|"
+           r"(?:otteni|ottengo|ottien|contest|cancell|ritir|esegu|scopr|recuper|blocc|tutel)\w*|funziona)|che succede|cosa cambia|"
+           r"\brequisiti\b|\bpresupposti\b|chi (?:puo|deve|risponde|paga|decide)|entro quant\w*|differenza tra|e ancora|"
+           r"si applica|\brisponde\b|\bsi prescrive|prescrizione|decadenza|e impugnabile|e valid\w*|e null\w*|e legittim\w*|"
+           r"dobbiamo (?:fare|prima|chiedere|aspettare)|bisogna|e obbligo|serve (?:il|la|lo|un|una|l)|quando (?:si|scade|va|e)|"
+           r"(?:ci|mi|gli|le) spetta|quanto (?:si|tempo|costa)|in quali casi|a chi (?:ci|mi|si) (?:rivolg\w*)|chi e il giudice")
 _TERMINE = r"entro quando|termin[ei] (?:per|di|breve|lungo)|entro quanto|quanto tempo|scadenza (?:per|del)|quando scade|\bentro\b.{0,30}\bdevo\b"
 _OGGETTI_GIURIDICI = (r"appell|cassazione|opposizion|ricors|querel|impugn|licenzia|precett|delibera|accertamento|provvediment|"
                       r"decreto|sentenz|reclamo|esecuzion|divorzi|separazion|sfratt|contratt|caparra|preliminare|risarciment|"
@@ -52,11 +73,25 @@ _OGGETTI_GIURIDICI = (r"appell|cassazione|opposizion|ricors|querel|impugn|licenz
                       r"mantenim|assegno|affidament|\bfigli|coniug|conduttor|locator|moros|lavor|dipendent|"
                       r"articolo|\bart\.?\s*\d|codice|c\.c\.|c\.p\.c\.|d\.lgs|d\.l\.|legge|tamponat|sinistro|incidente|assicura|"
                       r"\bdanni\b|\bvizi\b|infiltrazion|verbale|multa|diniego|permesso di costruire|eredit|successione|furto|truffa|"
-                      r"appalt|installator")
+                      r"appalt|installator|pignor|possess|servit|\binps\b|\binail\b|naspi|pension|invalidit|archiviazion|"
+                      r"\bsoci[oa]?\b|\bsrl\b|s\.r\.l|societa|bilancio|banca|bancari|mutuo|fideiussion|usura|anatocism|centrale rischi|"
+                      r"concordat|liquidazion|fallim|esdebitazion|sovraindebit|crisi d impresa|clausol|vessator|recesso|disdetta|"
+                      r"riesame|custodia cautelare|misur\w* (?:cautelar|alternativ)|patteggiament|messa alla prova|rito abbreviato|"
+                      r"imputat|indagat|querelat|parte civile|testament|legittim|donazion|usucapion|confini|amministratore|"
+                      r"assemblea|transazion|garante|privacy|dati personali|rateizz|rottamazion|definizione agevolata|autotutela|"
+                      r"accertamento con adesione|sanzion|contravvenzion|sequestr|cautelar|polizza|bolletta|estratti conto|"
+                      r"comune|regione|ministero|prefett|questur|permesso di soggiorno|espulsion|protezione internazionale|asilo|"
+                      r"cartella|agenzia delle entrate|riscossione|imu|tari|irpef|\biva\b|eredi|coniuge|convivent|minori|"
+                      r"inquilin|affitt|proprietari|immobile|danno|risarc|responsabilit|garanzia|difett|prestito|debit|stipendi|"
+                      r"licenz|dimission|contributi|ferie|mansioni|caparra|preliminare|rogito|notaio|condanna|reato|denuncia|"
+                      r"esposto|furto|lesion|diffamazion|truffa|appropriazione|ricettazion")
 # Richieste sui dati dello studio (restano al percorso operativo).
 _OPERATIVA = (r"\b(?:cosa|che cosa|quali|quante|mostra\w*|elenc\w*|dammi|dimmi)\b.{0,40}\b(?:scad\w*|pec|udienz\w*|appuntament\w*|"
               r"agenda|email|messagg\w*|notific\w*|fascicol\w*|client\w*|fattur\w*|preventiv\w*|depositi|ricevut\w*)|"
-              r"^(?:pec|scadenze|udienze|agenda|notifiche|email)\b")
+              r"^(?:pec|scadenze|udienze|agenda|notifiche|email)\b|"
+              # Comandi del software («apri il fascicolo Rossi», «carica il documento»).
+              r"^(?:apri|chiudi|mostra\w*|vai|cerca|trova|aggiungi|salva|stampa|invia|carica|scarica)\b.{0,40}"
+              r"\b(?:fascicol|pratic|agenda|calendario|pec|email|document|file|client|scadenz|udienz|cartell[ae] dello studio)")
 
 
 # Ricerche nelle fonti ufficiali (allegati, questioni, riforme): restano al percorso delle fonti.
@@ -97,6 +132,9 @@ def e_racconto_di_fatti(testo: str) -> bool:
 
 
 def comprendi(testo: str) -> Comprensione:
+    from .normalizzazione import normalizza_richiesta
+
+    testo = normalizza_richiesta(testo)
     t = piano(testo)
     if not t:
         return Comprensione("altro")
@@ -109,14 +147,17 @@ def comprendi(testo: str) -> Comprensione:
     verbo = re.search(_VERBI_REDAZIONE, richiesta) is not None
     if re.search(r"\bparere\b|\bconsulenza\b", richiesta) and not re.search(r"(?:redig|prepar|scriv)\w* (?:l |il |la |un |una )?(?:atto|ricorso|citazione|comparsa)", richiesta):
         return Comprensione("parere", atto, racconto, True, ["richiesta di parere"])
-    oggetto = re.search(_OGGETTI_GIURIDICI, t) is not None
+    oggetto = re.search(_OGGETTI_GIURIDICI, t) is not None or atto not in ("", "atto", "lettera", "contratto")
     parere = re.search(_PARERE, t) is not None
     termine = re.search(_TERMINE, t) is not None
     motivi: list[str] = []
     # La comunicazione allo studio (PEC, email al cliente) resta al percorso delle comunicazioni.
     domanda = re.search(_FORMA_DOMANDA, t) is not None
     fonti_ufficiali = any(tok in t for tok in _RICERCA_FONTI) and not racconto and not termine
-    comunicazione = re.search(r"\b(?:pec|email|e-mail|mail|messaggio|whatsapp)\b", t) and not atto and not racconto
+    # Richiesta sulle comunicazioni dello studio (leggere, mandare, rispondere a PEC ed email); un fatto avvenuto «su
+    # whatsapp» o «via pec» resta un fatto.
+    comunicazione = re.search(r"\b(?:pec|email|e-mail|mail|messaggio|whatsapp)\b", t) and not atto and not racconto and not re.search(
+        r"\b(?:ha|hanno|aveva|avevano) (?:scritto|mandato|inviato|pubblicato|detto)|danni|diffam|offes|minacc|querel|risarc", t)
     if verbo and atto and not comunicazione:
         motivi.append(f"verbo di redazione e atto «{atto}»")
         return Comprensione("redazione", atto, racconto, True, motivi)
@@ -134,7 +175,36 @@ def comprendi(testo: str) -> Comprensione:
         return Comprensione("parere", atto, racconto, True, motivi)
     if re.search(_OPERATIVA, t) and not oggetto:
         return Comprensione("operativa", "", racconto, False, ["richiesta sui dati dello studio"])
+    # Un messaggio su un istituto giuridico è una questione di diritto anche senza punto interrogativo: l'avvocato spesso
+    # racconta i fatti e dice che cosa vuole («mi è successo X, voglio Y»). Restano fuori saluti e richieste operative.
+    if oggetto and not comunicazione and not re.search(_OPERATIVA, t):
+        return Comprensione("termine" if termine else "parere", atto, racconto, True, ["domanda su un istituto giuridico"])
+    # Ingresso dalla fattispecie: una domanda o una richiesta di redazione entra nell'harness quando i fatti descritti
+    # corrispondono a una regola, anche senza le formule di parere o le parole-oggetto degli elenchi.
+    if not comunicazione and not re.search(_OPERATIVA, t):
+        tipo = "redazione" if verbo else ("termine" if termine else "parere")
+        if _fattispecie_riconosciuta(testo, Comprensione(tipo, atto, racconto, True)):
+            return Comprensione(tipo, atto, racconto, True, ["fattispecie riconosciuta dai fatti descritti"])
+        # Linguaggio comune senza parole tecniche («il vicino ha costruito un muro sul mio terreno»): entra se è vicino
+        # per significato a uno strumento delle regole.
+        if _vicino_a_uno_strumento(testo):
+            return Comprensione(tipo, atto, racconto, True, ["vicino per significato a uno strumento"])
     return Comprensione("altro", atto, racconto, bool(oggetto), motivi)
+
+
+def _vicino_a_uno_strumento(testo: str) -> bool:
+    from . import SOGLIA_SIGNIFICATO
+    from .significato import cerca
+
+    vicine = cerca(testo, 1)
+    return bool(vicine) and vicine[0][1] >= SOGLIA_SIGNIFICATO
+
+
+def _fattispecie_riconosciuta(testo: str, c: Comprensione) -> bool:
+    from .fatti import leggi_fatti
+    from .fattispecie import scegli
+
+    return scegli(c, leggi_fatti(testo)) is not None
 
 
 def e_richiesta_giuridica(testo: str) -> bool:

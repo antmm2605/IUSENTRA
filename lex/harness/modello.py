@@ -36,7 +36,9 @@ class Analisi:
     bozza: str = ""
     forma: str = ""                              # «atto» o «parere» (consulenza)
     rimedio: str = ""                            # rimedio scelto, in una riga
-    avvertenze: list[str] = field(default_factory=list)
+    # Avvertenze: un'affermazione giuridica è un Punto con la sua norma (verificata come le altre); una stringa è un
+    # consiglio pratico e comincia con «Consiglio operativo:».
+    avvertenze: list["str | Punto"] = field(default_factory=list)
     dati_mancanti: list[str] = field(default_factory=list)
     modello: str = ""                            # scheda del catalogo dei modelli d'atto
     valore: float | None = None

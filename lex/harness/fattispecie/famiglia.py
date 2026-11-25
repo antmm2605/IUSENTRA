@@ -1,4 +1,5 @@
-"""Fattispecie di famiglia: separazione e divorzio giudiziale, mantenimento del figlio maggiorenne (artt. 473-bis ss. c.p.c.)."""
+"""Fattispecie di famiglia: separazione e divorzio giudiziale, separazione consensuale su domanda congiunta (art. 473-bis.51
+c.p.c.), mantenimento del figlio maggiorenne (artt. 473-bis ss. c.p.c.)."""
 from __future__ import annotations
 
 import re
@@ -12,6 +13,13 @@ from .. import procedura as P
 
 def riconosci_separazione(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
+    if re.search(r"(?:assegno|mantenimento)\b[^.?]{0,80}?\b(?:farl\w* )?(?:ridurr|abbass|diminuir|aumentar)|non riesco (?:piu )?a "
+                 r"pagare (?:l |il )?(?:assegno|mantenimento)", t):
+        return 0
+    if re.search(r"(?:cambi|modific|rivede)\w* (?:il |l |i |le )?(?:collocament|affidament|assegno|mantenimento|visit)|"
+                 r"modific\w* (?:delle |le )?condizion|revision\w* (?:delle |le )?condizion|negoziazione assistita|ordine di protezione|"
+                 r"ordini di protezione", t):
+        return 0
     if re.search(r"separazion|divorzi", t) and not re.search(r"quando posso.{0,40}divorzi|dopo (?:quanto|la separazione)", t):
         return 3
     return 0
@@ -98,4 +106,189 @@ def analizza_maggiorenne(c: Comprensione, f: Fatti) -> Analisi:
                            "determinazione.", [Rif("cc:337septies", "figli maggiorenni non indipendenti economicamente")])]
     a.rito = [Punto("Si procede con ricorso nel rito per le persone, i minorenni e le famiglie.",
                     [Rif("cpc:473bis", "stato delle persone, ai minorenni e alle famiglie"), Rif("cpc:473bis12", "si propone con ricorso")])]
+    return a
+
+
+# ------------------------------------------------------------------- revisione delle condizioni (art. 473-bis.29 c.p.c.)
+def riconosci_modifica_condizioni(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    if re.search(r"negoziazione assistita", t):
+        return 0
+    oggetto_prima = re.search(r"(?:assegno|mantenimento|contribut\w*|affidamento|collocamento)\b[^.?]{0,80}?\b(?:farl\w* |"
+                              r"farla |chiederne (?:la )?)?(?:ridurr|abbass|diminuir|aumentar|modific|rivedere|cambiar|revocar)|"
+                              r"non riesco (?:piu )?a pagare (?:l |il )?(?:assegno|mantenimento)", t)
+    return 6 if (oggetto_prima or re.search(r"(?:modific|revision|revoc|riduzion|ridurr|aument|rivede|rivision|cambi|abbass|alzar)\w* (?:delle |le |dell |l |il |i |dell assegno|del mantenimento|"
+                          r"dell affidamento|del contributo)?(?:condizion|assegno|mantenimento|affidamento|contribut|collocament|visit|tempi di permanenza)", t)) and re.search(
+        r"separazion|divorzi|figli|mantenimento|ex (?:moglie|marito|coniuge)|assegno (?:divorzile|di mantenimento)", t) and not re.search(
+        r"\binps\b|assegno sociale|pension|invalidit|assegno unico", t) else 0
+
+
+def analizza_modifica_condizioni(c: Comprensione, f: Fatti) -> Analisi:
+    from .strumenti import forma
+
+    a = Analisi("modifica_condizioni", "famiglia — revisione delle condizioni", forma=forma(c))
+    a.capito = ["Richiesta di modificare le condizioni di separazione o divorzio (figli, assegni) per fatti sopravvenuti."]
+    a.rimedio = ("ricorso per la revisione dei provvedimenti con le forme del rito unitario della famiglia, oppure accordo "
+                 "con negoziazione assistita")
+    a.conclusione = [
+        Punto("Se sopravvengono giustificati motivi, le parti possono in ogni tempo chiedere la revisione dei provvedimenti a "
+              "tutela dei minori e in materia di contributi economici, con le forme del procedimento in materia di famiglia.",
+              [Rif("cpc:473bis29", "Qualora sopravvengano giustificati motivi"),
+               Rif("cpc:473bis29", "la revisione dei provvedimenti a tutela dei minori e in materia di contributi economici")]),
+        Punto("Se c'è accordo, la modifica delle condizioni di separazione o di divorzio si può fare anche con la negoziazione "
+              "assistita da almeno un avvocato per parte.",
+              [Rif("dl132:6", "di modifica delle condizioni di separazione o di divorzio")]),
+    ]
+    a.cosa_fare = ["Documentare il fatto nuovo (reddito, lavoro, esigenze dei figli, nuova convivenza) rispetto al provvedimento.",
+                   "Allegare il provvedimento da modificare e le ultime dichiarazioni dei redditi."]
+    a.dati_mancanti.append("provvedimento da modificare (data e giudice) e fatti sopravvenuti")
+    return a
+
+
+# ------------------------------------------------------------------- negoziazione assistita familiare (art. 6 d.l. 132/2014)
+def riconosci_negoziazione_familiare(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    return 7 if re.search(r"negoziazione assistita", t) and re.search(r"separazion|divorzi|coniug|figli|mantenimento|affidamento|"
+                                                                     r"alimenti|matrimonio", t) else 0
+
+
+def analizza_negoziazione_familiare(c: Comprensione, f: Fatti) -> Analisi:
+    from .strumenti import forma
+
+    t = piano(f.testo)
+    a = Analisi("negoziazione_familiare", "famiglia — negoziazione assistita", forma=forma(c))
+    figli = re.search(r"figli (?:minor|maggiorenn\w* (?:non autosufficient|incapac|portator))|con figli|minori", t)
+    a.capito = ["Separazione, divorzio o modifica delle condizioni con accordo raggiunto in negoziazione assistita"
+                + (", con figli minori o non autosufficienti." if figli else ".")]
+    a.rimedio = "convenzione di negoziazione assistita da almeno un avvocato per parte e trasmissione dell'accordo al pubblico ministero"
+    a.conclusione = [
+        Punto("La convenzione di negoziazione assistita da almeno un avvocato per parte può essere conclusa fra coniugi per la "
+              "separazione, il divorzio o la modifica delle condizioni.",
+              [Rif("dl132:6", "da almeno un avvocato per parte puo' essere conclusa tra coniugi")]),
+        Punto("Senza figli minori, maggiorenni incapaci, con handicap grave o non autosufficienti, l'accordo va al procuratore "
+              "della Repubblica, che se non trova irregolarità rilascia il nullaosta.",
+              [Rif("dl132:6", "comunica agli avvocati di tutte le parti il nullaosta")]),
+        Punto("Con quei figli, l'accordo deve essere trasmesso entro dieci giorni al procuratore della Repubblica, che lo "
+              "autorizza se risponde al loro interesse; altrimenti lo trasmette al presidente del tribunale, che fissa la "
+              "comparizione delle parti.",
+              [Rif("dl132:6", "deve essere trasmesso entro il termine di dieci giorni al procuratore della Repubblica"),
+               Rif("dl132:6", "quando ritiene che l'accordo risponde all'interesse dei figli, lo autorizza")]),
+        Punto("L'accordo si trasmette in via telematica a cura degli avvocati.",
+              [Rif("dl132:6", "L'accordo e' trasmesso con modalita' telematiche")]),
+    ]
+    if figli:
+        a.avvertenze.append("Con figli minori non basta il nullaosta: serve l'autorizzazione del pubblico ministero, che valuta "
+                            "l'interesse dei figli.")
+    return a
+
+
+# ------------------------------------------------------------------- ordini di protezione (artt. 473-bis.69 ss. c.p.c.)
+def riconosci_ordini_protezione(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    return 7 if re.search(r"ordin\w* di protezione|allontanamento dalla casa familiare|abusi familiari|violenz\w* (?:domestic|in famiglia)|"
+                          r"342[- ]bis|342[- ]ter", t) else 0
+
+
+def analizza_ordini_protezione(c: Comprensione, f: Fatti) -> Analisi:
+    from .strumenti import forma
+
+    a = Analisi("ordini_protezione", "famiglia — ordini di protezione", forma=forma(c))
+    a.capito = ["Condotta del coniuge o del convivente che reca grave pregiudizio all'integrità o alla libertà dell'altro."]
+    a.rimedio = "ricorso per ordine di protezione contro gli abusi familiari (artt. 473-bis.69 e 473-bis.70 c.p.c.)"
+    a.conclusione = [
+        Punto("Quando la condotta del coniuge o di altro convivente è causa di grave pregiudizio all'integrità fisica o morale "
+              "o alla libertà dell'altro, il giudice, su istanza di parte, può adottare con decreto gli ordini di protezione, "
+              "anche se la convivenza è cessata.",
+              [Rif("cpc:473bis69", "e' causa di grave pregiudizio all'integrita' fisica o morale"),
+               Rif("cpc:473bis69", "anche quando la convivenza e' cessata")]),
+        Punto("La disciplina vigente degli ordini di protezione è nel codice di procedura civile, nel procedimento in materia di "
+              "persone, minorenni e famiglie; se la condotta può pregiudicare i minori provvede, anche su istanza del pubblico ministero, il "
+              "tribunale per i minorenni.",
+              [Rif("cpc:473bis69", "dal tribunale per i minorenni")]),
+        Punto("Con il decreto il giudice ordina la cessazione della condotta e l'allontanamento dalla casa familiare, e può "
+              "vietare di avvicinarsi ai luoghi frequentati dal beneficiario.",
+              [Rif("cpc:473bis70", "la cessazione della stessa condotta e dispone l'allontanamento dalla casa familiare"),
+               Rif("cpc:473bis70", "di non avvicinarsi ai luoghi abitualmente frequentati dal beneficiario")]),
+    ]
+    return a
+
+
+# ------------------------------------------------------------------- separazione consensuale (domanda congiunta)
+_CONSENSUALE = (r"consensual|d accordo|di comune accordo|domanda congiunt|ricorso congiunt|congiuntament|insieme (?:la|il|una|un)|"
+                r"entrambi (?:vogliamo|vogliono|d accordo)|(?:vogliamo|vogliono) separarci d accordo|siamo d accordo")
+
+
+def riconosci_separazione_consensuale(c: Comprensione, f: Fatti) -> int:
+    t = piano(f.testo)
+    if not re.search(r"separa(?:zion|r)", t) or not re.search(_CONSENSUALE, t):
+        return 0
+    if re.search(r"negoziazione assistita|senza (?:andare (?:in|dal) )?(?:tribunale|giudice)|con (?:gli|due|i nostri) avvocati|"
+                 r"modific\w* (?:delle |le )?condizion|divorzi|non (?:e|sono|siamo) d accordo|"
+                 r"non vuole separarsi|contrari", t):
+        return 0
+    return 5
+
+
+def analizza_separazione_consensuale(c: Comprensione, f: Fatti) -> Analisi:
+    from .strumenti import forma
+
+    t = piano(f.testo)
+    minori = re.search(r"figli\w* (?:minor|di \d+ anni|piccol)|bambin|\bfiglio di \d|\bfiglia di \d|anni (?:e|ed) \d+ anni|"
+                       r"minorenn", t) is not None
+    a = Analisi("separazione_consensuale", "famiglia — separazione consensuale", forma=forma(c))
+    a.capito = ["Coniugi d'accordo sulla separazione e sulle condizioni" + (", con figli minori" if minori else "") + "."]
+    a.rimedio = ("ricorso congiunto per la separazione consensuale al tribunale (art. 473-bis.51 c.p.c.); in alternativa "
+                 "negoziazione assistita" + ("" if minori else " o accordo davanti al sindaco come ufficiale dello stato civile"))
+    a.giudice = "tribunale del luogo di residenza o di domicilio dell'uno o dell'altro coniuge"
+    a.conclusione = [
+        Punto("La domanda congiunta si propone con ricorso al tribunale del luogo di residenza o di domicilio dell'una o "
+              "dell'altra parte, sottoscritto anche dai coniugi, con i redditi e il patrimonio dell'ultimo triennio e le "
+              "condizioni sui figli e sui rapporti economici.",
+              [Rif("cpc:473bis51", "si propone con ricorso al tribunale del luogo di residenza o di domicilio dell'una o "
+                                   "dell'altra parte"),
+               Rif("cpc:473bis51", "Il ricorso e' sottoscritto anche dalle parti"),
+               Rif("cpc:473bis51", "disponibilita' reddituali e patrimoniali dell'ultimo triennio")]),
+        Punto("La separazione per il solo consenso non ha effetto senza l'omologazione del giudice: il collegio omologa gli "
+              "accordi con sentenza e, se sono in contrasto con l'interesse dei figli, indica le modifiche e può rigettare "
+              "allo stato la domanda.",
+              [Rif("cc:158", "non ha effetto senza l'omologazione del giudice"),
+               Rif("cpc:473bis51", "Il collegio provvede con sentenza con la quale omologa"),
+               Rif("cpc:473bis51", "Se gli accordi sono in contrasto con gli interessi dei figli")]),
+    ]
+    a.rito = [Punto("Depositato il ricorso, il presidente fissa l'udienza di comparizione davanti al relatore e trasmette gli "
+                    "atti al pubblico ministero; l'udienza si può sostituire con note scritte se lo si chiede nel ricorso, "
+                    "dichiarando di non volersi riconciliare.",
+                    [Rif("cpc:473bis51", "il presidente fissa l'udienza per la comparizione delle parti"),
+                     Rif("cpc:473bis51", "sostituire l'udienza con il deposito di note scritte")])]
+    a.inquadramento = [Punto("Senza andare in tribunale, i coniugi possono separarsi anche con la negoziazione assistita da "
+                             "almeno un avvocato per parte.",
+                             [Rif("dl132:6", "puo' essere conclusa tra coniugi al fine di raggiungere una soluzione "
+                                             "consensuale di separazione personale")])]
+    if minori:
+        a.inquadramento.append(Punto(
+            "Con figli minori l'accordo di negoziazione va trasmesso entro dieci giorni al procuratore della Repubblica, che "
+            "lo autorizza se risponde all'interesse dei figli; l'accordo davanti al sindaco non è ammesso.",
+            [Rif("dl132:6", "deve essere trasmesso entro il termine di dieci giorni al procuratore della Repubblica"),
+             Rif("dl132:12", "non si applicano in presenza di figli minori")]))
+        a.giudice = "tribunale del luogo di residenza abituale del figlio minore"
+        a.competenza = [Punto("Se si chiedono provvedimenti sui figli minori, è competente il tribunale del luogo di "
+                              "residenza abituale del minore.",
+                              [Rif("cpc:473bis11", "tribunale del luogo in cui il minore ha la residenza abituale")])]
+        a.inquadramento.append(Punto("Il giudice prende atto degli accordi fra i genitori sui figli se non sono contrari al "
+                                     "loro interesse.", [Rif("cc:337ter", "Prende atto, se non contrari all'interesse dei figli")]))
+    else:
+        a.inquadramento.append(Punto(
+            "Senza figli minori, maggiorenni incapaci, con handicap grave o non autosufficienti, i coniugi possono "
+            "concludere l'accordo di separazione davanti al sindaco come ufficiale dello stato civile, con l'assistenza "
+            "facoltativa di un avvocato e senza patti di trasferimento patrimoniale.",
+            [Rif("dl132:12", "con l'assistenza facoltativa di un avvocato, un accordo di separazione personale"),
+             Rif("dl132:12", "non puo' contenere patti di trasferimento patrimoniale")]))
+    a.cosa_fare = ["Raccogliere estratto dell'atto di matrimonio, certificati di residenza e stato di famiglia, dichiarazioni "
+                   "dei redditi degli ultimi tre anni e documenti sul patrimonio.",
+                   "Scrivere le condizioni concordate: casa familiare, affidamento e collocamento dei figli, tempi di visita, "
+                   "assegni di mantenimento, eventuali accordi patrimoniali.",
+                   "Scegliere la strada: ricorso congiunto, negoziazione assistita" + ("" if minori else " o accordo in comune")
+                   + "; nel ricorso chiedere, se si vuole, la sostituzione dell'udienza con note scritte."]
+    a.dati_mancanti = ["residenza dei coniugi" + (" e dei figli" if minori else ""), "condizioni concordate",
+                       "redditi e patrimonio dell'ultimo triennio"]
     return a

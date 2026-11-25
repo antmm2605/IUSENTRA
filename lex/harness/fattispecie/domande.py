@@ -23,6 +23,16 @@ def _prima_data(f: Fatti):
 # ---------------------------------------------------------------------------------- negoziazione / mediazione puntuali
 def riconosci_negoziazione(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
+    if f.importi and not c.racconto and not f.ha("caparra_confirmatoria") and re.search(
+            r"serve (?:qualcosa|altro|un passaggio|un tentativo) prima|prima (?:della causa|di fare causa|di agire|di andare dal giudice)|"
+            r"condizion\w* di procedibil|passaggi? (?:obbligatori|preliminari)|tentativo obbligatorio", t) and not f.ha("locazione") and re.search(
+            r"prestit|prestat|fattur|credit|soldi|somm|pagament|restitu", t) and not re.search(
+            r"sequestr|cautel|urgenz|blocc|congel|svuot|quale giudice|competen|sinistr|incident|circolazion|lavor|condomin|eredit|medic", t):
+        return 7
+    if "negoziazione" in t and f.importi and not f.ha("caparra_confirmatoria") and not f.ha("consumatore") and not re.search(
+            r"sinistr|incident|circolazion|tamponat|consumator", t) and re.search(
+            r"obbligatori|serve|occorre|necessari|condizion|devo|dobbiamo|bisogna|prima", t):
+        return 5
     return 3 if "negoziazione" in t and f.importi and not c.racconto and not f.ha("caparra_confirmatoria") else 0
 
 
@@ -47,7 +57,11 @@ def analizza_negoziazione(c: Comprensione, f: Fatti) -> Analisi:
 
 def riconosci_mediazione(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    return 2 if "mediazione" in t and re.search(r"obbligatori|serve|occorre|necessari|condizione", t) and not c.racconto else 0
+    if "mediazion" in t and re.search(r"obbligatori|serve|occorre|necessari|condizion|devo (?:fare|prima)|dobbiamo (?:fare|prima)|bisogna", t) \
+            and not re.search(r"quale giudice|competen", t):
+        # Chi chiede espressamente della mediazione riceve lo strumento, anche se nomina la materia (locazione, condominio).
+        return 4
+    return 0
 
 
 def _materia_mediazione(t: str) -> str | None:
@@ -115,7 +129,13 @@ def analizza_appello_lavoro(c: Comprensione, f: Fatti) -> Analisi:
 
 # ---------------------------------------------------------------------------------- esecuzione
 def riconosci_opposizione_atti(c: Comprensione, f: Fatti) -> int:
-    return 3 if re.search(r"opposizione agli atti esecutivi|617", _t(f)) else 0
+    t = _t(f)
+    if re.search(r"opposizione agli atti esecutivi|617", t):
+        return 5
+    # Vizi di forma del titolo, del precetto o di un atto esecutivo: non si contesta il diritto, ma la regolarità.
+    return 5 if re.search(r"precett|pignorament|atto esecutiv|titolo esecutivo", t) and re.search(
+        r"\bnull\w*|irregolar|vizi\w* (?:di )?form|manca (?:l |la |il )?(?:avvertiment|indicazion|sottoscrizion|firma)|"
+        r"notifica\w* (?:nulla|irregolare|viziata)|difett\w* di (?:forma|notifica)", t) else 0
 
 
 def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:
@@ -135,7 +155,8 @@ def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:
 # ---------------------------------------------------------------------------------- condominio
 def riconosci_delibera(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    return 3 if re.search(r"delibera|deliberazion", t) and "condomin" in t else 0
+    return 3 if (re.search(r"delibera|deliberazion", t) or re.search(
+        r"(?:l |dell |in )assemblea\b[^.]{0,120}(?:approvat|deciso|votat|stabilit)", t)) and "condomin" in t else 0
 
 
 def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
@@ -154,8 +175,9 @@ def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
                                    + (f". Per prudenza conviene agire entro {data_breve(senza)}, la scadenza senza sospensione"
                                       if tocca_agosto(d, senza) else "") + ".",
                                    [Rif("cc:1137", "termine perentorio di trenta giorni"), Rif("l742:1", "sospeso di diritto")]))
-    a.dubbi.append("La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: "
-                   "depositala entro i trenta giorni.")
+    a.avvertenze.append(Punto("La domanda di mediazione, dal momento in cui la comunicazione perviene alle altre parti, "
+                              "impedisce la decadenza per una sola volta: va depositata entro i trenta giorni.",
+                              [Rif("dlgs28:8", "impedisce la decadenza per una sola volta")]))
     return a
 
 
@@ -195,7 +217,7 @@ def analizza_consumatore(c: Comprensione, f: Fatti) -> Analisi:
 
 # ---------------------------------------------------------------------------------- amministrativo
 def riconosci_straordinario(c: Comprensione, f: Fatti) -> int:
-    return 3 if re.search(r"ricorso straordinario", _t(f)) else 0
+    return 4 if re.search(r"ricorso straordinario|ricorso al (?:presidente della repubblica|capo dello stato)", _t(f)) else 0
 
 
 def analizza_straordinario(c: Comprensione, f: Fatti) -> Analisi:
@@ -203,12 +225,32 @@ def analizza_straordinario(c: Comprensione, f: Fatti) -> Analisi:
     a.conclusione = [Punto("Il ricorso straordinario al Presidente della Repubblica si propone entro centoventi giorni "
                            "dalla notificazione o comunicazione dell'atto impugnato o da quando l'interessato ne ha avuto "
                            "piena conoscenza.", [Rif("dpr1199:9", "centoventi giorni")])]
+    a.inquadramento = [
+        Punto("Il ricorso straordinario è ammesso contro gli atti amministrativi definitivi, per soli motivi di legittimità, ed "
+              "è alternativo al ricorso al TAR: se l'atto è già stato impugnato in sede giurisdizionale dallo stesso "
+              "interessato, il ricorso straordinario non è ammesso.",
+              [Rif("dpr1199:8", "Contro gli atti amministrativi definitivi"), Rif("dpr1199:8", "per motivi di legittimita'"),
+               Rif("dpr1199:8", "non e' ammesso il ricorso straordinario da parte dello stesso interessato")]),
+        Punto("I controinteressati, entro sessanta giorni dalla notificazione del ricorso, possono chiedere che sia deciso in "
+              "sede giurisdizionale (trasposizione): il ricorrente che vuole insistere deve costituirsi davanti al giudice "
+              "amministrativo entro sessanta giorni dal ricevimento dell'opposizione.",
+              [Rif("dpr1199:10", "entro il termine di sessanta giorni dalla notificazione del ricorso"),
+               Rif("dpr1199:10", "nel termine di sessanta giorni dal ricevimento dell'atto di opposizione")]),
+    ]
+    a.rimedio = "ricorso straordinario al Presidente della Repubblica entro centoventi giorni, in alternativa al TAR"
+    a.forma = "atto" if c.tipo == "redazione" else "parere (consulenza)"
     return a
 
 
 # ---------------------------------------------------------------------------------- penale
 def riconosci_querela(c: Comprensione, f: Fatti) -> int:
-    return 3 if "querel" in _t(f) and re.search(r"termin|entro|quando|tempo|mesi|parere", _t(f)) else 0
+    if "querel" not in _t(f) or not re.search(r"termin|entro|quando|tempo|mesi|parere", _t(f)):
+        return 0
+    # La domanda sul termine della querela nella richiesta prevale sul racconto della diffamazione (risarcimento civile).
+    richiesta = piano(f.richiesta)
+    if re.search(r"querel", richiesta) and re.search(r"termin|entro|quando|tempo|mesi|scad|aspett|ancora in tempo", richiesta):
+        return 7
+    return 3
 
 
 def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
@@ -219,7 +261,9 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
     if d:
         a.conclusione.append(Punto(f"Notizia del fatto il {data_breve(d)}: querela entro {data_breve(termine("PEN_QUERELA_124", d))}.",
                                    [Rif("cp:124", "tre mesi")]))
-    a.dubbi.append("Alcuni reati hanno termini diversi stabiliti dalla legge: verifica la norma del reato specifico.")
+    a.avvertenze.append(Punto("Il termine di tre mesi vale salvo che la legge disponga altrimenti: alcuni reati hanno "
+                              "termini diversi, da verificare sulla norma del reato specifico.",
+                              [Rif("cp:124", "Salvo che la legge disponga altrimenti")]))
     t = _t(f)
     from .strumenti import data_di
 
@@ -228,7 +272,7 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
         lim = termine("PEN_QUERELA_124", notizia)
         a.conclusione = [Punto(f"Il termine decorre dalla notizia del fatto ({notizia.strftime('%d/%m/%Y')}), non dalla "
                                f"pubblicazione: querela entro {data_breve(lim)}.", [Rif("cp:124", "tre mesi")])]
-    if re.search(r"facebook|social|post|pubblic", t):
+    if re.search(r"facebook|instagram|tiktok|social|\bpost\b|pubblic|online|sul web|in rete", t):
         a.inquadramento.append(Punto("Offesa all'altrui reputazione comunicando con più persone: diffamazione, aggravata se "
                                      "commessa con un mezzo di pubblicità come un social network.",
                                      [Rif("cp:595", "comunicando con piu persone"), Rif("cp:595", "mezzo di pubblicita")]))
@@ -237,9 +281,18 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
         a.rimedio = "querela per diffamazione aggravata entro tre mesi dalla notizia, senza atti che valgano rinuncia"
         a.giudice = "Procura della Repubblica competente"
         a.forma = "parere (consulenza)"
-        a.avvertenze = ["I «sei mesi» della richiesta sono sbagliati: il termine è di tre mesi; aspettare febbraio farebbe "
-                        "perdere la querela.", "Accettare la proposta di cancellare il post in cambio di «lasciar perdere» può "
-                        "valere come rinuncia tacita: non accettarla prima di aver presentato querela."]
+        if re.search(r"sei mesi|6 mesi|febbraio|piu tardi|con calma", t):
+            a.avvertenze.append(Punto("Il termine è di tre mesi dalla notizia del fatto: aspettare oltre farebbe perdere la "
+                                      "querela" + ("; i «sei mesi» della richiesta sono sbagliati." if re.search(r"sei mesi|6 mesi", t)
+                                                   else "."), [Rif("cp:124", "tre mesi")]))
+        if re.search(r"cancell|rimuov|togli|lasci\w* perdere|in cambio|accordo|ritratt", t):
+            a.avvertenze.append(Punto("Accettare la proposta di cancellare il post in cambio di «lasciar perdere» può valere "
+                                      "come rinuncia tacita: non accettarla prima di aver presentato querela.",
+                                      [Rif("cp:124", "rinuncia espressa o tacita")]))
+        else:
+            a.avvertenze.append(Punto("Atti incompatibili con la volontà di querelare possono valere come rinuncia tacita: "
+                                      "nessun accordo con l'autore del post prima di aver presentato querela.",
+                                      [Rif("cp:124", "rinuncia espressa o tacita")]))
         a.inquadramento.append(Punto("Il diritto di querela non si esercita se c'è stata rinuncia espressa o tacita.",
                                      [Rif("cp:124", "rinuncia espressa o tacita")]))
         a.dati_mancanti = ["screenshot con data e link del post", "dati del querelato"]
@@ -268,6 +321,12 @@ def riconosci_tar(c: Comprensione, f: Fatti) -> int:
     atto_amministrativo = re.search(r"\btar\b|tribunale amministrativo|diniego|permesso di costruire|ordinanza (?:sindacale|di demolizione)|"
                                     r"aggiudicazion|esclusione dalla gara|provvedimento (?:amministrativo|del comune|della regione)|"
                                     r"revoca dell autorizzazione|annullamento d ufficio", t)
+    if re.search(r"ricorso straordinario|presidente della repubblica|capo dello stato", t):
+        return 0
+    # Provvedimenti che non vanno al TAR: protezione internazionale, unità familiare, prestazioni previdenziali.
+    if re.search(r"protezione (?:internazionale|sussidiaria|speciale)|asilo|rifugiat|ricongiungimento|motivi familiari|"
+                 r"naspi|\binps\b|pension|invalidit|indennita di disoccupazione", t):
+        return 0
     return 3 if atto_amministrativo and re.search(r"impugn|ricors|termin|entro", t) else 0
 
 
@@ -286,7 +345,22 @@ def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
         a.conclusione.append(Punto(f"Provvedimento notificato il {data_breve(d)}: ricorso da notificare entro "
                                    f"{data_breve(termine('AMM_RICORSO_29', d))} (sessanta giorni con la sospensione feriale).",
                                    [Rif("cpa:29", "sessanta giorni"), Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")]))
-    a.dubbi.append("Riti speciali (appalti, accesso agli atti, silenzio) hanno termini dimezzati o diversi: verifica il rito.")
+    a.avvertenze += [
+        Punto("I sessanta giorni non valgono per tutti i riti: per gli atti delle procedure di affidamento di lavori, servizi "
+              "e forniture il ricorso si propone nel termine di trenta giorni.",
+              [Rif("cpa:120", "sono proposti nel termine di trenta giorni")]),
+        Punto("Nelle materie del rito abbreviato i termini processuali ordinari sono dimezzati, ma non quello per notificare "
+              "il ricorso introduttivo.",
+              [Rif("cpa:119", "Tutti i termini processuali ordinari sono dimezzati"),
+               Rif("cpa:119", "quelli per la notificazione del ricorso introduttivo")]),
+        Punto("Contro il silenzio dell'amministrazione si agisce finché perdura l'inadempimento e comunque non oltre un anno "
+              "dalla scadenza del termine di conclusione del procedimento.",
+              [Rif("cpa:31", "non oltre un anno dalla scadenza del termine di conclusione del procedimento")]),
+    ]
+    a.avvertenze.append(Punto("Per l'accesso ai documenti il rito è speciale: il ricorso si propone entro trenta giorni "
+                              "dalla conoscenza della determinazione o dalla formazione del silenzio.",
+                              [Rif("cpa:116", "il ricorso e' proposto entro trenta giorni dalla conoscenza della "
+                                              "determinazione impugnata o dalla formazione del silenzio")]))
     t = _t(f)
     if re.search(r"annullamento d ufficio|autotutela", t):
         from .strumenti import data_di
@@ -341,7 +415,7 @@ def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
 
 def riconosci_tributario(c: Comprensione, f: Fatti) -> int:
     t = _t(f)
-    return 3 if re.search(r"avviso di accertamento|cartella|tributar|agenzia delle entrate|intimazione di pagamento fiscal", t) and re.search(r"ricors|impugn|termin|entro", t) else 0
+    return 3 if re.search(r"avviso di accertamento|cartella|tributar|agenzia delle entrate|intimazione di pagamento fiscal|avviso (?:imu|tari)|\bimu\b|\btari\b", t) and re.search(r"ricors|impugn|termin|entro", t) else 0
 
 
 def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
@@ -395,7 +469,10 @@ def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
                  "Nel merito: i versamenti sono la restituzione di un prestito, documentata.",],
                 "annullare l'avviso per decadenza e, in subordine, nel merito; con vittoria di spese.",
                 "avviso con relata, dichiarazione, scrittura di prestito, bonifici.", "art. 18 d.lgs. 546/1992")
-    a.dubbi += ["L'istanza di accertamento con adesione sospende il termine per novanta giorni: verifica se è stata presentata.",
-                "Il testo unico della giustizia tributaria (d.lgs. 175/2024) sostituirà il d.lgs. 546/1992: verifica sull'archivio "
-                "la data da cui si applica prima di citarlo nell'atto."]
+    a.avvertenze.append(Punto(
+        "L'istanza di accertamento con adesione presentata prima del ricorso sospende il termine per impugnare per novanta "
+        "giorni dalla presentazione; dopo l'avviso è ammessa solo per gli atti per i quali non si applica il contraddittorio "
+        "preventivo: verifica se è stata presentata.",
+        [Rif("dlgs218:6", "sono sospesi per un periodo di novanta giorni dalla data di presentazione dell'istanza"),
+         Rif("dlgs218:6", "per i quali non si applica il contraddittorio preventivo")]))
     return a

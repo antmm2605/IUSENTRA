@@ -57,7 +57,7 @@ def componi(domanda_tipo: str, a: Analisi, esito: EsitoControllo, domanda: str =
             righe += ["", "**Giurisprudenza**", "- Archivi non consultabili ora: " + "; ".join(a.giurisprudenza.errori)
                       + ". Nessuna pronuncia è citata senza lettura."]
     if a.avvertenze:
-        righe += ["", "**Avvertenze**"] + [f"- {x}" for x in a.avvertenze]
+        righe += ["", "**Avvertenze**"] + [_riga(x) if isinstance(x, Punto) else f"- {x}" for x in a.avvertenze]
     if a.dubbi or a.dati_mancanti:
         righe += ["", "**Dubbi e dati da completare**"] + [f"- {x}" for x in a.dubbi]
         righe += [f"- Dato da acquisire: {x}" for x in a.dati_mancanti]

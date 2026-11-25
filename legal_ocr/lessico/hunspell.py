@@ -220,10 +220,26 @@ def _leggi_dic(percorso: Path, codifica: str, modo: str) -> dict[str, frozenset[
     return {parola: frozenset(sigle) for parola, sigle in radici.items()}
 
 
+# Cartella con una copia di it_IT.aff e it_IT.dic dove il pacchetto di sistema non c'è (per esempio il PC di sviluppo, con
+# la copia presa dall'immagine di produzione). La variabile ha la precedenza; la cartella di ripiego è quella degli
+# strumenti di controllo dello studio e semplicemente non esiste sui server.
+VARIABILE_CARTELLA = "IUSENTRA_DIZIONARIO_DIR"
+CARTELLA_DI_RIPIEGO = Path.home() / "iusentra-controlli" / "dizionari"
+
+
+def percorsi(nome_file: str, di_sistema: tuple[str, ...]) -> tuple[str, ...]:
+    """I percorsi da provare per un file del dizionario: cartella della variabile, sistema, cartella di ripiego."""
+    import os
+
+    cartella = os.environ.get(VARIABILE_CARTELLA, "").strip()
+    davanti = (str(Path(cartella) / nome_file),) if cartella else ()
+    return davanti + di_sistema + (str(CARTELLA_DI_RIPIEGO / nome_file),)
+
+
 @lru_cache(maxsize=1)
 def dizionario_italiano() -> DizionarioItaliano:
     """Il dizionario italiano installato sull'host, oppure uno vuoto se non c'è."""
-    for percorso_aff in PERCORSI_AFF:
+    for percorso_aff in percorsi("it_IT.aff", PERCORSI_AFF):
         aff = Path(percorso_aff)
         dic = aff.with_suffix(".dic")
         if not (aff.is_file() and dic.is_file()):
@@ -239,6 +255,7 @@ def dizionario_italiano() -> DizionarioItaliano:
 
 
 __all__ = [
-    "AFFISSO_MASSIMO", "Affisso", "DizionarioItaliano", "PERCORSI_AFF", "RADICI_MASSIME",
+    "AFFISSO_MASSIMO", "Affisso", "CARTELLA_DI_RIPIEGO", "DizionarioItaliano", "PERCORSI_AFF", "RADICI_MASSIME",
+    "VARIABILE_CARTELLA", "percorsi",
     "REGOLE_MASSIME", "dizionario_italiano",
 ]

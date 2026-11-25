@@ -105,6 +105,22 @@ def verifica_analisi(a: Analisi) -> EsitoControllo:
                 esito.affermazioni_tolte.append(p.motivo)
                 a.dubbi.append(f"Non affermato perché non verificato ({p.motivo}): {p.testo}")
         lista[:] = tenuti
+    # Le avvertenze con una norma si controllano come le altre affermazioni: senza ancora nel testo vigente passano ai dubbi.
+    avvertenze = []
+    for x in a.avvertenze:
+        if not isinstance(x, Punto):
+            avvertenze.append(x)
+            continue
+        _verifica_punto(x)
+        if x.verificato:
+            avvertenze.append(x)
+            for r in x.rif:
+                if r.chiave not in esito.norme_verificate:
+                    esito.norme_verificate.append(r.chiave)
+        else:
+            esito.affermazioni_tolte.append(x.motivo)
+            a.dubbi.append(f"Non affermato perché non verificato ({x.motivo}): {x.testo}")
+    a.avvertenze[:] = avvertenze
     return esito
 
 

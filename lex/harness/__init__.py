@@ -22,7 +22,8 @@ from .composizione import componi
 from .controllo import EsitoControllo, verifica_analisi, verifica_citazioni
 from .fatti import leggi_fatti
 from .fattispecie import scegli
-from .norme import NORME, testo_norma
+from .modello import Punto
+from .norme import NORME, piano, testo_norma
 
 __all__ = ["RispostaHarness", "comprendi", "e_richiesta_giuridica", "rispondi"]
 
@@ -44,7 +45,8 @@ class RispostaHarness:
         return {"answer": self.testo, "kind": self.tipo, "rule": self.regola, "confidence": self.affidabilita,
                 "sources": self.fonti, "verified_norms": self.norme_verificate,
                 "removed_claims": self.affermazioni_tolte, "unverified_citations": self.citazioni_non_verificate,
-                "draft": self.bozza, "deterministic": True, "registro": self.registro}
+                "draft": self.bozza, "deterministic": True, "registro": self.registro,
+                **({"choices": self.registro["scelte"]} if self.registro.get("scelte") else {})}
 
 
 def _affidabilita(esito: EsitoControllo, punti: int) -> float:
@@ -76,21 +78,105 @@ def risposta_norma(domanda: str) -> RispostaHarness | None:
                            [{"title": f"Normattiva — {NORME[chiave].citazione}", "url": t.url}], [chiave])
 
 
+_SERVE_IMPORTO = frozenset({"consumatore", "competenza_pagamento", "negoziazione_obbligatoria"})
+
+
+def _nome_regola(regola: str) -> str:
+    from .significato import voci
+
+    return next((v.nome for v in voci() if v.regola == regola), regola.replace("_", " "))
+
+
+DISTACCO_MASSIMO = 0.12     # una proposta resta solo se non è più lontana di così dal primo strumento
+SOGLIA_SIGNIFICATO = 0.22   # somiglianza minima per proporre uno strumento: fuori materia <= 0,16, in materia >= 0,26 (24/11)
+
+
 def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensione | None = None) -> RispostaHarness | None:
     c = comprensione or comprendi(domanda)
     if not c.per_harness:
         return None
     if c.tipo == "norma":
         return risposta_norma(domanda)
-    f = leggi_fatti(domanda, oggi=oggi)
-    regola = scegli(c, f)
+    from .chiarimenti import (materia_da_chiarire, testo_chiarimento, testo_chiarimento_lato, testo_chiarimento_strumento,
+                              testo_dati_mancanti, testo_fuori_materia)
+
+    scelte = materia_da_chiarire(domanda)
+    if scelte:
+        return RispostaHarness(testo_chiarimento(scelte), "chiarimento", "chiarimento_materia", 1.0,
+                               registro={"rule": "chiarimento_materia", "scelte": scelte})
+    from .normalizzazione import normalizza_richiesta
+
+    f = leggi_fatti(normalizza_richiesta(domanda), oggi=oggi)
+    from .fattispecie import REGOLE
+    from .significato import area, cerca, strumento_indicato
+
+    indicata = strumento_indicato(domanda)
+    regola = next((r for r in REGOLE if r[0] == indicata), None) if indicata else scegli(c, f)
     if regola is None:
-        return None
-    analisi = regola[2](c, f)
+        # Nessuna regola riconosce la fattispecie: la ricerca per significato propone gli strumenti più vicini, e
+        # l'avvocato sceglie. Sotto la soglia la domanda non è materia delle regole di Lex.
+        # Le domande di termine e di calcolo restano ai motori certi (calcolatori dei termini), che rispondono senza regola.
+        if c.tipo not in {"parere", "redazione"}:
+            return None
+        vicine = cerca(domanda, 8)
+        proposte: list = []
+        if vicine and vicine[0][1] >= SOGLIA_SIGNIFICATO:
+            # Solo strumenti della stessa area del più vicino e non troppo distanti da esso: mai proposte assurde.
+            primo_area, primo_punteggio = area(vicine[0][0].regola), vicine[0][1]
+            proposte = [v for v, s in vicine if area(v.regola) == primo_area and s >= max(SOGLIA_SIGNIFICATO,
+                                                                                       primo_punteggio - DISTACCO_MASSIMO)][:4]
+        racconto = c.racconto or f.importi or f.eventi or re.search(
+            r"\b(?:mio|mia|miei|mie|nostr[oaie]|mi|ci|ho|abbiamo|hanno|e morto|e morta|il cliente|la cliente)\b", piano(domanda))
+        if len(proposte) == 1 and not racconto:
+            # Domanda di diritto senza fatti con un solo strumento vicino: rispondono i motori certi o la rubrica ufficiale.
+            return None
+        # Richiesta di aiuto vaga, senza fatti (nessuna data, importo o evento, poche parole): non si sceglie una regola
+        # «a caso» per vicinanza di parole, si chiedono i fatti essenziali.
+        vaga = (not (c.racconto or f.importi or f.eventi) and len(piano(domanda).split()) < 12
+                and re.search(r"mi serve|ho bisogno|aiut|consiglio|cosa (?:posso|devo|faccio|rischio)|come (?:posso|faccio)|"
+                              r"rischio|problema|urgent", piano(domanda)))
+        if len(proposte) == 1 and vaga:
+            return RispostaHarness(testo_fuori_materia(), "chiarimento", "fuori_materia", 1.0,
+                                   registro={"rule": "fuori_materia", "vicine": [proposte[0].regola]})
+        if len(proposte) == 1:
+            # Una sola proposta vicina: si risponde con quella regola, chiedendo i dati se i fatti non bastano.
+            regola = next(r for r in REGOLE if r[0] == proposte[0].regola)
+            indicata = regola[0]
+        elif not proposte:
+            return RispostaHarness(testo_fuori_materia(), "chiarimento", "fuori_materia", 1.0,
+                                   registro={"rule": "fuori_materia"})
+    if regola is None:
+        base = domanda.strip()
+        scelte = [f"{base} (strumento: {v.nome})" for v in proposte[:4]]
+        return RispostaHarness(testo_chiarimento_strumento(scelte, [v.nome for v in proposte[:4]]), "chiarimento",
+                               "chiarimento_strumento", 1.0, registro={"rule": "chiarimento_strumento", "scelte": scelte})
+    from .lato import scelte_sul_lato
+
+    scelte_lato = (scelte_sul_lato(domanda, regola[0]) if c.tipo in {"parere", "termine"} and not indicata else None)
+    if scelte_lato:
+        return RispostaHarness(testo_chiarimento_lato(scelte_lato), "chiarimento", "chiarimento_lato", 1.0,
+                               registro={"rule": "chiarimento_lato", "scelte": scelte_lato})
+    # Regole che calcolano sul valore della causa: senza un importo nei fatti si chiede il dato invece di fallire.
+    if regola[0] in _SERVE_IMPORTO and not f.importi:
+        return RispostaHarness(testo_dati_mancanti(_nome_regola(regola[0]), ["valore della causa (l'importo chiesto o "
+                               "contestato)"]), "chiarimento", "chiarimento_dati", 1.0,
+                               registro={"rule": "chiarimento_dati", "regola_scelta": regola[0]})
+    try:
+        analisi = regola[2](c, f)
+    except (ValueError, KeyError, IndexError, TypeError, AttributeError):
+        if not indicata:
+            raise
+        # Strumento scelto dall'avvocato fra le proposte, ma i fatti non bastano alla regola: si chiedono i dati.
+        return RispostaHarness(testo_dati_mancanti(_nome_regola(regola[0]), ["fatti essenziali: parti, date, importi e atti "
+                               "ricevuti o da proporre"]), "chiarimento", "chiarimento_dati", 1.0,
+                               registro={"rule": "chiarimento_dati", "regola_scelta": regola[0]})
     from .coerenza import verifica as _coerenza
 
     analisi.dubbi += [d for d in _coerenza(analisi, f) if d not in analisi.dubbi]
     _requisiti_bozza(analisi)
+    from .vigenza_tributaria import applica as _vigenza_tributaria
+
+    _vigenza_tributaria(analisi, f.oggi)
     esito = verifica_analisi(analisi)
     _vigenza_alla_data_dei_fatti(analisi, f, esito)
     analisi.giurisprudenza = _giurisprudenza(c, analisi)
@@ -210,7 +296,7 @@ def registro(c: Comprensione, f, a, esito: EsitoControllo) -> dict[str, Any]:
         "9_procedibilita": _punti(a.procedibilita),
         "10_termini": _punti(a.termini),
         "11_inquadramento": _punti(a.inquadramento),
-        "12_tranelli_e_avvertenze": list(a.avvertenze),
+        "12_tranelli_e_avvertenze": [_punti([x])[0] if isinstance(x, Punto) else x for x in a.avvertenze],
         "13_dati_mancanti": list(a.dati_mancanti),
         "14_modello_atto": {"scheda": a.modello, "presente_nel_catalogo": bool(scheda and scheda.is_file()),
                             "bozza": bool(a.bozza), "requisiti": getattr(a, "requisiti_bozza", None)},

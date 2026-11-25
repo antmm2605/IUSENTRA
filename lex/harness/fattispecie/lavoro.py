@@ -30,7 +30,7 @@ def _comuni(a: Analisi, f: Fatti) -> None:
 
 def riconosci_crediti(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
-    if f.ha("licenziamento"):
+    if f.ha("licenziamento") or re.search(r"pignor|debitor", t):
         return 0
     if re.search(r"differenz\w* retributiv|retribuz|stipend|tfr|trattamento di fine rapporto|straordinar", t) and (
             f.ha("lavoro_subordinato") or "lavor" in t):

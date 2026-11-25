@@ -6,8 +6,6 @@ from .contracts import LexRequest
 from .ricerca_giuridica.classificatore import classifica_domanda
 from .types import WorkflowType
 
-
-
 _REGEX_SEGNI = re.compile(r"[\\^$()\[\]|*+?{}]")
 
 
@@ -15,6 +13,28 @@ def _contiene(testo: str, chiave: str) -> bool:
     if _REGEX_SEGNI.search(chiave):
         return re.search(chiave, testo) is not None
     return re.search(rf"(?<![0-9a-zà-ÿ]){re.escape(chiave)}(?![0-9a-zà-ÿ])", testo) is not None
+
+
+# Organo giudicante scritto con le abbreviazioni forensi: «Cass. civ. sez. III», «Corte cost.», «Cons. St.», «C.d.S.»,
+# «TAR Lazio», «T.A.R. Lombardia», «C.G.A.R.S.».
+_ORGANO_CITATO = re.compile(
+    r"(?<![a-z])(?:cass(?:azione)?\.?|corte\s+cost(?:ituzionale)?\.?|c\.\s?cost\.|"
+    r"cons(?:iglio)?\.?\s*(?:di\s+)?st(?:ato)?\.?|c\.\s?d\.\s?s\.|cds\b|t\.?\s?a\.?\s?r\.?(?=[\s,])|"
+    r"c\.?\s?g\.?\s?a\.?(?:\s?r\.?\s?s\.?)?(?=[\s,]))"
+)
+# Estremi della pronuncia: «n. 9449/2016», «9449/2016», «n. 9449 del 2016», «n. 9449 del 12/05/2016».
+_ESTREMI_CITATI = re.compile(r"\b(?:n\.?\s*)?(\d{1,6})\s*(?:/\s*(?:19|20)\d{2}\b|del\s+(?:\d{1,2}[./-]\d{1,2}[./-])?(?:19|20)\d{2}\b)")
+_RUOLO_PRIMA = re.compile(r"(?:r\.?\s?g\.?|ruolo|rgnr|r\.?\s?g\.?\s?n\.?\s?r\.?)\s*(?:n\.?\s*)?$")
+
+
+def _citazione_con_punti(text: str) -> bool:
+    """Una pronuncia citata con organo abbreviato e numero/anno entro 60 caratteri, che non sia un numero di ruolo."""
+    for organo in _ORGANO_CITATO.finditer(text):
+        coda = text[organo.end():organo.end() + 60]
+        for estremi in _ESTREMI_CITATI.finditer(coda):
+            if not _RUOLO_PRIMA.search(coda[:estremi.start()].rstrip()):
+                return True
+    return False
 
 
 class LexRouter:
@@ -513,7 +533,7 @@ class LexRouter:
         for p in patterns:
             if re.search(p, text):
                 return True
-        return False
+        return _citazione_con_punti(text)
 
     @staticmethod
     def _looks_like_telematico(text: str) -> bool:

@@ -265,7 +265,7 @@ class OperationalQueryRouter:
         # «termine») non sono ricerche sui dati dello studio: li tratta l'harness di Lex (lex/harness).
         from lex.harness.comprensione import e_richiesta_giuridica
 
-        if e_richiesta_giuridica(question):
+        if e_richiesta_giuridica(question) and not _domanda_della_control_tower(text):
             return None
 
         entity_query = self._entity_query(text)
@@ -559,20 +559,28 @@ def _looks_like_pec_control_question(text: str) -> bool:
             "fallit",
         )
     )
-    exact_questions = (
-        "quali pec ricevute oggi generano scadenze",
-        "quali notifiche verso enti o controparti devo fare",
-        "quali pec inviate non hanno ancora ricevuta di consegna",
-        "quali termini sono stati calcolati ma non confermati",
-        "quali atti sono arrivati da cancelleria",
-        "quali comunicazioni pa richiedono risposta",
-        "quali notifiche sono fallite",
-        "qual e la prova completa",
-        "qual è la prova completa",
-        "chi ha confermato la scadenza",
-        "quale fascicolo rischia una decadenza",
-    )
-    return any(question in text for question in exact_questions) or (has_pec_or_proof and has_legal_event)
+    return _domanda_della_control_tower(text) or (has_pec_or_proof and has_legal_event)
+
+
+# Le domande della PEC Control Tower sui dati dello studio: «termini calcolati ma non confermati» chiede quali scadenze
+# dello studio aspettano conferma, non un calcolo giuridico; l'harness non le deve intercettare.
+_DOMANDE_CONTROL_TOWER = (
+    "quali pec ricevute oggi generano scadenze",
+    "quali notifiche verso enti o controparti devo fare",
+    "quali pec inviate non hanno ancora ricevuta di consegna",
+    "quali termini sono stati calcolati ma non confermati",
+    "quali atti sono arrivati da cancelleria",
+    "quali comunicazioni pa richiedono risposta",
+    "quali notifiche sono fallite",
+    "qual e la prova completa",
+    "qual è la prova completa",
+    "chi ha confermato la scadenza",
+    "quale fascicolo rischia una decadenza",
+)
+
+
+def _domanda_della_control_tower(text: str) -> bool:
+    return any(question in text for question in _DOMANDE_CONTROL_TOWER)
 
 
 def _looks_like_communication_attachment_question(text: str) -> bool:

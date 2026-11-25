@@ -1,0 +1,6730 @@
+{
+ "schema": "iusentra.lex_mappa_strumenti.v1",
+ "strumenti": [
+  {
+   "nome": "fascicolo_quadro",
+   "titolo": "Quadro del fascicolo",
+   "gruppo": "fascicolo",
+   "contenuto": "Il quadro in alto del fascicolo dal modello unico della causa: rito, ufficio, RG, ruolo del cliente, prossimo passo, termini gravi, udienze, economia e notifiche, ciascuno con documento e data da cui è letto.",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "sezione": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "tutto",
+      "prossimi_passi",
+      "termini",
+      "udienze",
+      "economia",
+      "notifiche",
+      "parti",
+      "documenti"
+     ],
+     "descrizione": "parte del quadro richiesta"
+    }
+   },
+   "permessi": [
+    "fascicoli.leggi",
+    "studio:fascicoli:read",
+    "studio:documenti:read"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.harness.causa:fatti_del_fascicolo",
+     "esiste": true,
+     "firma": "(fascicolo_id: 'str', *, costruttore: 'Callable[[str], Any] | None' = None) -> 'FattiCausa | None'",
+     "descrizione": "Modello della causa del fascicolo; None se il fascicolo non c'è. Gli errori si registrano, non si nascondono."
+    },
+    {
+     "riferimento": "pct.fascicolo_quadro:riga_prossimo_passo",
+     "esiste": true,
+     "firma": "(passi: 'list[Mapping[str, Any]] | None', *, ripiego: 'str' = '', motivo_stato: 'str' = '', oggi: 'date | None' = None) -> 'dict[str, str]'",
+     "descrizione": "Il primo dei prossimi passaggi della Lettura; senza Lettura pronta, il passo economico o una frase onesta."
+    },
+    {
+     "riferimento": "pct.fascicolo_quadro:riga_termini",
+     "esiste": true,
+     "firma": "(termini: 'Iterable[Mapping[str, Any]]', *, oggi: 'date') -> 'dict[str, str]'",
+     "descrizione": "La scadenza o l'udienza futura più vicina; scadenze passate e chiuse non entrano nel quadro."
+    },
+    {
+     "riferimento": "pct.fascicolo_quadro:riga_economia",
+     "esiste": true,
+     "firma": "(contributo: 'Mapping[str, Any] | None', righe_conto: 'Iterable[Mapping[str, Any]]', prossimo_economico: 'str' = '') -> 'dict[str, str]'",
+     "descrizione": "Contributo unificato (stato unico), importo liquidato in sentenza e documento economico, dal conto economico."
+    }
+   ],
+   "sorgenti_registro": [
+    "fascicoli"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "fascicoli",
+     "tool": "search_fascicoli",
+     "implementato": true
+    },
+    {
+     "sorgente": "fascicoli",
+     "tool": "get_fascicolo",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "FascicoliSource"
+   ],
+   "tool_lex": [
+    "fascicolo",
+    "collect_fascicolo_context"
+   ],
+   "tempo_tipico": "0,2-2 s (modello della causa in sola lettura)",
+   "esempio": "Nel fascicolo aperto qual è il prossimo passo e quando scade?",
+   "segnali": [
+    "\\bprossim\\w* pass",
+    "\\bquadro del fascicolo\\b",
+    "\\bnel fascicolo\\b",
+    "\\b(?:a che punto|stato) (?:e|della) (?:la )?(?:causa|pratica)\\b",
+    "\\bche cosa (?:devo|dobbiamo) fare\\b",
+    "\\bcosa (?:devo|dobbiamo) fare\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "fascicolo_catena",
+   "titolo": "Catena e controlli di coerenza del fascicolo",
+   "gruppo": "fascicolo",
+   "contenuto": "I controlli del guardiano della catena (termini, agenda, passi, stato, quadro, freschezza, bozze): che cosa non torna fra letture, scadenze, udienze e quadro, con la regola che ripara o l'avviso.",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "pct.catena.guardiano:controlla_termini",
+     "esiste": true,
+     "firma": "(stato: 'StatoFascicolo') -> 'list[Incoerenza]'",
+     "descrizione": "Termini certi dello studio ↔ scadenziario; termini della controparte e termini superati."
+    },
+    {
+     "riferimento": "pct.catena.guardiano:controlla_agenda",
+     "esiste": true,
+     "firma": "(stato: 'StatoFascicolo') -> 'list[Incoerenza]'",
+     "descrizione": "Ogni udienza futura del modello in agenda, con la modalità disposta dal giudice."
+    },
+    {
+     "riferimento": "pct.catena.guardiano:controlla_quadro",
+     "esiste": true,
+     "firma": "(stato: 'StatoFascicolo') -> 'list[Incoerenza]'",
+     "descrizione": "La riga «Prossimo passo» del quadro dice lo stesso primo passo della Lettura."
+    },
+    {
+     "riferimento": "pct.catena.mappa:lacune",
+     "esiste": true,
+     "firma": "(riaccensioni: 'Mapping[str, Iterable[str]] | None' = None) -> 'list[tuple[str, str]]'",
+     "descrizione": "(evento, anello): l'anello dipende dalla fonte dell'evento ma nessun meccanismo lo riaccende."
+    },
+    {
+     "riferimento": "pct.catena.registro:RegistroGuardiano.incoerenze",
+     "esiste": true,
+     "firma": "(self, fascicolo_id: 'str' = '', *, stato: 'str' = '', limite: 'int' = 500) -> 'list[dict[str, Any]]'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [],
+   "tool_dichiarati": [],
+   "adattatori": [],
+   "tool_lex": [],
+   "tempo_tipico": "< 0,5 s (registro SQLite del guardiano)",
+   "esempio": "Ci sono incoerenze fra le scadenze e l'agenda in questa pratica?",
+   "segnali": [
+    "\\bincoerenz",
+    "\\bnon (?:torna|tornano|combacia)",
+    "\\bcatena\\b",
+    "\\bdisallineat"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "fascicolo_lettura",
+   "titolo": "Lettura del fascicolo",
+   "gruppo": "fascicolo",
+   "contenuto": "La «Lettura» del fascicolo: cronologia, atti, notifiche, depositi, PEC lette, termini certi, fase e narrativa della causa, costruita dai documenti e dalle PEC del fascicolo.",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "parte": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "tutto",
+      "cronologia",
+      "atti",
+      "notifiche",
+      "depositi",
+      "pec",
+      "termini",
+      "narrativa",
+      "fase"
+     ],
+     "descrizione": "parte della lettura"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "pct.fascicolo_lettura:costruisci_lettura",
+     "esiste": true,
+     "firma": "(dati: 'DatiLettura') -> 'dict[str, Any]'",
+     "descrizione": "La lettura completa del fascicolo, come dati e come testo."
+    },
+    {
+     "riferimento": "pct.fascicolo_lettura:lettura_come_payload",
+     "esiste": true,
+     "firma": "(lettura: 'dict[str, Any]') -> 'dict[str, Any]'",
+     "descrizione": "La lettura senza gli oggetti interni, pronta per JSON."
+    },
+    {
+     "riferimento": "lex.context.fascicolo_lettura_context:load_fascicolo_lettura_context",
+     "esiste": true,
+     "firma": "(*, pratica_id: 'str' = '', fascicolo_id: 'str' = '') -> 'dict[str, Any]'",
+     "descrizione": "La lettura completa del fascicolo, o un dizionario vuoto se non c'è."
+    }
+   ],
+   "sorgenti_registro": [],
+   "tool_dichiarati": [],
+   "adattatori": [],
+   "tool_lex": [],
+   "tempo_tipico": "1-5 s (dipende dal numero di documenti)",
+   "esempio": "Ricostruiscimi la cronologia degli atti di questa causa.",
+   "segnali": [
+    "\\bcronologi",
+    "\\bricostru\\w* (?:la )?(?:vicenda|storia|causa)",
+    "\\blettura del fascicolo\\b",
+    "\\bnarrativa\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "documenti_fascicolo",
+   "titolo": "Documenti del fascicolo e catalogo",
+   "gruppo": "fascicolo",
+   "contenuto": "I documenti del fascicolo con la classificazione del catalogo (tipo di atto, data, parte), la ricerca nel testo letto (OCR compreso) e la rilettura di un documento.",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "parole da cercare"
+    },
+    "tipo_documento": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "tipo del catalogo (es. sentenza, decreto ingiuntivo, relata)"
+    }
+   },
+   "permessi": [
+    "fascicoli.leggi",
+    "studio:documenti:read"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_documenti_fascicolo",
+     "esiste": true,
+     "firma": "(self, fascicolo_id: 'str', context: 'OperationalQueryContext') -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_documenti_fascicolo",
+     "esiste": true,
+     "firma": "(self, fascicolo_id: 'str', query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "pct.fascicolo_document_catalog:classify_fascicolo_document",
+     "esiste": true,
+     "firma": "(doc: 'Any | None' = None, *, extracted_text: 'str' = '', filename: 'str' = '', tipo: 'Any' = '') -> 'DocumentCatalogClassification'",
+     "descrizione": "Classifica un documento del fascicolo per catalogo, deposito e indice."
+    }
+   ],
+   "sorgenti_registro": [
+    "documenti_fascicolo",
+    "pdf_manager"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "documenti_fascicolo",
+     "tool": "get_documenti_fascicolo",
+     "implementato": true
+    },
+    {
+     "sorgente": "documenti_fascicolo",
+     "tool": "search_documenti_fascicolo",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "DocumentiSource"
+   ],
+   "tool_lex": [
+    "documento",
+    "list_fascicolo_documents",
+    "read_fascicolo_document",
+    "find_in_fascicolo_document"
+   ],
+   "tempo_tipico": "0,2-3 s",
+   "esempio": "Trovami nel fascicolo la relata di notifica del decreto ingiuntivo.",
+   "segnali": [
+    "\\bdocument[oi]\\b",
+    "\\ballegat[oi]\\b",
+    "\\brelata\\b",
+    "\\bnel (?:testo|documento)\\b",
+    "\\bcatalogo documenti\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "scadenziario",
+   "titolo": "Scadenziario e termini dello studio",
+   "gruppo": "studio",
+   "contenuto": "Le scadenze registrate dello studio (per fascicolo, cliente o periodo), con stato e origine del termine, e il piano del giorno.",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "cliente": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "nome del cliente"
+    },
+    "dal": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "dal giorno (gg/mm/aaaa)"
+    },
+    "al": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "al giorno (gg/mm/aaaa)"
+    },
+    "stato": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "aperte",
+      "scadute",
+      "tutte"
+     ],
+     "descrizione": "quali scadenze"
+    }
+   },
+   "permessi": [
+    "scadenziario.leggi",
+    "studio:scadenze:read",
+    "studio:agenda:read"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_scadenze_by_fascicolo",
+     "esiste": true,
+     "firma": "(self, fascicolo_id: 'str', context: 'OperationalQueryContext', *, solo_aperte: 'bool' = True) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_scadenze_by_cliente",
+     "esiste": true,
+     "firma": "(self, cliente_id: 'str', context: 'OperationalQueryContext') -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.query_calendar_page",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, selection, limit=20, cursor=None) -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "scadenziario"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "scadenziario",
+     "tool": "get_scadenze_by_fascicolo",
+     "implementato": true
+    },
+    {
+     "sorgente": "scadenziario",
+     "tool": "get_scadenze_by_cliente",
+     "implementato": true
+    },
+    {
+     "sorgente": "scadenziario",
+     "tool": "query_calendar_page",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "ScadenziarioSource"
+   ],
+   "tool_lex": [
+    "scadenziario",
+    "daily_plan"
+   ],
+   "tempo_tipico": "< 0,5 s",
+   "esempio": "Quali scadenze ho la prossima settimana?",
+   "segnali": [
+    "\\bscadenz",
+    "\\bscadenziario\\b",
+    "\\bin scadenza\\b",
+    "\\bscadono\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "agenda_udienze",
+   "titolo": "Agenda e udienze",
+   "gruppo": "studio",
+   "contenuto": "Gli appuntamenti e le udienze dell'agenda dello studio, per periodo, fascicolo o tipo.",
+   "parametri": {
+    "dal": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "dal giorno (gg/mm/aaaa)"
+    },
+    "al": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "al giorno (gg/mm/aaaa)"
+    },
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "tipo": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "udienze",
+      "appuntamenti",
+      "tutti"
+     ],
+     "descrizione": "che cosa cercare"
+    }
+   },
+   "permessi": [
+    "agenda.leggi",
+    "studio:agenda:read"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_agenda_range",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, start: 'date | None' = None, end: 'date | None' = None, cliente_id: 'str' = '', limit: 'int' = 30) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_agenda",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 30, latest: 'bool' = False) -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "agenda"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "agenda",
+     "tool": "get_agenda_range",
+     "implementato": true
+    },
+    {
+     "sorgente": "agenda",
+     "tool": "query_calendar_page",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "AgendaSource"
+   ],
+   "tool_lex": [
+    "agenda"
+   ],
+   "tempo_tipico": "< 0,5 s",
+   "esempio": "Che udienze ho domani?",
+   "segnali": [
+    "\\budienz",
+    "\\bagenda\\b",
+    "\\bappuntament",
+    "\\bimpegni\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "pec_comunicazioni",
+   "titolo": "PEC e comunicazioni",
+   "gruppo": "studio",
+   "contenuto": "Le PEC e le email ricevute e inviate (casella PEC, posta ordinaria, messaggi), con allegati, controlli automatici sulla PEC e gli eventi giuridici che ne derivano (Control Tower).",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "parole da cercare"
+    },
+    "mittente": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "mittente (es. cancelleria, controparte)"
+    },
+    "dal": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "dal giorno (gg/mm/aaaa)"
+    },
+    "al": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "al giorno (gg/mm/aaaa)"
+    },
+    "casella": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "pec",
+      "ordinaria",
+      "tutte"
+     ],
+     "descrizione": "quale casella"
+    }
+   },
+   "permessi": [
+    "messaggi.leggi",
+    "fascicoli.leggi"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.query_pec_page",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, selection, limit=20, cursor=None) -> 'OperationalToolResult'",
+     "descrizione": "Consulta la sola pagina SQL richiesta, senza costruire il gestore PEC."
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.list_pec_messages",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, query: 'str' = '', folder: 'str' = '', con_allegati: 'bool' = False, limit: 'int' = 20) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_pec_message",
+     "esiste": true,
+     "firma": "(self, email_id: 'str', context: 'OperationalQueryContext') -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.list_ordinary_email_messages",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, query: 'str' = '', folder: 'str' = '', con_allegati: 'bool' = False, limit: 'int' = 20) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.answer_pec_control_question",
+     "esiste": true,
+     "firma": "(self, question: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 20) -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "email_pec",
+    "pec_audit",
+    "pec_control_tower",
+    "email_ordinaria",
+    "messaggi"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "email_pec",
+     "tool": "list_pec_messages",
+     "implementato": true
+    },
+    {
+     "sorgente": "email_pec",
+     "tool": "get_pec_message",
+     "implementato": true
+    },
+    {
+     "sorgente": "email_pec",
+     "tool": "list_pec_attachments",
+     "implementato": true
+    },
+    {
+     "sorgente": "email_pec",
+     "tool": "query_pec_page",
+     "implementato": true
+    },
+    {
+     "sorgente": "pec_audit",
+     "tool": "list_pec_audit_messages",
+     "implementato": true
+    },
+    {
+     "sorgente": "pec_audit",
+     "tool": "get_pec_audit_message",
+     "implementato": true
+    },
+    {
+     "sorgente": "pec_audit",
+     "tool": "get_pec_audit_for_email",
+     "implementato": true
+    },
+    {
+     "sorgente": "pec_control_tower",
+     "tool": "answer_pec_control_question",
+     "implementato": true
+    },
+    {
+     "sorgente": "pec_control_tower",
+     "tool": "list_pec_control_events",
+     "implementato": true
+    },
+    {
+     "sorgente": "email_ordinaria",
+     "tool": "list_ordinary_email_messages",
+     "implementato": true
+    },
+    {
+     "sorgente": "email_ordinaria",
+     "tool": "get_ordinary_email_message",
+     "implementato": true
+    },
+    {
+     "sorgente": "email_ordinaria",
+     "tool": "list_ordinary_email_attachments",
+     "implementato": true
+    },
+    {
+     "sorgente": "messaggi",
+     "tool": "get_messaggi_by_cliente",
+     "implementato": true
+    },
+    {
+     "sorgente": "messaggi",
+     "tool": "get_messaggi_by_fascicolo",
+     "implementato": true
+    }
+   ],
+   "adattatori": [],
+   "tool_lex": [],
+   "tempo_tipico": "< 1 s (catalogo SQL della casella)",
+   "esempio": "Mostrami l'ultima PEC arrivata dalla cancelleria.",
+   "segnali": [
+    "\\bpec\\b",
+    "\\bemail\\b",
+    "\\be-mail\\b",
+    "\\bposta\\b",
+    "\\bcomunicazion\\w* di cancelleria\\b",
+    "\\bmessagg"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "notifiche_ricevute",
+   "titolo": "Notificazioni e ricevute PEC",
+   "gruppo": "studio",
+   "contenuto": "Le notificazioni legali (presìdi e prove di notifica), le ricevute di deposito telematico (accettazione, consegna, esito della cancelleria) e le ricevute archiviate nei fascicoli.",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "tipo": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "notificazioni",
+      "ricevute_deposito",
+      "ricevute_archiviate",
+      "tutte"
+     ],
+     "descrizione": "che cosa cercare"
+    },
+    "dal": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "dal giorno (gg/mm/aaaa)"
+    },
+    "al": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "al giorno (gg/mm/aaaa)"
+    }
+   },
+   "permessi": [
+    "messaggi.leggi",
+    "fascicoli.leggi"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.query_legal_notifications_page",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, selection, limit=20, cursor=None) -> 'OperationalToolResult'",
+     "descrizione": "Consulta esclusivamente i presìdi già persistiti, senza riconciliare PEC."
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.query_deposit_receipts_page",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, selection, limit=20, cursor=None) -> 'OperationalToolResult'",
+     "descrizione": "Solo la pagina SQL degli esiti; nessuna pipeline o decisione legale."
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.query_archived_receipts_page",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, selection, limit=20, cursor=None) -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "legal_notifications",
+    "deposit_receipts",
+    "archived_receipts"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "legal_notifications",
+     "tool": "query_legal_notifications_page",
+     "implementato": true
+    },
+    {
+     "sorgente": "deposit_receipts",
+     "tool": "query_deposit_receipts_page",
+     "implementato": true
+    },
+    {
+     "sorgente": "archived_receipts",
+     "tool": "query_archived_receipts_page",
+     "implementato": true
+    }
+   ],
+   "adattatori": [],
+   "tool_lex": [],
+   "tempo_tipico": "< 1 s",
+   "esempio": "È arrivata la ricevuta di consegna della notifica all'avvocato di controparte?",
+   "segnali": [
+    "\\bricevut",
+    "\\bnotific\\w*\\b",
+    "\\bavvenuta consegna\\b",
+    "\\baccettazione\\b",
+    "\\besito (?:del )?deposito\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "avvisi_utente",
+   "titolo": "Avvisi della campanella",
+   "gruppo": "studio",
+   "contenuto": "Gli avvisi dell'utente nella campanella del software (non sono notificazioni legali).",
+   "parametri": {
+    "limite": {
+     "tipo": "intero",
+     "obbligatorio": false,
+     "descrizione": "quanti avvisi"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_notifiche_utente",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, limit: 'int' = 20) -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "notifiche"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "notifiche",
+     "tool": "get_notifiche_utente",
+     "implementato": true
+    }
+   ],
+   "adattatori": [],
+   "tool_lex": [],
+   "tempo_tipico": "< 0,2 s",
+   "esempio": "Che avvisi ho nella campanella?",
+   "segnali": [
+    "\\bcampanell",
+    "\\bavvisi\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "economia_conto",
+   "titolo": "Economia e conto del fascicolo",
+   "gruppo": "studio",
+   "contenuto": "Il conto economico del fascicolo (contributo, spese liquidate in sentenza, parcelle, incassi), preventivi, conferimenti d'incarico, attività e timesheet, pagamenti e fatturazione elettronica.",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "cliente": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "nome del cliente"
+    },
+    "voce": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "conto",
+      "parcelle",
+      "pagamenti",
+      "preventivi",
+      "conferimenti",
+      "attivita",
+      "spese_liquidate",
+      "contributo_unificato",
+      "sdi"
+     ],
+     "descrizione": "voce economica richiesta"
+    }
+   },
+   "permessi": [
+    "fatturazione.leggi",
+    "studio:economico:read"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "pct.fascicolo_conto_economico:conto_economico",
+     "esiste": true,
+     "firma": "(*, voci: 'Mapping[str, Mapping[str, Any]]', crediti: 'list[Mapping[str, Any]]', documenti_contributo: 'list[Mapping[str, Any]]', parcelle: 'list[Mapping[str, Any]]', oggi: 'date | None' = None, sentenze: 'list[Mapping[str, Any]] | None' = None, regime: 'str' = '', stato_contributo: 'Mapping[str, Any] | None' = None, esecuzione: 'Mapping[str, Any] | None' = None, amministrativo: 'bool' = False) -> 'dict[str, Any]'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "pct.quadro_economia:percorso_economico",
+     "esiste": true,
+     "firma": "(*, conclusioni: 'Iterable[Mapping[str, Any]] | None', atti: 'Iterable[Mapping[str, Any]] | None', righe_conto: 'Iterable[Mapping[str, Any]]', parcelle: 'Iterable[Mapping[str, Any]] | None', voci: 'Mapping[str, Mapping[str, Any]] | None', presidio_contributo: 'Mapping[str, Any] | None', oggi: 'date', cliente: 'str' = '') -> 'tuple[str, str]'",
+     "descrizione": "(testo, livello) della riga Economia."
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_parcelle_by_fascicolo",
+     "esiste": true,
+     "firma": "(self, fascicolo_id: 'str', context: 'OperationalQueryContext') -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_pagamenti_status",
+     "esiste": true,
+     "firma": "(self, context: 'OperationalQueryContext', *, cliente_id: 'str' = '', parcella_id: 'str' = '', limit: 'int' = 20) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_preventivi",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.tools.economic_context_tools:dispatch_tool",
+     "esiste": true,
+     "firma": "(name: 'str', **kwargs: 'Any') -> 'dict[str, Any]'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "economic_judgment",
+    "preventivi",
+    "conferimenti",
+    "fatturazione",
+    "timesheet",
+    "pagamenti",
+    "fatturazione_elettronica_sdi"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "economic_judgment",
+     "tool": "get_fascicolo_economic_context",
+     "implementato": true
+    },
+    {
+     "sorgente": "economic_judgment",
+     "tool": "get_sentenza_economic_audit",
+     "implementato": true
+    },
+    {
+     "sorgente": "economic_judgment",
+     "tool": "list_sentenza_economic_events",
+     "implementato": true
+    },
+    {
+     "sorgente": "economic_judgment",
+     "tool": "explain_contributo_unificato_status",
+     "implementato": true
+    },
+    {
+     "sorgente": "economic_judgment",
+     "tool": "explain_spese_liquidate",
+     "implementato": true
+    },
+    {
+     "sorgente": "preventivi",
+     "tool": "get_preventivo",
+     "implementato": true
+    },
+    {
+     "sorgente": "preventivi",
+     "tool": "search_preventivi",
+     "implementato": true
+    },
+    {
+     "sorgente": "conferimenti",
+     "tool": "get_conferimento",
+     "implementato": true
+    },
+    {
+     "sorgente": "conferimenti",
+     "tool": "search_conferimenti",
+     "implementato": true
+    },
+    {
+     "sorgente": "fatturazione",
+     "tool": "get_parcelle_by_cliente",
+     "implementato": true
+    },
+    {
+     "sorgente": "fatturazione",
+     "tool": "get_parcelle_by_fascicolo",
+     "implementato": true
+    },
+    {
+     "sorgente": "timesheet",
+     "tool": "get_attivita_by_cliente",
+     "implementato": true
+    },
+    {
+     "sorgente": "timesheet",
+     "tool": "get_attivita_by_fascicolo",
+     "implementato": true
+    },
+    {
+     "sorgente": "pagamenti",
+     "tool": "get_pagamenti_status",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "PreventiviSource"
+   ],
+   "tool_lex": [
+    "preventivi"
+   ],
+   "tempo_tipico": "0,3-2 s",
+   "esempio": "Quanto ha incassato lo studio su questa pratica e che cosa resta da fatturare?",
+   "segnali": [
+    "\\bparcell",
+    "\\bfattur",
+    "\\bincass",
+    "\\bpreventiv",
+    "\\bconto economico\\b",
+    "\\bspese liquidate\\b",
+    "\\bpagament",
+    "\\bconferiment",
+    "\\btimesheet\\b",
+    "\\bda fatturare\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "clienti_soggetti",
+   "titolo": "Clienti e soggetti",
+   "gruppo": "studio",
+   "contenuto": "Anagrafica dei clienti e dei soggetti (parti, controparti, avvocati), recapiti, fascicoli del cliente e parti del fascicolo.",
+   "parametri": {
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "parole da cercare"
+    },
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "dato": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "anagrafica",
+      "recapiti",
+      "fascicoli",
+      "parti"
+     ],
+     "descrizione": "che cosa serve"
+    }
+   },
+   "permessi": [
+    "clienti.leggi"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_clienti",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_soggetti",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.parti_by_fascicolo",
+     "esiste": true,
+     "firma": "(self, fascicolo_id: 'str', context: 'OperationalQueryContext') -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.fascicoli_by_cliente",
+     "esiste": true,
+     "firma": "(self, cliente_id: 'str', context: 'OperationalQueryContext') -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "clienti",
+    "soggetti"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "clienti",
+     "tool": "search_clienti",
+     "implementato": true
+    },
+    {
+     "sorgente": "clienti",
+     "tool": "get_cliente_by_id",
+     "implementato": true
+    },
+    {
+     "sorgente": "soggetti",
+     "tool": "search_soggetti",
+     "implementato": true
+    },
+    {
+     "sorgente": "soggetti",
+     "tool": "get_soggetto",
+     "implementato": true
+    },
+    {
+     "sorgente": "soggetti",
+     "tool": "parti_by_fascicolo",
+     "implementato": true
+    },
+    {
+     "sorgente": "soggetti",
+     "tool": "parti_by_soggetto",
+     "implementato": true
+    }
+   ],
+   "adattatori": [],
+   "tool_lex": [],
+   "tempo_tipico": "< 0,5 s",
+   "esempio": "Dammi la PEC e il codice fiscale del cliente Castagnoli.",
+   "segnali": [
+    "\\bcliente\\b",
+    "\\banagrafic",
+    "\\bcodice fiscale\\b",
+    "\\brecapit",
+    "\\bcontroparte\\b",
+    "\\bsoggett"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "ricerca_studio",
+   "titolo": "Ricerca in tutto lo studio",
+   "gruppo": "studio",
+   "contenuto": "La ricerca unica fra fascicoli, clienti, documenti e registri dello studio, quando non si sa ancora dove sta il dato.",
+   "parametri": {
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "parole da cercare"
+    }
+   },
+   "permessi": [
+    "fascicoli.leggi",
+    "studio:knowledge:read"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_fascicoli",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "ricerca_studio"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "ricerca_studio",
+     "tool": "search_studio_index",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "StudioDatabaseSource",
+    "OperationalSource"
+   ],
+   "tool_lex": [
+    "operational_knowledge"
+   ],
+   "tempo_tipico": "0,3-2 s",
+   "esempio": "Dove ho già trattato una revocatoria fallimentare?",
+   "segnali": [
+    "\\bcerca (?:in|nello) studio\\b",
+    "\\bdove (?:ho|abbiamo) (?:gia )?(?:trattato|seguito)\\b",
+    "\\bin quali (?:pratiche|fascicoli)\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "norma_testo_vigente",
+   "titolo": "Biblioteca normativa: testo vigente",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "Il testo vigente di un articolo dall'archivio Normattiva della biblioteca, con commi (dall'XML ufficiale), modifiche e abrogazioni differite (vigenza nel tempo) e collegamento ufficiale.",
+   "parametri": {
+    "atto": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "valori_da": "codici_normattiva",
+     "descrizione": "codice (c.c., c.p.c., c.p., c.p.p., Cost., ...) o atto «d.lgs. 28/2010»"
+    },
+    "articolo": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "numero dell'articolo (es. 2043, 163-bis)"
+    },
+    "comma": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "comma richiesto"
+    },
+    "alla_data": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "vigenza a una data (gg/mm/aaaa)"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.testi_ufficiali:riconosci_articolo",
+     "esiste": true,
+     "firma": "(domanda: 'str') -> 'RichiestaArticolo | None'",
+     "descrizione": "Riconosce la richiesta del testo di un articolo con atto identificato con certezza."
+    },
+    {
+     "riferimento": "lex.testi_ufficiali:testo_articolo",
+     "esiste": true,
+     "firma": "(percorso_db: 'str | Path', richiesta: 'RichiestaArticolo', *, document_id: 'int | None' = None, article_id: 'int | None' = None) -> 'dict[str, Any] | None'",
+     "descrizione": "Il testo dell'articolo come importato da Normattiva, o None se l'archivio non lo contiene."
+    },
+    {
+     "riferimento": "lex.harness.norme:testo_norma",
+     "esiste": true,
+     "firma": "(chiave: 'str') -> 'TestoNorma | None'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.normativa.commi:commi_articolo",
+     "esiste": true,
+     "firma": "(testo: 'str', data_atto: 'str', numero_atto: 'str', articolo: 'str') -> 'list[str] | None'",
+     "descrizione": "I commi del testo archiviato, se l'XML ufficiale letto ha lo stesso testo; altrimenti None."
+    },
+    {
+     "riferimento": "lex.normativa.abrogazioni_differite:nota_articolo",
+     "esiste": true,
+     "firma": "(item: 'dict[str, Any]', *, oggi: 'date | None' = None) -> 'dict[str, Any] | None'",
+     "descrizione": "La nota per un articolo della biblioteca (``data_atto``/``numero`` o, in mancanza, l'URN dell'atto)."
+    },
+    {
+     "riferimento": "lex.retrieval.normativa:search_normativa_sources",
+     "esiste": true,
+     "firma": "(message: 'str', *, diagnostics: 'list[str] | None' = None, exact_reference_only: 'bool' = False) -> 'list[LexSource]'",
+     "descrizione": "Evidenze normative: solo testo di norma dell'archivio Normattiva (e Gazzetta)."
+    }
+   ],
+   "sorgenti_registro": [
+    "fonti_ufficiali"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "fonti_ufficiali",
+     "tool": "search_legal_sources",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "NormativeSource"
+   ],
+   "tool_lex": [],
+   "tempo_tipico": "0,05-0,5 s (SQLite della biblioteca)",
+   "esempio": "Cosa dice il secondo comma dell'art. 2051 c.c.?",
+   "segnali": [
+    "\\bart(?:icolo|\\.)?\\s*\\d+",
+    "\\btesto (?:vigente|dell)",
+    "\\bcomma\\b",
+    "\\babrogat",
+    "\\bvigent"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "norma_per_argomento",
+   "titolo": "Biblioteca normativa: norma per argomento",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "La norma vigente che disciplina un istituto, trovata dalle rubriche ufficiali dei codici quando la domanda non cita l'articolo.",
+   "parametri": {
+    "argomento": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "istituto o tema (es. caparra confirmatoria)"
+    },
+    "atto": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "valori_da": "codici_normattiva",
+     "descrizione": "codice in cui cercare"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.harness.rubriche:candidati",
+     "esiste": true,
+     "firma": "(domanda: 'str') -> 'list[Candidato]'",
+     "descrizione": "Articoli la cui rubrica contiene tutte le sue parole significative presenti nella domanda (almeno due)."
+    },
+    {
+     "riferimento": "lex.harness.rubriche:rispondi_da_rubrica",
+     "esiste": true,
+     "firma": "(domanda: 'str', tipo: 'str') -> 'RispostaRubrica | None'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [],
+   "tool_dichiarati": [],
+   "adattatori": [],
+   "tool_lex": [],
+   "tempo_tipico": "0,1-0,5 s",
+   "esempio": "Quale norma disciplina la caparra confirmatoria?",
+   "segnali": [
+    "\\bquale norma\\b",
+    "\\bche norma\\b",
+    "\\bdove (?:e|sta) (?:disciplinat|previst)",
+    "\\bdisciplin\\w*\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "sentenze_per_norma",
+   "titolo": "Sentenze per norma",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "Le pronunce già associate a un articolo nell'indice precalcolato della giurisprudenza (lettura istantanea, con le fonti consultate quando non ce ne sono).",
+   "parametri": {
+    "norma": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "articolo e codice (es. art. 1385 c.c.)"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.harness.giurisprudenza:per_norme",
+     "esiste": true,
+     "firma": "(chiavi: 'list[str]') -> 'EsitoGiurisprudenza | None'",
+     "descrizione": "Pronunce precalcolate per norma (``scripts/lex_harness_giurisprudenza.py``): lettura istantanea, senza archivio."
+    }
+   ],
+   "sorgenti_registro": [],
+   "tool_dichiarati": [],
+   "adattatori": [
+    "GiurisprudenzaSource",
+    "NormativeSource"
+   ],
+   "tool_lex": [],
+   "tempo_tipico": "< 0,05 s (indice precalcolato)",
+   "esempio": "Che sentenze ci sono sull'art. 1385 c.c.?",
+   "segnali": [
+    "\\bsentenz\\w* (?:sull|sul|in tema|relativ)",
+    "\\bgiurisprudenza (?:sull|sul)",
+    "\\bpronunce sull"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "giurisprudenza_cassazione_consulta",
+   "titolo": "Archivio Cassazione e Corte costituzionale",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "Le pronunce della Cassazione (SentenzeWeb) e della Corte costituzionale negli archivi di IUSENTRA, per estremi (numero/anno) o per testo, con massima e collegamento ufficiale.",
+   "parametri": {
+    "corte": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "cassazione",
+      "consulta",
+      "tutte"
+     ],
+     "descrizione": "quale corte"
+    },
+    "numero": {
+     "tipo": "intero",
+     "obbligatorio": false,
+     "descrizione": "numero della pronuncia"
+    },
+    "anno": {
+     "tipo": "intero",
+     "obbligatorio": false,
+     "descrizione": "anno della pronuncia"
+    },
+    "sezione": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "sezione (es. 3, lavoro, S.U.)"
+    },
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "parole da cercare"
+    }
+   },
+   "permessi": [
+    "legal:sources:read"
+   ],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.harness.giurisprudenza:cerca",
+     "esiste": true,
+     "firma": "(domanda: 'str', *, limite: 'int' = 3, secondi: 'float | None' = None, sorgenti: 'Callable[[], list[tuple[str, Any]]] | None' = None, utente: 'str' = '') -> 'EsitoGiurisprudenza'",
+     "descrizione": "Pronunce per la domanda (testo o estremi «9449/2016») in tutti gli archivi, entro un tempo massimo."
+    },
+    {
+     "riferimento": "lex.harness.giurisprudenza:per_estremi",
+     "esiste": true,
+     "firma": "(numero: 'str', anno: 'str', **kw) -> 'EsitoGiurisprudenza'",
+     "descrizione": "La pronuncia con quegli estremi, se l'archivio la contiene (nessun risultato di altri anni)."
+    },
+    {
+     "riferimento": "lex.testi_ufficiali:trova_sentenza",
+     "esiste": true,
+     "firma": "(sentenze: 'Iterable[dict[str, Any]]', richiesta: 'RichiestaSentenza') -> 'dict[str, Any] | None'",
+     "descrizione": "La sentenza con numero e anno esatti (e organo, se indicato) nell'archivio."
+    },
+    {
+     "riferimento": "pct.sentenzeweb_corpus:configured_corpus",
+     "esiste": true,
+     "firma": "(config=None)",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "citazioni_cassazione"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "citazioni_cassazione",
+     "tool": "search_verified_cassazione",
+     "implementato": true
+    },
+    {
+     "sorgente": "citazioni_cassazione",
+     "tool": "get_giurisprudenza_items",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "GiurisprudenzaSource"
+   ],
+   "tool_lex": [
+    "giurisprudenza"
+   ],
+   "tempo_tipico": "0,1-6 s (per estremi rapido; per testo fino al limite di 6 s)",
+   "esempio": "Trovami Cass. civ. sez. III n. 9449/2016.",
+   "segnali": [
+    "\\bcass(?:azione|\\.)",
+    "\\bcorte costituzionale\\b",
+    "\\bconsulta\\b",
+    "\\bsezioni unite\\b",
+    "\\bs\\.u\\.",
+    "\\bsentenza n\\.",
+    "\\bordinanza n\\.",
+    "\\borientament",
+    "\\bgiurisprudenz",
+    "\\bprecedent"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "giustizia_amministrativa",
+   "titolo": "Testi della giustizia amministrativa",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "Sentenze e ordinanze di TAR, Consiglio di Stato e CGARS: catalogo OpenGA e testo integrale dall'archivio o letto subito dal sito ufficiale.",
+   "parametri": {
+    "organo": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "consiglio_di_stato",
+      "tar",
+      "cgars",
+      "tutti"
+     ],
+     "descrizione": "organo"
+    },
+    "sede": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "sede del TAR (es. Lazio, Milano)"
+    },
+    "numero": {
+     "tipo": "intero",
+     "obbligatorio": false,
+     "descrizione": "numero del provvedimento"
+    },
+    "anno": {
+     "tipo": "intero",
+     "obbligatorio": false,
+     "descrizione": "anno"
+    },
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "parole da cercare"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.retrieval.archivi_pubblici:cerca_testi_ga",
+     "esiste": true,
+     "firma": "(domanda: 'str', *, limite: 'int' = 8, percorso: 'Path | None' = None) -> 'list[dict[str, Any]]'",
+     "descrizione": "Provvedimenti amministrativi: per estremi («n. 1234/2021») se la domanda li cita, altrimenti per parole."
+    },
+    {
+     "riferimento": "pct.openga_search:search_openga",
+     "esiste": true,
+     "firma": "(payload, config)",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.testi_ufficiali:testo_amministrativo_ufficiale",
+     "esiste": true,
+     "firma": "(domanda: 'str', richiesta: 'RichiestaSentenza') -> 'dict[str, Any] | None'",
+     "descrizione": "Il testo integrale dall'archivio dei testi amministrativi o, se manca, letto subito dal sito ufficiale."
+    },
+    {
+     "riferimento": "pct.giustizia_amministrativa_testi:testo_su_richiesta",
+     "esiste": true,
+     "firma": "(archivio: 'ArchivioTestiGA', *, anno: 'int | str', numero: 'str', organo: 'str' = '', sede: 'str' = '', ricorso: 'str' = '', scarica: 'Callable[..., Any] | None' = None, catalogo: 'str | Path | None' = None, tempo_massimo: 'float' = 15.0, **_ignorati: 'Any') -> 'dict[str, Any]'",
+     "descrizione": "Il testo di una sentenza amministrativa chiesta ora (ricerca, fascicolo, Lex), letta subito se manca."
+    }
+   ],
+   "sorgenti_registro": [],
+   "tool_dichiarati": [],
+   "adattatori": [
+    "GiustiziaAmministrativaSource"
+   ],
+   "tool_lex": [],
+   "tempo_tipico": "0,05-0,5 s (archivio dei testi); catalogo OpenGA 0,5-4 s; testo dal sito fino a 20 s",
+   "esempio": "Cerca sentenze del Consiglio di Stato sull'accesso agli atti di gara.",
+   "segnali": [
+    "\\btar\\b",
+    "\\bconsiglio di stato\\b",
+    "\\bcons\\. ?stato\\b",
+    "\\bcgars\\b",
+    "\\bgiustizia amministrativa\\b",
+    "\\bgiudice amministrativo\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "prassi_ade_inps",
+   "titolo": "Prassi dell'Agenzia delle Entrate e dell'INPS",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "Circolari e risoluzioni dell'Agenzia delle Entrate, circolari e messaggi dell'INPS, con data, numero, oggetto e testo integrale (ricerca full-text).",
+   "parametri": {
+    "ente": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "agenzia_entrate",
+      "inps",
+      "tutti"
+     ],
+     "descrizione": "ente"
+    },
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "parole da cercare"
+    },
+    "numero": {
+     "tipo": "intero",
+     "obbligatorio": false,
+     "descrizione": "numero della circolare o risoluzione"
+    },
+    "anno": {
+     "tipo": "intero",
+     "obbligatorio": false,
+     "descrizione": "anno"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.retrieval.archivi_pubblici:cerca_prassi",
+     "esiste": true,
+     "firma": "(domanda: 'str', *, ente: 'str' = '', limite: 'int' = 8, percorso: 'Path | None' = None) -> 'list[dict[str, Any]]'",
+     "descrizione": "Circolari e risoluzioni pertinenti; ``ente`` è «agenzia_entrate», «inps» o vuoto."
+    },
+    {
+     "riferimento": "pct.prassi.archivio:ArchivioPrassi.cerca",
+     "esiste": true,
+     "firma": "(self, domanda: 'str', *, ente: 'str' = '', limite: 'int' = 20) -> 'list[dict[str, Any]]'",
+     "descrizione": "Documenti che contengono le parole (frasi fra virgolette), i più pertinenti per primi, con un brano."
+    },
+    {
+     "riferimento": "pct.prassi.archivio:ArchivioPrassi.testo",
+     "esiste": true,
+     "firma": "(self, ident: 'str') -> 'str'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [],
+   "tool_dichiarati": [],
+   "adattatori": [
+    "PrassiSource"
+   ],
+   "tool_lex": [],
+   "tempo_tipico": "0,05-0,5 s (FTS SQLite)",
+   "esempio": "C'è una circolare INPS sul congedo parentale del 2024?",
+   "segnali": [
+    "\\bcircolar",
+    "\\brisoluzion\\w* (?:dell'?)?(?:agenzia|ade)",
+    "\\bagenzia delle entrate\\b",
+    "\\binps\\b",
+    "\\bprassi\\b",
+    "\\binterpell"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "gazzetta_ufficiale",
+   "titolo": "Gazzetta Ufficiale",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "I sommari ufficiali delle sei serie della Gazzetta Ufficiale con i testi degli atti: ricerca per parole, serie, tipo di atto, emittente e periodo.",
+   "parametri": {
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "parole da cercare"
+    },
+    "serie": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori_da": "serie_gazzetta",
+     "descrizione": "serie (SG, S1...S5)",
+     "valori": [
+      "SG",
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5"
+     ]
+    },
+    "dal": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "dal giorno (gg/mm/aaaa)"
+    },
+    "al": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "al giorno (gg/mm/aaaa)"
+    },
+    "tipo_atto": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "tipo di atto (legge, decreto legislativo, ...)"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.retrieval.archivi_pubblici:cerca_gazzetta",
+     "esiste": true,
+     "firma": "(domanda: 'str', *, serie: 'tuple[str, ...]' = (), dal: 'str' = '', al: 'str' = '', limite: 'int' = 8, percorso: 'Path | None' = None) -> 'list[dict[str, Any]]'",
+     "descrizione": "Atti della Gazzetta Ufficiale per parole (titolo, ente, testo), dal più pertinente; date ISO."
+    },
+    {
+     "riferimento": "pct.gazzetta.archivio:ArchivioGazzetta.cerca",
+     "esiste": true,
+     "firma": "(self, filtri: 'Filtri') -> 'dict[str, Any]'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "pct.gazzetta.archivio:ArchivioGazzetta.testo",
+     "esiste": true,
+     "firma": "(self, atto_id: 'str') -> 'dict[str, Any] | None'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "web.services.gazzetta_runtime:costruisci_vista",
+     "esiste": true,
+     "firma": "(archivio: 'ArchivioGazzetta | None', filtri: 'Filtri') -> 'dict[str, Any]'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [],
+   "tool_dichiarati": [],
+   "adattatori": [
+    "GazzettaSource"
+   ],
+   "tool_lex": [],
+   "tempo_tipico": "0,05-1 s (FTS SQLite)",
+   "esempio": "Che decreti legislativi sono usciti in Gazzetta questo mese?",
+   "segnali": [
+    "\\bgazzetta\\b",
+    "\\bg\\.u\\.",
+    "\\bpubblicat\\w* in gazzetta\\b",
+    "\\bserie generale\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "aggiornamenti_normativi",
+   "titolo": "Aggiornamenti normativi e legal intelligence",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "Le novità normative, giurisprudenziali e di prassi pubblicate dalla pipeline degli aggiornamenti, la memoria di estratti già letti da fonti ufficiali e il catalogo della legal intelligence.",
+   "parametri": {
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "parole da cercare"
+    },
+    "dal": {
+     "tipo": "data",
+     "obbligatorio": false,
+     "descrizione": "dal giorno (gg/mm/aaaa)"
+    }
+   },
+   "permessi": [
+    "legal:sources:read"
+   ],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_update_intelligence_items",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.get_legal_intelligence_items",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.retrieval.legal_updates:search_legal_update_sources",
+     "esiste": true,
+     "firma": "(message: 'str', *, request: 'Any' = None, limit: 'int' = 10) -> 'list[dict[str, Any]]'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "legal_intelligence",
+    "update_intelligence"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "legal_intelligence",
+     "tool": "get_legal_intelligence_items",
+     "implementato": true
+    },
+    {
+     "sorgente": "update_intelligence",
+     "tool": "get_update_intelligence_items",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "LegalUpdatesSource",
+    "LegalIntelligenceSource",
+    "LexMemorySource"
+   ],
+   "tool_lex": [
+    "legal_intelligence"
+   ],
+   "tempo_tipico": "0,1-1 s",
+   "esempio": "Quali novità ci sono sulla riforma del processo civile negli ultimi mesi?",
+   "segnali": [
+    "\\bnovit",
+    "\\baggiornament",
+    "\\briform",
+    "\\bultime modifiche\\b",
+    "\\bcosa e cambiato\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "web_ufficiale",
+   "titolo": "Siti ufficiali e web pubblico",
+   "gruppo": "fonti_pubbliche",
+   "contenuto": "La ricerca sui siti istituzionali ammessi (e, solo se l'avvocato lo attiva, sul web libero), quando gli archivi locali non bastano.",
+   "parametri": {
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "parole da cercare"
+    },
+    "solo_ufficiali": {
+     "tipo": "booleano",
+     "obbligatorio": false,
+     "descrizione": "solo siti istituzionali"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_free_public_web",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 4) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_legal_sources",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "web_libero"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "web_libero",
+     "tool": "search_free_public_web",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "OfficialWebSource"
+   ],
+   "tool_lex": [],
+   "tempo_tipico": "2-15 s (rete)",
+   "esempio": "Cerca sul sito del Ministero della giustizia le istruzioni per il deposito degli atti penali.",
+   "segnali": [
+    "\\bsul sito\\b",
+    "\\bsul web\\b",
+    "\\bin rete\\b",
+    "\\bsito (?:del|della|ufficiale)\\b",
+    "\\bonline\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "modelli_atto",
+   "titolo": "Modelli d'atto",
+   "gruppo": "redazione",
+   "contenuto": "Il catalogo dei modelli d'atto (citazioni, ricorsi, comparse, diffide, contratti, pareri) con campi da compilare e la bozza nell'editor.",
+   "parametri": {
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "parole da cercare"
+    },
+    "materia": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "materia (civile, lavoro, famiglia, ...)"
+    },
+    "codice_modello": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "codice del modello, se noto"
+    }
+   },
+   "permessi": [
+    "fascicoli.leggi",
+    "studio:template:read",
+    "studio:atti:read"
+   ],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_template_atti",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.retrieval.sources.template_atti:TemplateAttiSource.search",
+     "esiste": true,
+     "firma": "(self, queries, request, context)",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "template_atti",
+    "contratti_pareri"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "template_atti",
+     "tool": "search_template_atti",
+     "implementato": true
+    },
+    {
+     "sorgente": "contratti_pareri",
+     "tool": "search_template_atti",
+     "implementato": true
+    },
+    {
+     "sorgente": "contratti_pareri",
+     "tool": "generate_editor_draft",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "TemplateAttiSource"
+   ],
+   "tool_lex": [
+    "template_atti",
+    "list_template_atti",
+    "read_template_atto",
+    "read_editor_document"
+   ],
+   "tempo_tipico": "0,1-1 s",
+   "esempio": "C'è un modello di ricorso per decreto ingiuntivo?",
+   "segnali": [
+    "\\bmodell[oi]\\b",
+    "\\btemplate\\b",
+    "\\bfac[- ]?simile\\b",
+    "\\bschema di (?:atto|ricorso|contratto)\\b",
+    "\\bbozza\\b",
+    "\\bredig",
+    "\\bprepara\\w* (?:un|l)'?(?:atto|ricorso|citazione|diffida)"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "norme_modello",
+   "titolo": "Norme dei modelli d'atto",
+   "gruppo": "redazione",
+   "contenuto": "Le norme e le fonti ufficiali di ogni modello d'atto (fonte specifica, telematica, deontologica) e il controllo di conformità del modello compilato (requisiti, documenti e campi mancanti).",
+   "parametri": {
+    "codice_modello": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "codice del modello"
+    },
+    "atto": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "nome dell'atto (es. atto di citazione)"
+    }
+   },
+   "permessi": [
+    "studio:compliance:read"
+   ],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_template_atti_sources",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "pct.template_normative_compliance:analyze_template_compliance",
+     "esiste": true,
+     "firma": "(model_code: 'str', payload: 'dict[str, Any] | None' = None, **kwargs: 'Any') -> 'CartabiaComplianceResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "template_atti_fonti_ufficiali"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "template_atti_fonti_ufficiali",
+     "tool": "search_template_atti_sources",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "ComplianceSource"
+   ],
+   "tool_lex": [
+    "compliance"
+   ],
+   "tempo_tipico": "0,1-1 s",
+   "esempio": "Su quali norme si basa il modello di atto di precetto?",
+   "segnali": [
+    "\\bnorme del modello\\b",
+    "\\brequisiti (?:dell'?|del )(?:atto|ricorso|citazione)",
+    "\\bconformit",
+    "\\bsu quali norme\\b",
+    "\\bcontenuto (?:dell'?|del )(?:atto|ricorso|citazione)"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "procedura_guidata",
+   "titolo": "Procedure guidate",
+   "gruppo": "redazione",
+   "contenuto": "Le guide pratiche per istituto e materia (rito, competenza, termini, allegati, passi) con le norme vigenti, la matrice della pratica legale e le schede di completamento delle procedure.",
+   "parametri": {
+    "procedura": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "procedura o istituto (es. monitorio, sfratto)"
+    },
+    "materia": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "materia"
+    }
+   },
+   "permessi": [
+    "studio:procedure_completion:run",
+    "studio:procedure_completion:read"
+   ],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.retrieval.sources.guida_pratica:GuidaPraticaSource.search",
+     "esiste": true,
+     "firma": "(self, queries, request, context)",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.operational_knowledge.tools:OperationalKnowledgeTools.search_legal_practice_matrix",
+     "esiste": true,
+     "firma": "(self, query: 'str', context: 'OperationalQueryContext', *, limit: 'int' = 12) -> 'OperationalToolResult'",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [
+    "matrice_pratica_legale"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "matrice_pratica_legale",
+     "tool": "search_legal_practice_matrix",
+     "implementato": true
+    }
+   ],
+   "adattatori": [
+    "GuidaPraticaSource"
+   ],
+   "tool_lex": [
+    "procedure_completion_preview",
+    "procedure_completion_search",
+    "procedure_completion_explain_article",
+    "procedure_completion_suggest_template",
+    "procedure_completion_list_gaps"
+   ],
+   "tempo_tipico": "0,05-0,5 s",
+   "esempio": "Come si fa un'opposizione a decreto ingiuntivo: passi, termini e allegati?",
+   "segnali": [
+    "\\bcome si fa\\b",
+    "\\bcome (?:si )?procede\\b",
+    "\\bpassi\\b",
+    "\\bprocedur",
+    "\\bche cosa serve per\\b",
+    "\\bguida\\b",
+    "\\badempiment"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "calcolo",
+   "titolo": "Calcoli certi (Strumenti legali)",
+   "gruppo": "calcoli",
+   "contenuto": "I calcolatori di Strumenti legali con le tabelle normative vigenti: termini processuali e di impugnazione, interessi, rivalutazione, contributo unificato, compensi forensi, danno, imposte, prescrizione e gli altri. Il modello non calcola: sceglie il calcolatore e gli passa i dati.",
+   "parametri": {
+    "strumento": {
+     "tipo": "scelta",
+     "obbligatorio": true,
+     "valori_da": "calcolatori",
+     "descrizione": "identificativo del calcolatore",
+     "valori": [
+      "acconto_imposte",
+      "assegno_mantenimento",
+      "canone_locazione",
+      "capitalizzazione_rendita",
+      "categorie_catastali",
+      "cedolare_secca",
+      "codice_fiscale",
+      "compenso_a_tempo",
+      "competenza_valore",
+      "consenso_informato",
+      "conta_giorni",
+      "contributi_cassa_forense",
+      "contributo_unificato",
+      "crediti_lavoro",
+      "ctu",
+      "custodia_cautelare",
+      "custodia_durata",
+      "danno_biologico",
+      "danno_parentale",
+      "danno_premorienza",
+      "danno_terminale",
+      "detrazione_canone",
+      "detrazioni_familiari",
+      "detrazioni_reddito",
+      "diffamazione",
+      "fattura_agente",
+      "grado_parentela",
+      "imposta_registro",
+      "imposte_compravendita",
+      "imposte_successione",
+      "improcedibilita_penale",
+      "impugnazioni",
+      "imu",
+      "indagini_preliminari",
+      "indennita_licenziamento",
+      "indennita_mediazione",
+      "interessi",
+      "interessi_acconti",
+      "irpef",
+      "lite_temeraria",
+      "maggior_danno",
+      "nota_credito",
+      "onorari_forensi",
+      "patrocinio_spese_stato",
+      "pena_riti_alternativi",
+      "percentuali",
+      "perfezionamento_notifica",
+      "piano_ammortamento",
+      "pignoramento",
+      "prescrizione",
+      "prescrizione_penale",
+      "prestazione_occasionale",
+      "procedibilita_adr",
+      "pronti_contro_termine",
+      "quote_riserva",
+      "rateazione_imposte",
+      "ravvedimento_operoso",
+      "regime_forfettario",
+      "rendimento_bot",
+      "reversibilita",
+      "riparto_spese",
+      "rivalutazione_istat",
+      "rivalutazione_media",
+      "scorporo_iva",
+      "successione_legittima",
+      "surroga",
+      "tabella_istat",
+      "tabella_tassi",
+      "taeg",
+      "termini_penali",
+      "termini_processuali",
+      "tfr",
+      "uffici_competenti",
+      "usufrutto",
+      "usura",
+      "valore_catastale",
+      "valore_causa"
+     ]
+    },
+    "campi": {
+     "tipo": "oggetto",
+     "obbligatorio": false,
+     "descrizione": "dati del calcolo: solo i campi dichiarati dal calcolatore (vedi «calcolatori»)"
+    }
+   },
+   "permessi": [
+    "fatturazione.leggi",
+    "telematico.leggi"
+   ],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "lex.calcoli_certi:risposta_calcolatore",
+     "esiste": true,
+     "firma": "(domanda: 'str', gestore_factory: 'Callable[[], Any]') -> 'RispostaCerta | None'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.calcoli_certi.riconoscimento:scegli_strumento",
+     "esiste": true,
+     "firma": "(domanda: 'str', titoli: 'dict[str, str]') -> 'str'",
+     "descrizione": "Identificativo dello strumento, o stringa vuota se nessuno o più d'uno corrispondono."
+    },
+    {
+     "riferimento": "pct.calcolatori.schema:schema_calcolatore",
+     "esiste": true,
+     "firma": "(tool_id: 'str') -> 'Dict[str, Any] | None'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.harness.termini:termine",
+     "esiste": true,
+     "firma": "(codice: 'str', dal: 'date') -> 'date'",
+     "descrizione": "Scadenza con il modello indicato (motore dei termini di IUSENTRA)."
+    }
+   ],
+   "sorgenti_registro": [
+    "tariffario",
+    "uffici_giudiziari"
+   ],
+   "tool_dichiarati": [
+    {
+     "sorgente": "tariffario",
+     "tool": "get_tariffario_result",
+     "implementato": true
+    },
+    {
+     "sorgente": "uffici_giudiziari",
+     "tool": "lookup_uffici_giudiziari",
+     "implementato": true
+    }
+   ],
+   "adattatori": [],
+   "tool_lex": [],
+   "tempo_tipico": "< 0,1 s",
+   "esempio": "Calcola gli interessi legali su 12.000 euro dal 01/03/2024 a oggi.",
+   "segnali": [
+    "\\bcalcol",
+    "\\bquanto (?:e|fa|spetta|devo|costa)\\b",
+    "\\ba quanto ammont",
+    "\\bentro quando\\b",
+    "\\bquando scade\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "deposito_telematico",
+   "titolo": "Deposito telematico",
+   "gruppo": "telematico",
+   "contenuto": "Il deposito telematico guidato (PST/PCT, PDP penale, PAT, PTT): profilo procedurale, controlli su atto, firma e PDF, schema DatiAtto, stato e spiegazione degli errori.",
+   "parametri": {
+    "fascicolo": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "«corrente» solo per il fascicolo aperto; se la domanda nomina una pratica (nome, «Castagnoli contro Pianigiani», «RG 1234/2025») quella, mai «corrente»: se più pratiche corrispondono, chiedere quale"
+    },
+    "canale": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "pct",
+      "pdp",
+      "pat",
+      "ptt"
+     ],
+     "descrizione": "canale telematico"
+    },
+    "controllo": {
+     "tipo": "scelta",
+     "obbligatorio": false,
+     "valori": [
+      "checklist",
+      "errore",
+      "firma",
+      "pdf",
+      "datiatto",
+      "stato"
+     ],
+     "descrizione": "che cosa controllare"
+    },
+    "atto": {
+     "tipo": "testo",
+     "obbligatorio": false,
+     "descrizione": "atto da depositare"
+    }
+   },
+   "permessi": [
+    "telematico.leggi",
+    "studio:telematico:read"
+   ],
+   "dati_dello_studio": true,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "pct.deposito_guidato:OrchestratoreDepositoGuidato",
+     "esiste": true,
+     "firma": "(validation_db_path: 'str', office_cache_path: 'str' = '', *, pst_wsdl_catalog_zip_path: 'str' = '', pst_official_cache_path: 'str' = '', pst_catalog_endpoint: 'str' = '', pst_timeout: 'float' = 8.0) -> 'None'",
+     "descrizione": "Orchestratore centrale: resolver + validator giuridico + validator tecnico/documentale."
+    },
+    {
+     "riferimento": "pct.deposito_guidato:get_deposit_policy",
+     "esiste": true,
+     "firma": "(practice_id: 'str') -> 'Optional[Any]'",
+     "descrizione": "Restituisce il DepositPolicy del PRACTICE_REGISTRY per la pratica indicata."
+    }
+   ],
+   "sorgenti_registro": [
+    "telematico",
+    "firma_digitale"
+   ],
+   "tool_dichiarati": [],
+   "adattatori": [
+    "TelematicoSource"
+   ],
+   "tool_lex": [
+    "telematico"
+   ],
+   "tempo_tipico": "0,1-1 s",
+   "esempio": "Che controlli devo fare prima di depositare la comparsa sul PCT?",
+   "segnali": [
+    "\\bdeposit\\w*\\b",
+    "\\btelematic",
+    "\\bpst\\b",
+    "\\bpct\\b",
+    "\\bpdp\\b",
+    "\\bpat\\b",
+    "\\bptt\\b",
+    "\\bbusta\\b",
+    "\\bdatiatto\\b",
+    "\\bfirma (?:digitale|cades|pades)\\b",
+    "\\bpdf/a\\b"
+   ],
+   "nota": ""
+  },
+  {
+   "nome": "pagine_software",
+   "titolo": "Pagine e moduli del software",
+   "gruppo": "software",
+   "contenuto": "Dove si trova una funzione nel software IUSENTRA: moduli, sezioni, pagine e modalità di accesso.",
+   "parametri": {
+    "cerca": {
+     "tipo": "testo",
+     "obbligatorio": true,
+     "descrizione": "parole da cercare"
+    }
+   },
+   "permessi": [],
+   "dati_dello_studio": false,
+   "collegata_a_lex": true,
+   "funzioni": [
+    {
+     "riferimento": "pct.applicazioni_catalogo:cerca_applicazioni",
+     "esiste": true,
+     "firma": "(*, q: 'str' = '', sezione: 'str' = '', stato: 'str' = '', tipo: 'str' = '', modalita: 'str' = '', solo_primo_piano: 'bool' = False, entries: 'Optional[Iterable[Dict[str, Any]]]' = None) -> 'List[Dict[str, Any]]'",
+     "descrizione": ""
+    },
+    {
+     "riferimento": "lex.retrieval.sources.applicazioni:ApplicazioniSource.search",
+     "esiste": true,
+     "firma": "(self, queries, request, context)",
+     "descrizione": ""
+    }
+   ],
+   "sorgenti_registro": [],
+   "tool_dichiarati": [],
+   "adattatori": [
+    "ApplicazioniSource"
+   ],
+   "tool_lex": [],
+   "tempo_tipico": "< 0,2 s",
+   "esempio": "Dove trovo nel programma la pagina per il controllo dei depositi?",
+   "segnali": [
+    "\\bdove (?:trovo|si trova|sta)\\b.*\\b(?:pagina|programma|software|menu|funzione)\\b",
+    "\\bnel (?:programma|software|menu)\\b"
+   ],
+   "nota": ""
+  }
+ ],
+ "calcolatori": {
+  "acconto_imposte": {
+   "titolo": "Acconto IRPEF e cedolare",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_acconto_imposte",
+   "metodo_esiste": true,
+   "campi": {
+    "acc_rigo_differenza": {
+     "tipo": "number",
+     "etichetta": "Rigo differenza (imposta anno precedente)"
+    },
+    "acc_imposta": {
+     "tipo": "select",
+     "etichetta": "Imposta",
+     "valori": [
+      "irpef",
+      "cedolare"
+     ],
+     "etichette": {
+      "irpef": "IRPEF",
+      "cedolare": "Cedolare secca"
+     }
+    },
+    "acc_isa": {
+     "tipo": "select",
+     "etichetta": "Soggetto ISA o forfettario",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "assegno_mantenimento": {
+   "titolo": "Mantenimento: figli, coniuge separato, assegno divorzile",
+   "categoria": "Famiglia",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.stima_assegno_mantenimento",
+   "metodo_esiste": true,
+   "campi": {
+    "man_percorso": {
+     "tipo": "select",
+     "etichetta": "Percorso",
+     "valori": [
+      "figli",
+      "separazione",
+      "divorzio"
+     ],
+     "etichette": {
+      "figli": "Mantenimento dei figli (art. 337-ter c.c.)",
+      "separazione": "Coniuge nella separazione (art. 156 c.c.)",
+      "divorzio": "Assegno divorzile (art. 5, c. 6, L. 898/1970)"
+     }
+    },
+    "mf_reddito_a": {
+     "tipo": "number",
+     "etichetta": "Reddito netto mensile del genitore A (con le entrate ricorrenti)"
+    },
+    "mf_reddito_b": {
+     "tipo": "number",
+     "etichetta": "Reddito netto mensile del genitore B (con le entrate ricorrenti)"
+    },
+    "mf_voci": {
+     "tipo": "textarea",
+     "etichetta": "Bilancio del figlio, una voce per riga"
+    },
+    "mf_assegno_unico": {
+     "tipo": "number",
+     "etichetta": "Assegno unico mensile (registrato a parte)"
+    },
+    "mf_assegno_unico_percettore": {
+     "tipo": "select",
+     "etichetta": "Chi percepisce l'assegno unico",
+     "valori": [
+      "",
+      "A",
+      "B"
+     ],
+     "etichette": {
+      "": "Non indicato",
+      "A": "Genitore A",
+      "B": "Genitore B"
+     }
+    },
+    "mf_patrimonio": {
+     "tipo": "text",
+     "etichetta": "Patrimonio e disponibilità abitative (descrizione, senza redditi presunti)"
+    },
+    "mf_val_permanenza": {
+     "tipo": "text",
+     "etichetta": "Valutazione: tempi di permanenza presso ciascun genitore"
+    },
+    "mf_val_abitazione": {
+     "tipo": "text",
+     "etichetta": "Valutazione: situazione abitativa"
+    },
+    "mf_val_cura": {
+     "tipo": "text",
+     "etichetta": "Valutazione: compiti domestici e di cura"
+    },
+    "mf_val_esigenze": {
+     "tipo": "text",
+     "etichetta": "Valutazione: esigenze attuali e specifiche del figlio"
+    },
+    "mf_val_tenore": {
+     "tipo": "text",
+     "etichetta": "Valutazione: tenore di vita in costanza di convivenza"
+    },
+    "mf_validata": {
+     "tipo": "select",
+     "etichetta": "Proposta validata dall'avvocato",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "mf_motivazione": {
+     "tipo": "text",
+     "etichetta": "Motivazione dell'avvocato"
+    },
+    "mc_addebito": {
+     "tipo": "select",
+     "etichetta": "Separazione addebitabile al richiedente",
+     "valori": [
+      "da_accertare",
+      "no",
+      "si"
+     ],
+     "etichette": {
+      "da_accertare": "Da accertare",
+      "no": "No",
+      "si": "Sì"
+     }
+    },
+    "mc_fabbisogno": {
+     "tipo": "text",
+     "etichetta": "Fabbisogno mensile assunto nel modello (importo o intervallo)"
+    },
+    "mc_risorse_richiedente": {
+     "tipo": "number",
+     "etichetta": "Risorse mensili del richiedente"
+    },
+    "mc_reddito_altro": {
+     "tipo": "number",
+     "etichetta": "Reddito mensile dell'altro coniuge"
+    },
+    "mc_val_tenore": {
+     "tipo": "text",
+     "etichetta": "Valutazione: tenore di vita matrimoniale e prova"
+    },
+    "mc_val_capacita": {
+     "tipo": "text",
+     "etichetta": "Valutazione: capacità lavorativa del richiedente"
+    },
+    "mc_val_circostanze": {
+     "tipo": "text",
+     "etichetta": "Valutazione: altre circostanze e redditi dell'obbligato"
+    },
+    "mc_durata_matrimonio": {
+     "tipo": "number",
+     "etichetta": "Durata del matrimonio in anni (registrata, senza coefficiente)"
+    },
+    "mc_val_condizioni": {
+     "tipo": "text",
+     "etichetta": "Valutazione: condizioni dei coniugi ed età"
+    },
+    "mc_val_contributo": {
+     "tipo": "text",
+     "etichetta": "Valutazione: contributo alla famiglia e al patrimonio"
+    },
+    "mc_val_prospettive": {
+     "tipo": "text",
+     "etichetta": "Valutazione: prospettive reddituali e rinunce professionali"
+    },
+    "mc_val_ragioni": {
+     "tipo": "text",
+     "etichetta": "Valutazione: ragioni della decisione"
+    },
+    "mc_compensative": {
+     "tipo": "textarea",
+     "etichetta": "Componente compensativa, una voce per riga"
+    },
+    "mc_validata": {
+     "tipo": "select",
+     "etichetta": "Proposta validata dall'avvocato",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "mc_motivazione": {
+     "tipo": "text",
+     "etichetta": "Motivazione dell'avvocato"
+    }
+   }
+  },
+  "canone_locazione": {
+   "titolo": "Adeguamento canone di locazione",
+   "categoria": "Locazioni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_adeguamento_canone",
+   "metodo_esiste": true,
+   "campi": {
+    "loc_canone": {
+     "tipo": "number",
+     "etichetta": "Canone mensile"
+    },
+    "loc_perc_adeguamento": {
+     "tipo": "number",
+     "etichetta": "Percentuale applicata"
+    },
+    "loc_anno_base": {
+     "tipo": "number",
+     "etichetta": "Anno base"
+    },
+    "loc_mese_base": {
+     "tipo": "number",
+     "etichetta": "Mese base"
+    },
+    "loc_anno_fine": {
+     "tipo": "number",
+     "etichetta": "Anno di aggiornamento"
+    },
+    "loc_mese_fine": {
+     "tipo": "number",
+     "etichetta": "Mese di aggiornamento"
+    }
+   }
+  },
+  "capitalizzazione_rendita": {
+   "titolo": "Capitalizzazione di una rendita",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_capitalizzazione_rendita",
+   "metodo_esiste": true,
+   "campi": {
+    "cr_sesso": {
+     "tipo": "select",
+     "etichetta": "Sesso del danneggiato",
+     "valori": [
+      "maschi",
+      "femmine"
+     ],
+     "etichette": {
+      "maschi": "Uomo",
+      "femmine": "Donna"
+     }
+    },
+    "cr_eta": {
+     "tipo": "number",
+     "etichetta": "Età del danneggiato"
+    },
+    "cr_reddito": {
+     "tipo": "number",
+     "etichetta": "Reddito annuo perduto"
+    },
+    "cr_eta_finale": {
+     "tipo": "number",
+     "etichetta": "Età finale del periodo"
+    },
+    "cr_anni": {
+     "tipo": "number",
+     "etichetta": "Anni di perdita"
+    },
+    "cr_quota_perc": {
+     "tipo": "number",
+     "etichetta": "Quota da risarcire %"
+    }
+   }
+  },
+  "categorie_catastali": {
+   "titolo": "Categorie catastali",
+   "categoria": "Immobili",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.tabella_categorie_catastali",
+   "metodo_esiste": true,
+   "campi": {
+    "catcat_gruppo": {
+     "tipo": "select",
+     "etichetta": "Gruppo",
+     "valori": [
+      "TUTTI",
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F"
+     ],
+     "etichette": {
+      "TUTTI": "Tutti i gruppi",
+      "A": "A — Abitazioni e uffici",
+      "B": "B — Edifici collettivi",
+      "C": "C — Commerciale e pertinenze",
+      "D": "D — Immobili speciali produttivi",
+      "E": "E — Immobili particolari",
+      "F": "F — Entità urbane"
+     }
+    }
+   }
+  },
+  "cedolare_secca": {
+   "titolo": "Cedolare secca",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_cedolare_secca",
+   "metodo_esiste": true,
+   "campi": {
+    "cedolare_canone_annuo": {
+     "tipo": "number",
+     "etichetta": "Canone annuo"
+    },
+    "cedolare_aliquota": {
+     "tipo": "select",
+     "etichetta": "Aliquota",
+     "valori": [
+      "21",
+      "10"
+     ],
+     "etichette": {
+      "21": "21%",
+      "10": "10%"
+     }
+    },
+    "cedolare_annualita": {
+     "tipo": "number",
+     "etichetta": "Annualità"
+    }
+   }
+  },
+  "codice_fiscale": {
+   "titolo": "Codice fiscale",
+   "categoria": "Utilita",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_codice_fiscale",
+   "metodo_esiste": true,
+   "campi": {
+    "cf_codice": {
+     "tipo": "text",
+     "etichetta": "Codice fiscale da decodificare"
+    },
+    "cf_cognome": {
+     "tipo": "text",
+     "etichetta": "Cognome"
+    },
+    "cf_nome": {
+     "tipo": "text",
+     "etichetta": "Nome"
+    },
+    "cf_sesso": {
+     "tipo": "select",
+     "etichetta": "Sesso",
+     "valori": [
+      "M",
+      "F"
+     ],
+     "etichette": {
+      "M": "M",
+      "F": "F"
+     }
+    },
+    "cf_data_nascita": {
+     "tipo": "date",
+     "etichetta": "Data di nascita"
+    },
+    "cf_luogo": {
+     "tipo": "text",
+     "etichetta": "Comune di nascita"
+    },
+    "cf_provincia": {
+     "tipo": "text",
+     "etichetta": "Provincia (sigla)"
+    }
+   }
+  },
+  "compenso_a_tempo": {
+   "titolo": "Compenso a tempo",
+   "categoria": "Professione",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_compenso_a_tempo",
+   "metodo_esiste": true,
+   "campi": {
+    "cat_tariffa_oraria": {
+     "tipo": "number",
+     "etichetta": "Tariffa oraria"
+    },
+    "cat_ore": {
+     "tipo": "number",
+     "etichetta": "Ore"
+    },
+    "cat_minuti": {
+     "tipo": "number",
+     "etichetta": "Minuti aggiuntivi"
+    },
+    "cat_criterio": {
+     "tipo": "select",
+     "etichetta": "Criterio di arrotondamento",
+     "valori": [
+      "ora_frazione_oltre_30",
+      "effettivo_minuti",
+      "scatti_15",
+      "scatti_30"
+     ],
+     "etichette": {
+      "ora_frazione_oltre_30": "Ora intera oltre 30 minuti",
+      "effettivo_minuti": "Tempo effettivo al minuto",
+      "scatti_15": "Scatti di 15 minuti",
+      "scatti_30": "Scatti di 30 minuti"
+     }
+    },
+    "cat_massimale_ore": {
+     "tipo": "number",
+     "etichetta": "Massimale ore pattuito"
+    },
+    "cat_soglia_ore": {
+     "tipo": "number",
+     "etichetta": "Soglia di preapprovazione"
+    },
+    "cat_spese_generali_percent": {
+     "tipo": "number",
+     "etichetta": "Spese generali %"
+    }
+   }
+  },
+  "competenza_valore": {
+   "titolo": "Competenza per valore",
+   "categoria": "Competenza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_competenza_valore",
+   "metodo_esiste": true,
+   "campi": {
+    "comp_materia": {
+     "tipo": "select",
+     "etichetta": "Tipo di causa",
+     "valori": [
+      "beni_mobili",
+      "danno_circolazione"
+     ],
+     "etichette": {
+      "beni_mobili": "Cause relative a beni mobili",
+      "danno_circolazione": "Danno da circolazione di veicoli e natanti"
+     }
+    },
+    "comp_valore": {
+     "tipo": "number",
+     "etichetta": "Valore della causa"
+    },
+    "comp_data_introduzione": {
+     "tipo": "date",
+     "etichetta": "Instaurazione del procedimento"
+    }
+   }
+  },
+  "consenso_informato": {
+   "titolo": "Consenso informato",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_consenso_informato",
+   "metodo_esiste": true,
+   "campi": {
+    "ci_fascia": {
+     "tipo": "select",
+     "etichetta": "Gravità della lesione del diritto",
+     "valori": [
+      "lieve",
+      "media",
+      "grave",
+      "eccezionale"
+     ],
+     "etichette": {
+      "lieve": "Lieve — 1.162 / 4.649 €",
+      "media": "Media — 4.650 / 10.460 €",
+      "grave": "Grave — 10.461 / 23.245 €",
+      "eccezionale": "Eccezionale — oltre 23.246 €"
+     }
+    },
+    "ci_posizione": {
+     "tipo": "number",
+     "etichetta": "Posizione nella fascia %"
+    },
+    "ci_importo_eccezionale": {
+     "tipo": "number",
+     "etichetta": "Importo per la fascia eccezionale"
+    },
+    "ci_trattamento_estetico": {
+     "tipo": "select",
+     "etichetta": "Trattamento di tipo estetico",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "conta_giorni": {
+   "titolo": "Conta giorni tra date",
+   "categoria": "Utilita",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_conta_giorni",
+   "metodo_esiste": true,
+   "campi": {
+    "giorni_data_inizio": {
+     "tipo": "date",
+     "etichetta": "Data iniziale"
+    },
+    "giorni_data_fine": {
+     "tipo": "date",
+     "etichetta": "Data finale"
+    }
+   }
+  },
+  "contributi_cassa_forense": {
+   "titolo": "Contributi Cassa Forense",
+   "categoria": "Previdenza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_contributi_cassa_forense",
+   "metodo_esiste": true,
+   "campi": {
+    "cf_anno": {
+     "tipo": "number",
+     "etichetta": "Anno di competenza"
+    },
+    "cf_reddito": {
+     "tipo": "number",
+     "etichetta": "Reddito netto professionale (IRPEF)"
+    },
+    "cf_compensi": {
+     "tipo": "number",
+     "etichetta": "Volume d'affari IVA"
+    },
+    "cf_posizione": {
+     "tipo": "select",
+     "etichetta": "Posizione contributiva",
+     "valori": [
+      "ordinaria",
+      "agevolata",
+      "pensionato"
+     ],
+     "etichette": {
+      "ordinaria": "Iscritto alla Cassa (minimi interi)",
+      "agevolata": "Primi 6 anni, iscritto prima dei 35 anni (minimi ridotti alla metà)",
+      "pensionato": "Pensionato di vecchiaia iscritto all'Albo"
+     }
+    }
+   }
+  },
+  "contributo_unificato": {
+   "titolo": "Contributo unificato",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_contributo_unificato",
+   "metodo_esiste": true,
+   "campi": {
+    "cu_categoria": {
+     "tipo": "select",
+     "etichetta": "Tipologia di procedimento",
+     "valori_da": "contributo_unificato_categorie",
+     "valori": [
+      "civile_ordinario",
+      "decreto_ingiuntivo",
+      "lavoro",
+      "processo_speciale_libro_iv",
+      "volontaria_giurisdizione",
+      "separazione_consensuale",
+      "famiglia_473bis47",
+      "ricerca_beni_492bis",
+      "cittadinanza_italiana",
+      "esecuzione_immobiliare",
+      "altri_processi_esecutivi",
+      "esecuzione_mobiliare_sotto_2500",
+      "opposizione_atti_esecutivi",
+      "procedura_fallimentare",
+      "tributario",
+      "amministrativo_accesso_soggiorno_cittadinanza",
+      "amministrativo_ordinario",
+      "amministrativo_rito_abbreviato",
+      "amministrativo_appalti",
+      "amministrativo_ottemperanza"
+     ],
+     "etichette": {
+      "civile_ordinario": "Civile ordinario",
+      "decreto_ingiuntivo": "Ricorso per decreto ingiuntivo",
+      "lavoro": "Lavoro / pubblico impiego",
+      "processo_speciale_libro_iv": "Procedimento speciale civile",
+      "volontaria_giurisdizione": "Volontaria giurisdizione",
+      "separazione_consensuale": "Separazione / divorzio congiunto",
+      "famiglia_473bis47": "Separazione / divorzio giudiziale (art. 473-bis.47 c.p.c.)",
+      "ricerca_beni_492bis": "Ricerca beni ex art. 492-bis c.p.c.",
+      "cittadinanza_italiana": "Accertamento cittadinanza italiana",
+      "esecuzione_immobiliare": "Esecuzione immobiliare",
+      "altri_processi_esecutivi": "Altra esecuzione",
+      "esecuzione_mobiliare_sotto_2500": "Esecuzione mobiliare sotto € 2.500,00",
+      "opposizione_atti_esecutivi": "Opposizione agli atti esecutivi",
+      "procedura_fallimentare": "Procedura fallimentare",
+      "tributario": "Ricorso tributario",
+      "amministrativo_accesso_soggiorno_cittadinanza": "Accesso, soggiorno, cittadinanza e ottemperanza",
+      "amministrativo_ordinario": "Ricorso amministrativo ordinario",
+      "amministrativo_rito_abbreviato": "Rito abbreviato amministrativo",
+      "amministrativo_appalti": "Appalti pubblici (art. 119 c.p.a.)",
+      "amministrativo_ottemperanza": "Ottemperanza con contestuale risarcitoria"
+     }
+    },
+    "cu_grado": {
+     "tipo": "select",
+     "etichetta": "Grado",
+     "valori": [
+      "primo_grado",
+      "appello",
+      "cassazione"
+     ],
+     "etichette": {
+      "primo_grado": "Primo grado",
+      "appello": "Appello",
+      "cassazione": "Cassazione"
+     }
+    },
+    "cu_valore_tipo": {
+     "tipo": "select",
+     "etichetta": "Tipo di valore",
+     "valori_da": "contributo_unificato_valore",
+     "valori": [
+      "determinato",
+      "indeterminabile",
+      "non_indicato"
+     ],
+     "etichette": {
+      "determinato": "Valore determinato",
+      "indeterminabile": "Valore indeterminabile",
+      "non_indicato": "Valore non indicato"
+     }
+    },
+    "cu_valore": {
+     "tipo": "number",
+     "etichetta": "Valore della causa"
+    },
+    "cu_anticipazione_forfettaria": {
+     "tipo": "select",
+     "etichetta": "Anticipazione forfettaria",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "cu_numero_parti_ricorrenti": {
+     "tipo": "number",
+     "etichetta": "Parti ricorrenti"
+    },
+    "cu_sezione_specializzata_impresa": {
+     "tipo": "select",
+     "etichetta": "Sezione specializzata impresa",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "cu_dati_obbligatori_mancanti": {
+     "tipo": "select",
+     "etichetta": "Dati obbligatori mancanti",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "crediti_lavoro": {
+   "titolo": "Crediti di lavoro: rivalutazione e interessi",
+   "categoria": "Lavoro",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_crediti_lavoro",
+   "metodo_esiste": true,
+   "campi": {
+    "lav_importo": {
+     "tipo": "number",
+     "etichetta": "Credito di lavoro maturato"
+    },
+    "lav_data_maturazione": {
+     "tipo": "date",
+     "etichetta": "Maturazione del diritto"
+    },
+    "lav_data_liquidazione": {
+     "tipo": "date",
+     "etichetta": "Liquidazione o pagamento"
+    },
+    "lav_regime": {
+     "tipo": "select",
+     "etichetta": "Regime del rapporto",
+     "valori": [
+      "privato",
+      "pubblico"
+     ],
+     "etichette": {
+      "privato": "Lavoro privato",
+      "pubblico": "Pubblico impiego"
+     }
+    },
+    "lav_tipo_indice": {
+     "tipo": "select",
+     "etichetta": "Indice ISTAT",
+     "valori": [
+      "foi"
+     ],
+     "etichette": {
+      "foi": "FOI (al netto dei tabacchi)"
+     }
+    },
+    "lav_base_interessi": {
+     "tipo": "select",
+     "etichetta": "Base degli interessi",
+     "valori": [
+      "rivalutato_progressivo",
+      "semisomma",
+      "originario"
+     ],
+     "etichette": {
+      "rivalutato_progressivo": "Capitale progressivamente rivalutato",
+      "semisomma": "Semisomma",
+      "originario": "Capitale originario"
+     }
+    }
+   }
+  },
+  "ctu": {
+   "titolo": "CTU, vacazioni e compensi ausiliari",
+   "categoria": "Processo",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_ctu",
+   "metodo_esiste": true,
+   "campi": {
+    "ctu_modalita": {
+     "tipo": "select",
+     "etichetta": "Modalità",
+     "valori": [
+      "vacazioni",
+      "manuale"
+     ],
+     "etichette": {
+      "vacazioni": "Vacazioni",
+      "manuale": "Onorario manuale"
+     }
+    },
+    "ctu_ore": {
+     "tipo": "number",
+     "etichetta": "Ore"
+    },
+    "ctu_vacazioni": {
+     "tipo": "number",
+     "etichetta": "Vacazioni"
+    },
+    "ctu_onorario": {
+     "tipo": "number",
+     "etichetta": "Onorario"
+    },
+    "ctu_spese": {
+     "tipo": "number",
+     "etichetta": "Spese documentate"
+    },
+    "ctu_cpa_perc": {
+     "tipo": "number",
+     "etichetta": "CPA %"
+    },
+    "ctu_iva_perc": {
+     "tipo": "number",
+     "etichetta": "IVA %"
+    }
+   }
+  },
+  "custodia_cautelare": {
+   "titolo": "Custodia cautelare",
+   "categoria": "Penale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_custodia_cautelare",
+   "metodo_esiste": true,
+   "campi": {
+    "custodia_tipo_misura": {
+     "tipo": "select",
+     "etichetta": "Tipo di misura",
+     "valori": [
+      "carcere",
+      "domiciliari",
+      "altro"
+     ],
+     "etichette": {
+      "carcere": "Custodia in carcere",
+      "domiciliari": "Arresti domiciliari",
+      "altro": "Altra misura"
+     }
+    },
+    "custodia_data_esecuzione": {
+     "tipo": "date",
+     "etichetta": "Data di esecuzione"
+    },
+    "custodia_data_istanza_riesame": {
+     "tipo": "date",
+     "etichetta": "Data istanza di riesame"
+    },
+    "custodia_data_decisione_riesame": {
+     "tipo": "date",
+     "etichetta": "Data decisione del riesame"
+    }
+   }
+  },
+  "custodia_durata": {
+   "titolo": "Durata massima della custodia cautelare",
+   "categoria": "Penale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_custodia_durata",
+   "metodo_esiste": true,
+   "campi": {
+    "cus_fase": {
+     "tipo": "select",
+     "etichetta": "Fase",
+     "valori": [
+      "indagini",
+      "giudizio",
+      "abbreviato",
+      "appello",
+      "cassazione"
+     ],
+     "etichette": {
+      "indagini": "Indagini (lett. a)",
+      "giudizio": "Giudizio di primo grado (lett. b)",
+      "abbreviato": "Giudizio abbreviato (lett. b-bis)",
+      "appello": "Dopo la condanna di primo grado (lett. c)",
+      "cassazione": "Dopo la condanna in appello (lett. d)"
+     }
+    },
+    "cus_data_inizio_fase": {
+     "tipo": "date",
+     "etichetta": "Inizio della fase"
+    },
+    "cus_data_inizio_esecuzione": {
+     "tipo": "date",
+     "etichetta": "Inizio dell'esecuzione della custodia"
+    },
+    "cus_pena_massima_anni": {
+     "tipo": "number",
+     "etichetta": "Pena massima prevista dalla legge — anni"
+    },
+    "cus_pena_massima_mesi": {
+     "tipo": "number",
+     "etichetta": "Mesi"
+    },
+    "cus_ergastolo": {
+     "tipo": "select",
+     "etichetta": "Delitto punito con l'ergastolo",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "cus_delitto_407": {
+     "tipo": "select",
+     "etichetta": "Delitto dell'art. 407 c. 2 lett. a)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "cus_condanna_anni": {
+     "tipo": "number",
+     "etichetta": "Pena inflitta — anni"
+    },
+    "cus_condanna_mesi": {
+     "tipo": "number",
+     "etichetta": "Mesi"
+    },
+    "cus_condanna_ergastolo": {
+     "tipo": "select",
+     "etichetta": "Condanna all'ergastolo",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "danno_biologico": {
+   "titolo": "Danno biologico",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_danno_biologico",
+   "metodo_esiste": true,
+   "campi": {
+    "db_ambito": {
+     "tipo": "select",
+     "etichetta": "Ambito del danno",
+     "valori": [
+      "circolazione",
+      "sanitaria",
+      "civile"
+     ],
+     "etichette": {
+      "circolazione": "Circolazione di veicoli a motore o natanti",
+      "sanitaria": "Responsabilità sanitaria",
+      "civile": "Altra responsabilità civile"
+     }
+    },
+    "db_data_sinistro": {
+     "tipo": "date",
+     "etichetta": "Data del sinistro"
+    },
+    "db_data_liquidazione": {
+     "tipo": "date",
+     "etichetta": "Data di liquidazione"
+    },
+    "db_eta": {
+     "tipo": "number",
+     "etichetta": "Età"
+    },
+    "db_perc_ip": {
+     "tipo": "number",
+     "etichetta": "Invalidità permanente %"
+    },
+    "db_giorni_itt": {
+     "tipo": "number",
+     "etichetta": "Giorni di inabilità totale"
+    },
+    "db_giorni_itp": {
+     "tipo": "number",
+     "etichetta": "Giorni di inabilità parziale"
+    },
+    "db_perc_itp": {
+     "tipo": "select",
+     "etichetta": "Percentuale ITP",
+     "valori": [
+      "25",
+      "50",
+      "75"
+     ],
+     "etichette": {
+      "25": "25%",
+      "50": "50%",
+      "75": "75%"
+     }
+    },
+    "db_morale_livello": {
+     "tipo": "select",
+     "etichetta": "Danno morale (tabella unica nazionale)",
+     "valori": [
+      "minimo",
+      "medio",
+      "massimo",
+      "nessuno"
+     ],
+     "etichette": {
+      "minimo": "Incremento minimo",
+      "medio": "Incremento medio",
+      "massimo": "Incremento massimo",
+      "nessuno": "Nessun incremento"
+     }
+    },
+    "db_personalizzazione": {
+     "tipo": "number",
+     "etichetta": "Personalizzazione %"
+    }
+   }
+  },
+  "danno_parentale": {
+   "titolo": "Danno da perdita parentale",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_danno_parentale",
+   "metodo_esiste": true,
+   "campi": {
+    "dp_categoria": {
+     "tipo": "select",
+     "etichetta": "Rapporto con la vittima",
+     "valori": [
+      "nucleo_primario",
+      "fratello_nipote"
+     ],
+     "etichette": {
+      "nucleo_primario": "Genitore, figlio, coniuge, unito civilmente o convivente",
+      "fratello_nipote": "Fratello, sorella, nonno o nipote"
+     }
+    },
+    "dp_eta_vittima": {
+     "tipo": "number",
+     "etichetta": "Età della vittima primaria"
+    },
+    "dp_eta_congiunto": {
+     "tipo": "number",
+     "etichetta": "Età del congiunto superstite"
+    },
+    "dp_convivenza": {
+     "tipo": "select",
+     "etichetta": "Convivenza",
+     "valori": [
+      "convivenza",
+      "convivenza_oltre_30_anni",
+      "convivenza_oltre_40_anni",
+      "stesso_stabile",
+      "nessuna"
+     ],
+     "etichette": {
+      "convivenza": "Conviventi",
+      "convivenza_oltre_30_anni": "Conviventi da oltre 30 anni (solo fratelli e nipoti)",
+      "convivenza_oltre_40_anni": "Conviventi da oltre 40 anni (solo fratelli e nipoti)",
+      "stesso_stabile": "Stesso stabile o complesso condominiale",
+      "nessuna": "Nessuna convivenza"
+     }
+    },
+    "dp_superstiti": {
+     "tipo": "number",
+     "etichetta": "Altri congiunti superstiti"
+    },
+    "dp_qualita_relazione": {
+     "tipo": "select",
+     "etichetta": "Qualità e intensità della relazione",
+     "valori": [
+      "massima",
+      "molto_intensa",
+      "intensa",
+      "ordinaria",
+      "debole",
+      "assente"
+     ],
+     "etichette": {
+      "massima": "Massima — relazione quotidiana e dipendenza",
+      "molto_intensa": "Molto intensa — condivisione giornaliera",
+      "intensa": "Intensa — condivisione abituale",
+      "ordinaria": "Sporadica — frequentazione e condivisione occasionali",
+      "debole": "Debole — contatti rari",
+      "assente": "Assente o conflittuale"
+     }
+    }
+   }
+  },
+  "danno_premorienza": {
+   "titolo": "Danno da premorienza",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_danno_premorienza",
+   "metodo_esiste": true,
+   "campi": {
+    "pm_perc_ip": {
+     "tipo": "number",
+     "etichetta": "Invalidità permanente %"
+    },
+    "pm_data_lesione": {
+     "tipo": "date",
+     "etichetta": "Data dell'evento lesivo"
+    },
+    "pm_data_decesso": {
+     "tipo": "date",
+     "etichetta": "Data del decesso"
+    },
+    "pm_anni": {
+     "tipo": "number",
+     "etichetta": "Anni di sopravvivenza"
+    },
+    "pm_personalizzazione": {
+     "tipo": "number",
+     "etichetta": "Personalizzazione %"
+    }
+   }
+  },
+  "danno_terminale": {
+   "titolo": "Danno terminale",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_danno_terminale",
+   "metodo_esiste": true,
+   "campi": {
+    "dt_data_lesione": {
+     "tipo": "date",
+     "etichetta": "Data delle lesioni"
+    },
+    "dt_data_decesso": {
+     "tipo": "date",
+     "etichetta": "Data del decesso"
+    },
+    "dt_giorni": {
+     "tipo": "number",
+     "etichetta": "Giorni di sopravvivenza"
+    },
+    "dt_importo_primi_tre": {
+     "tipo": "number",
+     "etichetta": "Importo equitativo per i primi tre giorni"
+    },
+    "dt_personalizzazione": {
+     "tipo": "number",
+     "etichetta": "Personalizzazione % (massimo sconvolgimento)"
+    }
+   }
+  },
+  "detrazione_canone": {
+   "titolo": "Detrazione canoni di locazione",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_detrazione_canone",
+   "metodo_esiste": true,
+   "campi": {
+    "detcan_reddito": {
+     "tipo": "number",
+     "etichetta": "Reddito complessivo"
+    },
+    "detcan_tipo": {
+     "tipo": "select",
+     "etichetta": "Tipologia",
+     "valori": [
+      "ordinario",
+      "concordato",
+      "giovani",
+      "trasferimento_lavoro"
+     ],
+     "etichette": {
+      "ordinario": "Contratto ordinario",
+      "concordato": "Canone concordato 3+2",
+      "giovani": "Giovani 20-31 anni (primi 4 anni)",
+      "trasferimento_lavoro": "Lavoratore trasferito"
+     }
+    },
+    "detcan_canone": {
+     "tipo": "number",
+     "etichetta": "Canone annuo"
+    }
+   }
+  },
+  "detrazioni_familiari": {
+   "titolo": "Detrazioni familiari a carico",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_detrazioni_familiari",
+   "metodo_esiste": true,
+   "campi": {
+    "detfam_reddito": {
+     "tipo": "number",
+     "etichetta": "Reddito complessivo"
+    },
+    "detfam_coniuge": {
+     "tipo": "select",
+     "etichetta": "Coniuge a carico",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "detfam_figli": {
+     "tipo": "number",
+     "etichetta": "Figli a carico 21-30 anni"
+    },
+    "detfam_figli_totali": {
+     "tipo": "number",
+     "etichetta": "Figli a carico totali (anche under 21)"
+    },
+    "detfam_altri": {
+     "tipo": "number",
+     "etichetta": "Ascendenti conviventi a carico"
+    }
+   }
+  },
+  "detrazioni_reddito": {
+   "titolo": "Detrazioni per tipo di reddito",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_detrazioni_reddito",
+   "metodo_esiste": true,
+   "campi": {
+    "detred_reddito": {
+     "tipo": "number",
+     "etichetta": "Reddito complessivo"
+    },
+    "detred_tipo": {
+     "tipo": "select",
+     "etichetta": "Tipo di reddito",
+     "valori": [
+      "dipendente",
+      "pensione",
+      "assegno_coniuge",
+      "altri_redditi"
+     ],
+     "etichette": {
+      "dipendente": "Lavoro dipendente",
+      "pensione": "Pensione",
+      "assegno_coniuge": "Assegno periodico dal coniuge",
+      "altri_redditi": "Autonomo, assimilati e altri redditi"
+     }
+    },
+    "detred_determinato": {
+     "tipo": "select",
+     "etichetta": "Contratto a tempo determinato",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "detred_reddito_dipendente": {
+     "tipo": "number",
+     "etichetta": "Reddito di solo lavoro dipendente"
+    }
+   }
+  },
+  "diffamazione": {
+   "titolo": "Diffamazione a mezzo stampa",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_diffamazione",
+   "metodo_esiste": true,
+   "campi": {
+    "df_fascia": {
+     "tipo": "select",
+     "etichetta": "Gravità della diffamazione",
+     "valori": [
+      "tenue",
+      "modesta",
+      "media",
+      "elevata",
+      "eccezionale"
+     ],
+     "etichette": {
+      "tenue": "Tenue — 1.175 / 11.750 €",
+      "modesta": "Modesta — 11.750 / 23.498 €",
+      "media": "Media — 23.498 / 35.247 €",
+      "elevata": "Elevata — 35.247 / 58.745 €",
+      "eccezionale": "Eccezionale — oltre 58.745 €"
+     }
+    },
+    "df_posizione": {
+     "tipo": "number",
+     "etichetta": "Posizione nella fascia %"
+    },
+    "df_importo_eccezionale": {
+     "tipo": "number",
+     "etichetta": "Importo per la fascia eccezionale"
+    },
+    "df_riparazione": {
+     "tipo": "select",
+     "etichetta": "Calcola la riparazione pecuniaria",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "fattura_agente": {
+   "titolo": "Fattura agente con Enasarco",
+   "categoria": "Professione",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_fattura_agente",
+   "metodo_esiste": true,
+   "campi": {
+    "age_provvigioni": {
+     "tipo": "number",
+     "etichetta": "Provvigioni imponibili"
+    },
+    "age_collaboratori": {
+     "tipo": "select",
+     "etichetta": "Avvalimento continuativo di collaboratori",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "grado_parentela": {
+   "titolo": "Grado di parentela",
+   "categoria": "Famiglia",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_grado_parentela",
+   "metodo_esiste": true,
+   "campi": {
+    "par_relazione": {
+     "tipo": "select",
+     "etichetta": "Relazione",
+     "valori": [
+      "manuale",
+      "genitore_figlio",
+      "nonno_nipote",
+      "bisnonno_pronipote",
+      "fratelli",
+      "zio_nipote",
+      "cugini",
+      "prozio_pronipote",
+      "cugini_secondi",
+      "figlio_cugino"
+     ],
+     "etichette": {
+      "manuale": "Computo manuale per generazioni",
+      "genitore_figlio": "Genitore e figlio",
+      "nonno_nipote": "Nonno e nipote (di figlio)",
+      "bisnonno_pronipote": "Bisnonno e pronipote",
+      "fratelli": "Fratelli / sorelle",
+      "zio_nipote": "Zio e nipote (di fratello)",
+      "cugini": "Cugini (figli di fratelli)",
+      "prozio_pronipote": "Prozio e pronipote",
+      "cugini_secondi": "Cugini di secondo grado",
+      "figlio_cugino": "Uno e il figlio del proprio cugino"
+     }
+    },
+    "par_linea": {
+     "tipo": "select",
+     "etichetta": "Linea (solo computo manuale)",
+     "valori": [
+      "collaterale",
+      "retta"
+     ],
+     "etichette": {
+      "collaterale": "Collaterale",
+      "retta": "Retta"
+     }
+    },
+    "par_generazioni_su": {
+     "tipo": "number",
+     "etichetta": "Generazioni primo ramo"
+    },
+    "par_generazioni_giu": {
+     "tipo": "number",
+     "etichetta": "Generazioni secondo ramo"
+    },
+    "par_affinita": {
+     "tipo": "select",
+     "etichetta": "Rapporto di affinità (art. 78 c.c.)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "imposta_registro": {
+   "titolo": "Imposta di registro",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_imposta_registro",
+   "metodo_esiste": true,
+   "campi": {
+    "reg_tipo_atto": {
+     "tipo": "select",
+     "etichetta": "Tipo di atto",
+     "valori": [
+      "sentenza_condanna",
+      "sentenza_immobili",
+      "decreto_ingiuntivo",
+      "decreto_ingiuntivo_definitivo",
+      "verbale_conciliazione",
+      "lodo_arbitrale",
+      "sentenza_separazione"
+     ],
+     "etichette": {
+      "sentenza_condanna": "Sentenza di condanna",
+      "sentenza_immobili": "Sentenza su trasferimento immobili",
+      "decreto_ingiuntivo": "Decreto ingiuntivo",
+      "decreto_ingiuntivo_definitivo": "Decreto ingiuntivo definitivo",
+      "verbale_conciliazione": "Verbale di conciliazione",
+      "lodo_arbitrale": "Lodo arbitrale",
+      "sentenza_separazione": "Separazione o divorzio"
+     }
+    },
+    "reg_valore": {
+     "tipo": "number",
+     "etichetta": "Valore dell'atto"
+    },
+    "reg_parti": {
+     "tipo": "number",
+     "etichetta": "Numero di parti"
+    }
+   }
+  },
+  "imposte_compravendita": {
+   "titolo": "Imposte compravendita",
+   "categoria": "Immobili",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_imposte_compravendita",
+   "metodo_esiste": true,
+   "campi": {
+    "comp_regime": {
+     "tipo": "select",
+     "etichetta": "Regime",
+     "valori": [
+      "privato",
+      "iva"
+     ],
+     "etichette": {
+      "privato": "Cessione da privato",
+      "iva": "Cessione soggetta a IVA"
+     }
+    },
+    "comp_prezzo": {
+     "tipo": "number",
+     "etichetta": "Prezzo di compravendita"
+    },
+    "comp_valore_catastale": {
+     "tipo": "number",
+     "etichetta": "Valore catastale (prezzo-valore)"
+    },
+    "comp_prima_casa": {
+     "tipo": "select",
+     "etichetta": "Agevolazione prima casa",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "comp_lusso": {
+     "tipo": "select",
+     "etichetta": "Categoria di lusso (A/1, A/8, A/9)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "imposte_successione": {
+   "titolo": "Imposte di successione",
+   "categoria": "Patrimonio",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_imposte_successione",
+   "metodo_esiste": true,
+   "campi": {
+    "succ_quota": {
+     "tipo": "number",
+     "etichetta": "Quota devoluta al beneficiario"
+    },
+    "succ_rapporto": {
+     "tipo": "select",
+     "etichetta": "Rapporto col defunto",
+     "valori": [
+      "coniuge_linea_retta",
+      "fratello_sorella",
+      "parente_4_affine_3",
+      "altro"
+     ],
+     "etichette": {
+      "coniuge_linea_retta": "Coniuge o parente in linea retta",
+      "fratello_sorella": "Fratello o sorella",
+      "parente_4_affine_3": "Altro parente fino al 4° / affine fino al 3°",
+      "altro": "Altro soggetto"
+     }
+    },
+    "succ_handicap": {
+     "tipo": "select",
+     "etichetta": "Beneficiario con handicap grave (L. 104/1992)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "succ_valore_immobili": {
+     "tipo": "number",
+     "etichetta": "Valore immobili nella quota"
+    },
+    "succ_prima_casa": {
+     "tipo": "select",
+     "etichetta": "Requisiti prima casa sugli immobili",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "improcedibilita_penale": {
+   "titolo": "Improcedibilità in appello e cassazione",
+   "categoria": "Penale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_improcedibilita_penale",
+   "metodo_esiste": true,
+   "campi": {
+    "imp_data_fatto": {
+     "tipo": "date",
+     "etichetta": "Data del fatto"
+    },
+    "imp_grado": {
+     "tipo": "select",
+     "etichetta": "Giudizio",
+     "valori": [
+      "appello",
+      "cassazione"
+     ],
+     "etichette": {
+      "appello": "Appello",
+      "cassazione": "Cassazione"
+     }
+    },
+    "imp_data_pronuncia": {
+     "tipo": "date",
+     "etichetta": "Data della sentenza impugnata"
+    },
+    "imp_giorni_motivazione": {
+     "tipo": "number",
+     "etichetta": "Giorni per la motivazione (0 se contestuale)"
+    },
+    "imp_data_impugnazione": {
+     "tipo": "date",
+     "etichetta": "Data dell'impugnazione"
+    },
+    "imp_atti_pervenuti_prima": {
+     "tipo": "select",
+     "etichetta": "Atti già pervenuti al giudice il 19/10/2021",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "imp_proroghe_mesi": {
+     "tipo": "number",
+     "etichetta": "Proroghe disposte (mesi)"
+    },
+    "imp_giorni_sospensione": {
+     "tipo": "number",
+     "etichetta": "Giorni di sospensione (art. 344-bis c. 6)"
+    }
+   }
+  },
+  "impugnazioni": {
+   "titolo": "Termini di impugnazione",
+   "categoria": "Processo",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_impugnazioni",
+   "metodo_esiste": true,
+   "campi": {
+    "imp_mezzo": {
+     "tipo": "select",
+     "etichetta": "Mezzo di impugnazione",
+     "valori": [
+      "appello",
+      "cassazione"
+     ],
+     "etichette": {
+      "appello": "Appello",
+      "cassazione": "Ricorso per cassazione"
+     }
+    },
+    "imp_data_pubblicazione": {
+     "tipo": "date",
+     "etichetta": "Pubblicazione della sentenza"
+    },
+    "imp_data_notificazione": {
+     "tipo": "date",
+     "etichetta": "Notificazione della sentenza"
+    },
+    "imp_sospensione_feriale": {
+     "tipo": "select",
+     "etichetta": "Sospensione feriale",
+     "valori": [
+      "applica",
+      "esclusa"
+     ],
+     "etichette": {
+      "applica": "Si applica",
+      "esclusa": "Esclusa (art. 3 L. 742/1969)"
+     }
+    },
+    "imp_riferimento": {
+     "tipo": "text",
+     "etichetta": "Riferimento di pratica"
+    }
+   }
+  },
+  "imu": {
+   "titolo": "Calcolo IMU",
+   "categoria": "Immobili",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_imu",
+   "metodo_esiste": true,
+   "campi": {
+    "imu_rendita": {
+     "tipo": "number",
+     "etichetta": "Rendita catastale (non rivalutata)"
+    },
+    "imu_gruppo": {
+     "tipo": "select",
+     "etichetta": "Categoria",
+     "valori": [
+      "a_non_a10",
+      "c2_c6_c7",
+      "gruppo_b",
+      "c3_c4_c5",
+      "a10",
+      "d5",
+      "gruppo_d",
+      "c1"
+     ],
+     "etichette": {
+      "a_non_a10": "Gruppo A escluso A/10 (abitazioni)",
+      "c2_c6_c7": "C/2, C/6, C/7",
+      "gruppo_b": "Gruppo B",
+      "c3_c4_c5": "C/3, C/4, C/5",
+      "a10": "A/10 (uffici)",
+      "d5": "D/5 (banche e assicurazioni)",
+      "gruppo_d": "Gruppo D escluso D/5",
+      "c1": "C/1 (negozi)"
+     }
+    },
+    "imu_aliquota": {
+     "tipo": "number",
+     "etichetta": "Aliquota comunale %"
+    },
+    "imu_abitazione_principale": {
+     "tipo": "select",
+     "etichetta": "Abitazione principale",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "imu_lusso": {
+     "tipo": "select",
+     "etichetta": "Categoria di lusso (A/1, A/8, A/9)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "imu_mesi": {
+     "tipo": "number",
+     "etichetta": "Mesi di possesso"
+    },
+    "imu_quota": {
+     "tipo": "number",
+     "etichetta": "Quota di possesso %"
+    },
+    "imu_residenti": {
+     "tipo": "number",
+     "etichetta": "Contitolari residenti"
+    }
+   }
+  },
+  "indagini_preliminari": {
+   "titolo": "Durata delle indagini preliminari",
+   "categoria": "Penale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_indagini_preliminari",
+   "metodo_esiste": true,
+   "campi": {
+    "ind_data_iscrizione": {
+     "tipo": "date",
+     "etichetta": "Iscrizione del nome nel registro (art. 335)"
+    },
+    "ind_tipo": {
+     "tipo": "select",
+     "etichetta": "Reato",
+     "valori": [
+      "delitto",
+      "contravvenzione",
+      "delitto_407"
+     ],
+     "etichette": {
+      "delitto": "Delitto",
+      "contravvenzione": "Contravvenzione",
+      "delitto_407": "Delitto dell'art. 407 c. 2"
+     }
+    },
+    "ind_proroga": {
+     "tipo": "select",
+     "etichetta": "Proroga concessa (art. 406)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "ind_data_avviso_415bis": {
+     "tipo": "date",
+     "etichetta": "Notifica dell'avviso di conclusione indagini"
+    },
+    "tp_detenuto_rinuncia": {
+     "tipo": "select",
+     "etichetta": "Indagato in custodia che rinuncia alla sospensione feriale",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "tp_criminalita_organizzata": {
+     "tipo": "select",
+     "etichetta": "Reato di criminalità organizzata",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "indennita_licenziamento": {
+   "titolo": "Indennità di licenziamento",
+   "categoria": "Lavoro",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_indennita_licenziamento",
+   "metodo_esiste": true,
+   "campi": {
+    "lic_retribuzione_mensile": {
+     "tipo": "number",
+     "etichetta": "Retribuzione mensile"
+    },
+    "lic_anni_servizio": {
+     "tipo": "number",
+     "etichetta": "Anni di servizio"
+    },
+    "lic_mesi_servizio": {
+     "tipo": "number",
+     "etichetta": "Mesi di servizio"
+    },
+    "lic_regime": {
+     "tipo": "select",
+     "etichetta": "Regime",
+     "valori": [
+      "jobs_act",
+      "piccola_impresa",
+      "preavviso"
+     ],
+     "etichette": {
+      "jobs_act": "Tutele crescenti",
+      "piccola_impresa": "Piccola impresa",
+      "preavviso": "Preavviso"
+     }
+    },
+    "lic_mensilita_preavviso": {
+     "tipo": "number",
+     "etichetta": "Mensilità di preavviso"
+    }
+   }
+  },
+  "indennita_mediazione": {
+   "titolo": "Indennità di mediazione",
+   "categoria": "ADR",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_indennita_mediazione",
+   "metodo_esiste": true,
+   "campi": {
+    "med_valore": {
+     "tipo": "number",
+     "etichetta": "Valore della lite"
+    },
+    "med_valore_tipo": {
+     "tipo": "select",
+     "etichetta": "Tipo di valore",
+     "valori": [
+      "determinato",
+      "indeterminabile"
+     ],
+     "etichette": {
+      "determinato": "Determinato",
+      "indeterminabile": "Indeterminabile"
+     }
+    },
+    "med_regime": {
+     "tipo": "select",
+     "etichetta": "Regime",
+     "valori": [
+      "volontaria",
+      "obbligatoria_demandata"
+     ],
+     "etichette": {
+      "volontaria": "Volontaria",
+      "obbligatoria_demandata": "Obbligatoria o demandata"
+     }
+    },
+    "med_esito": {
+     "tipo": "select",
+     "etichetta": "Esito",
+     "valori": [
+      "primo_incontro_senza_accordo",
+      "primo_incontro_con_accordo",
+      "incontri_successivi_senza_accordo",
+      "incontri_successivi_con_accordo"
+     ],
+     "etichette": {
+      "primo_incontro_senza_accordo": "Primo incontro senza accordo",
+      "primo_incontro_con_accordo": "Primo incontro con accordo",
+      "incontri_successivi_senza_accordo": "Incontri successivi senza accordo",
+      "incontri_successivi_con_accordo": "Incontri successivi con accordo"
+     }
+    },
+    "med_art31": {
+     "tipo": "select",
+     "etichetta": "Maggiorazione art. 31, comma 3",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "interessi": {
+   "titolo": "Interessi legali e moratori",
+   "categoria": "Credito",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_interessi",
+   "metodo_esiste": true,
+   "campi": {
+    "int_tipo": {
+     "tipo": "select",
+     "etichetta": "Regime",
+     "valori": [
+      "legali",
+      "legali_1284_4",
+      "mora_commerciale",
+      "convenzionale"
+     ],
+     "etichette": {
+      "legali": "Interessi legali (art. 1284, c. 1, c.c.)",
+      "legali_1284_4": "Legali e, dalla domanda giudiziale, saggio D.Lgs. 231/2002 (art. 1284, c. 4, c.c.)",
+      "mora_commerciale": "Mora commerciale D.Lgs. 231/2002",
+      "convenzionale": "Tasso convenzionale pattuito (art. 1284, c. 3, c.c.)"
+     }
+    },
+    "int_capitale": {
+     "tipo": "number",
+     "etichetta": "Capitale"
+    },
+    "int_data_inizio": {
+     "tipo": "date",
+     "etichetta": "Dal"
+    },
+    "int_data_fine": {
+     "tipo": "date",
+     "etichetta": "Al"
+    },
+    "int_data_domanda": {
+     "tipo": "date",
+     "etichetta": "Data della domanda giudiziale"
+    },
+    "int_tasso": {
+     "tipo": "number",
+     "etichetta": "Tasso annuo pattuito %"
+    },
+    "int_data_contratto": {
+     "tipo": "date",
+     "etichetta": "Data del contratto"
+    }
+   }
+  },
+  "interessi_acconti": {
+   "titolo": "Interessi con acconti",
+   "categoria": "Credito",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_interessi_acconti",
+   "metodo_esiste": true,
+   "campi": {
+    "acc_tipo": {
+     "tipo": "select",
+     "etichetta": "Tipo di interessi",
+     "valori": [
+      "legali",
+      "mora_commerciale",
+      "legali_1284_4"
+     ],
+     "etichette": {
+      "legali": "Legali",
+      "mora_commerciale": "Mora commerciale",
+      "legali_1284_4": "Dalla domanda giudiziale: saggio D.Lgs. 231/2002 (art. 1284, c. 4, c.c.)"
+     }
+    },
+    "acc_capitale": {
+     "tipo": "number",
+     "etichetta": "Capitale"
+    },
+    "acc_data_inizio": {
+     "tipo": "date",
+     "etichetta": "Data iniziale"
+    },
+    "acc_data_fine": {
+     "tipo": "date",
+     "etichetta": "Data finale"
+    },
+    "acc_acconti": {
+     "tipo": "textarea",
+     "etichetta": "Acconti"
+    }
+   }
+  },
+  "irpef": {
+   "titolo": "IRPEF lorda a scaglioni",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_irpef_lorda",
+   "metodo_esiste": true,
+   "campi": {
+    "irpef_reddito": {
+     "tipo": "number",
+     "etichetta": "Reddito imponibile"
+    },
+    "irpef_anno": {
+     "tipo": "select",
+     "etichetta": "Anno d'imposta",
+     "valori": [
+      "2026",
+      "2025",
+      "2024"
+     ],
+     "etichette": {
+      "2026": "2026",
+      "2025": "2025",
+      "2024": "2024"
+     }
+    }
+   }
+  },
+  "lite_temeraria": {
+   "titolo": "Lite temeraria — art. 96 c.p.c.",
+   "categoria": "Processo",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_lite_temeraria",
+   "metodo_esiste": true,
+   "campi": {
+    "lt_presupposti": {
+     "tipo": "select",
+     "etichetta": "Presupposti dell'abuso (non la sola soccombenza)",
+     "valori": [
+      "da_verificare",
+      "sussistono",
+      "non_sussistono"
+     ],
+     "etichette": {
+      "da_verificare": "Da verificare",
+      "sussistono": "Sussistono (mala fede o colpa grave)",
+      "non_sussistono": "Non sussistono"
+     }
+    },
+    "lt_data_instaurazione": {
+     "tipo": "date",
+     "etichetta": "Data di instaurazione del procedimento"
+    },
+    "lt_metodo": {
+     "tipo": "select",
+     "etichetta": "Metodo per il comma 3",
+     "valori": [
+      "osservatorio_milano_2024",
+      "nessuno"
+     ],
+     "etichette": {
+      "osservatorio_milano_2024": "Osservatorio di Milano 2024 (compenso × 0,5 / 1 / 1,5)",
+      "nessuno": "Nessuna stima del comma 3"
+     }
+    },
+    "lt_compenso": {
+     "tipo": "number",
+     "etichetta": "Compenso difensivo di riferimento"
+    },
+    "lt_compenso_origine": {
+     "tipo": "select",
+     "etichetta": "Origine del compenso",
+     "valori": [
+      "liquidato",
+      "ipotizzato"
+     ],
+     "etichette": {
+      "liquidato": "Liquidato nel provvedimento",
+      "ipotizzato": "Ipotizzato per la simulazione"
+     }
+    },
+    "lt_parti": {
+     "tipo": "number",
+     "etichetta": "Parti vittoriose abusate"
+    },
+    "lt_valore_elevato": {
+     "tipo": "select",
+     "etichetta": "Indice: valore della causa",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "lt_processo_lungo": {
+     "tipo": "select",
+     "etichetta": "Indice: durata del processo",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "lt_piu_parti": {
+     "tipo": "select",
+     "etichetta": "Indice: più parti vittoriose abusate",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "lt_dolo": {
+     "tipo": "select",
+     "etichetta": "Indice: intensità dell'elemento soggettivo",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "lt_affaticamento": {
+     "tipo": "select",
+     "etichetta": "Indice: affaticamento della parte abusata",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "lt_scenario": {
+     "tipo": "select",
+     "etichetta": "Scenario scelto dall'avvocato",
+     "valori": [
+      "",
+      "ridotto",
+      "base",
+      "elevato"
+     ],
+     "etichette": {
+      "": "Non scelto",
+      "ridotto": "Ridotto (× 0,5)",
+      "base": "Base (× 1)",
+      "elevato": "Elevato (× 1,5)"
+     }
+    },
+    "lt_danni": {
+     "tipo": "textarea",
+     "etichetta": "Danni dei commi 1 e 2, una voce per riga"
+    },
+    "lt_validata": {
+     "tipo": "select",
+     "etichetta": "Proposta validata dall'avvocato",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "lt_motivazione": {
+     "tipo": "text",
+     "etichetta": "Motivazione dell'avvocato"
+    }
+   }
+  },
+  "maggior_danno": {
+   "titolo": "Rivalutazione e interessi sui crediti di valore",
+   "categoria": "Credito",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_maggior_danno",
+   "metodo_esiste": true,
+   "campi": {
+    "md_importo": {
+     "tipo": "number",
+     "etichetta": "Importo del credito"
+    },
+    "md_base_interessi": {
+     "tipo": "select",
+     "etichetta": "Base degli interessi",
+     "valori": [
+      "rivalutato_annuale",
+      "semisomma",
+      "originario"
+     ],
+     "etichette": {
+      "rivalutato_annuale": "Capitale rivalutato anno per anno (Cass. S.U. 1712/1995)",
+      "semisomma": "Semisomma tra capitale originario e capitale rivalutato",
+      "originario": "Capitale originario"
+     }
+    },
+    "md_anno_base": {
+     "tipo": "number",
+     "etichetta": "Anno iniziale"
+    },
+    "md_mese_base": {
+     "tipo": "number",
+     "etichetta": "Mese iniziale"
+    },
+    "md_anno_fine": {
+     "tipo": "number",
+     "etichetta": "Anno finale"
+    },
+    "md_mese_fine": {
+     "tipo": "number",
+     "etichetta": "Mese finale"
+    }
+   }
+  },
+  "nota_credito": {
+   "titolo": "Nota di precisazione del credito",
+   "categoria": "Credito",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.genera_nota_precisazione_credito",
+   "metodo_esiste": true,
+   "campi": {
+    "note_tribunale": {
+     "tipo": "text",
+     "etichetta": "Tribunale o ufficio"
+    },
+    "note_rg": {
+     "tipo": "text",
+     "etichetta": "R.G."
+    },
+    "note_creditore": {
+     "tipo": "text",
+     "etichetta": "Creditore"
+    },
+    "note_debitore": {
+     "tipo": "text",
+     "etichetta": "Debitore"
+    },
+    "note_titolo": {
+     "tipo": "text",
+     "etichetta": "Titolo o oggetto"
+    },
+    "note_capitale": {
+     "tipo": "number",
+     "etichetta": "Capitale"
+    },
+    "note_interessi_tipo": {
+     "tipo": "select",
+     "etichetta": "Interessi",
+     "valori": [
+      "legali",
+      "mora_commerciale",
+      "manuale"
+     ],
+     "etichette": {
+      "legali": "Legali",
+      "mora_commerciale": "Mora D.Lgs. 231/2002",
+      "manuale": "Manuale"
+     }
+    },
+    "note_interessi_manual": {
+     "tipo": "number",
+     "etichetta": "Interessi indicati manualmente"
+    },
+    "note_data_inizio": {
+     "tipo": "date",
+     "etichetta": "Decorrenza"
+    },
+    "note_data_fine": {
+     "tipo": "date",
+     "etichetta": "Fino al"
+    },
+    "note_spese_vive": {
+     "tipo": "number",
+     "etichetta": "Spese vive"
+    },
+    "note_compensi": {
+     "tipo": "number",
+     "etichetta": "Compensi"
+    },
+    "note_cpa_perc": {
+     "tipo": "number",
+     "etichetta": "CPA %"
+    },
+    "note_iva_perc": {
+     "tipo": "number",
+     "etichetta": "IVA %"
+    },
+    "note_acconti": {
+     "tipo": "number",
+     "etichetta": "Acconti"
+    },
+    "note_luogo": {
+     "tipo": "text",
+     "etichetta": "Luogo"
+    },
+    "note_data": {
+     "tipo": "date",
+     "etichetta": "Data"
+    },
+    "note_avvocato": {
+     "tipo": "text",
+     "etichetta": "Difensore"
+    }
+   }
+  },
+  "onorari_forensi": {
+   "titolo": "Onorari forensi",
+   "categoria": "Professione",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_onorari_forensi",
+   "metodo_esiste": true,
+   "campi": {
+    "onorari_materia": {
+     "tipo": "select",
+     "etichetta": "Materia",
+     "valori_da": "onorari_materie",
+     "valori": [
+      "CIVILE_COGN",
+      "LAVORO",
+      "PREVIDENZA",
+      "ESEC_IMMO",
+      "ESEC_MOB",
+      "VOLONTARIA",
+      "PENALE",
+      "AMMINISTRATIVO",
+      "TRIBUTARIO",
+      "STRAGIUD",
+      "MEDIAZIONE",
+      "NEGOZIAZIONE_ASSISTITA",
+      "ARBITRATO",
+      "CONTABILE",
+      "GIURISDIZIONI_SUPERIORI",
+      "AFFARI_IPOTECARI",
+      "CRISI_IMPRESA"
+     ],
+     "etichette": {
+      "CIVILE_COGN": "Civile di cognizione",
+      "LAVORO": "Controversie di lavoro",
+      "PREVIDENZA": "Previdenza e assistenza",
+      "ESEC_IMMO": "Esecuzione immobiliare",
+      "ESEC_MOB": "Esecuzione mobiliare",
+      "VOLONTARIA": "Volontaria giurisdizione",
+      "PENALE": "Penale",
+      "AMMINISTRATIVO": "Amministrativo / TAR-CdS",
+      "TRIBUTARIO": "Tributario / CGT",
+      "STRAGIUD": "Stragiudiziale / Consulenza",
+      "MEDIAZIONE": "Mediazione (D.Lgs. 28/2010)",
+      "NEGOZIAZIONE_ASSISTITA": "Negoziazione Assistita (D.L. 132/2014)",
+      "ARBITRATO": "Arbitrato",
+      "CONTABILE": "Contabile / Corte dei Conti",
+      "GIURISDIZIONI_SUPERIORI": "Giurisdizioni superiori / europee",
+      "AFFARI_IPOTECARI": "Iscrizione ipotecaria / affari tavolari",
+      "CRISI_IMPRESA": "Crisi d'impresa / concorsuale"
+     }
+    },
+    "onorari_grado": {
+     "tipo": "select",
+     "etichetta": "Grado",
+     "valori_da": "onorari_gradi",
+     "valori": [
+      "GIUDICE_DI_PACE",
+      "TRIBUNALE",
+      "GIUDICE_COMPETENTE",
+      "GIUDICE_TUTELARE",
+      "GIP_GUP",
+      "TRIBUNALE_MONOCRATICO",
+      "TRIBUNALE_COLLEGIALE",
+      "CORTE_ASSISE",
+      "CORTE_APPELLO",
+      "CORTE_APPELLO_PENALE",
+      "CORTE_ASSISE_APPELLO",
+      "CASSAZIONE",
+      "TRIBUNALE_SORVEGLIANZA",
+      "MAGISTRATO_SORVEGLIANZA",
+      "TAR",
+      "CONSIGLIO_DI_STATO",
+      "CORTE_DEI_CONTI",
+      "CORTE_COSTITUZIONALE",
+      "CORTE_EDU",
+      "CORTE_GIUSTIZIA_UE",
+      "CORTE_SUPERIORE_UE",
+      "CONSERVATORIA_TAVOLARE",
+      "TRIBUNALE_CONCORSUALE",
+      "CGT_PRIMO_GRADO",
+      "CGT_SECONDO_GRADO",
+      "FUORI_GIUDIZIO",
+      "PROCEDURA_ADR"
+     ],
+     "etichette": {
+      "GIUDICE_DI_PACE": "Giudice di Pace",
+      "TRIBUNALE": "Tribunale",
+      "GIUDICE_COMPETENTE": "Giudice competente",
+      "GIUDICE_TUTELARE": "Giudice tutelare",
+      "GIP_GUP": "GIP / GUP",
+      "TRIBUNALE_MONOCRATICO": "Tribunale monocratico",
+      "TRIBUNALE_COLLEGIALE": "Tribunale collegiale",
+      "CORTE_ASSISE": "Corte d'Assise",
+      "CORTE_APPELLO": "Corte d'Appello",
+      "CORTE_APPELLO_PENALE": "Corte d'Appello penale",
+      "CORTE_ASSISE_APPELLO": "Corte d'Assise d'Appello",
+      "CASSAZIONE": "Corte di Cassazione",
+      "TRIBUNALE_SORVEGLIANZA": "Tribunale di Sorveglianza",
+      "MAGISTRATO_SORVEGLIANZA": "Magistrato di Sorveglianza",
+      "TAR": "TAR",
+      "CONSIGLIO_DI_STATO": "Consiglio di Stato",
+      "CORTE_DEI_CONTI": "Corte dei Conti",
+      "CORTE_COSTITUZIONALE": "Corte costituzionale",
+      "CORTE_EDU": "Corte europea dei diritti dell'uomo",
+      "CORTE_GIUSTIZIA_UE": "Corte di giustizia UE",
+      "CORTE_SUPERIORE_UE": "Corte cost. / Corte europea / CGUE",
+      "CONSERVATORIA_TAVOLARE": "Conservatoria / tavolare",
+      "TRIBUNALE_CONCORSUALE": "Tribunale concorsuale",
+      "CGT_PRIMO_GRADO": "CGT di primo grado",
+      "CGT_SECONDO_GRADO": "CGT di secondo grado",
+      "FUORI_GIUDIZIO": "Fuori giudizio",
+      "PROCEDURA_ADR": "Procedura ADR"
+     }
+    },
+    "onorari_valore": {
+     "tipo": "number",
+     "etichetta": "Valore della controversia"
+    },
+    "onorari_complessita": {
+     "tipo": "select",
+     "etichetta": "Complessità",
+     "valori_da": "onorari_complessita",
+     "valori": [
+      "bassa",
+      "media",
+      "alta",
+      "molto_alta"
+     ],
+     "etichette": {
+      "bassa": "Bassa",
+      "media": "Media",
+      "alta": "Alta",
+      "molto_alta": "Molto_alta"
+     }
+    },
+    "onorari_bonus_telematico": {
+     "tipo": "select",
+     "etichetta": "Bonus telematico",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "onorari_includi_spese_generali": {
+     "tipo": "select",
+     "etichetta": "Spese generali",
+     "valori": [
+      "1",
+      "0"
+     ],
+     "etichette": {
+      "1": "Includi",
+      "0": "Escludi"
+     }
+    },
+    "onorari_cliente_qualificato": {
+     "tipo": "select",
+     "etichetta": "Cliente soggetto a equo compenso",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "onorari_convenzione_predisposta_avvocato": {
+     "tipo": "select",
+     "etichetta": "Accordo predisposto dallo studio",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "onorari_equo_compenso_verificato": {
+     "tipo": "select",
+     "etichetta": "Equo compenso verificato",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "onorari_informativa_scritta": {
+     "tipo": "select",
+     "etichetta": "Informativa scritta",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "patrocinio_spese_stato": {
+   "titolo": "Patrocinio a spese dello Stato",
+   "categoria": "Processo",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.verifica_patrocinio_spese_stato",
+   "metodo_esiste": true,
+   "campi": {
+    "pat_processo": {
+     "tipo": "select",
+     "etichetta": "Tipo di processo",
+     "valori": [
+      "civile",
+      "penale"
+     ],
+     "etichette": {
+      "civile": "Civile, amministrativo, contabile o tributario",
+      "penale": "Penale"
+     }
+    },
+    "pat_reddito_richiedente": {
+     "tipo": "number",
+     "etichetta": "Reddito imponibile del richiedente"
+    },
+    "pat_redditi_conviventi": {
+     "tipo": "number",
+     "etichetta": "Redditi dei familiari conviventi"
+    },
+    "pat_familiari_conviventi": {
+     "tipo": "number",
+     "etichetta": "Familiari conviventi"
+    },
+    "pat_solo_reddito_personale": {
+     "tipo": "select",
+     "etichetta": "Solo reddito personale",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "pat_data_riferimento": {
+     "tipo": "date",
+     "etichetta": "Data di riferimento"
+    }
+   }
+  },
+  "pena_riti_alternativi": {
+   "titolo": "Pena, attenuanti e riti alternativi",
+   "categoria": "Penale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_pena_riti_alternativi",
+   "metodo_esiste": true,
+   "campi": {
+    "pena_anni": {
+     "tipo": "number",
+     "etichetta": "Pena base — anni"
+    },
+    "pena_mesi": {
+     "tipo": "number",
+     "etichetta": "Mesi"
+    },
+    "pena_giorni": {
+     "tipo": "number",
+     "etichetta": "Giorni"
+    },
+    "pena_tipo_reato": {
+     "tipo": "select",
+     "etichetta": "Tipo di reato",
+     "valori": [
+      "delitto",
+      "contravvenzione"
+     ],
+     "etichette": {
+      "delitto": "Delitto",
+      "contravvenzione": "Contravvenzione"
+     }
+    },
+    "pena_eta_imputato": {
+     "tipo": "number",
+     "etichetta": "Età imputato"
+    },
+    "pena_rito": {
+     "tipo": "select",
+     "etichetta": "Rito",
+     "valori": [
+      "ordinario",
+      "abbreviato",
+      "patteggiamento"
+     ],
+     "etichette": {
+      "ordinario": "Rito ordinario",
+      "abbreviato": "Giudizio abbreviato (art. 442 c.p.p.)",
+      "patteggiamento": "Pena su richiesta (art. 444 c.p.p.)"
+     }
+    },
+    "pena_frazione_patteggiamento": {
+     "tipo": "select",
+     "etichetta": "Diminuzione concordata",
+     "valori": [
+      "un_terzo",
+      "un_quarto",
+      "un_quinto"
+     ],
+     "etichette": {
+      "un_terzo": "Un terzo (massima)",
+      "un_quarto": "Un quarto",
+      "un_quinto": "Un quinto"
+     }
+    },
+    "pena_attenuanti_generiche": {
+     "tipo": "select",
+     "etichetta": "Attenuanti generiche (art. 62-bis c.p.)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "pena_reati_satellite": {
+     "tipo": "number",
+     "etichetta": "Reati satellite"
+    },
+    "pena_aumento_per_reato_giorni": {
+     "tipo": "number",
+     "etichetta": "Aumento per reato (giorni)"
+    },
+    "pena_recidiva_reiterata": {
+     "tipo": "select",
+     "etichetta": "Recidiva reiterata",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "pena_mancata_impugnazione": {
+     "tipo": "select",
+     "etichetta": "Mancata impugnazione",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "percentuali": {
+   "titolo": "Calcolo percentuali",
+   "categoria": "Utilita",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_percentuali",
+   "metodo_esiste": true,
+   "campi": {
+    "perc_base": {
+     "tipo": "number",
+     "etichetta": "Importo base"
+    },
+    "perc_percento": {
+     "tipo": "number",
+     "etichetta": "Percentuale"
+    },
+    "perc_parte": {
+     "tipo": "number",
+     "etichetta": "Parte"
+    }
+   }
+  },
+  "perfezionamento_notifica": {
+   "titolo": "Perfezionamento della notifica",
+   "categoria": "Processo",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_perfezionamento_notifica",
+   "metodo_esiste": true,
+   "campi": {
+    "not_canale": {
+     "tipo": "select",
+     "etichetta": "Canale di notificazione",
+     "valori": [
+      "pec",
+      "posta",
+      "art140",
+      "art143",
+      "mani"
+     ],
+     "etichette": {
+      "pec": "PEC o recapito certificato (art. 3-bis L. 53/1994)",
+      "posta": "Servizio postale tramite ufficiale giudiziario",
+      "art140": "Irreperibilita' relativa — art. 140 c.p.c.",
+      "art143": "Residenza e domicilio sconosciuti — art. 143 c.p.c.",
+      "mani": "Consegna a mani — artt. 138-139 c.p.c."
+     }
+    },
+    "not_data_invio": {
+     "tipo": "date",
+     "etichetta": "Data di invio o delle formalita'"
+    },
+    "not_ora_invio": {
+     "tipo": "text",
+     "etichetta": "Ora della ricevuta di accettazione"
+    },
+    "not_data_consegna": {
+     "tipo": "date",
+     "etichetta": "Data di consegna o ricezione"
+    },
+    "not_ora_consegna": {
+     "tipo": "text",
+     "etichetta": "Ora della ricevuta di avvenuta consegna"
+    },
+    "not_esito_posta": {
+     "tipo": "select",
+     "etichetta": "Esito della notifica postale",
+     "valori": [
+      "consegnato",
+      "giacenza"
+     ],
+     "etichette": {
+      "consegnato": "Piego consegnato",
+      "giacenza": "Piego non consegnato: compiuta giacenza"
+     }
+    },
+    "not_data_avviso": {
+     "tipo": "date",
+     "etichetta": "Spedizione della raccomandata di avviso"
+    },
+    "not_data_ritiro": {
+     "tipo": "date",
+     "etichetta": "Data di ritiro del piego"
+    },
+    "not_termine_durata": {
+     "tipo": "number",
+     "etichetta": "Termine da calcolare"
+    },
+    "not_termine_unita": {
+     "tipo": "select",
+     "etichetta": "Unita' del termine",
+     "valori": [
+      "giorni",
+      "mesi"
+     ],
+     "etichette": {
+      "giorni": "Giorni",
+      "mesi": "Mesi"
+     }
+    },
+    "not_sospensione_feriale": {
+     "tipo": "select",
+     "etichetta": "Sospensione feriale",
+     "valori": [
+      "applica",
+      "esclusa"
+     ],
+     "etichette": {
+      "applica": "Applica la sospensione dal 1 al 31 agosto",
+      "esclusa": "Esclusa (art. 3 L. 742/1969)"
+     }
+    }
+   }
+  },
+  "piano_ammortamento": {
+   "titolo": "Piano di ammortamento",
+   "categoria": "Finanza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_piano_ammortamento",
+   "metodo_esiste": true,
+   "campi": {
+    "amm_capitale": {
+     "tipo": "number",
+     "etichetta": "Capitale"
+    },
+    "amm_tasso_annuo": {
+     "tipo": "number",
+     "etichetta": "Tasso annuo %"
+    },
+    "amm_durata_anni": {
+     "tipo": "number",
+     "etichetta": "Durata in anni"
+    },
+    "amm_rate_anno": {
+     "tipo": "select",
+     "etichetta": "Rate per anno",
+     "valori": [
+      "12",
+      "6",
+      "4",
+      "2",
+      "1"
+     ],
+     "etichette": {
+      "12": "12",
+      "6": "6",
+      "4": "4",
+      "2": "2",
+      "1": "1"
+     }
+    },
+    "amm_tipo": {
+     "tipo": "select",
+     "etichetta": "Metodo",
+     "valori": [
+      "francese",
+      "italiano"
+     ],
+     "etichette": {
+      "francese": "Francese",
+      "italiano": "Italiano"
+     }
+    },
+    "amm_data_prima_rata": {
+     "tipo": "date",
+     "etichetta": "Prima rata"
+    }
+   }
+  },
+  "pignoramento": {
+   "titolo": "Simulatore pignoramento stipendio / pensione",
+   "categoria": "Esecuzione",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.simula_pignoramento",
+   "metodo_esiste": true,
+   "campi": {
+    "pig_tipo_reddito": {
+     "tipo": "select",
+     "etichetta": "Reddito",
+     "valori": [
+      "stipendio",
+      "pensione"
+     ],
+     "etichette": {
+      "stipendio": "Stipendio",
+      "pensione": "Pensione"
+     }
+    },
+    "pig_tipo_credito": {
+     "tipo": "select",
+     "etichetta": "Tipo di credito",
+     "valori": [
+      "ordinario",
+      "esattoriale",
+      "alimentare"
+     ],
+     "etichette": {
+      "ordinario": "Ordinario",
+      "esattoriale": "Esattoriale",
+      "alimentare": "Alimentare"
+     }
+    },
+    "pig_importo_netto": {
+     "tipo": "number",
+     "etichetta": "Netto mensile"
+    },
+    "pig_aliquota_alimentare": {
+     "tipo": "number",
+     "etichetta": "Aliquota credito alimentare %"
+    }
+   }
+  },
+  "prescrizione": {
+   "titolo": "Prescrizione civile",
+   "categoria": "Processo",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_prescrizione",
+   "metodo_esiste": true,
+   "campi": {
+    "presc_tipo": {
+     "tipo": "select",
+     "etichetta": "Tipologia",
+     "valori": [
+      "ordinaria_10",
+      "quinquennale_5",
+      "extracontrattuale_5",
+      "cambiari_3",
+      "assicurazioni_2",
+      "breve_1"
+     ],
+     "etichette": {
+      "ordinaria_10": "Ordinaria — 10 anni",
+      "quinquennale_5": "Quinquennale — 5 anni",
+      "extracontrattuale_5": "Extracontrattuale — 5 anni",
+      "cambiari_3": "Cambiali e assegni — 3 anni",
+      "assicurazioni_2": "Assicurazioni — 2 anni",
+      "breve_1": "Breve — 1 anno"
+     }
+    },
+    "presc_data_decorrenza": {
+     "tipo": "date",
+     "etichetta": "Data di decorrenza"
+    },
+    "presc_atto_interruttivo": {
+     "tipo": "date",
+     "etichetta": "Atto interruttivo"
+    },
+    "presc_descrizione": {
+     "tipo": "text",
+     "etichetta": "Descrizione della pratica o del credito"
+    }
+   }
+  },
+  "prescrizione_penale": {
+   "titolo": "Prescrizione penale",
+   "categoria": "Penale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_prescrizione_penale",
+   "metodo_esiste": true,
+   "campi": {
+    "presc_data_fatto": {
+     "tipo": "date",
+     "etichetta": "Data del fatto"
+    },
+    "presc_ergastolo": {
+     "tipo": "select",
+     "etichetta": "Reato punito con l'ergastolo",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "presc_massimo_edittale_anni": {
+     "tipo": "number",
+     "etichetta": "Massimo edittale — anni"
+    },
+    "presc_massimo_edittale_mesi": {
+     "tipo": "number",
+     "etichetta": "Mesi"
+    },
+    "presc_contravvenzione": {
+     "tipo": "select",
+     "etichetta": "Contravvenzione",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "presc_raddoppio": {
+     "tipo": "select",
+     "etichetta": "Termini raddoppiati",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "presc_interruzione": {
+     "tipo": "select",
+     "etichetta": "Aumento massimo per interruzione (art. 161 c. 2)",
+     "valori": [
+      "quarto",
+      "meta",
+      "due_terzi",
+      "doppio",
+      "nessun_limite"
+     ],
+     "etichette": {
+      "quarto": "Un quarto",
+      "meta": "Metà: recidiva aggravata o reati contro la P.A. richiamati",
+      "due_terzi": "Due terzi: recidiva reiterata",
+      "doppio": "Doppio: delinquente abituale o professionale",
+      "nessun_limite": "Nessun limite: art. 51 c. 3-bis e 3-quater c.p.p."
+     }
+    },
+    "presc_giorni_sospensione": {
+     "tipo": "number",
+     "etichetta": "Giorni di sospensione (art. 159 c. 1)"
+    },
+    "presc_data_sentenza_primo_grado": {
+     "tipo": "date",
+     "etichetta": "Sentenza di primo grado"
+    },
+    "presc_scadenza_motivazione_primo": {
+     "tipo": "date",
+     "etichetta": "Scadenza del termine per la motivazione della condanna di primo grado"
+    },
+    "presc_dispositivo_appello": {
+     "tipo": "date",
+     "etichetta": "Dispositivo della sentenza di appello"
+    },
+    "presc_scadenza_motivazione_appello": {
+     "tipo": "date",
+     "etichetta": "Scadenza del termine per la motivazione della condanna in appello"
+    },
+    "presc_dispositivo_cassazione": {
+     "tipo": "date",
+     "etichetta": "Dispositivo della sentenza di cassazione"
+    }
+   }
+  },
+  "prestazione_occasionale": {
+   "titolo": "Ricevuta prestazione occasionale",
+   "categoria": "Professione",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_prestazione_occasionale",
+   "metodo_esiste": true,
+   "campi": {
+    "occ_compenso": {
+     "tipo": "number",
+     "etichetta": "Compenso lordo"
+    },
+    "occ_rimborsi": {
+     "tipo": "number",
+     "etichetta": "Rimborsi spese"
+    },
+    "occ_anticipazioni": {
+     "tipo": "select",
+     "etichetta": "Rimborsi = anticipazioni documentate in nome e per conto",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "occ_sostituto": {
+     "tipo": "select",
+     "etichetta": "Committente sostituto d'imposta",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "procedibilita_adr": {
+   "titolo": "Condizione di procedibilità: mediazione o negoziazione",
+   "categoria": "ADR",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_procedibilita_adr",
+   "metodo_esiste": true,
+   "campi": {
+    "adr_materia": {
+     "tipo": "select",
+     "etichetta": "Materia della controversia",
+     "valori": [
+      "condominio",
+      "diritti_reali",
+      "divisione",
+      "successioni",
+      "patti_famiglia",
+      "locazione",
+      "comodato",
+      "affitto_aziende",
+      "responsabilita_medica",
+      "diffamazione",
+      "contratti_assicurativi",
+      "contratti_bancari",
+      "contratti_finanziari",
+      "associazione_partecipazione",
+      "consorzio",
+      "franchising",
+      "opera",
+      "rete",
+      "somministrazione",
+      "societa_persone",
+      "subfornitura",
+      "circolazione",
+      "pagamento_somme",
+      "altra"
+     ],
+     "etichette": {
+      "condominio": "Condominio",
+      "diritti_reali": "Diritti reali",
+      "divisione": "Divisione",
+      "successioni": "Successioni ereditarie",
+      "patti_famiglia": "Patti di famiglia",
+      "locazione": "Locazione",
+      "comodato": "Comodato",
+      "affitto_aziende": "Affitto di aziende",
+      "responsabilita_medica": "Responsabilita' medica e sanitaria",
+      "diffamazione": "Diffamazione con la stampa o altro mezzo di pubblicita'",
+      "contratti_assicurativi": "Contratti assicurativi",
+      "contratti_bancari": "Contratti bancari",
+      "contratti_finanziari": "Contratti finanziari",
+      "associazione_partecipazione": "Associazione in partecipazione",
+      "consorzio": "Consorzio",
+      "franchising": "Franchising",
+      "opera": "Contratto d'opera",
+      "rete": "Contratto di rete",
+      "somministrazione": "Somministrazione",
+      "societa_persone": "Societa' di persone",
+      "subfornitura": "Subfornitura",
+      "circolazione": "Danno da circolazione di veicoli e natanti",
+      "pagamento_somme": "Domanda di pagamento di somme",
+      "altra": "Altra materia"
+     }
+    },
+    "adr_procedimento": {
+     "tipo": "select",
+     "etichetta": "Procedimento",
+     "valori": [
+      "ordinario",
+      "ingiunzione",
+      "sfratto",
+      "ctp_696bis",
+      "possessorio",
+      "opposizione_esecutiva",
+      "camera_consiglio",
+      "azione_civile_penale",
+      "inibitoria_consumo"
+     ],
+     "etichette": {
+      "ordinario": "Giudizio ordinario di cognizione",
+      "ingiunzione": "Ingiunzione, inclusa l'opposizione",
+      "sfratto": "Convalida di licenza o sfratto",
+      "ctp_696bis": "Consulenza tecnica preventiva (art. 696-bis c.p.c.)",
+      "possessorio": "Procedimento possessorio",
+      "opposizione_esecutiva": "Opposizione o incidente di cognizione nell'esecuzione",
+      "camera_consiglio": "Procedimento in camera di consiglio",
+      "azione_civile_penale": "Azione civile nel processo penale",
+      "inibitoria_consumo": "Azione inibitoria del codice del consumo"
+     }
+    },
+    "adr_valore": {
+     "tipo": "number",
+     "etichetta": "Importo domandato"
+    },
+    "adr_consumatore": {
+     "tipo": "select",
+     "etichetta": "Contratto fra professionista e consumatore",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "adr_data_avvio": {
+     "tipo": "date",
+     "etichetta": "Deposito della domanda o ricezione dell'invito"
+    }
+   }
+  },
+  "pronti_contro_termine": {
+   "titolo": "Pronti contro termine",
+   "categoria": "Finanza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_pronti_contro_termine",
+   "metodo_esiste": true,
+   "campi": {
+    "pct_prezzo_pronti": {
+     "tipo": "number",
+     "etichetta": "Prezzo a pronti"
+    },
+    "pct_prezzo_termine": {
+     "tipo": "number",
+     "etichetta": "Prezzo a termine"
+    },
+    "pct_giorni": {
+     "tipo": "number",
+     "etichetta": "Durata in giorni"
+    }
+   }
+  },
+  "quote_riserva": {
+   "titolo": "Quote di riserva legittimari",
+   "categoria": "Patrimonio",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_quote_riserva",
+   "metodo_esiste": true,
+   "campi": {
+    "ris_patrimonio": {
+     "tipo": "number",
+     "etichetta": "Patrimonio relitto"
+    },
+    "ris_debiti": {
+     "tipo": "number",
+     "etichetta": "Debiti"
+    },
+    "ris_donazioni": {
+     "tipo": "number",
+     "etichetta": "Donazioni (donatum)"
+    },
+    "ris_coniuge": {
+     "tipo": "select",
+     "etichetta": "Coniuge",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "ris_figli": {
+     "tipo": "number",
+     "etichetta": "Numero figli"
+    },
+    "ris_ascendenti": {
+     "tipo": "select",
+     "etichetta": "Ascendenti",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "rateazione_imposte": {
+   "titolo": "Rateazione imposte",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_rateazione_imposte",
+   "metodo_esiste": true,
+   "campi": {
+    "rate_importo": {
+     "tipo": "number",
+     "etichetta": "Importo da rateizzare"
+    },
+    "rate_numero": {
+     "tipo": "number",
+     "etichetta": "Numero di rate"
+    }
+   }
+  },
+  "ravvedimento_operoso": {
+   "titolo": "Ravvedimento operoso",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_ravvedimento_operoso",
+   "metodo_esiste": true,
+   "campi": {
+    "rav_tipo_violazione": {
+     "tipo": "select",
+     "etichetta": "Tipo di violazione",
+     "valori": [
+      "omesso_versamento",
+      "altra_violazione"
+     ],
+     "etichette": {
+      "omesso_versamento": "Omesso o tardivo versamento",
+      "altra_violazione": "Altra violazione (sanzione minima nota)"
+     }
+    },
+    "rav_imposta": {
+     "tipo": "number",
+     "etichetta": "Imposta o tributo dovuto"
+    },
+    "rav_sanzione_minima": {
+     "tipo": "number",
+     "etichetta": "Sanzione minima edittale"
+    },
+    "rav_data_scadenza": {
+     "tipo": "date",
+     "etichetta": "Scadenza originaria"
+    },
+    "rav_data_versamento": {
+     "tipo": "date",
+     "etichetta": "Data di regolarizzazione"
+    },
+    "rav_evento": {
+     "tipo": "select",
+     "etichetta": "Evento del procedimento",
+     "valori": [
+      "nessuno",
+      "dopo_pvc",
+      "dopo_schema_atto",
+      "dopo_schema_atto_su_pvc"
+     ],
+     "etichette": {
+      "nessuno": "Nessuno: vale il criterio temporale",
+      "dopo_pvc": "Dopo processo verbale di constatazione",
+      "dopo_schema_atto": "Dopo comunicazione dello schema di atto",
+      "dopo_schema_atto_su_pvc": "Dopo schema di atto su violazione constatata"
+     }
+    }
+   }
+  },
+  "regime_forfettario": {
+   "titolo": "Regime forfettario",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_regime_forfettario",
+   "metodo_esiste": true,
+   "campi": {
+    "forf_ricavi": {
+     "tipo": "number",
+     "etichetta": "Ricavi o compensi incassati"
+    },
+    "forf_gruppo": {
+     "tipo": "select",
+     "etichetta": "Gruppo ATECO",
+     "valori": [
+      "professionali",
+      "altri_servizi",
+      "intermediari",
+      "ambulante_altri",
+      "commercio",
+      "alimentari",
+      "ambulante_alimentari",
+      "alloggio_ristorazione",
+      "costruzioni"
+     ],
+     "etichette": {
+      "professionali": "Attività professionali e sanitarie — 78%",
+      "altri_servizi": "Altre attività economiche — 67%",
+      "intermediari": "Intermediari del commercio — 62%",
+      "ambulante_altri": "Ambulanti altri prodotti — 54%",
+      "commercio": "Commercio ingrosso e dettaglio — 40%",
+      "alimentari": "Industrie alimentari e bevande — 40%",
+      "ambulante_alimentari": "Ambulanti alimentari — 40%",
+      "alloggio_ristorazione": "Alloggio e ristorazione — 40%",
+      "costruzioni": "Costruzioni e immobiliari — 86%"
+     }
+    },
+    "forf_contributi": {
+     "tipo": "number",
+     "etichetta": "Contributi previdenziali versati"
+    },
+    "forf_startup": {
+     "tipo": "select",
+     "etichetta": "Nuova attività (primi 5 anni)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "rendimento_bot": {
+   "titolo": "Rendimento BOT",
+   "categoria": "Finanza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_rendimento_bot",
+   "metodo_esiste": true,
+   "campi": {
+    "bot_prezzo": {
+     "tipo": "number",
+     "etichetta": "Prezzo di acquisto (per 100)"
+    },
+    "bot_giorni": {
+     "tipo": "number",
+     "etichetta": "Giorni alla scadenza"
+    },
+    "bot_nominale": {
+     "tipo": "number",
+     "etichetta": "Valore nominale"
+    },
+    "bot_commissioni": {
+     "tipo": "number",
+     "etichetta": "Commissioni (per 100)"
+    }
+   }
+  },
+  "reversibilita": {
+   "titolo": "Pensione di reversibilità",
+   "categoria": "Previdenza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_reversibilita",
+   "metodo_esiste": true,
+   "campi": {
+    "rev_pensione_annua": {
+     "tipo": "number",
+     "etichetta": "Pensione annua del dante causa"
+    },
+    "rev_coniuge": {
+     "tipo": "select",
+     "etichetta": "Coniuge superstite",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "rev_figli": {
+     "tipo": "number",
+     "etichetta": "Figli aventi diritto"
+    },
+    "rev_genitori": {
+     "tipo": "number",
+     "etichetta": "Genitori (nei casi di legge)"
+    },
+    "rev_fratelli": {
+     "tipo": "number",
+     "etichetta": "Fratelli/sorelle (nei casi di legge)"
+    },
+    "rev_reddito_beneficiario": {
+     "tipo": "number",
+     "etichetta": "Reddito annuo del beneficiario"
+    },
+    "rev_trattamento_minimo": {
+     "tipo": "number",
+     "etichetta": "Trattamento minimo INPS annuo"
+    },
+    "rev_figli_tutelati": {
+     "tipo": "select",
+     "etichetta": "Figli minori, studenti o inabili nel nucleo",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "riparto_spese": {
+   "titolo": "Riparto spese e utenze",
+   "categoria": "Immobili",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_riparto_spese",
+   "metodo_esiste": true,
+   "campi": {
+    "rip_importo": {
+     "tipo": "number",
+     "etichetta": "Importo da ripartire"
+    },
+    "rip_criterio": {
+     "tipo": "select",
+     "etichetta": "Criterio",
+     "valori": [
+      "millesimi",
+      "persone",
+      "giorni"
+     ],
+     "etichette": {
+      "millesimi": "Millesimi di proprietà (art. 1123 c.c.)",
+      "persone": "Numero di persone (utenze)",
+      "giorni": "Giorni di occupazione (utenze)"
+     }
+    },
+    "rip_quote": {
+     "tipo": "text",
+     "etichetta": "Quote"
+    }
+   }
+  },
+  "rivalutazione_istat": {
+   "titolo": "Rivalutazione monetaria ISTAT",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_rivalutazione_istat",
+   "metodo_esiste": true,
+   "campi": {
+    "riv_importo": {
+     "tipo": "number",
+     "etichetta": "Importo"
+    },
+    "riv_tipo": {
+     "tipo": "select",
+     "etichetta": "Indice ISTAT",
+     "valori": [
+      "foi"
+     ],
+     "etichette": {
+      "foi": "FOI (al netto dei tabacchi)"
+     }
+    },
+    "riv_anno_base": {
+     "tipo": "number",
+     "etichetta": "Anno base"
+    },
+    "riv_mese_base": {
+     "tipo": "number",
+     "etichetta": "Mese base"
+    },
+    "riv_anno_fine": {
+     "tipo": "number",
+     "etichetta": "Anno finale (vuoto: ultimo indice pubblicato)"
+    },
+    "riv_mese_fine": {
+     "tipo": "number",
+     "etichetta": "Mese finale"
+    }
+   }
+  },
+  "rivalutazione_media": {
+   "titolo": "Rivalutazione su media annua",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_rivalutazione_media",
+   "metodo_esiste": true,
+   "campi": {
+    "rivm_importo": {
+     "tipo": "number",
+     "etichetta": "Importo da rivalutare"
+    },
+    "rivm_anno_base": {
+     "tipo": "number",
+     "etichetta": "Anno di partenza"
+    },
+    "rivm_anno_target": {
+     "tipo": "number",
+     "etichetta": "Anno di arrivo"
+    },
+    "rivm_tipo": {
+     "tipo": "select",
+     "etichetta": "Indice",
+     "valori": [
+      "FOI"
+     ],
+     "etichette": {
+      "FOI": "FOI (famiglie operai e impiegati)"
+     }
+    }
+   }
+  },
+  "scorporo_iva": {
+   "titolo": "Scorporo e aggiunta IVA",
+   "categoria": "Fiscale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_scorporo_iva",
+   "metodo_esiste": true,
+   "campi": {
+    "iva_verso": {
+     "tipo": "select",
+     "etichetta": "Operazione",
+     "valori": [
+      "scorporo",
+      "aggiunta"
+     ],
+     "etichette": {
+      "scorporo": "Scorporo dal lordo",
+      "aggiunta": "Aggiunta al netto"
+     }
+    },
+    "iva_importo": {
+     "tipo": "number",
+     "etichetta": "Importo"
+    },
+    "iva_aliquota": {
+     "tipo": "select",
+     "etichetta": "Aliquota",
+     "valori": [
+      "4",
+      "5",
+      "10",
+      "22"
+     ],
+     "etichette": {
+      "4": "4%",
+      "5": "5%",
+      "10": "10%",
+      "22": "22%"
+     }
+    }
+   }
+  },
+  "successione_legittima": {
+   "titolo": "Successione legittima",
+   "categoria": "Patrimonio",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_successione_legittima",
+   "metodo_esiste": true,
+   "campi": {
+    "successione_asse": {
+     "tipo": "number",
+     "etichetta": "Asse ereditario"
+    },
+    "successione_coniuge": {
+     "tipo": "select",
+     "etichetta": "Coniuge",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "successione_figli": {
+     "tipo": "number",
+     "etichetta": "Figli"
+    },
+    "successione_ascendenti": {
+     "tipo": "number",
+     "etichetta": "Ascendenti"
+    },
+    "successione_fratelli": {
+     "tipo": "number",
+     "etichetta": "Fratelli"
+    }
+   }
+  },
+  "surroga": {
+   "titolo": "Surroga del mutuo",
+   "categoria": "Finanza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_surroga",
+   "metodo_esiste": true,
+   "campi": {
+    "sur_debito_residuo": {
+     "tipo": "number",
+     "etichetta": "Debito residuo"
+    },
+    "sur_tan_attuale": {
+     "tipo": "number",
+     "etichetta": "TAN attuale %"
+    },
+    "sur_anni_residui": {
+     "tipo": "number",
+     "etichetta": "Anni residui"
+    },
+    "sur_tan_nuovo": {
+     "tipo": "number",
+     "etichetta": "TAN offerta %"
+    },
+    "sur_anni_nuovi": {
+     "tipo": "number",
+     "etichetta": "Durata nuova (anni)"
+    },
+    "sur_rate_anno": {
+     "tipo": "select",
+     "etichetta": "Rate per anno",
+     "valori": [
+      "12",
+      "6",
+      "4",
+      "2",
+      "1"
+     ],
+     "etichette": {
+      "12": "12",
+      "6": "6",
+      "4": "4",
+      "2": "2",
+      "1": "1"
+     }
+    }
+   }
+  },
+  "tabella_istat": {
+   "titolo": "Tabella indici ISTAT",
+   "categoria": "Danni",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.tabella_variazioni_istat",
+   "metodo_esiste": true,
+   "campi": {
+    "istat_tipo": {
+     "tipo": "select",
+     "etichetta": "Indice",
+     "valori": [
+      "FOI"
+     ],
+     "etichette": {
+      "FOI": "FOI (famiglie operai e impiegati)"
+     }
+    },
+    "istat_anni": {
+     "tipo": "number",
+     "etichetta": "Anni da mostrare"
+    },
+    "istat_anno_fine": {
+     "tipo": "number",
+     "etichetta": "Fino all'anno (vuoto: ultimo pubblicato)"
+    }
+   }
+  },
+  "tabella_tassi": {
+   "titolo": "Tabella tassi di interesse",
+   "categoria": "Credito",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.tabella_tassi_interesse",
+   "metodo_esiste": true,
+   "campi": {
+    "tassi_vista": {
+     "tipo": "select",
+     "etichetta": "Tabelle da mostrare",
+     "valori": [
+      "entrambe",
+      "legali",
+      "moratori"
+     ],
+     "etichette": {
+      "entrambe": "Legali e moratori",
+      "legali": "Solo interessi legali (art. 1284 c.c.)",
+      "moratori": "Solo mora commerciale (D.Lgs. 231/2002)"
+     }
+    }
+   }
+  },
+  "taeg": {
+   "titolo": "TAEG di verifica",
+   "categoria": "Finanza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_taeg",
+   "metodo_esiste": true,
+   "campi": {
+    "taeg_capitale": {
+     "tipo": "number",
+     "etichetta": "Capitale finanziato"
+    },
+    "taeg_tan": {
+     "tipo": "number",
+     "etichetta": "TAN %"
+    },
+    "taeg_durata_anni": {
+     "tipo": "number",
+     "etichetta": "Durata in anni"
+    },
+    "taeg_rate_anno": {
+     "tipo": "select",
+     "etichetta": "Rate per anno",
+     "valori": [
+      "12",
+      "6",
+      "4",
+      "2",
+      "1"
+     ],
+     "etichette": {
+      "12": "12",
+      "6": "6",
+      "4": "4",
+      "2": "2",
+      "1": "1"
+     }
+    },
+    "taeg_spese_iniziali": {
+     "tipo": "number",
+     "etichetta": "Spese iniziali"
+    },
+    "taeg_spese_rata": {
+     "tipo": "number",
+     "etichetta": "Spese per rata"
+    },
+    "taeg_spese_annue": {
+     "tipo": "number",
+     "etichetta": "Spese annue ricorrenti"
+    }
+   }
+  },
+  "termini_penali": {
+   "titolo": "Impugnazioni e opposizioni penali",
+   "categoria": "Penale",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_termini_penali",
+   "metodo_esiste": true,
+   "campi": {
+    "tp_atto": {
+     "tipo": "select",
+     "etichetta": "Atto",
+     "valori": [
+      "impugnazione_sentenza",
+      "opposizione_decreto_penale",
+      "riesame_personale",
+      "appello_cautelare",
+      "ricorso_cautelare",
+      "riesame_reale",
+      "memorie_415bis",
+      "opposizione_archiviazione",
+      "motivi_nuovi"
+     ],
+     "etichette": {
+      "impugnazione_sentenza": "Appello o ricorso per cassazione contro la sentenza (art. 585)",
+      "opposizione_decreto_penale": "Opposizione al decreto penale di condanna (art. 461)",
+      "riesame_personale": "Riesame di misura coercitiva (art. 309)",
+      "appello_cautelare": "Appello cautelare (artt. 310 e 322-bis)",
+      "ricorso_cautelare": "Ricorso per cassazione in materia cautelare (art. 311)",
+      "riesame_reale": "Riesame di sequestro o misura reale (art. 324)",
+      "memorie_415bis": "Memorie dopo l'avviso di conclusione indagini (art. 415-bis)",
+      "opposizione_archiviazione": "Opposizione alla richiesta di archiviazione (art. 408)",
+      "motivi_nuovi": "Motivi nuovi (art. 585 c. 4)"
+     }
+    },
+    "tp_data_evento": {
+     "tipo": "date",
+     "etichetta": "Data di partenza"
+    },
+    "tp_motivazione": {
+     "tipo": "select",
+     "etichetta": "Deposito della motivazione",
+     "valori": [
+      "quindici_giorni",
+      "contestuale",
+      "termine_giudice",
+      "camera_consiglio"
+     ],
+     "etichette": {
+      "quindici_giorni": "Entro 15 giorni (art. 544 c. 2): 30 giorni per impugnare",
+      "contestuale": "Contestuale, letta in udienza (art. 544 c. 1): 15 giorni",
+      "termine_giudice": "Termine fissato dal giudice fino a 90 giorni (art. 544 c. 3): 45 giorni",
+      "camera_consiglio": "Provvedimento in camera di consiglio: 15 giorni dall'avviso di deposito"
+     }
+    },
+    "tp_giorni_deposito": {
+     "tipo": "number",
+     "etichetta": "Giorni fissati dal giudice per la motivazione"
+    },
+    "tp_data_avviso_deposito": {
+     "tipo": "date",
+     "etichetta": "Avviso di deposito della sentenza depositata in ritardo"
+    },
+    "tp_assente": {
+     "tipo": "select",
+     "etichetta": "Imputato giudicato in assenza",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "tp_violenza_persona": {
+     "tipo": "select",
+     "etichetta": "Delitto con violenza alla persona o furto in abitazione",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "tp_detenuto_rinuncia": {
+     "tipo": "select",
+     "etichetta": "Imputato in custodia che rinuncia alla sospensione feriale",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "tp_criminalita_organizzata": {
+     "tipo": "select",
+     "etichetta": "Reato di criminalità organizzata",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "tp_urgenza": {
+     "tipo": "select",
+     "etichetta": "Urgenza dichiarata dal giudice",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "termini_processuali": {
+   "titolo": "Termini processuali e sospensione feriale",
+   "categoria": "Processo",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_termini_processuali",
+   "metodo_esiste": true,
+   "campi": {
+    "term_modello": {
+     "tipo": "select",
+     "etichetta": "Modello di termine",
+     "valori_da": "termini_processuali_modelli",
+     "valori": [
+      "CIV_APPELLO_BREVE",
+      "CIV_APPELLO_LUNGO",
+      "CIV_CASSAZIONE_BREVE",
+      "CIV_OPPOSIZIONE_DI",
+      "CIV_COSTITUZIONE_ATTORE_165",
+      "CIV_COSTITUZIONE_CONVENUTO_166",
+      "CIV_MEMORIA_171_TER_1",
+      "CIV_MEMORIA_171_TER_2",
+      "CIV_MEMORIA_171_TER_3",
+      "CIV_DI_NOTIFICA_644",
+      "CIV_RIASSUNZIONE_307",
+      "CIV_RIASSUNZIONE_305",
+      "CIV_RECLAMO_CAUTELARE_669_TERDECIES",
+      "CIV_CASSAZIONE_380_BIS",
+      "CIV_OPPOSIZIONE_127_TER",
+      "CIV_NOTE_CONCLUSIONI_189",
+      "CIV_CONCLUSIONALI_189",
+      "CIV_REPLICHE_189",
+      "FAM_473BIS_COSTITUZIONE",
+      "VR_MEMORIA_183_6_N1",
+      "VR_MEMORIA_183_6_N2",
+      "VR_MEMORIA_183_6_N3",
+      "VR_CONCLUSIONALI_190",
+      "VR_REPLICHE_190",
+      "CDS_PAGAMENTO_RIDOTTO_5GG",
+      "CDS_PAGAMENTO_60GG",
+      "CDS_RICORSO_PREFETTO_60GG",
+      "CDS_RICORSO_GDP_30GG",
+      "ESE_PRECETTO_ADEMPIMENTO_10GG",
+      "ESE_PRECETTO_EFFICACIA_90GG",
+      "ESE_OPPOSIZIONE_ATTI_617",
+      "ESE_ISCRIZIONE_RUOLO_MOBILIARE",
+      "ESE_ISCRIZIONE_RUOLO_PRESSO_TERZI",
+      "ESE_ISCRIZIONE_RUOLO_IMMOBILIARE",
+      "CUSTOM_PROCESSUALE",
+      "AMM_RICORSO_29",
+      "AMM_APPALTI_120",
+      "AMM_MOTIVI_AGGIUNTI_43",
+      "AMM_DEPOSITO_45",
+      "AMM_COSTITUZIONE_46",
+      "AMM_APPELLO_92",
+      "AMM_APPELLO_LUNGO_92",
+      "AMM_CAUTELARE_54",
+      "TRIB_RICORSO_21",
+      "TRIB_COSTITUZIONE_22",
+      "TRIB_APPELLO_51",
+      "TRIB_APPELLO_LUNGO_38",
+      "PEN_OPPOSIZIONE_DECRETO_461",
+      "PEN_IMPUGNAZIONE_585_15",
+      "PEN_IMPUGNAZIONE_585_30",
+      "PEN_IMPUGNAZIONE_585_45",
+      "PEN_OPPOSIZIONE_ARCHIVIAZIONE_408",
+      "PEN_OPPOSIZIONE_ARCHIVIAZIONE_408_VIOLENZA",
+      "PEN_QUERELA_124",
+      "CIV_IMPUGNAZIONE_DELIBERA_1137",
+      "CIV_MERITO_669_OCTIES"
+     ],
+     "etichette": {
+      "CIV_APPELLO_BREVE": "Appello civile - termine breve — Art. 325 c.p.c.",
+      "CIV_APPELLO_LUNGO": "Appello civile - termine lungo — Art. 327 c.p.c.",
+      "CIV_CASSAZIONE_BREVE": "Ricorso per Cassazione - termine breve — Art. 325 c.p.c.",
+      "CIV_OPPOSIZIONE_DI": "Opposizione a decreto ingiuntivo — Art. 641 c.p.c.",
+      "CIV_COSTITUZIONE_ATTORE_165": "Costituzione dell'attore — Art. 165, primo comma, c.p.c.",
+      "CIV_COSTITUZIONE_CONVENUTO_166": "Costituzione del convenuto e comparsa di risposta — Art. 166 c.p.c.",
+      "CIV_MEMORIA_171_TER_1": "Memoria art. 171-ter n. 1 — Art. 171-ter c.p.c.",
+      "CIV_MEMORIA_171_TER_2": "Memoria art. 171-ter n. 2 — Art. 171-ter c.p.c.",
+      "CIV_MEMORIA_171_TER_3": "Memoria art. 171-ter n. 3 — Art. 171-ter c.p.c.",
+      "CIV_DI_NOTIFICA_644": "Decreto ingiuntivo - notifica entro 60 giorni — Art. 644 c.p.c.",
+      "CIV_RIASSUNZIONE_307": "Riassunzione dopo la cancellazione dal ruolo — Art. 307 c.p.c.",
+      "CIV_RIASSUNZIONE_305": "Riassunzione dopo l'interruzione del processo — Art. 305 c.p.c.",
+      "CIV_RECLAMO_CAUTELARE_669_TERDECIES": "Reclamo cautelare — Art. 669-terdecies c.p.c.; art. 3 L. 742/1969; art. 92 R.D. 12/1941",
+      "CIV_CASSAZIONE_380_BIS": "Cassazione - richiesta decisione dopo proposta 380-bis — Art. 380-bis c.p.c.",
+      "CIV_OPPOSIZIONE_127_TER": "Opposizione alla trattazione scritta — Art. 127-ter c.p.c.",
+      "CIV_NOTE_CONCLUSIONI_189": "Note di precisazione delle conclusioni — Art. 189, comma 1, c.p.c.",
+      "CIV_CONCLUSIONALI_189": "Comparse conclusionali — Art. 189, comma 1, c.p.c.",
+      "CIV_REPLICHE_189": "Memorie di replica — Art. 189, comma 1, c.p.c.",
+      "FAM_473BIS_COSTITUZIONE": "Costituzione del convenuto - rito famiglia — Art. 473-bis.16 c.p.c.",
+      "VR_MEMORIA_183_6_N1": "Vecchio rito - memoria art. 183 co. 6 n. 1 — Art. 183, comma 6, c.p.c. (testo ante D.Lgs. 149/2022)",
+      "VR_MEMORIA_183_6_N2": "Vecchio rito - memoria art. 183 co. 6 n. 2 — Art. 183, comma 6, c.p.c. (testo ante D.Lgs. 149/2022)",
+      "VR_MEMORIA_183_6_N3": "Vecchio rito - memoria art. 183 co. 6 n. 3 — Art. 183, comma 6, c.p.c. (testo ante D.Lgs. 149/2022)",
+      "VR_CONCLUSIONALI_190": "Vecchio rito - comparse conclusionali — Art. 190 c.p.c. (testo ante D.Lgs. 149/2022)",
+      "VR_REPLICHE_190": "Vecchio rito - memorie di replica — Art. 190 c.p.c. (testo ante D.Lgs. 149/2022)",
+      "CDS_PAGAMENTO_RIDOTTO_5GG": "Verbale CdS - pagamento in misura ridotta (-30%) — Art. 202, comma 1, D.Lgs. 285/1992",
+      "CDS_PAGAMENTO_60GG": "Verbale CdS - pagamento in misura ordinaria — Art. 202, comma 1, D.Lgs. 285/1992",
+      "CDS_RICORSO_PREFETTO_60GG": "Verbale CdS - ricorso al Prefetto — Art. 203, comma 1, D.Lgs. 285/1992",
+      "CDS_RICORSO_GDP_30GG": "Verbale CdS - ricorso al Giudice di Pace — Art. 204-bis D.Lgs. 285/1992; art. 7 D.Lgs. 150/2011",
+      "ESE_PRECETTO_ADEMPIMENTO_10GG": "Precetto - termine per l'adempimento — Art. 480, comma 1, c.p.c.",
+      "ESE_PRECETTO_EFFICACIA_90GG": "Precetto - perdita di efficacia — Art. 481, comma 1, c.p.c.",
+      "ESE_OPPOSIZIONE_ATTI_617": "Opposizione agli atti esecutivi — Art. 617 c.p.c.; art. 92 R.D. 12/1941; art. 3 l. 742/1969 (Cass. ord. 21568/2017)",
+      "ESE_ISCRIZIONE_RUOLO_MOBILIARE": "Iscrizione a ruolo - pignoramento mobiliare — Art. 518, comma 6, c.p.c.",
+      "ESE_ISCRIZIONE_RUOLO_PRESSO_TERZI": "Iscrizione a ruolo - pignoramento presso terzi — Art. 543, comma 4, c.p.c.",
+      "ESE_ISCRIZIONE_RUOLO_IMMOBILIARE": "Iscrizione a ruolo - pignoramento immobiliare — Art. 557, comma 2, c.p.c.",
+      "CUSTOM_PROCESSUALE": "Termine processuale personalizzato — art. 155 c.p.c. (computo dei termini)",
+      "AMM_RICORSO_29": "Ricorso al TAR per l'annullamento — Art. 29 c.p.a.; art. 41 c.p.a.; art. 54, comma 2, c.p.a.",
+      "AMM_APPALTI_120": "Ricorso al TAR in materia di appalti — Art. 120, comma 2, c.p.a.; art. 54, comma 2, c.p.a.",
+      "AMM_MOTIVI_AGGIUNTI_43": "Motivi aggiunti — Art. 43, comma 1, c.p.a. (termini del ricorso, art. 29); trenta giorni negli appalti (art. 120, comma 2)",
+      "AMM_DEPOSITO_45": "Deposito del ricorso notificato — Art. 45, comma 1, c.p.a. (perentorio)",
+      "AMM_COSTITUZIONE_46": "Costituzione delle parti intimate — Art. 46, comma 1, c.p.a.",
+      "AMM_APPELLO_92": "Appello al Consiglio di Stato (sentenza notificata) — Art. 92, comma 1, c.p.a. (perentorio)",
+      "AMM_APPELLO_LUNGO_92": "Appello al Consiglio di Stato (sentenza non notificata) — Art. 92, comma 3, c.p.a.",
+      "AMM_CAUTELARE_54": "Termine nel procedimento cautelare amministrativo — Art. 54, comma 3, c.p.a. (sospensione feriale esclusa nel procedimento cautelare)",
+      "TRIB_RICORSO_21": "Ricorso tributario — Art. 21, comma 1, d.lgs. 546/1992; art. 1 l. 742/1969",
+      "TRIB_COSTITUZIONE_22": "Costituzione del ricorrente — Art. 22, comma 1, d.lgs. 546/1992 (a pena di inammissibilità)",
+      "TRIB_APPELLO_51": "Appello tributario (sentenza notificata) — Art. 51, comma 1, d.lgs. 546/1992",
+      "TRIB_APPELLO_LUNGO_38": "Appello tributario (sentenza non notificata) — Art. 38, comma 3, d.lgs. 546/1992; art. 327, comma 1, c.p.c.",
+      "PEN_OPPOSIZIONE_DECRETO_461": "Opposizione al decreto penale di condanna — Art. 461, comma 1, c.p.p.; art. 172 c.p.p.; art. 1 l. 742/1969",
+      "PEN_IMPUGNAZIONE_585_15": "Impugnazione (camera di consiglio o motivazione contestuale) — Art. 585, comma 1, lett. a), c.p.p.",
+      "PEN_IMPUGNAZIONE_585_30": "Impugnazione (motivazione entro quindici giorni) — Art. 585, comma 1, lett. b), c.p.p.; art. 544, comma 2",
+      "PEN_IMPUGNAZIONE_585_45": "Impugnazione (motivazione con termine più lungo) — Art. 585, comma 1, lett. c), c.p.p.; art. 544, comma 3",
+      "PEN_OPPOSIZIONE_ARCHIVIAZIONE_408": "Opposizione alla richiesta di archiviazione — Art. 408, comma 3, c.p.p.; art. 410 c.p.p.",
+      "PEN_OPPOSIZIONE_ARCHIVIAZIONE_408_VIOLENZA": "Opposizione all'archiviazione (violenza alla persona) — Art. 408, comma 3-bis, c.p.p.",
+      "PEN_QUERELA_124": "Termine per la querela — Art. 124 c.p. (termine sostanziale: niente sospensione feriale)",
+      "CIV_IMPUGNAZIONE_DELIBERA_1137": "Impugnazione della delibera condominiale — Art. 1137 c.c.; art. 1 l. 742/1969 come inciso da Corte cost. 49/1990",
+      "CIV_MERITO_669_OCTIES": "Inizio del giudizio di merito dopo la misura cautelare — Art. 669-octies c.p.c."
+     }
+    },
+    "term_data_evento": {
+     "tipo": "date",
+     "etichetta": "Data dell'evento"
+    },
+    "term_urgente": {
+     "tipo": "select",
+     "etichetta": "Materia urgente",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "term_valore_personalizzato": {
+     "tipo": "number",
+     "etichetta": "Durata personalizzata"
+    },
+    "term_riferimento": {
+     "tipo": "text",
+     "etichetta": "Riferimento di pratica"
+    }
+   }
+  },
+  "tfr": {
+   "titolo": "TFR",
+   "categoria": "Lavoro",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_tfr",
+   "metodo_esiste": true,
+   "campi": {
+    "tfr_retribuzione_annua": {
+     "tipo": "number",
+     "etichetta": "Retribuzione annua lorda"
+    },
+    "tfr_data_assunzione": {
+     "tipo": "date",
+     "etichetta": "Data di assunzione"
+    },
+    "tfr_data_cessazione": {
+     "tipo": "date",
+     "etichetta": "Data di cessazione"
+    },
+    "tfr_anni_servizio": {
+     "tipo": "number",
+     "etichetta": "Anni di servizio"
+    },
+    "tfr_mesi_servizio": {
+     "tipo": "number",
+     "etichetta": "Mesi di servizio"
+    },
+    "tfr_inflazione_perc": {
+     "tipo": "number",
+     "etichetta": "Inflazione ipotetica %"
+    },
+    "tfr_trattenuta_050": {
+     "tipo": "select",
+     "etichetta": "Detrai lo 0,50% (art. 3, c. 15, L. 297/1982)",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "tfr_anticipazioni": {
+     "tipo": "number",
+     "etichetta": "Anticipazioni erogate"
+    },
+    "tfr_montante_pregresso": {
+     "tipo": "number",
+     "etichetta": "Montante pregresso da rivalutare"
+    }
+   }
+  },
+  "uffici_competenti": {
+   "titolo": "Uffici competenti per Comune",
+   "categoria": "Competenza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.ricerca_uffici_competenti",
+   "metodo_esiste": true,
+   "campi": {
+    "comune": {
+     "tipo": "text",
+     "etichetta": "Comune"
+    },
+    "includi_speciali": {
+     "tipo": "select",
+     "etichetta": "Includi uffici specializzati",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    }
+   }
+  },
+  "usufrutto": {
+   "titolo": "Usufrutto e nuda proprietà",
+   "categoria": "Patrimonio",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_usufrutto",
+   "metodo_esiste": true,
+   "campi": {
+    "usu_valore_piena": {
+     "tipo": "number",
+     "etichetta": "Valore della piena proprietà"
+    },
+    "usu_eta": {
+     "tipo": "number",
+     "etichetta": "Età dell'usufruttuario"
+    },
+    "usu_quota_perc": {
+     "tipo": "number",
+     "etichetta": "Quota in percentuale"
+    }
+   }
+  },
+  "usura": {
+   "titolo": "Verifica soglia usura",
+   "categoria": "Credito",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.verifica_soglia_usura",
+   "metodo_esiste": true,
+   "campi": {
+    "usura_tasso": {
+     "tipo": "number",
+     "etichetta": "Tasso applicato %"
+    },
+    "usura_categoria": {
+     "tipo": "select",
+     "etichetta": "Categoria",
+     "valori": [
+      "aperture_credito_cc_fino_5000",
+      "aperture_credito_cc_oltre_5000",
+      "scoperti_senza_affidamento_fino_1500",
+      "scoperti_senza_affidamento_oltre_1500",
+      "anticipi_sconti_crediti_fino_50000",
+      "anticipi_sconti_crediti_50000_200000",
+      "anticipi_sconti_crediti_oltre_200000",
+      "credito_personale",
+      "credito_finalizzato",
+      "factoring_fino_50000",
+      "factoring_oltre_50000",
+      "leasing_immobiliare_fisso",
+      "leasing_immobiliare_variabile",
+      "leasing_aeronavale_autoveicoli_fino_25000",
+      "leasing_aeronavale_autoveicoli_oltre_25000",
+      "leasing_strumentale_fino_25000",
+      "leasing_strumentale_oltre_25000",
+      "mutui_ipotecari_fisso",
+      "mutui_ipotecari_variabile",
+      "cessione_quinto_fino_15000",
+      "cessione_quinto_oltre_15000",
+      "credito_revolving",
+      "carte_credito",
+      "altri_finanziamenti"
+     ],
+     "etichette": {
+      "aperture_credito_cc_fino_5000": "Aperture di credito in conto corrente fino a € 5.000",
+      "aperture_credito_cc_oltre_5000": "Aperture di credito in conto corrente oltre € 5.000",
+      "scoperti_senza_affidamento_fino_1500": "Scoperti senza affidamento fino a € 1.500",
+      "scoperti_senza_affidamento_oltre_1500": "Scoperti senza affidamento oltre € 1.500",
+      "anticipi_sconti_crediti_fino_50000": "Anticipi su crediti e sconti fino a € 50.000",
+      "anticipi_sconti_crediti_50000_200000": "Anticipi su crediti e sconti da € 50.000 a € 200.000",
+      "anticipi_sconti_crediti_oltre_200000": "Anticipi su crediti e sconti oltre € 200.000",
+      "credito_personale": "Credito personale",
+      "credito_finalizzato": "Credito finalizzato",
+      "factoring_fino_50000": "Factoring fino a € 50.000",
+      "factoring_oltre_50000": "Factoring oltre € 50.000",
+      "leasing_immobiliare_fisso": "Leasing immobiliare a tasso fisso",
+      "leasing_immobiliare_variabile": "Leasing immobiliare a tasso variabile",
+      "leasing_aeronavale_autoveicoli_fino_25000": "Leasing aeronavale e su autoveicoli fino a € 25.000",
+      "leasing_aeronavale_autoveicoli_oltre_25000": "Leasing aeronavale e su autoveicoli oltre € 25.000",
+      "leasing_strumentale_fino_25000": "Leasing strumentale fino a € 25.000",
+      "leasing_strumentale_oltre_25000": "Leasing strumentale oltre € 25.000",
+      "mutui_ipotecari_fisso": "Mutui con garanzia ipotecaria a tasso fisso",
+      "mutui_ipotecari_variabile": "Mutui con garanzia ipotecaria a tasso variabile",
+      "cessione_quinto_fino_15000": "Cessione del quinto fino a € 15.000",
+      "cessione_quinto_oltre_15000": "Cessione del quinto oltre € 15.000",
+      "credito_revolving": "Credito revolving",
+      "carte_credito": "Finanziamenti con utilizzo di carte di credito",
+      "altri_finanziamenti": "Altri finanziamenti"
+     }
+    },
+    "usura_data": {
+     "tipo": "date",
+     "etichetta": "Data dell'operazione"
+    }
+   }
+  },
+  "valore_catastale": {
+   "titolo": "Valore catastale",
+   "categoria": "Immobili",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_valore_catastale",
+   "metodo_esiste": true,
+   "campi": {
+    "cat_rendita": {
+     "tipo": "number",
+     "etichetta": "Rendita catastale (non rivalutata)"
+    },
+    "cat_gruppo": {
+     "tipo": "select",
+     "etichetta": "Tipologia",
+     "valori": [
+      "abitazione_prima_casa",
+      "abitazione_altri",
+      "gruppo_b",
+      "a10_gruppo_d",
+      "c1_gruppo_e"
+     ],
+     "etichette": {
+      "abitazione_prima_casa": "Abitazione prima casa",
+      "abitazione_altri": "Gruppo A (escl. A/10) e C (escl. C/1)",
+      "gruppo_b": "Gruppo B",
+      "a10_gruppo_d": "A/10 e gruppo D",
+      "c1_gruppo_e": "C/1 e gruppo E"
+     }
+    },
+    "cat_ambito": {
+     "tipo": "select",
+     "etichetta": "Ambito",
+     "valori": [
+      "registro",
+      "successione"
+     ],
+     "etichette": {
+      "registro": "Registro / atti onerosi",
+      "successione": "Successioni e donazioni"
+     }
+    }
+   }
+  },
+  "valore_causa": {
+   "titolo": "Valore della causa",
+   "categoria": "Competenza",
+   "metodo": "pct.strumenti_legali:GestioneStrumentiLegali.calcola_valore_causa",
+   "metodo_esiste": true,
+   "campi": {
+    "val_criterio": {
+     "tipo": "select",
+     "etichetta": "Criterio di determinazione",
+     "valori": [
+      "somma_mobili",
+      "quote_obbligazione",
+      "rapporto_obbligatorio",
+      "divisione",
+      "alimenti",
+      "rendita_perpetua",
+      "rendita_temporanea",
+      "immobile",
+      "opposizione_esecuzione",
+      "opposizione_terzo",
+      "distribuzione"
+     ],
+     "etichette": {
+      "somma_mobili": "Somma di danaro o beni mobili — art. 14 c.p.c.",
+      "quote_obbligazione": "Quote di un'obbligazione — art. 11 c.p.c.",
+      "rapporto_obbligatorio": "Rapporto obbligatorio in contestazione — art. 12 c.p.c.",
+      "divisione": "Divisione — art. 12, terzo comma, c.p.c.",
+      "alimenti": "Prestazioni alimentari periodiche — art. 13, primo comma, c.p.c.",
+      "rendita_perpetua": "Rendita perpetua — art. 13, secondo comma, c.p.c.",
+      "rendita_temporanea": "Rendita temporanea o vitalizia — art. 13, secondo comma, c.p.c.",
+      "immobile": "Beni immobili — art. 15 c.p.c.",
+      "opposizione_esecuzione": "Opposizione all'esecuzione — art. 17 c.p.c.",
+      "opposizione_terzo": "Opposizione di terzo (art. 619 c.p.c.) — art. 17 c.p.c.",
+      "distribuzione": "Controversia in sede di distribuzione — art. 17 c.p.c."
+     }
+    },
+    "val_importo": {
+     "tipo": "number",
+     "etichetta": "Importo di riferimento"
+    },
+    "val_annualita": {
+     "tipo": "number",
+     "etichetta": "Annualita' domandate"
+    },
+    "val_diritto": {
+     "tipo": "select",
+     "etichetta": "Diritto sull'immobile",
+     "valori": [
+      "proprieta",
+      "usufrutto",
+      "servitu"
+     ],
+     "etichette": {
+      "proprieta": "Proprieta' — moltiplicatore 200",
+      "usufrutto": "Usufrutto, uso, abitazione, nuda proprieta', enfiteusi — moltiplicatore 100",
+      "servitu": "Servitu' (fondo servente) — moltiplicatore 50"
+     }
+    },
+    "val_altre_domande": {
+     "tipo": "number",
+     "etichetta": "Altre domande contro la medesima persona"
+    },
+    "val_interessi_scaduti": {
+     "tipo": "number",
+     "etichetta": "Interessi scaduti anteriori alla domanda"
+    },
+    "val_spese_danni": {
+     "tipo": "number",
+     "etichetta": "Spese e danni anteriori alla domanda"
+    }
+   }
+  }
+ },
+ "codici_normattiva": [
+  {
+   "chiave": "disp_att_cpc",
+   "etichetta": "disposizioni di attuazione del c.p.c.",
+   "sinonimi": [
+    "disp. att. c.p.c.",
+    "disp att cpc",
+    "disposizioni di attuazione del codice di procedura civile"
+   ]
+  },
+  {
+   "chiave": "disp_att_cpp",
+   "etichetta": "norme di attuazione del c.p.p.",
+   "sinonimi": [
+    "disp. att. c.p.p.",
+    "disp att cpp",
+    "norme di attuazione del codice di procedura penale"
+   ]
+  },
+  {
+   "chiave": "cpc",
+   "etichetta": "codice di procedura civile",
+   "sinonimi": [
+    "c.p.c.",
+    "cpc",
+    "codice di procedura civile",
+    "codice procedura civile",
+    "procedura civile",
+    "cod. proc. civ."
+   ]
+  },
+  {
+   "chiave": "cpp",
+   "etichetta": "codice di procedura penale",
+   "sinonimi": [
+    "c.p.p.",
+    "cpp",
+    "codice di procedura penale",
+    "codice procedura penale",
+    "procedura penale",
+    "cod. proc. pen."
+   ]
+  },
+  {
+   "chiave": "cc",
+   "etichetta": "codice civile",
+   "sinonimi": [
+    "c.c.",
+    "cc",
+    "codice civile",
+    "cod. civ."
+   ]
+  },
+  {
+   "chiave": "cp",
+   "etichetta": "codice penale",
+   "sinonimi": [
+    "c.p.",
+    "cp",
+    "codice penale",
+    "cod. pen."
+   ]
+  },
+  {
+   "chiave": "cost",
+   "etichetta": "Costituzione",
+   "sinonimi": [
+    "cost.",
+    "costituzione",
+    "della costituzione"
+   ]
+  }
+ ],
+ "adattatori": {
+  "AgendaSource": "lex.retrieval.sources.agenda",
+  "ApplicazioniSource": "lex.retrieval.sources.applicazioni",
+  "PrassiSource": "lex.retrieval.sources.archivi_pubblici",
+  "GazzettaSource": "lex.retrieval.sources.archivi_pubblici",
+  "GiustiziaAmministrativaSource": "lex.retrieval.sources.archivi_pubblici",
+  "ComplianceSource": "lex.retrieval.sources.compliance",
+  "DocumentiSource": "lex.retrieval.sources.documenti",
+  "FascicoliSource": "lex.retrieval.sources.fascicoli",
+  "GiurisprudenzaSource": "lex.retrieval.sources.giurisprudenza",
+  "GuidaPraticaSource": "lex.retrieval.sources.guida_pratica",
+  "LegalIntelligenceSource": "lex.retrieval.sources.legal_intelligence",
+  "LegalUpdatesSource": "lex.retrieval.sources.legal_updates",
+  "LexMemorySource": "lex.retrieval.sources.lex_memory",
+  "NormativeSource": "lex.retrieval.sources.normative",
+  "OfficialWebSource": "lex.retrieval.sources.official_web",
+  "OperationalSource": "lex.retrieval.sources.operational",
+  "PreventiviSource": "lex.retrieval.sources.preventivi",
+  "ScadenziarioSource": "lex.retrieval.sources.scadenziario",
+  "StudioDatabaseSource": "lex.retrieval.sources.studio_database",
+  "TelematicoSource": "lex.retrieval.sources.telematico",
+  "TemplateAttiSource": "lex.retrieval.sources.template_atti"
+ },
+ "fuori_mappa": {
+  "sorgenti_registro": {
+   "sito_studio": "stato di configurazione del sito dello studio, non un'informazione per le pratiche",
+   "privacy_gdpr": "registro di governance (permesso ai.audit), non consultato per le domande giuridiche",
+   "backup_storage": "manutenzione (backup e spazio), non una fonte",
+   "database": "stato del database, non una fonte",
+   "ai_locale": "stato dell'AI locale, non una fonte",
+   "editor_ai": "supporto alla redazione nell'editor: scrive bozze, non è una fonte",
+   "chat_lex_editor": "copilota dell'editor sul documento aperto, non una fonte",
+   "client_portal": "stato del portale cliente, non una fonte per le domande",
+   "antiriciclaggio": "stato degli adempimenti antiriciclaggio (permesso ai.audit), non una fonte giuridica",
+   "rest_api_webhooks": "catalogo delle integrazioni per il superadmin",
+   "integrazioni_native": "stato delle integrazioni configurate",
+   "audit": "registro delle attività (permesso ai.audit)"
+  },
+  "tool_lex": {
+   "generate_editor_draft": "scrive una bozza: azione, non lettura",
+   "propose_editor_edits": "propone modifiche: azione con conferma",
+   "export_editor_document": "esporta un documento: azione",
+   "create_task": "crea un'attività: azione con conferma",
+   "create_deadline": "crea una scadenza: azione con conferma",
+   "create_document_draft": "crea una bozza: azione con conferma",
+   "create_timesheet_entry": "registra un'attività: azione con conferma",
+   "create_invoice_draft": "crea una fattura in bozza: azione con conferma",
+   "create_client_draft": "crea un cliente in bozza: azione con conferma",
+   "create_fascicolo_draft": "crea un fascicolo in bozza: azione con conferma",
+   "create_pec_draft": "crea una PEC in bozza: azione con conferma",
+   "update_checklist": "aggiorna una checklist: azione con conferma"
+  },
+  "adattatori": {},
+  "calcolatori": {}
+ },
+ "copertura": {
+  "sorgenti_registro": {
+   "nel_codice": 49,
+   "in_mappa": 37,
+   "fuori_mappa_dichiarati": 12,
+   "mancanti": [],
+   "inesistenti": []
+  },
+  "adattatori": {
+   "nel_codice": 21,
+   "in_mappa": 21,
+   "fuori_mappa_dichiarati": 0,
+   "mancanti": [],
+   "inesistenti": []
+  },
+  "tool_lex": {
+   "nel_codice": 36,
+   "in_mappa": 24,
+   "fuori_mappa_dichiarati": 12,
+   "mancanti": [],
+   "inesistenti": []
+  },
+  "calcolatori": {
+   "nel_codice": 77,
+   "in_mappa": 77,
+   "fuori_mappa_dichiarati": 0,
+   "mancanti": [],
+   "inesistenti": []
+  },
+  "funzioni": {
+   "nominate": 83,
+   "inesistenti": []
+  }
+ }
+}

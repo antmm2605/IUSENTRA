@@ -290,7 +290,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("TELEMATICO_DB", "PDP_PENALE_DB", "PORTALE_DB"),
         permissions=("telematico.leggi",),
         repository_module="web.services.pdp_penale_runtime / pct.*",
-        tools=("get_telematico_status",),
+        tools=(),
     ),
     _src(
         "pagamenti",
@@ -311,7 +311,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("PORTALE_DB", "PORTALE_UPLOADS", "CONFIG_STUDIO_DB"),
         permissions=(),
         repository_module="pct.portale / web.services.react_sito_studio_bridge",
-        tools=("get_sito_studio_status",),
+        tools=(),
     ),
     _src(
         "ricerca_studio",
@@ -333,7 +333,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("PRIVACY_DB", "AUDIT_DB"),
         permissions=("ai.audit",),
         repository_module="web.services.react_privacy_bridge",
-        tools=("get_privacy_registry_status",),
+        tools=(),
     ),
     _src(
         "backup_storage",
@@ -343,7 +343,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("BACKUP_DIR", "PCT_DATA_ROOT"),
         permissions=("ai.audit",),
         repository_module="pct.backup / web.services.server_maintenance",
-        tools=("get_storage_status",),
+        tools=(),
     ),
     _src(
         "database",
@@ -353,7 +353,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("STUDIO_DB", "DATABASE_URL"),
         permissions=("ai.audit",),
         repository_module="pct.database / pct.storage_migration_full",
-        tools=("get_database_status",),
+        tools=(),
     ),
     _src(
         "uffici_giudiziari",
@@ -374,7 +374,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("LOCAL_AI_DB", "WORKSPACE_INTELLIGENCE_DB"),
         permissions=("ai.usa",),
         repository_module="pct.local_ai / pct.workspace_intelligente",
-        tools=("get_ai_local_status",),
+        tools=(),
         document_retrieval=True,
     ),
     _src(
@@ -491,7 +491,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("FASCICOLI_DOCS", "OCR_JOBS_DB", "SEARCH_INDEX"),
         permissions=("fascicoli.leggi",),
         repository_module="pct.validazione / pct.pdf_tools / pct.local_ai",
-        tools=("get_pdf_tools_status",),
+        tools=(),
         document_retrieval=True,
         notes="Unione, compressione, OCR, PDF/A e controlli deposito: Lex legge stato e suggerisce il prossimo controllo.",
     ),
@@ -503,7 +503,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("STUDIO_CONFIG", "CONFIG_STUDIO_DB", "FASCICOLI_DOCS"),
         permissions=("telematico.leggi",),
         repository_module="pct.firma / integrazioni provider firma",
-        tools=("get_firma_digitale_status",),
+        tools=(),
         notes="Aruba, InfoCert e Namirial richiedono integrazione provider verificata; Lex segnala prerequisiti senza firmare automaticamente.",
     ),
     _src(
@@ -514,7 +514,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("FATTURAZIONE_DB", "PAGAMENTI_DIR", "CONFIG_STUDIO_DB"),
         permissions=("fatturazione.leggi",),
         repository_module="pct.fattura_pa / pct.fatturazione",
-        tools=("get_sdi_status",),
+        tools=(),
         notes="Emissione, notifiche e conservazione devono restare tracciate e non inviate da Lex senza azione umana.",
     ),
     _src(
@@ -525,7 +525,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("PORTALE_DB", "PORTALE_UPLOADS", "FASCICOLI_DB", "CLIENTI_DB"),
         permissions=("clienti.leggi", "fascicoli.leggi"),
         repository_module="pct.portale / web.blueprints.portale",
-        tools=("get_client_portal_status",),
+        tools=(),
         notes="Accessi token, documenti condivisi, messaggistica e timeline devono essere letti solo per il tenant corrente.",
     ),
     _src(
@@ -536,7 +536,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("CLIENTI_DB", "PRIVACY_DB", "AUDIT_DB"),
         permissions=("clienti.leggi", "ai.audit"),
         repository_module="pct.compliance / web.services.react_privacy_bridge",
-        tools=("get_aml_status",),
+        tools=(),
         notes="Valutazione rischio e adeguata verifica: Lex puo' evidenziare lacune, non certificare conformita' automatica.",
     ),
     _src(
@@ -547,7 +547,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("AUDIT_DB", "CONFIG_STUDIO_DB"),
         permissions=("ai.audit",),
         repository_module="web.api / docs.openapi",
-        tools=("get_api_status",),
+        tools=(),
         sensitive=False,
         notes="Catalogo integrazioni e API: utile per superadmin e audit, non per esporre segreti o token.",
     ),
@@ -559,7 +559,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         tenant_keys=("CONFIG_STUDIO_DB", "CALENDAR_SYNC_DB", "STUDIO_CONFIG"),
         permissions=("ai.usa",),
         repository_module="config_studio, calendar_sync, mailbox providers",
-        tools=("get_integrations_status",),
+        tools=(),
         notes="Google, Microsoft, Aruba, InfoCert, Namirial, SDI e provider email devono essere censiti con stato configurazione.",
     ),
     _src(
@@ -622,9 +622,29 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         permissions=("ai.audit",),
         repository_module="pct.auth.GestioneUtenti",
         api_surface="web.helpers.get_utenti",
-        tools=("get_audit_events",),
+        tools=(),
     ),
 )
+
+
+# Tool dichiarati in passato ma mai implementati (verifica del 23/11/2026 con la mappa degli strumenti di Lex):
+# tolti dalle sorgenti perché nessuna funzione li eseguiva. Nome del tool: (sorgente, motivo).
+TOOL_TOLTI: dict[str, tuple[str, str]] = {
+    "get_telematico_status": ("telematico", "nessuna funzione di stato telematico generale: i depositi si leggono con query_deposit_receipts_page e query_legal_notifications_page, i controlli dal deposito guidato (pct.deposito_guidato)"),
+    "get_pdf_tools_status": ("pdf_manager", "nessuna funzione di stato degli strumenti PDF: i controlli PDF/A e di firma sono nel deposito guidato"),
+    "get_firma_digitale_status": ("firma_digitale", "lo stato della firma è per utente (web.services.firma_remota_runtime.stato, Impostazioni → La mia firma) e Lex non firma"),
+    "get_sdi_status": ("fatturazione_elettronica_sdi", "lo stato SdI è un campo di ogni parcella (web.services.react_fatturazione_bridge), letto con get_parcelle_by_fascicolo/cliente"),
+    "get_sito_studio_status": ("sito_studio", "nessuna funzione di stato del sito dello studio esposta a Lex"),
+    "get_privacy_registry_status": ("privacy_gdpr", "nessuna funzione di stato del registro GDPR esposta a Lex: si consulta dalla pagina Privacy"),
+    "get_storage_status": ("backup_storage", "spazio e backup si controllano dalla manutenzione del server, non da Lex"),
+    "get_database_status": ("database", "lo stato del database si controlla dalla manutenzione, non da Lex"),
+    "get_ai_local_status": ("ai_locale", "lo stato dell'AI locale è nella sua pagina (web.services.local_ai_runtime), non una fonte di Lex"),
+    "get_client_portal_status": ("client_portal", "nessuna funzione di stato del portale cliente esposta a Lex"),
+    "get_aml_status": ("antiriciclaggio", "nessuna funzione di stato antiriciclaggio: Lex non certifica adempimenti"),
+    "get_api_status": ("rest_api_webhooks", "nessuna funzione di stato delle API: il catalogo è in docs/openapi.yaml"),
+    "get_integrations_status": ("integrazioni_native", "nessuna funzione di stato delle integrazioni esposta a Lex: si leggono dalle impostazioni"),
+    "get_audit_events": ("audit", "il registro attività si consulta dalla pagina di audit (permesso ai.audit), non è esposto a Lex"),
+}
 
 
 class OperationalSourceRegistry:

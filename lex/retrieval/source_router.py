@@ -218,4 +218,8 @@ class SourceRouter:
                 continue
             unique.append(source)
             seen.add(key)
-        return unique
+        # Con un segnale certo (articolo citato, pronuncia per estremi) la mappa degli strumenti tiene solo le fonti
+        # che la domanda chiede (lex/strumenti/guida.py; spegnibile con LEX_MAPPA_STRUMENTI=0).
+        from lex.strumenti.guida import fonti_guidate
+
+        return fonti_guidate(request, workflow, unique)

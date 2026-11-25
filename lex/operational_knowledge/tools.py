@@ -32,9 +32,10 @@ from .serializers import (
     serialize_soggetto,
 )
 from .source_registry import OperationalSourceRegistry, build_default_registry
+from .tools_archivi import ArchiviToolsMixin
 
 
-class OperationalKnowledgeTools:
+class OperationalKnowledgeTools(ArchiviToolsMixin):
     def __init__(
         self,
         *,

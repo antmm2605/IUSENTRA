@@ -746,11 +746,10 @@ def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: P
         )
         assert login.status_code == 200
 
-        page = client.get("/giurisprudenza/?_legacy=1", follow_redirects=True)
-        html = page.get_data(as_text=True)
+        # Dalla 2.489.0 la pagina è solo React (template Jinja tolti): la rotta apre la shell React.
+        page = client.get("/giurisprudenza/", follow_redirects=True)
         assert page.status_code == 200
-        assert "Archivio Sentenze" in html
-        assert "Nuova scheda sentenza" in html
+        assert "react-shell-document" in page.get_data(as_text=True)
 
         save = client.post(
             "/giurisprudenza/nuova",
@@ -768,16 +767,14 @@ def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: P
             },
             follow_redirects=False,
         )
-        # La scheda si apre nella shell React; qui si verifica la vista storica.
-        save = client.get(save.headers["Location"] + "?_legacy=1", follow_redirects=True)
-        detail_html = save.get_data(as_text=True)
+        # La scheda si apre nella shell React: i dati salvati si leggono dall'API JSON della pagina.
+        identificativo = [p for p in save.headers["Location"].split("?")[0].split("/") if p][1]
+        scheda = client.get(f"/api/v1/ui/giurisprudenza/{identificativo}/modifica", headers={"Accept": "application/json"})
+        dati = json.dumps(scheda.get_json(), ensure_ascii=False)
 
-    assert save.status_code == 200
-    assert "Scheda Sentenza" in detail_html
-    assert "TAR su accesso agli atti negli appalti" in detail_html
-    assert "precedente forte" in detail_html
-    assert "Archivio tecnico" in detail_html
-    assert "Testo normalizzato e archivio redazionale" in detail_html
+    assert scheda.status_code == 200
+    assert "TAR su accesso agli atti negli appalti" in dati
+    assert "precedente forte" in dati
 
 
 def test_react_giurisprudenza_nuova_shell_json_e_salvataggio(tmp_path: Path):
@@ -862,13 +859,13 @@ def test_blueprint_importa_materiale_cliente(tmp_path: Path):
             },
             follow_redirects=False,
         )
-        # La modifica si apre nella shell React; qui si verifica la vista storica.
-        response = client.get(response.headers["Location"] + "?_legacy=1", follow_redirects=True)
-        html = response.get_data(as_text=True)
+        # La modifica si apre nella shell React: la scheda importata si legge dall'API JSON della pagina.
+        identificativo = [p for p in response.headers["Location"].split("?")[0].split("/") if p][1]
+        scheda = client.get(f"/api/v1/ui/giurisprudenza/{identificativo}/modifica", headers={"Accept": "application/json"})
+        dati = json.dumps(scheda.get_json(), ensure_ascii=False)
 
-    assert response.status_code == 200
-    assert "Aggiorna scheda sentenza" in html
-    assert "Simpliciter (materiale cliente)" in html
+    assert scheda.status_code == 200
+    assert "simpliciter_cliente" in dati
 
 
 def test_blueprint_classificazione_suggerita_api_compila_tassonomia(tmp_path: Path):
@@ -940,32 +937,26 @@ def test_sidebar_studio_espone_archivio_sentente(tmp_path: Path):
             data={"username": "admin-giurisprudenza", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        page = client.get("/giurisprudenza/?_legacy=1", follow_redirects=True)
+        page = client.get("/giurisprudenza/", follow_redirects=True)
         html = page.get_data(as_text=True)
 
-    assert 'Archivio Sentenze' in html
+    # Pagina solo React dalla 2.489.0: la voce del menu porta alla shell, senza template Jinja non risolti.
+    assert page.status_code == 200 and "react-shell-document" in html
     assert 'url_for(\'giurisprudenza.index\')' not in html
 
 
-def test_template_giurisprudenza_usa_layout_responsive():
-    index_html = Path("web/templates/giurisprudenza/index.html").read_text(encoding="utf-8")
-    form_html = Path("web/templates/giurisprudenza/form.html").read_text(encoding="utf-8")
-    detail_html = Path("web/templates/giurisprudenza/dettaglio.html").read_text(encoding="utf-8")
-    theme_css = Path("web/static/css/theme.css").read_text(encoding="utf-8")
+def test_pagina_giurisprudenza_e_solo_react():
+    """Le pagine Jinja della giurisprudenza (index, form, dettaglio, lettore, testo ufficiale) sono state tolte con la
+    2.489.0 (regola «solo React»): la rotta /giurisprudenza apre la pagina React. Il vecchio test leggeva i template
+    eliminati; qui si verifica la pagina che c'è davvero."""
+    from web.blueprints.react_shell import _ROUTE_COMPONENTS
 
-    assert ".jud-actions .btn" in theme_css
-    assert "width: 100%;" in theme_css or "width:100%" in theme_css
-    assert "Import assistito da materiale cliente" in index_html
-    assert "Importa materiale cliente" in index_html
-    assert "Recupero automatico da fonti ufficiali" in index_html
-    assert "Suggerimenti tassonomici automatici" in index_html
-    assert "Documenti raw" in index_html
-    assert "Licenza / note" in index_html
-    assert ".jf-layout { display: grid;" in form_html
-    assert "@media (max-width: 1199.98px)" in form_html
-    assert "@media (max-width: 767.98px)" in form_html
-    assert "Testo normalizzato e archivio redazionale" in detail_html
-    assert "Archivio tecnico" in detail_html
+    assert not Path("web/templates/giurisprudenza").exists()
+    componenti = dict(_ROUTE_COMPONENTS)
+    assert componenti["/giurisprudenza"] == "src/components/GiurisprudenzaPage.tsx"
+    pagina = Path("frontend/src/components/GiurisprudenzaPage.tsx").read_text(encoding="utf-8")
+    assert "Archivio sentenze per corte" in pagina
+
 
 def test_archivio_react_non_ricalcola_statistiche_complete_corpus(tmp_path, monkeypatch):
     from web.services.react_giurisprudenza_bridge import build_react_giurisprudenza_payload

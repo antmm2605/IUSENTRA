@@ -189,7 +189,7 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "PCT, depositi e ricevute",
         "telematico",
         ("telematico", "uffici_giudiziari", "email_pec", "pec_audit", "pdf_manager", "firma_digitale"),
-        ("get_telematico_status", "lookup_uffici_giudiziari", "list_pec_messages", "list_pec_audit_messages"),
+        ("query_deposit_receipts_page", "lookup_uffici_giudiziari", "list_pec_messages", "list_pec_audit_messages"),
         ("ai.usa", "telematico.leggi"),
         (
             "Verifica prerequisiti busta, PDF/A, allegati, firma ed esiti PEC.",
@@ -202,7 +202,7 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "Backup, spazio e database studio",
         "manutenzione",
         ("backup_storage", "database", "email_pec", "email_ordinaria"),
-        ("get_storage_status", "get_database_status", "list_pec_attachments", "list_ordinary_email_attachments"),
+        ("list_pec_attachments", "list_ordinary_email_attachments"),
         ("ai.usa", "ai.audit"),
         (
             "Verifica retention massima dei backup operativi.",
@@ -216,7 +216,7 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "Sito studio e portale cliente",
         "pubblicazione",
         ("sito_studio", "client_portal", "notifiche", "audit"),
-        ("get_sito_studio_status", "get_client_portal_status", "get_notifiche_utente", "get_audit_events"),
+        ("get_notifiche_utente",),
         ("ai.usa", "clienti.leggi", "fascicoli.leggi"),
         (
             "Controlla richieste pubbliche, prenotazioni e accessi cliente.",
@@ -242,7 +242,7 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "Portale cliente, GDPR e antiriciclaggio",
         "governance",
         ("client_portal", "privacy_gdpr", "antiriciclaggio", "audit"),
-        ("get_client_portal_status", "get_privacy_registry_status", "get_aml_status"),
+        (),
         ("ai.usa", "clienti.leggi", "fascicoli.leggi", "ai.audit"),
         (
             "Verifica consensi, audit, accessi token e lacune GDPR/AML.",
@@ -255,7 +255,7 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "AI locale, RAG e modelli",
         "lex",
         ("ai_locale", "documenti_fascicolo", "fonti_ufficiali"),
-        ("get_ai_local_status", "search_documenti_fascicolo", "search_legal_sources"),
+        ("search_documenti_fascicolo", "search_legal_sources"),
         ("ai.usa", "fascicoli.leggi"),
         (
             "Controlla modello Ollama scelto in base alle risorse locali.",
@@ -268,7 +268,7 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
         "Integrazioni native e automazioni",
         "operativo",
         ("integrazioni_native", "rest_api_webhooks", "sito_studio", "notifiche"),
-        ("get_integrations_status", "get_api_status", "get_sito_studio_status", "get_notifiche_utente"),
+        ("get_notifiche_utente",),
         ("ai.usa",),
         (
             "Verifica configurazioni Google, Microsoft, SDI, provider firma, notifiche e sito studio.",

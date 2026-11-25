@@ -197,7 +197,8 @@ def search_exact_case_law_reference(
     result.official_url = check.official_url
     result.has_full_text = check.has_full_text
     result.has_dispositivo = check.has_dispositivo
-    result.has_pdf = result.official_url.lower().endswith(".pdf")
+    result.has_motivazione = check.has_motivazione
+    result.has_pdf = check.has_pdf
     result.completed_from_web = bool(result.exact_match_found and result.official_url)
     result.confidence_cap = check.confidence_cap
     result.warnings.extend(check.warnings)
@@ -210,7 +211,9 @@ def search_exact_case_law_reference(
     else:
         result.related_results = items[:2]
     if not result.has_full_text:
-        result.missing_parts.extend(["testo integrale", "dispositivo"])
+        result.missing_parts.append("testo integrale")
+    if not result.has_dispositivo:
+        result.missing_parts.append("dispositivo")
     if not result.has_motivazione:
         result.missing_parts.append("motivazione")
     if not result.official_url:

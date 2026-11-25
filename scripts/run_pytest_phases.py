@@ -174,6 +174,8 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_tariffario.py",
     ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_lex_case_law_exact_search.py",
+        REPO_ROOT / "tests" / "test_official_web_gazzetta.py",
         REPO_ROOT / "tests" / "test_assistente_language_guidance.py",
         REPO_ROOT / "tests" / "test_assistente_social_intent.py",
         REPO_ROOT / "tests" / "test_exact_legal_reference_guard.py",

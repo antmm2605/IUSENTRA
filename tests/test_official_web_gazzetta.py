@@ -89,3 +89,67 @@ def test_gazzetta_resolver_accetta_riferimento_numero_anno():
     assert calls == [("https://www.gazzettaufficiale.it/showArchivioNews", {"anno": "2026"})]
     assert len(results) == 1
     assert results[0]["url"].endswith("/26G00056/sg")
+
+
+def test_gazzetta_ignora_risultati_senza_testo_ufficiale_e_non_ripete_la_lettura():
+    valid = GAZZETTA_ARCHIVE_HTML.replace("26G00056", "26G00981")
+    duplicate_card = valid.split("<body>", 1)[1].split("</body>", 1)[0]
+    almost_matching = """
+      <div class="notizie_singola">
+        <a href="/showNewsDetail?id=981">Indice della notizia 26G00981</a>
+      </div>
+      <div class="notizie_singola">
+        <a href="https://example.test/eli/id/26G00981">Riproduzione non ufficiale</a>
+      </div>
+    """
+    calls = []
+
+    def fake_get(url, **kwargs):
+        calls.append((url, kwargs["params"]))
+        return DummyResponse(f"<html>{almost_matching}{duplicate_card}{duplicate_card}</html>")
+
+    results = search_recognized_official_web(
+        "26G00981",
+        source_ids=["gazzetta_ufficiale"],
+        request_get=fake_get,
+        limit_results=3,
+    )
+    assert len(results) == 1
+    assert results[0]["official_url"].endswith("/26G00981/sg")
+    results[0]["title"] = "modifica del chiamante"
+
+    repeated = search_recognized_official_web(
+        "26G00981",
+        source_ids=["gazzetta_ufficiale"],
+        request_get=fake_get,
+        limit_results=3,
+    )
+    assert "ACCORDI DI DELEGA" in repeated[0]["title"]
+    assert calls == [("https://www.gazzettaufficiale.it/showArchivioNews", {"anno": "2026"})]
+
+
+def test_gazzetta_archivio_non_disponibile_usa_la_ricerca_sulla_fonte_ufficiale():
+    calls = []
+
+    def fake_get(url, **kwargs):
+        calls.append((url, kwargs["params"]))
+        if url.endswith("showArchivioNews"):
+            return DummyResponse("Archivio non disponibile", status_code=503)
+        if "site:gazzettaufficiale.it" in kwargs["params"]["q"]:
+            return DummyResponse(
+                '<article><h2><a href="https://www.gazzettaufficiale.it/eli/id/2026/10/19/26G00982/sg">'
+                "Decreto legislativo n. 982/2026</a></h2></article>"
+            )
+        return DummyResponse("")
+
+    results = search_recognized_official_web(
+        "26G00982",
+        source_ids=["gazzetta_ufficiale"],
+        request_get=fake_get,
+        limit_results=1,
+    )
+    assert len(results) == 1
+    assert results[0]["source_id"] == "gazzetta_ufficiale"
+    assert results[0]["url"].endswith("/26G00982/sg")
+    assert calls[0][1] == {"anno": "2026"}
+    assert calls[1][1] == {"q": "site:gazzettaufficiale.it 26G00982"}

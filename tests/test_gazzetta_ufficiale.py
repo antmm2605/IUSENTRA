@@ -307,7 +307,7 @@ def test_endpoint_archivio_assente_lo_dice_in_chiaro(tmp_path: Path):
 
 def test_endpoint_filtri_paginazione_e_voce(tmp_path: Path, archivio: ArchivioGazzetta):
     client = _client(tmp_path, db=archivio.percorso)
-    dati = client.get("/api/v1/ui/gazzetta-ufficiale?serie=SG&tipo=legge,dm&per_pagina=5&q=").get_json()
+    dati = client.get("/api/v1/ui/gazzetta-ufficiale?serie=SG&tipo=legge,dm&per_pagina=5&ordine=recenti").get_json()
     assert dati["total"] == 2 and not dati["hasMore"]
     legge = dati["items"][0]
     assert legge["title"] == "LEGGE 29 ottobre 2026, n. 201"
@@ -322,10 +322,27 @@ def test_endpoint_filtri_paginazione_e_voce(tmp_path: Path, archivio: ArchivioGa
     assert sbagliati["total"] == 6 and sbagliati["pageSize"] == 100
 
 
+def test_endpoint_ordina_leggi_decreti_e_comunicati_per_data(tmp_path: Path, archivio: ArchivioGazzetta):
+    client = _client(tmp_path, db=archivio.percorso)
+    percorso = "/api/v1/ui/gazzetta-ufficiale?serie=SG&numero=261"
+    pubblicazione = client.get(percorso + "&ordine=recenti").get_json()["items"]
+    recenti = client.get(percorso).get_json()["items"]
+    meno_recenti = client.get(percorso + "&ordine=data_atto_meno_recenti").get_json()["items"]
+
+    assert {atto["kindLabel"] for atto in recenti} == {"Legge", "Decreto ministeriale (D.M.)", "Comunicato"}
+    assert recenti[1]["kindLabel"] == "Comunicato" and not recenti[1]["actDate"]
+    assert recenti[1]["issueDate"] == recenti[0]["actDate"] == "2026-11-09"
+    assert [atto["actDate"] or atto["issueDate"] for atto in recenti] == sorted(
+        (atto["actDate"] or atto["issueDate"] for atto in pubblicazione), reverse=True,
+    )
+    assert [atto["id"] for atto in meno_recenti] == [recenti[2]["id"], recenti[0]["id"], recenti[1]["id"]]
+    assert pubblicazione[0]["kindLabel"] == "Legge"
+
+
 def test_sommario_restituisce_solo_la_stessa_edizione_in_ordine(tmp_path: Path, archivio: ArchivioGazzetta):
     client = _client(tmp_path, db=archivio.percorso)
     base = "/api/v1/ui/gazzetta-ufficiale"
-    atti = client.get(f"{base}?serie=SG&numero=261").get_json()["items"]
+    atti = client.get(f"{base}?serie=SG&numero=261&ordine=recenti").get_json()["items"]
     percorso = f"{base}/atti/{atti[-1]['id']}/sommario"
 
     risposta = client.get(percorso)

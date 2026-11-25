@@ -52,6 +52,7 @@ _SCHEMA = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS atti_data ON atti (data_gu DESC, serie, posizione)",
+    "CREATE INDEX IF NOT EXISTS atti_data_atto ON atti (COALESCE(NULLIF(data_atto, ''), data_gu), data_gu)",
     "CREATE INDEX IF NOT EXISTS atti_serie ON atti (serie, data_gu DESC)",
     "CREATE INDEX IF NOT EXISTS atti_tipo ON atti (tipo, data_gu DESC)",
     """
@@ -113,7 +114,10 @@ _CAMPI = (
 )
 # A parità di data, le serie nell'ordine ufficiale (Generale, poi 1ª … 5ª Serie speciale) e gli atti nell'ordine del sommario.
 _ORDINE_SERIE = "CASE serie WHEN 'SG' THEN 0 WHEN 'S1' THEN 1 WHEN 'S2' THEN 2 WHEN 'S3' THEN 3 WHEN 'S4' THEN 4 ELSE 5 END"
+_DATA_ATTO_O_PUBBLICAZIONE = "COALESCE(NULLIF(data_atto, ''), data_gu)"
 ORDINAMENTI = {
+    "data_atto_recenti": f"{_DATA_ATTO_O_PUBBLICAZIONE} DESC, data_gu DESC, {_ORDINE_SERIE}, posizione, atti.id",
+    "data_atto_meno_recenti": f"{_DATA_ATTO_O_PUBBLICAZIONE} ASC, data_gu ASC, {_ORDINE_SERIE}, posizione, atti.id",
     "pertinenza": f"data_gu DESC, {_ORDINE_SERIE}, posizione",  # con una ricerca per parole: vedi ``cerca``
     "recenti": f"data_gu DESC, {_ORDINE_SERIE}, posizione",
     "meno_recenti": f"data_gu ASC, {_ORDINE_SERIE}, posizione",

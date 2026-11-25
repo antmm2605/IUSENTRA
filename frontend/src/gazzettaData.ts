@@ -113,8 +113,8 @@ export function gazzettaVuota(): GazzettaPayload {
   }
 }
 
-/** Ordinamenti scelti dall'avvocato; vuoto = automatico (per pertinenza se c'è una ricerca, altrimenti dalla più recente). */
-export const ORDINI_AMMESSI: readonly string[] = ['pertinenza', 'recenti', 'meno_recenti']
+/** Senza scelta esplicita: pertinenza nella ricerca, data dell'atto nell'elenco. */
+export const ORDINI_AMMESSI: readonly string[] = ['pertinenza', 'recenti', 'meno_recenti', 'data_atto_recenti', 'data_atto_meno_recenti']
 
 export function gazzettaQueryString(query: GazzettaQuery): string {
   const params = new URLSearchParams()

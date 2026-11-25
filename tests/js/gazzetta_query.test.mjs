@@ -30,4 +30,8 @@ test('l’ordinamento automatico non va nell’indirizzo; pertinenza e date scel
   assert.equal(gazzettaQueryString({ ...GAZZETTA_QUERY_INIZIALE, q: 'processo civile' }), '?q=processo+civile')
   assert.equal(gazzettaQueryString({ ...GAZZETTA_QUERY_INIZIALE, q: 'processo civile', ordine: 'recenti' }), '?q=processo+civile&ordine=recenti')
   assert.equal(gazzettaQueryDaIndirizzo('?ordine=pertinenza').ordine, 'pertinenza')
+  for (const ordine of ['data_atto_recenti', 'data_atto_meno_recenti']) {
+    const indirizzo = gazzettaQueryString({ ...GAZZETTA_QUERY_INIZIALE, ordine })
+    assert.equal(gazzettaQueryDaIndirizzo(indirizzo).ordine, ordine)
+  }
 })

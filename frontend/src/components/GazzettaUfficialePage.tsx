@@ -133,6 +133,7 @@ function RigaAtto({ atto, apri }: { atto: GazzettaAtto; apri: (dettaglio: Dettag
         <h3>{testo(atto.title)}</h3>
         {atto.description ? <p>{testo(atto.description)}</p> : null}
         <p className="iu-gazzetta-atto__estremi">
+          {atto.actDate ? <>Data dell’atto <time dateTime={atto.actDate}>{dataIt(atto.actDate)}</time> · </> : null}
           {estremiGazzetta(atto, dataIt)}
           {atto.page ? ` · pag. ${atto.page}` : ''}
           {atto.section ? ` · ${testo(atto.section)}` : ''}
@@ -295,11 +296,12 @@ export function GazzettaUfficialePage() {
           </label>
           <label>
             <span>Ordina</span>
-            <select value={query.ordine} onChange={(evento) => cambia({ ordine: evento.currentTarget.value })}>
-              <option value="">{query.q ? 'Più pertinenti' : 'Dalla più recente'}</option>
-              <option value="pertinenza">Più pertinenti</option>
-              <option value="recenti">Dalla più recente</option>
-              <option value="meno_recenti">Dalla meno recente</option>
+            <select value={query.ordine || (query.q ? 'pertinenza' : 'data_atto_recenti')} onChange={(evento) => cambia({ ordine: evento.currentTarget.value })}>
+              <option value="data_atto_recenti">Data dell’atto, più recente</option>
+              <option value="data_atto_meno_recenti">Data dell’atto, meno recente</option>
+              <option value="recenti">Pubblicazione, più recente</option>
+              <option value="meno_recenti">Pubblicazione, meno recente</option>
+              <option value="pertinenza">Pertinenza della ricerca</option>
             </select>
           </label>
           {filtriAttivi ? <button type="button" className="iu-gazzetta__azzera" onClick={azzera}><X size={14} /> Azzera filtri</button> : null}

@@ -76,7 +76,7 @@ def _intero(valore: Any, predefinito: int) -> int:
 
 def filtri_richiesti(argomenti: Mapping[str, Any]) -> Filtri:
     numero = _testo(argomenti, "numero", 6)
-    ordine = _testo(argomenti, "ordine", 20)
+    ordine = _testo(argomenti, "ordine", 32)
     dal, al = _data(argomenti, "dal"), _data(argomenti, "al")
     if dal and al and dal > al:
         dal, al = al, dal
@@ -90,7 +90,7 @@ def filtri_richiesti(argomenti: Mapping[str, Any]) -> Filtri:
         al=al,
         numero_gu=str(int(numero)) if numero.isdigit() else "",
         # Con una ricerca per parole si ordina per pertinenza, salvo scelta diversa dell'avvocato.
-        ordine=ordine if ordine in ORDINAMENTI else ("pertinenza" if _testo(argomenti, "q") else "recenti"),
+        ordine=ordine if ordine in ORDINAMENTI else ("pertinenza" if _testo(argomenti, "q") else "data_atto_recenti"),
         pagina=max(1, _intero(argomenti.get("pagina"), 1)),
         per_pagina=min(PER_PAGINA_MASSIMO, max(5, _intero(argomenti.get("per_pagina"), PER_PAGINA))),
     )

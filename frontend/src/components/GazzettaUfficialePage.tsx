@@ -133,7 +133,8 @@ function RigaAtto({ atto, apri }: { atto: GazzettaAtto; apri: (dettaglio: Dettag
         <h3>{testo(atto.title)}</h3>
         {atto.description ? <p>{testo(atto.description)}</p> : null}
         <p className="iu-gazzetta-atto__estremi">
-          {atto.actDate ? <>Data dell’atto <time dateTime={atto.actDate}>{dataIt(atto.actDate)}</time> · </> : null}
+          {atto.actDate && atto.actDate <= atto.issueDate ? <>Data dell’atto <time dateTime={atto.actDate}>{dataIt(atto.actDate)}</time> · </> : null}
+          {atto.actDate && atto.actDate > atto.issueDate ? <>Data nell’intestazione successiva alla pubblicazione · </> : null}
           {estremiGazzetta(atto, dataIt)}
           {atto.page ? ` · pag. ${atto.page}` : ''}
           {atto.section ? ` · ${testo(atto.section)}` : ''}

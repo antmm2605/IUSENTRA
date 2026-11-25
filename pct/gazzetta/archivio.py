@@ -28,6 +28,9 @@ DATA_INIZIO_ARCHIVIO = "2022-01-01"
 # Pesi dell'ordinamento per pertinenza (bm25): il titolo conta più dell'ente, l'ente più del testo.
 PESI_PERTINENZA = (0.0, 10.0, 3.0, 1.0)
 
+# La data nell’intestazione è utilizzabile per l’ordine se compatibile con la pubblicazione.
+_DATA_ATTO_O_PUBBLICAZIONE = "CASE WHEN data_atto <> '' AND data_atto <= data_gu THEN data_atto ELSE data_gu END"
+
 _SCHEMA = (
     """
     CREATE TABLE IF NOT EXISTS atti (
@@ -52,7 +55,7 @@ _SCHEMA = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS atti_data ON atti (data_gu DESC, serie, posizione)",
-    "CREATE INDEX IF NOT EXISTS atti_data_atto ON atti (COALESCE(NULLIF(data_atto, ''), data_gu), data_gu)",
+    f"CREATE INDEX IF NOT EXISTS atti_data_cronologica ON atti ({_DATA_ATTO_O_PUBBLICAZIONE}, data_gu)",
     "CREATE INDEX IF NOT EXISTS atti_serie ON atti (serie, data_gu DESC)",
     "CREATE INDEX IF NOT EXISTS atti_tipo ON atti (tipo, data_gu DESC)",
     """
@@ -114,7 +117,6 @@ _CAMPI = (
 )
 # A parità di data, le serie nell'ordine ufficiale (Generale, poi 1ª … 5ª Serie speciale) e gli atti nell'ordine del sommario.
 _ORDINE_SERIE = "CASE serie WHEN 'SG' THEN 0 WHEN 'S1' THEN 1 WHEN 'S2' THEN 2 WHEN 'S3' THEN 3 WHEN 'S4' THEN 4 ELSE 5 END"
-_DATA_ATTO_O_PUBBLICAZIONE = "COALESCE(NULLIF(data_atto, ''), data_gu)"
 ORDINAMENTI = {
     "data_atto_recenti": f"{_DATA_ATTO_O_PUBBLICAZIONE} DESC, data_gu DESC, {_ORDINE_SERIE}, posizione, atti.id",
     "data_atto_meno_recenti": f"{_DATA_ATTO_O_PUBBLICAZIONE} ASC, data_gu ASC, {_ORDINE_SERIE}, posizione, atti.id",

@@ -1,0 +1,1 @@
+import{in as e}from"./lettura-fascicolo-CMXPMn1h.js";import{t}from"./LegalSkillsReviewPage-BWOWwRw_.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as SkillRunDetailPage};

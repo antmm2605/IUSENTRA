@@ -339,6 +339,19 @@ def test_endpoint_ordina_leggi_decreti_e_comunicati_per_data(tmp_path: Path, arc
     assert pubblicazione[0]["kindLabel"] == "Legge"
 
 
+def test_endpoint_usa_la_pubblicazione_se_la_data_dell_atto_e_successiva(tmp_path: Path, archivio: ArchivioGazzetta):
+    fascicolo = {"serie": "SG", "numero": "260", "data": "2026-11-07", "url_sommario": "u", "letto_il": "x"}
+    atti = atti_del_sommario(SG, Fascicolo("SG", "260", "2026-11-07"), SOMMARIO_SG_260, acquisito_il="x")
+    atti[0]["data_atto"] = "2027-06-27"
+    archivio.salva_fascicolo(fascicolo, atti)
+
+    client = _client(tmp_path, db=archivio.percorso)
+    righe = client.get("/api/v1/ui/gazzetta-ufficiale?serie=SG").get_json()["items"]
+
+    assert [atto["issueNumber"] for atto in righe] == ["261", "261", "260", "261"]
+    assert righe[2]["actDate"] == "2027-06-27"
+
+
 def test_sommario_restituisce_solo_la_stessa_edizione_in_ordine(tmp_path: Path, archivio: ArchivioGazzetta):
     client = _client(tmp_path, db=archivio.percorso)
     base = "/api/v1/ui/gazzetta-ufficiale"

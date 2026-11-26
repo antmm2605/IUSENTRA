@@ -2757,11 +2757,15 @@
      "etichetta": "Tipo di causa",
      "valori": [
       "beni_mobili",
-      "danno_circolazione"
+      "danno_circolazione",
+      "lavoro_previdenza",
+      "opposizione_decreto_ingiuntivo"
      ],
      "etichette": {
       "beni_mobili": "Cause relative a beni mobili",
-      "danno_circolazione": "Danno da circolazione di veicoli e natanti"
+      "danno_circolazione": "Danno da circolazione di veicoli e natanti",
+      "lavoro_previdenza": "Lavoro o previdenza, anche TFR (giudice del lavoro a ogni valore)",
+      "opposizione_decreto_ingiuntivo": "Opposizione a decreto ingiuntivo, anche tardiva (art. 645)"
      }
     },
     "comp_valore": {
@@ -6144,6 +6148,7 @@
       "CIV_APPELLO_LUNGO",
       "CIV_CASSAZIONE_BREVE",
       "CIV_OPPOSIZIONE_DI",
+      "LAV_OPPOSIZIONE_DI",
       "CIV_COSTITUZIONE_ATTORE_165",
       "CIV_COSTITUZIONE_CONVENUTO_166",
       "CIV_MEMORIA_171_TER_1",
@@ -6168,6 +6173,7 @@
       "CDS_PAGAMENTO_60GG",
       "CDS_RICORSO_PREFETTO_60GG",
       "CDS_RICORSO_GDP_30GG",
+      "IMM_RICORSO_ESPULSIONE_18",
       "ESE_PRECETTO_ADEMPIMENTO_10GG",
       "ESE_PRECETTO_EFFICACIA_90GG",
       "ESE_OPPOSIZIONE_ATTI_617",
@@ -6202,6 +6208,7 @@
       "CIV_APPELLO_LUNGO": "Appello civile - termine lungo — Art. 327 c.p.c.",
       "CIV_CASSAZIONE_BREVE": "Ricorso per Cassazione - termine breve — Art. 325 c.p.c.",
       "CIV_OPPOSIZIONE_DI": "Opposizione a decreto ingiuntivo — Art. 641 c.p.c.",
+      "LAV_OPPOSIZIONE_DI": "Opposizione a decreto ingiuntivo - lavoro e previdenza — Art. 641 c.p.c.; art. 645 c.p.c.; art. 3 L. 742/1969",
       "CIV_COSTITUZIONE_ATTORE_165": "Costituzione dell'attore — Art. 165, primo comma, c.p.c.",
       "CIV_COSTITUZIONE_CONVENUTO_166": "Costituzione del convenuto e comparsa di risposta — Art. 166 c.p.c.",
       "CIV_MEMORIA_171_TER_1": "Memoria art. 171-ter n. 1 — Art. 171-ter c.p.c.",
@@ -6222,10 +6229,11 @@
       "VR_MEMORIA_183_6_N3": "Vecchio rito - memoria art. 183 co. 6 n. 3 — Art. 183, comma 6, c.p.c. (testo ante D.Lgs. 149/2022)",
       "VR_CONCLUSIONALI_190": "Vecchio rito - comparse conclusionali — Art. 190 c.p.c. (testo ante D.Lgs. 149/2022)",
       "VR_REPLICHE_190": "Vecchio rito - memorie di replica — Art. 190 c.p.c. (testo ante D.Lgs. 149/2022)",
-      "CDS_PAGAMENTO_RIDOTTO_5GG": "Verbale CdS - pagamento in misura ridotta (-30%) — Art. 202, comma 1, D.Lgs. 285/1992",
-      "CDS_PAGAMENTO_60GG": "Verbale CdS - pagamento in misura ordinaria — Art. 202, comma 1, D.Lgs. 285/1992",
-      "CDS_RICORSO_PREFETTO_60GG": "Verbale CdS - ricorso al Prefetto — Art. 203, comma 1, D.Lgs. 285/1992",
+      "CDS_PAGAMENTO_RIDOTTO_5GG": "Verbale CdS - pagamento in misura ridotta (-30%) — Art. 202, comma 1, D.Lgs. 285/1992; art. 2963, comma 3, c.c.",
+      "CDS_PAGAMENTO_60GG": "Verbale CdS - pagamento in misura ordinaria — Art. 202, comma 1, D.Lgs. 285/1992; art. 2963, comma 3, c.c.",
+      "CDS_RICORSO_PREFETTO_60GG": "Verbale CdS - ricorso al Prefetto — Art. 203, comma 1, D.Lgs. 285/1992; art. 2963, comma 3, c.c.",
       "CDS_RICORSO_GDP_30GG": "Verbale CdS - ricorso al Giudice di Pace — Art. 204-bis D.Lgs. 285/1992; art. 7 D.Lgs. 150/2011",
+      "IMM_RICORSO_ESPULSIONE_18": "Ricorso al giudice di pace contro l'espulsione prefettizia — Art. 18, comma 3, d.lgs. 150/2011; art. 13, comma 8, d.lgs. 286/1998",
       "ESE_PRECETTO_ADEMPIMENTO_10GG": "Precetto - termine per l'adempimento — Art. 480, comma 1, c.p.c.",
       "ESE_PRECETTO_EFFICACIA_90GG": "Precetto - perdita di efficacia — Art. 481, comma 1, c.p.c.",
       "ESE_OPPOSIZIONE_ATTI_617": "Opposizione agli atti esecutivi — Art. 617 c.p.c.; art. 92 R.D. 12/1941; art. 3 l. 742/1969 (Cass. ord. 21568/2017)",
@@ -6263,6 +6271,18 @@
     "term_urgente": {
      "tipo": "select",
      "etichetta": "Materia urgente",
+     "valori": [
+      "0",
+      "1"
+     ],
+     "etichette": {
+      "0": "No",
+      "1": "Sì"
+     }
+    },
+    "term_materia_lavoro": {
+     "tipo": "select",
+     "etichetta": "Controversia di lavoro o di previdenza",
      "valori": [
       "0",
       "1"

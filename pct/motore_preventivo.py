@@ -1439,9 +1439,13 @@ CATALOGO.extend(
             label="Difesa da espulsione e rimpatrio",
             area="Immigrazione",
             materia=Materia.AMMINISTRATIVO,
-            grado_default=Grado.TRIBUNALE,
+            # Il ricorso contro l'espulsione prefettizia è del giudice di pace del luogo dell'autorità che l'ha
+            # disposta, entro venti giorni dalla notificazione (art. 13, comma 8, d.lgs. 286/1998; art. 18, commi 2-3,
+            # d.lgs. 150/2011); solo l'espulsione ministeriale dell'art. 13, comma 1, va al giudice amministrativo.
+            grado_default=Grado.GIUDICE_DI_PACE,
             fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
-            base_normativa="D.Lgs. 286/1998 artt. 13-14 (TUI) — espulsione prefettizia e trattenimento CIE",
+            base_normativa="D.Lgs. 286/1998 artt. 13-14 (TUI); art. 18 d.lgs. 150/2011 — ricorso al giudice di pace "
+                           "contro l'espulsione prefettizia e trattenimento CIE",
             richiede_valore=False,
             tipo_compenso_default="Compenso fisso",
         ),

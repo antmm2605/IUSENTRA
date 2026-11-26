@@ -954,6 +954,8 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
                 [
                     ("beni_mobili", "Cause relative a beni mobili"),
                     ("danno_circolazione", "Danno da circolazione di veicoli e natanti"),
+                    ("lavoro_previdenza", "Lavoro o previdenza, anche TFR (giudice del lavoro a ogni valore)"),
+                    ("opposizione_decreto_ingiuntivo", "Opposizione a decreto ingiuntivo, anche tardiva (art. 645)"),
                 ],
             ),
             _numero("comp_valore", "Valore della causa", aiuto="Determinato secondo gli artt. 10 e seguenti c.p.c."),
@@ -973,6 +975,11 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
                 "term_urgente",
                 "Materia urgente",
                 aiuto="Esclude la sospensione feriale dal 1 al 31 agosto (L. 742/1969).",
+            ),
+            _si_no(
+                "term_materia_lavoro",
+                "Controversia di lavoro o di previdenza",
+                aiuto="Artt. 409 e 442 c.p.c.: la sospensione feriale non si applica (art. 3 L. 742/1969).",
             ),
             _intero(
                 "term_valore_personalizzato",

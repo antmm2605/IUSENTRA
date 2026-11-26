@@ -11,7 +11,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
-from pct.termini_processuali import DEFAULT_TEMPLATES, DeadlineAuditRecord, DeadlineTemplate, canonical_sha256
+from pct.termini_processuali import (
+    DEFAULT_TEMPLATES,
+    DeadlineAuditRecord,
+    DeadlineTemplate,
+    _template_corretto,
+    canonical_sha256,
+)
 
 
 DDL = (
@@ -171,11 +177,14 @@ class DeadlineSqlRepository:
         return [json.loads(row[0]) for row in rows]
 
     def list_templates(self):
-        return sorted(self._records("templates"),
-                      key=lambda row: (str(row.get("matter_type", "")), str(row.get("name", ""))))
+        # In lettura il modello salvato con una versione inferiore al nativo cede alla regola corretta, come
+        # nell'archivio JSON (termini_processuali._template_corretto). Nulla si scrive qui: le rettifiche persistenti
+        # restano quelle con storico di revise_template, e i modelli mancanti non si aggiungono implicitamente.
+        rows = [_template_corretto(row) for row in self._records("templates")]
+        return sorted(rows, key=lambda row: (str(row.get("matter_type", "")), str(row.get("name", ""))))
 
     def get_template(self, code):
-        return DeadlineTemplate.from_dict(self.get_template_payload(code))
+        return DeadlineTemplate.from_dict(_template_corretto(self.get_template_payload(code)))
 
     def get_template_payload(self, code):
         normalized = str(code or "").strip() or "CUSTOM_PROCESSUALE"

@@ -18,10 +18,18 @@ Base normativa:
   successivamente a tale data; ai procedimenti pendenti al 28 febbraio 2023 si
   applicano le disposizioni anteriormente vigenti.
 
-Perimetro dichiarato: il modulo risolve la sola competenza per valore delle due
-ipotesi dei commi 1 e 2 dell'art. 7 c.p.c. Le materie attribuite al giudice di
-pace a prescindere dal valore, le competenze funzionali e le competenze
-riservate ad altro giudice non sono valutate qui.
+Perimetro dichiarato: il modulo risolve la competenza per valore delle due
+ipotesi dei commi 1 e 2 dell'art. 7 c.p.c. e riconosce due competenze che il
+valore non decide mai (testo vigente letto nella biblioteca del software il
+25/11/2026):
+- controversie di lavoro e di previdenza, compreso il TFR: «sono in primo grado
+  di competenza del tribunale in funzione di giudice del lavoro» (artt. 409,
+  413, 442 e 444 c.p.c.), a qualunque valore;
+- opposizione a decreto ingiuntivo, anche tardiva (art. 650 c.p.c.): «si
+  propone davanti all'ufficio giudiziario al quale appartiene il giudice che ha
+  emesso il decreto» (art. 645, primo comma, c.p.c., testo del d.lgs. 164/2024).
+Le altre materie attribuite al giudice di pace a prescindere dal valore e le
+altre competenze funzionali non sono valutate qui.
 """
 from __future__ import annotations
 
@@ -65,8 +73,65 @@ _FONTI = [
 ]
 
 
+# Competenze che il valore non decide: il giudice è fissato dalla legge per materia o per funzione.
+_COMPETENZE_FISSE: Dict[str, Dict[str, Any]] = {
+    "lavoro_previdenza": {
+        "label": "Controversia di lavoro o di previdenza (anche TFR e crediti retributivi)",
+        "riferimento": "Artt. 409, 413, 442 e 444 c.p.c.",
+        "giudice": "Tribunale in funzione di giudice del lavoro",
+        "nota": "Le controversie dell'art. 409 c.p.c. (lavoro subordinato privato, collaborazioni, lavoro pubblico "
+                "contrattualizzato) e quelle di previdenza e assistenza obbligatorie dell'art. 442 sono in primo grado "
+                "di competenza del tribunale in funzione di giudice del lavoro, a qualunque valore (artt. 413 e 444 "
+                "c.p.c.): il giudice di pace non è mai competente, neppure per il TFR o per crediti di piccolo importo.",
+        "foro": "Foro: dove è sorto il rapporto o si trova l'azienda o la dipendenza cui è addetto il lavoratore "
+                "(art. 413, secondo comma); per la previdenza, la residenza dell'attore (art. 444).",
+        "fonte": {"title": "Artt. 409, 413 e 444 c.p.c. (Normattiva)",
+                  "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art413"},
+    },
+    "opposizione_decreto_ingiuntivo": {
+        "label": "Opposizione a decreto ingiuntivo, anche tardiva",
+        "riferimento": "Art. 645, primo comma, c.p.c.; art. 650 c.p.c.",
+        "giudice": "Ufficio giudiziario del giudice che ha emesso il decreto",
+        "nota": "L'opposizione «si propone davanti all'ufficio giudiziario al quale appartiene il giudice che ha emesso "
+                "il decreto» (art. 645, primo comma, c.p.c., nel testo del d.lgs. 164/2024): è una competenza "
+                "funzionale, che non si ricalcola con il valore (artt. 7 e 9 c.p.c.). Vale anche per l'opposizione "
+                "tardiva dell'art. 650 c.p.c.",
+        "foro": "",
+        "fonte": {"title": "Art. 645 c.p.c. (Normattiva)",
+                  "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art645"},
+    },
+}
+
+
+def _competenza_fissa(materia: str, valore: float, introduzione: Any) -> Dict[str, Any]:
+    regola = _COMPETENZE_FISSE[materia]
+    note = [f"{regola['label']} — {regola['riferimento']}.", regola["nota"]]
+    if regola["foro"]:
+        note.append(regola["foro"])
+    return {
+        "materia": materia,
+        "materia_label": regola["label"],
+        "riferimento": regola["riferimento"],
+        "valore": round(valore, 2) if valore > 0 else 0.0,
+        "data_introduzione": fmt_date_it(introduzione) if introduzione else "",
+        "regime": "competenza_per_materia",
+        "regime_label": "Competenza fissata dalla legge, indipendente dal valore",
+        "soglia_applicata": 0.0,
+        "entro_soglia": False,
+        "giudice_competente": regola["giudice"],
+        "margine": 0.0,
+        "soglie": [],
+        "notes": note,
+        "warnings": ["Il valore della causa non incide sulla competenza in questa materia."],
+        "sources": [regola["fonte"]],
+    }
+
+
 def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
     materia = clean_text(payload.get("comp_materia")).lower() or "beni_mobili"
+    if materia in _COMPETENZE_FISSE:
+        return _competenza_fissa(materia, safe_float(payload.get("comp_valore")),
+                                 parse_date(payload.get("comp_data_introduzione")))
     if materia not in _MATERIE:
         raise ValueError("Tipo di causa non riconosciuto per la competenza per valore.")
 

@@ -67,9 +67,15 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
     if valore < 0:
         raise ValueError("La durata personalizzata non può essere negativa.")
 
+    # Controversia di lavoro o di previdenza (artt. 409 e 442 c.p.c.): il motore toglie la sospensione feriale
+    # (art. 3 L. 742/1969) quando la materia del modello è «labor».
+    lavoro = safe_bool(payload.get("term_materia_lavoro")) or template.matter_type == "labor"
+
     overrides: Dict[str, Any] = {}
     if urgente:
         overrides["urgent"] = True
+    if lavoro and template.matter_type not in {"penal", "admin", "tax"}:
+        overrides["matter_type"] = "labor"
     if valore > 0:
         overrides["base_value"] = valore
 
@@ -127,7 +133,7 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
         "durata": durata,
         "unita": unita,
         "direzione": _DIREZIONI.get(str(effettivo.get("direction")), str(effettivo.get("direction") or "")),
-        "sospensione_feriale": bool(effettivo.get("suspend_august")) and not urgente,
+        "sospensione_feriale": "ferial_suspension_1_31_august" in (esito.get("rulesApplied") or []),
         "termine_libero": bool(effettivo.get("free_term")),
         "scadenza": fmt_date_it(esito.get("deadline")),
         "scadenza_senza_proroghe": fmt_date_it(esito.get("rawDeadline")),

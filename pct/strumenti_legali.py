@@ -710,6 +710,7 @@ class GestioneStrumentiLegali:
             "term_modello": "CIV_APPELLO_BREVE",
             "term_data_evento": today,
             "term_urgente": "0",
+            "term_materia_lavoro": "0",
             "term_valore_personalizzato": "",
             "term_riferimento": prefill.get("rg", ""),
             # Termini di impugnazione

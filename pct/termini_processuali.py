@@ -234,6 +234,22 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         metadata={"source_event": "notifica_decreto"},
     ),
     DeadlineTemplate(
+        # Decreto ingiuntivo per crediti di lavoro o di previdenza: stesso termine di quaranta giorni (art. 641
+        # c.p.c.), ma le controversie degli artt. 409 e 442 c.p.c. sono sottratte alla sospensione feriale (art. 3
+        # L. 742/1969: «controversie previste dagli articoli 429 e 459», oggi 409 e 442). L'opposizione si propone
+        # davanti all'ufficio del giudice che ha emesso il decreto (art. 645 c.p.c.), il tribunale in funzione di
+        # giudice del lavoro (art. 413 c.p.c.).
+        code="LAV_OPPOSIZIONE_DI",
+        name="Opposizione a decreto ingiuntivo - lavoro e previdenza",
+        matter_type="labor",
+        base_value=40,
+        suspend_august=False,
+        ferial_suspension_policy="excluded",
+        reference_law="Art. 641 c.p.c.; art. 645 c.p.c.; art. 3 L. 742/1969",
+        metadata={"source_event": "notifica_decreto",
+                  "ferial_source": "Art. 3 L. 742/1969: controversie di lavoro e di previdenza escluse."},
+    ),
+    DeadlineTemplate(
         code="CIV_COSTITUZIONE_ATTORE_165",
         name="Costituzione dell'attore",
         base_value=10,
@@ -433,14 +449,21 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         cartabia_compliant=False,
         metadata={"source_event": "scadenza_conclusionali", "rito": "ante_cartabia"},
     ),
+    # Verbale del codice della strada: pagamento (art. 202) e ricorso al prefetto (art. 203) sono atti del
+    # procedimento amministrativo, non termini processuali. Niente sospensione feriale (art. 1 L. 742/1969 riguarda i
+    # termini «relativi alle giurisdizioni ordinarie ed a quelle amministrative») e niente proroga del sabato, che
+    # l'art. 155, quinto comma, c.p.c. riserva agli atti processuali; resta la proroga del giorno festivo (art. 2963,
+    # terzo comma, c.c.). v2: tolta la proroga del sabato.
     DeadlineTemplate(
         code="CDS_PAGAMENTO_RIDOTTO_5GG",
         name="Verbale CdS - pagamento in misura ridotta (-30%)",
         base_value=5,
         suspend_august=False,
         ferial_suspension_policy="not_applicable",
-        reference_law="Art. 202, comma 1, D.Lgs. 285/1992",
+        extend_saturday=False,
+        reference_law="Art. 202, comma 1, D.Lgs. 285/1992; art. 2963, comma 3, c.c.",
         metadata={"source_event": "notifica_verbale"},
+        version=2,
     ),
     DeadlineTemplate(
         code="CDS_PAGAMENTO_60GG",
@@ -448,8 +471,10 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         base_value=60,
         suspend_august=False,
         ferial_suspension_policy="not_applicable",
-        reference_law="Art. 202, comma 1, D.Lgs. 285/1992",
+        extend_saturday=False,
+        reference_law="Art. 202, comma 1, D.Lgs. 285/1992; art. 2963, comma 3, c.c.",
         metadata={"source_event": "notifica_verbale"},
+        version=2,
     ),
     DeadlineTemplate(
         code="CDS_RICORSO_PREFETTO_60GG",
@@ -457,8 +482,10 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         base_value=60,
         suspend_august=False,
         ferial_suspension_policy="not_applicable",
-        reference_law="Art. 203, comma 1, D.Lgs. 285/1992",
+        extend_saturday=False,
+        reference_law="Art. 203, comma 1, D.Lgs. 285/1992; art. 2963, comma 3, c.c.",
         metadata={"source_event": "notifica_verbale"},
+        version=2,
     ),
     DeadlineTemplate(
         code="CDS_RICORSO_GDP_30GG",
@@ -466,6 +493,21 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         base_value=30,
         reference_law="Art. 204-bis D.Lgs. 285/1992; art. 7 D.Lgs. 150/2011",
         metadata={"source_event": "notifica_verbale"},
+    ),
+    DeadlineTemplate(
+        # Ricorso contro il decreto di espulsione del prefetto: giudice di pace del luogo dell'autorità che l'ha
+        # disposta, «entro venti giorni dalla notificazione del provvedimento, ovvero entro quaranta giorni se il
+        # ricorrente risiede all'estero», a pena di inammissibilità (art. 18, commi 2-3, d.lgs. 150/2011, richiamato
+        # dall'art. 13, comma 8, d.lgs. 286/1998). La legge non dice se la sospensione feriale vi si applica: il
+        # modello propone la data senza sospensione, la più prudente, e lo dichiara (dubbio feriale).
+        code="IMM_RICORSO_ESPULSIONE_18",
+        name="Ricorso al giudice di pace contro l'espulsione prefettizia",
+        base_value=20,
+        suspend_august=False,
+        ferial_suspension_policy="manual_review",
+        reference_law="Art. 18, comma 3, d.lgs. 150/2011; art. 13, comma 8, d.lgs. 286/1998",
+        metadata={"source_event": "notifica_decreto_espulsione", "dubbio_feriale": True,
+                  "nota": "Quaranta giorni se il ricorrente risiede all'estero: indicare la durata personalizzata."},
     ),
     DeadlineTemplate(
         code="ESE_PRECETTO_ADEMPIMENTO_10GG",
@@ -718,6 +760,13 @@ class ItalianDeadlineCalculator:
           sospensione feriale non si applica. Resta attivabile solo con la
           forzatura esplicita ``force_ferial_suspension`` (override o metadata
           del modello), per i casi che il professionista valuta diversamente.
+          Il rito delle locazioni (art. 447-bis c.p.c.) usa le forme del
+          lavoro ma resta soggetto alla sospensione.
+        - Esclusioni per norma del modello (cautelari, sfratto, opposizione
+          all'esecuzione, alimenti, amministrazione di sostegno, codice della
+          crisi, protezione internazionale, ricorso al prefetto…): regola unica
+          in ``pct/termini_esclusioni_feriali.py``, applicata anche ai modelli
+          salvati negli archivi degli studi.
         """
 
         materia = str(template.matter_type or "").strip().lower()
@@ -725,15 +774,36 @@ class ItalianDeadlineCalculator:
         if materia in _MATERIE_PENALI and template.extend_saturday:
             template = replace(template, extend_saturday=False)
             regole.append("penal_no_saturday_extension_art_172_cpp")
-        if materia in _MATERIE_LAVORO:
-            forzata = _parse_bool(dict(overrides or {}).get("force_ferial_suspension")) or _parse_bool(
-                (template.metadata or {}).get("force_ferial_suspension")
-            )
+        forzata = _parse_bool(dict(overrides or {}).get("force_ferial_suspension")) or _parse_bool(
+            (template.metadata or {}).get("force_ferial_suspension")
+        )
+        from pct.termini_esclusioni_feriali import esclusione_per_norma, rito_locatizio
+
+        if materia in _MATERIE_LAVORO and rito_locatizio(template.reference_law):
+            # Rito delle locazioni (art. 447-bis c.p.c.): forme del lavoro, ma la sospensione feriale si applica
+            # (art. 3 L. 742/1969 esclude solo lavoro e previdenza).
+            regole.append("lease_rite_ferial_applies_art_447_bis_cpc")
+        elif materia in _MATERIE_LAVORO:
             if forzata:
                 regole.append("labour_ferial_suspension_forced_override")
             elif template.suspend_august:
                 template = replace(template, suspend_august=False)
                 regole.append("labour_no_ferial_suspension_art_3_l742_1969")
+        if template.suspend_august and template.ferial_suspension_policy == "applies" and not forzata:
+            # Esclusioni per norma (art. 3 L. 742/1969, art. 92 R.D. 12/1941, art. 9 d.lgs. 14/2019 e le altre di
+            # pct/termini_esclusioni_feriali.py): valgono anche per i modelli salvati negli archivi degli studi.
+            metadati = template.metadata or {}
+            guida = f"{metadati.get('codice_guida') or ''} {metadati.get('denominazione_guida') or ''}"
+            esclusione = esclusione_per_norma(template.name, template.reference_law, materia, guida)
+            if esclusione is not None:
+                aggiunta = {"ferial_exclusion": esclusione.spiegazione}
+                if esclusione.politica == "manual_review":
+                    aggiunta["dubbio_feriale"] = True  # pct/termini_riti.dubbio_feriale: dubbio dichiarato nell'esito
+                template = replace(template, suspend_august=False, ferial_suspension_policy=esclusione.politica,
+                                   metadata={**metadati, **aggiunta})
+                regole.append(esclusione.codice)
+                if esclusione.codice != "labour_no_ferial_suspension_art_3_l742_1969":
+                    regole.append("ferial_excluded_by_law")
         return template, regole
 
     def _ferial_active(self, template: DeadlineTemplate) -> bool:
@@ -871,6 +941,8 @@ class ItalianDeadlineCalculator:
             parts.append("La materia urgente esclude la sospensione feriale nel calcolo automatico.")
         if "labour_no_ferial_suspension_art_3_l742_1969" in rules:
             parts.append("Controversia di lavoro o previdenza: sospensione feriale non applicata (art. 3 L. 742/1969; art. 92 R.D. 12/1941).")
+        elif "ferial_excluded_by_law" in rules and (template.metadata or {}).get("ferial_exclusion"):
+            parts.append(str(template.metadata["ferial_exclusion"]))
         if "penal_no_saturday_extension_art_172_cpp" in rules:
             parts.append("Materia penale: il sabato non proroga il termine, solo il giorno festivo (art. 172, comma 3, c.p.p.).")
         if template.free_term:

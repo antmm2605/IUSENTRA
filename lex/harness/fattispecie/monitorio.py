@@ -10,6 +10,11 @@ from ..norme import piano
 from .. import procedura as P
 
 
+# Crediti di lavoro o di previdenza (artt. 409 e 442 c.p.c.): TFR, retribuzioni, straordinari, contributi.
+_CREDITO_DI_LAVORO = (r"\btfr\b|trattamento di fine rapporto|retribu\w*|stipend\w*|straordinar\w*|busta paga|"
+                      r"lavorator\w*|ex dipendent\w*|datore di lavoro|credit\w* di lavoro|contribut\w* previdenzial\w*")
+
+
 def riconosci_ricorso_di(c: Comprensione, f: Fatti) -> int:
     t = piano(f.testo)
     if c.atto == "ricorso per decreto ingiuntivo" and not re.search(r"oppo|contributo unificato", t) and not (
@@ -54,7 +59,14 @@ def analizza_ricorso_di(c: Comprensione, f: Fatti) -> Analisi:
     ]
     a.competenza = [Punto("Competente è il giudice di pace o il tribunale che sarebbe competente per la domanda proposta "
                           "in via ordinaria.", [Rif("cpc:637", "competente per la domanda proposta in via ordinaria")])]
-    if valore:
+    if re.search(_CREDITO_DI_LAVORO, t):
+        # Il giudice «che sarebbe competente per la domanda proposta in via ordinaria» (art. 637) per un credito di
+        # lavoro o di previdenza è il tribunale in funzione di giudice del lavoro, a qualunque valore (artt. 409, 413).
+        a.competenza.append(Punto("Credito di lavoro o di previdenza: in via ordinaria è competente il tribunale in "
+                                  "funzione di giudice del lavoro, a qualunque valore; il giudice di pace non lo è mai.",
+                                  [Rif("cpc:413", "tribunale in funzione di giudice del lavoro")]))
+        a.giudice = "Tribunale in funzione di giudice del lavoro"
+    elif valore:
         giudice, punti = P.giudice_per_valore(valore)
         a.competenza += punti
         citta, foro = P.foro_convenuto(f)

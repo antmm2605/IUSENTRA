@@ -219,6 +219,12 @@ USI: tuple[tuple[str, int, str], ...] = (
 CAMPI_DA_USO: tuple[tuple[str, str, str, str], ...] = (
     # (calcolatore, campo, valore, espressione)
     ("termini_processuali", "term_modello", "CIV_IMPUGNAZIONE_DELIBERA_1137", r"delibera (?:condominiale|assembleare|dell'assemblea)"),
+    # Decreto ingiuntivo per crediti di lavoro o previdenza: senza sospensione feriale (art. 3 l. 742/1969). Va prima
+    # della voce generica, perché vale la prima voce che fissa il campo.
+    ("termini_processuali", "term_modello", "LAV_OPPOSIZIONE_DI",
+     r"^(?=.*decreto ingiuntivo)(?=.*(?:\btfr\b|fine rapporto|retribuzion\w*|stipend\w*|"
+     r"lavorator\w*|dipendent\w*|datore di lavoro|giudice del lavoro|rito del lavoro|credit\w* di lavoro|"
+     r"previdenz\w*|\binps\b|\binail\b|contribut\w* previdenzial\w*))"),
     ("termini_processuali", "term_modello", "CIV_OPPOSIZIONE_DI", r"opposizione.{0,30}decreto ingiuntivo|oppor\w*.{0,30}decreto ingiuntivo|decreto ingiuntivo.{0,80}(?:opposizion\w*|oppor\w*)"),
     ("termini_processuali", "term_modello", "CIV_MEMORIA_171_TER_1", r"prima memoria.{0,30}171|171-?ter.{0,30}(?:prima|n\.? ?1|comma 1)"),
     ("termini_processuali", "term_modello", "CIV_MEMORIA_171_TER_2", r"seconda memoria.{0,30}171|171-?ter.{0,30}(?:seconda|n\.? ?2)"),
@@ -230,6 +236,7 @@ CAMPI_DA_USO: tuple[tuple[str, str, str, str], ...] = (
     ("termini_processuali", "term_modello", "AMM_RICORSO_29", r"ricorso (?:al )?tar(?!.{0,30}appalt)"),
     ("termini_processuali", "term_modello", "AMM_APPALTI_120", r"(?:appalt|gara).{0,40}(?:tar|ricorso)|(?:tar|ricorso).{0,40}(?:appalt|gara)"),
     ("termini_processuali", "term_modello", "TRIB_RICORSO_21", r"(?:ricorso|ricorrere).{0,40}(?:corte di giustizia tributaria|commissione tributaria|avviso di accertamento|cartella)"),
+    ("termini_processuali", "term_modello", "IMM_RICORSO_ESPULSIONE_18", r"espulsion\w*"),
     ("termini_processuali", "term_modello", "CDS_RICORSO_PREFETTO_60GG", r"ricorso al prefetto"),
     ("termini_processuali", "term_modello", "CDS_RICORSO_GDP_30GG", r"(?:multa|verbale).{0,60}giudice di pace|ricorso al giudice di pace.{0,40}(?:multa|verbale)"),
     ("termini_processuali", "term_modello", "CIV_COSTITUZIONE_CONVENUTO_166", r"costitu\w+ (?:del )?convenut\w*|convenut\w*.{0,30}costitu"),
@@ -272,6 +279,12 @@ CAMPI_DA_USO: tuple[tuple[str, str, str, str], ...] = (
     ("imposta_registro", "reg_tipo_atto", "verbale_conciliazione", r"verbale di conciliazione|conciliazione"),
     ("imposta_registro", "reg_tipo_atto", "sentenza_separazione", r"sentenza di separazione"),
     ("imposta_registro", "reg_tipo_atto", "lodo_arbitrale", r"\blodo\b"),
+    # Competenze che il valore non decide (artt. 409, 413, 444 e 645 c.p.c.): vanno prima delle voci per valore.
+    ("competenza_valore", "comp_materia", "opposizione_decreto_ingiuntivo",
+     r"oppo\w*.{0,60}(?:decreto ingiuntivo|ingiunzione|\b650\b)|decreto ingiuntivo.{0,80}oppo\w*|opposizione tardiva"),
+    ("competenza_valore", "comp_materia", "lavoro_previdenza",
+     r"\btfr\b|fine rapporto|retribu\w*|stipend\w*|straordinar\w*|lavorator\w*|dipendent\w*|datore di lavoro|"
+     r"credit\w* di lavoro|rapporto di lavoro|licenziament\w*|previdenz\w*|\binps\b|\binail\b"),
     ("competenza_valore", "comp_materia", "danno_circolazione", r"incidente|sinistro|circolazione|veicol\w*|auto\b"),
     ("competenza_valore", "comp_materia", "beni_mobili", r"beni mobili|merce|fornitur|vendita di|prestito|fattur\w*"),
 )

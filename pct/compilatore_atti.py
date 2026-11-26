@@ -255,6 +255,9 @@ FIELD_CATALOG_RAW: dict[str, dict[str, str]] = {
     "permit_expiry_or_rejection_date": _fc("Data Scadenza / Diniego Permesso", "date"),
     "immigration_rejection_act": _fc("Provvedimento di Diniego / Espulsione"),
     "immigration_court": _fc("Tribunale Civile Competente"),
+    # Espulsione prefettizia: giudice di pace del luogo dell'autorità che l'ha disposta, ricorso entro venti giorni
+    # dalla notificazione (art. 13, comma 8, d.lgs. 286/1998; art. 18, commi 2-3, d.lgs. 150/2011).
+    "expulsion_court": _fc("Giudice di pace competente (sede dell'autorità che ha disposto l'espulsione)"),
     "protection_grounds": _fc("Motivi di Protezione Internazionale", "richtext"),
     "country_of_origin_situation": _fc("Situazione nel Paese di Origine", "richtext"),
     "humanitarian_grounds": _fc("Motivi Umanitari / Vulnerabilità", "richtext"),
@@ -535,7 +538,7 @@ MODELS: list[dict[str, Any]] = [
     # ============================= IMMIGRAZIONE ===================================
     _model("IMM_PERMSOG_001", "IMMIGRAZIONE", "Ricorso Permesso di Soggiorno", "immigration_court", "foreigner_applicant", "nationality", "permit_type", "permit_expiry_or_rejection_date", "immigration_rejection_act", "integration_elements", "legal_arguments", "documents_offered"),
     _model("IMM_PROT_001", "IMMIGRAZIONE", "Ricorso Protezione Internazionale", "immigration_court", "foreigner_applicant", "nationality", "protection_grounds", "country_of_origin_situation", "humanitarian_grounds", "integration_elements", "legal_arguments", "documents_offered"),
-    _model("IMM_EXPUL_001", "IMMIGRAZIONE", "Ricorso contro Espulsione / Respingimento", "immigration_court", "foreigner_applicant", "nationality", "immigration_rejection_act", "permit_type", "integration_elements", "legal_arguments", "documents_offered"),
+    _model("IMM_EXPUL_001", "IMMIGRAZIONE", "Ricorso contro Espulsione / Respingimento", "expulsion_court", "foreigner_applicant", "nationality", "immigration_rejection_act", "permit_type", "integration_elements", "legal_arguments", "documents_offered"),
     _model("IMM_CITTA_001", "IMMIGRAZIONE", "Ricorso per Cittadinanza", "immigration_court", "foreigner_applicant", "nationality", "citizenship_grounds", "residence_years", "integration_elements", "legal_arguments", "documents_offered"),
     _model("IMM_RIUN_001", "IMMIGRAZIONE", "Istanza Ricongiungimento Familiare", "immigration_court", "foreigner_applicant", "nationality", "permit_type", "legal_arguments", "integration_elements", "supporting_documents"),
 ]

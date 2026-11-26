@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
 
 _RE_RUOLO = re.compile(r"(\d{1,7})\s*/\s*(\d{4})")
 
@@ -22,7 +23,8 @@ def _testo(valore: Any) -> str:
 
 
 def _ruolo(valore: Any) -> str:
-    trovato = _RE_RUOLO.search(_testo(valore))
+    testo = _testo(valore)
+    trovato = next((m for m in _RE_RUOLO.finditer(testo) if not atto_normativo_prima(testo, m.start(1))), None)
     return f"{int(trovato.group(1))}/{trovato.group(2)}" if trovato else ""
 
 

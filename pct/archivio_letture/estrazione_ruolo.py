@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 
 from legal_ocr.formulario.confusioni import a_cifre
+from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
 from pct.registro_letture.fatti_repository import Fatto
 
 _SEGNO = r"[\dOoIl|ÌSsBZz]"
@@ -69,6 +70,9 @@ def estrai_ruoli(testo: str, *, origine: str) -> list[Fatto]:
     trovati = sorted([*_RUOLO.finditer(testo), *_RUOLO_AMMINISTRATIVO.finditer(testo), *_RUOLO_POSTPOSTO.finditer(testo),
                       *_RUOLO_ESTESO.finditer(testo), *_RUOLO_ISCRITTO.finditer(testo)], key=lambda m: m.start())
     for match in trovati:
+        # «legge n. 53/1994 R.G.», «D.Lgs. n. 149 del Ruolo…»: il numero di un atto normativo non è un ruolo.
+        if match.re is not _RUOLO and atto_normativo_prima(testo, match.start()):
+            continue
         amministrativo = match.re is _RUOLO_AMMINISTRATIVO
         doppio = match.re in (_RUOLO_AMMINISTRATIVO, _RUOLO_ISCRITTO)
         grezzo_numero = match.group("numero") or (match.group("numero2") if doppio else "")

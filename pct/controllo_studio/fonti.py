@@ -11,6 +11,7 @@ import re
 from datetime import date, timedelta
 from typing import Any
 from urllib.parse import quote, urlencode
+from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
 
 from pct.controllo_studio.voce import Azione, Voce, quando_etichetta
 from pct.scadenze_stato import (
@@ -66,7 +67,8 @@ def indice_rg(fascicoli: list[Any]) -> dict[str, Any]:
 
 
 def fascicolo_da_testo(testo: str, per_rg: dict[str, Any]) -> Any:
-    chiavi = {f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(str(testo or ""))}
+    testo = str(testo or "")
+    chiavi = {f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(testo) if not atto_normativo_prima(testo, m.start(1))}
     return per_rg.get(next(iter(chiavi))) if len(chiavi) == 1 else None
 
 

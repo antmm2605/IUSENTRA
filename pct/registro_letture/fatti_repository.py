@@ -63,6 +63,31 @@ def _prova_leggibile(prova: Any) -> Any:
     return prova
 
 
+def ruolo_che_e_norma(fatto: Any) -> str:
+    """Il riferimento normativo se il numero di ruolo registrato è in realtà il numero di una legge o di un decreto.
+
+    Stessa regola dell'estrattore corrente (pct/archivio_letture/estrazione_ruolo.py): il numero letto dopo
+    una sigla di atto normativo («L.», «legge n.», «D.Lgs.», «D.P.R.», «Reg. UE»…) non è un R.G.; il numero
+    introdotto dalla propria sigla di ruolo («R.G.», «RG n.», «R.G.L.», «ruolo generale») resta valido.
+    """
+    import re
+
+    from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
+
+    if getattr(fatto, "campo", "") not in {"numero_ruolo", "numero_ruolo_penale"}:
+        return ""
+    letto = _testo(getattr(fatto, "valore_letto", ""))
+    contesto = _testo(getattr(fatto, "contesto", ""))
+    if not letto:
+        return ""
+    if re.match(r"(?i)(?:r\.?\s*g|n\.?\s*r\.?\s*g|ruolo\s+generale)\b", letto):
+        return ""
+    # «n. 53/1994 R.G.», «53/1994»: vale la sigla che precede la lettura nel brano registrato.
+    posizione = contesto.find(letto)
+    sigla = atto_normativo_prima(contesto, posizione) if posizione >= 0 else ""
+    return " ".join(f"{sigla} {letto}".split()) if sigla else ""
+
+
 @dataclass(slots=True)
 class Fatto:
     """Un fatto letto: che cosa, dove, come, con quale prova."""
@@ -332,17 +357,27 @@ class FattiMixin:
             fatto = self._fatto(raw)
             if impronte_attese is not None and impronte_attese.get(fatto.id) != fatto.sha256:
                 raise RuntimeError("L’impronta della lettura è cambiata. Ricarica i dati prima di riprovare.")
-            if fatto.categoria != "data" or any(isinstance(p, dict) and p.get("codice") == "decisione_avvocato" for p in fatto.prove):
+            if any(isinstance(p, dict) and p.get("codice") == "decisione_avvocato" for p in fatto.prove):
                 continue
             letto = _testo(fatto.valore_letto)
-            riferimento = e_riferimento_normativo(letto, 0, len(letto)) if letto else ""
-            from pct.archivio_letture.ancoraggio import esclusione_data_salvata
-            esclusione = esclusione_data_salvata(fatto.contesto, fatto.valore) if fatto.campo in {"termine", "decorrenza", "udienza", "costituzione"} else ""
-            if fatto.campo in {"termine", "udienza", "costituzione"}:
-                esclusione = (esclusioni_oggetto or {}).get(fatto.oggetto_id) or esclusione
-            if not riferimento and not esclusione:
+            if fatto.categoria == "ruolo":
+                # «L. 53/1994», «D.P.R. 115/2002»: un numero di ruolo letto dove il testo cita un atto normativo.
+                norma = ruolo_che_e_norma(fatto)
+                if not norma:
+                    continue
+                motivo = (f"«{letto}» è il numero di un atto normativo ({norma}), non un numero di ruolo: "
+                          "un R.G. richiede il contesto «R.G.», «RG n.», «ruolo generale» o il formato del portale")
+            elif fatto.categoria != "data":
                 continue
-            motivo = f"«{letto}» è un riferimento normativo ({riferimento}), non una data" if riferimento else f"«{letto}»: {esclusione}"
+            else:
+                riferimento = e_riferimento_normativo(letto, 0, len(letto)) if letto else ""
+                from pct.archivio_letture.ancoraggio import esclusione_data_salvata
+                esclusione = esclusione_data_salvata(fatto.contesto, fatto.valore) if fatto.campo in {"termine", "decorrenza", "udienza", "costituzione"} else ""
+                if fatto.campo in {"termine", "udienza", "costituzione"}:
+                    esclusione = (esclusioni_oggetto or {}).get(fatto.oggetto_id) or esclusione
+                if not riferimento and not esclusione:
+                    continue
+                motivo = f"«{letto}» è un riferimento normativo ({riferimento}), non una data" if riferimento else f"«{letto}»: {esclusione}"
             prove = list(fatto.prove) + [{
                 "codice": "riconvalida",
                 "esito": "respinta",
@@ -460,4 +495,4 @@ class FattiMixin:
         return {"per_verifica": per_verifica, "per_categoria": per_categoria, "per_campo": per_campo, "totale": sum(per_verifica.values()), "ultima_lettura": ultima}
 
 
-__all__ = ["CATEGORIE", "COLONNE_FATTI", "Fatto", "FattiMixin", "MOTORI", "VERIFICHE", "VERIFICHE_UTILI", "chiave_fatto"]
+__all__ = ["CATEGORIE", "COLONNE_FATTI", "Fatto", "FattiMixin", "MOTORI", "VERIFICHE", "VERIFICHE_UTILI", "chiave_fatto", "ruolo_che_e_norma"]

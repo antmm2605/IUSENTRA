@@ -8,6 +8,7 @@ from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote
 
 from pct.agenda_lavorazione import indice_proposte, proposte_aperte
+from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
 from pct.agenda_linguaggio import modalita_legale, riga_contesto, titolo_storico
 from pct.formatting import parse_datetime_rome
 from pct.note_127_ter.comunicazione import CODICE_OPPOSIZIONE_127_TER, TITOLO_OPPOSIZIONE_127_TER
@@ -336,8 +337,10 @@ def _extract_rg(*values: Any) -> str:
         if re.search(r"\b(?:comunicazione|udienza|ruolo|fascicolo)\b", text, re.IGNORECASE):
             # La parte mese/anno di una data non è un numero di ruolo.
             without_dates = re.sub(r"\b\d{1,2}\s*/\s*\d{1,2}\s*/\s*\d{4}\b", "", text)
-            match = BARE_RG_RE.search(without_dates)
-            if match:
+            for match in BARE_RG_RE.finditer(without_dates):
+                # «L. 53/1994», «D.P.R. 115/2002»: il numero di una legge o di un decreto non è un ruolo.
+                if atto_normativo_prima(without_dates, match.start(1)):
+                    continue
                 return "RG " + re.sub(r"\s+", "", match.group(1).upper())
     return ""
 

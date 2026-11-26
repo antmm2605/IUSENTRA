@@ -94,4 +94,57 @@ def descrizione(chiave: str) -> str:
     return ""
 
 
-__all__ = ["ABBREVIAZIONI", "FINESTRA_PRIMA", "abbreviazione_prima", "descrizione", "e_riferimento_normativo"]
+# Le sole sigle di atti normativi (leggi, decreti, regolamenti): davanti a un numero dicono che quel numero
+# è il numero dell'atto, mai un numero di ruolo. Gli articoli, i provvedimenti e le sigle di ruolo restano fuori:
+# «R.G. 523/2026» è un ruolo, «sent. 271/2026» è il numero di una sentenza, non un atto normativo.
+ATTI_NORMATIVI = frozenset({
+    "legge", "decreto_legislativo", "decreto_legge", "dpr", "dm", "dpcm", "dpcsga", "regio_decreto", "europa",
+})
+_SIGLE_ATTO = "|".join(espressione for chiave, espressione, _ in ABBREVIAZIONI if chiave in ATTI_NORMATIVI)
+_MESI = r"gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre"
+# «L. 53/1994», «legge n. 53/1994», «D.P.R. 115/2002», «Reg. (UE) 2016/679»: la sigla subito prima del numero.
+# Il confine iniziale esclude anche il punto: la «L.» di «R.G.L. 940/2023» (ruolo del lavoro) non è «legge».
+_ATTO_SUBITO_PRIMA = re.compile(
+    r"(?<![\w'’.])(?:" + _SIGLE_ATTO + r")(?:\.|\s)[\s.:]*(?:n(?:\.|\s)[\s.:°]*|nr\.?\s*|numero\s+)?$",
+    re.IGNORECASE,
+)
+# Citazione estesa: «l. 21 gennaio 1994, n. 53», «D.Lgs. 10/10/2022, n. 149», «legge 8 ottobre 2025 n. 151».
+_ATTO_CON_DATA_PRIMA = re.compile(
+    r"(?<![\w'’.])(?:" + _SIGLE_ATTO + r")(?:\.|\s)\s*"
+    r"\d{1,2}(?:°|º)?(?:\s+(?:" + _MESI + r")\s+|\s*[./-]\s*\d{1,2}\s*[./-]\s*)\d{4}\s*,?\s*(?:n\.?|nr\.?|numero)\s*$",
+    re.IGNORECASE,
+)
+# La sigla di ruolo subito prima della sigla trovata («R.G. L.» del lavoro): allora è un ruolo, non una legge.
+_SIGLA_RUOLO_FINALE = re.compile(r"(?<![\w])(?:r\.?\s*g\.?|n\.?\s*r\.?\s*g\.?)\s*$", re.IGNORECASE)
+FINESTRA_ATTO = 60
+
+
+def atto_normativo_prima(testo: str, inizio: int) -> str:
+    """La citazione dell'atto normativo che precede il numero in ``inizio``, oppure stringa vuota.
+
+    È la regola degli estrattori di numero di ruolo: «L. 53/1994», «legge n. 53 del 1994»,
+    «l. 21 gennaio 1994, n. 53», «D.P.R. 115/2002», «d.lgs. 149/2022» citano una legge o un decreto;
+    il numero che segue la sigla non è mai un R.G. Un ruolo valido richiede il proprio contesto
+    («R.G.», «RG n.», «ruolo generale», «N. … R.G.», il formato del portale).
+    """
+    grezzo = str(testo or "")
+    prima = grezzo[max(0, inizio - FINESTRA_ATTO):inizio]
+    for regola in (_ATTO_SUBITO_PRIMA, _ATTO_CON_DATA_PRIMA):
+        trovato = regola.search(prima)
+        if trovato and not _SIGLA_RUOLO_FINALE.search(prima[:trovato.start()]):
+            return " ".join(trovato.group(0).split())
+    return ""
+
+
+def e_numero_di_atto_normativo(testo: str, inizio: int, fine: int) -> str:
+    """Il riferimento normativo («L. 53/1994») se il numero fra ``inizio`` e ``fine`` è quello di un atto."""
+    sigla = atto_normativo_prima(testo, inizio)
+    if not sigla:
+        return ""
+    return " ".join(f"{sigla} {str(testo or '')[inizio:fine]}".split())
+
+
+__all__ = [
+    "ABBREVIAZIONI", "ATTI_NORMATIVI", "FINESTRA_PRIMA", "abbreviazione_prima", "atto_normativo_prima", "descrizione",
+    "e_numero_di_atto_normativo", "e_riferimento_normativo",
+]

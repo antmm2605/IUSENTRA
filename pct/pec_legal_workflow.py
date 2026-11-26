@@ -184,7 +184,12 @@ def _attachment_names(attachments: Iterable[Any]) -> list[str]:
 def estrai_registri(text: str) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
+    from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
+
     for match in ROLE_RE.finditer(text or ""):
+        # «L. 53/1994», «D.P.R. 115/2002»: il numero di una legge o di un decreto non è un registro di ruolo.
+        if atto_normativo_prima(text, match.start("number")):
+            continue
         suffix = (match.group("suffix") or match.group("gdp") or "").upper()
         key = (match.group("number"), match.group("year"), suffix)
         if key in seen:
@@ -201,6 +206,8 @@ def estrai_registri(text: str) -> list[dict[str, Any]]:
         )
     for label, pattern in (("RG_APP", RG_APP_RE), ("RG_NR", RG_NR_RE)):
         for match in pattern.finditer(text or ""):
+            if atto_normativo_prima(text, match.start()):
+                continue
             number = str(int(match.group("number")))
             key = (number, match.group("year"), label)
             if key in seen:

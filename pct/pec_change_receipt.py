@@ -26,6 +26,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
 from pct.agenda_linguaggio import evento_registro, nome_proprio, titolo_cancelleria
 
 ROME_TZ = ZoneInfo("Europe/Rome")
@@ -103,7 +104,8 @@ def date_it(value: str) -> str:
 
 
 def normalize_rg(value: Any) -> str:
-    match = _RG_RE.search(str(value or ""))
+    testo = str(value or "")
+    match = next((m for m in _RG_RE.finditer(testo) if not atto_normativo_prima(testo, m.start(1))), None)
     return f"{int(match.group(1))}/{match.group(2)}" if match else ""
 
 

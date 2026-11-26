@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
+from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
 
 ROME_TZ = ZoneInfo("Europe/Rome")
 _LOG = logging.getLogger(__name__)
@@ -70,7 +71,8 @@ def _quando(grezzo: Any) -> datetime | None:
 
 
 def normalizza_rg(valore: Any) -> str:
-    trovato = _RE_RG.search(str(valore or ""))
+    testo = str(valore or "")
+    trovato = next((m for m in _RE_RG.finditer(testo) if not atto_normativo_prima(testo, m.start(1))), None)
     return f"{int(trovato.group(1))}/{trovato.group(2)}" if trovato else ""
 
 

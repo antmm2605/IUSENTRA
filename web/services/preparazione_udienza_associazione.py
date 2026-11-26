@@ -1,6 +1,7 @@
 """Associazione dell'udienza da collegamenti espliciti e identità del procedimento."""
 import re
 import unicodedata
+from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
 from pct.pec_case_identity import case_identity_evidence
 
 _RG = re.compile(r"(?<![\d/])(\d{1,7})\s*/\s*(\d{4})(?!\d)")
@@ -17,7 +18,9 @@ def verifica_collegamento_esplicito(appuntamento, fascicolo):
         raise PreparazioneConflict("Fascicolo dell'udienza discordante dal collegamento registrato.")
     if appuntamento.id_cliente and appuntamento.id_cliente != fascicolo.id_cliente:
         raise PreparazioneConflict("Cliente dell'udienza discordante dal fascicolo scelto.")
-    ruoli = {f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(str(appuntamento.procedimento or ""))}
+    procedimento_ruoli = str(appuntamento.procedimento or "")
+    ruoli = {f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(procedimento_ruoli)
+             if not atto_normativo_prima(procedimento_ruoli, m.start(1))}
     if len(ruoli) > 1:
         raise PreparazioneConflict("Più numeri di ruolo nell'udienza: collegamento da verificare.")
     evidence = case_identity_evidence({"numero_ruolo_certificato": next(iter(ruoli), ""),
@@ -48,8 +51,9 @@ def fascicolo_udienza(appuntamento, fascicoli, sessioni=()):
     interni = [f for f in fascicoli if procedimento and procedimento == _testo(getattr(f, 'numero', ''))]
     if interni:
         return interni[0] if len(interni) == 1 else None
-    ruoli = {f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(
-        f"{getattr(appuntamento, 'procedimento', '')} {appuntamento.titolo}")}
+    testo_ruoli = f"{getattr(appuntamento, 'procedimento', '')} {appuntamento.titolo}"
+    ruoli = {f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(testo_ruoli)
+             if not atto_normativo_prima(testo_ruoli, m.start(1))}
     candidati = list(fascicoli)
     if ruoli:
         if len(ruoli) != 1:

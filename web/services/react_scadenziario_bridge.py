@@ -351,7 +351,12 @@ def _source_evidence(
 
 
 def _pec_rg_label(context: str) -> str:
-    match = PEC_RG_RE.search(context) or PEC_NUMBER_RE.search(context)
+    from legal_ocr.formulario.riferimenti_normativi import atto_normativo_prima
+
+    # Il numero nudo vale come ruolo solo se non è quello di un atto normativo («D.L. 179/2012», «L. 53/1994»).
+    match = PEC_RG_RE.search(context) or next(
+        (m for m in PEC_NUMBER_RE.finditer(context or "") if not atto_normativo_prima(context, m.start(1))), None
+    )
     if not match:
         return ""
     number = match.group(1).upper()

@@ -330,6 +330,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
     doppioni_riuniti = _riunisci_doppioni(scadenziario, agenda)
     proposte_decorse = _chiudi_proposte_decorse(scadenziario)
     proposte_giudice = _riconvalida_proposte_giudice(scadenziario)
+    proposte_notifica = _riconvalida_proposte_notifica(scadenziario)
     recipients = notification_recipients_for_paths(paths, database=database_config)
     service = NotificationService(
         notification_repository,
@@ -351,6 +352,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "doppioniRiuniti": doppioni_riuniti,
         "proposteDecorse": proposte_decorse,
         "proposteGiudice": proposte_giudice,
+        "proposteNotificaSenzaFascicolo": proposte_notifica,
     }
     controlli = {
         "Memorie dalla prima udienza": memorie_da_udienza,
@@ -579,6 +581,17 @@ def _riconvalida_proposte_giudice(scadenziario: Any) -> dict[str, Any]:
         return riconvalida_proposte_giudice(scadenziario)
     except Exception as exc:  # la riconvalida non deve fermare le notifiche
         logging.getLogger(__name__).warning("Proposte dai provvedimenti non riconvalidate: %s", exc)
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
+
+
+def _riconvalida_proposte_notifica(scadenziario: Any) -> dict[str, Any]:
+    """Proposte «crea o collega il fascicolo»: RG che era una legge, promemoria di festivo (pct.presidio_notifica_senza_fascicolo)."""
+    from pct.presidio_notifica_senza_fascicolo import riconvalida_proposte
+
+    try:
+        return riconvalida_proposte(scadenziario)
+    except Exception as exc:  # la riconvalida non deve fermare le notifiche
+        logging.getLogger(__name__).warning("Proposte di notifica senza fascicolo non riconvalidate: %s", exc)
         return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
 
 

@@ -229,10 +229,10 @@ def campi(ident: str, domanda: str) -> dict[str, object]:
         campo, valore = scelte_rito[(ident, r)]
         if valore and campo in voce["campi"] and campo not in uscita and valore in voce["campi"][campo].get("valori", []):
             uscita[campo] = valore
+    # Il decreto prefettizio di espulsione (art. 18 d.lgs. 150/2011, non il CdS) è già fissato da CAMPI_DA_USO
+    # (usi_calcolatori.py), che viene prima: qui non arriva mai senza modello.
     if ident == "termini_processuali" and r == "sanzioni" and "term_modello" not in uscita:
-        if re.search(r"espulsion", t):  # decreto prefettizio di espulsione: art. 18 d.lgs. 150/2011, non il CdS
-            uscita["term_modello"] = "IMM_RICORSO_ESPULSIONE_18"
-        elif re.search(r"prefett", t):
+        if re.search(r"prefett", t):
             uscita["term_modello"] = "CDS_RICORSO_PREFETTO_60GG"
         elif re.search(r"giudice di pace", t):
             uscita["term_modello"] = "CDS_RICORSO_GDP_30GG"

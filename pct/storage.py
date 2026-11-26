@@ -32,6 +32,7 @@ import sqlite3
 import sys
 import threading
 import time
+import weakref
 from pathlib import Path
 from typing import Any, Dict
 
@@ -51,6 +52,12 @@ _instances_lock = threading.Lock()
 logger = logging.getLogger(__name__)
 _SQLITE_BUSY_TIMEOUT_MS = 30000
 _SQLITE_WRITE_ATTEMPTS = 8
+
+
+class _Proprietario:
+    """Segno di vita di un thread (o greenlet): vive nel suo threading.local e muore con lui."""
+
+    __slots__ = ("__weakref__",)
 
 
 def _is_locked_error(exc: BaseException) -> bool:
@@ -172,7 +179,7 @@ class StudioDB:
         self._local = threading.local()
         # Tutte le connessioni dei thread, per chiuderle insieme quando il database se ne va (24/11/2026: i
         # controlli operativi del mattino lasciavano aperti decine di studio.db temporanei già cancellati).
-        self._connessioni: list[sqlite3.Connection] = []
+        self._connessioni: list[tuple[sqlite3.Connection, weakref.ref]] = []
         self._connessioni_lock = threading.Lock()
         self._readonly_only = bool(readonly)
         self._existing_only = not initialize_schema
@@ -195,16 +202,29 @@ class StudioDB:
         self._local._conn = conn
         elenco = getattr(self, "_connessioni", None)
         if elenco is not None:
+            proprietario = getattr(self._local, "_proprietario", None)
+            if proprietario is None:
+                proprietario = self._local._proprietario = _Proprietario()
             with self._connessioni_lock:
-                elenco.append(conn)
+                # Le connessioni dei thread già finiti si chiudono qui: tenute nell'elenco restavano aperte per
+                # sempre (26/11/2026: lo scheduler arrivò a 1.019 file aperti su 1.024, con un thread nuovo per
+                # ogni lettura in sfondo). Va chiusa con close(): lasciata al garbage collector, SQLite chiude
+                # il -wal ma tiene aperto il descrittore di studio.db.
+                orfane = [voce[0] for voce in elenco if voce[1]() is None]
+                elenco[:] = [voce for voce in elenco if voce[1]() is not None]
+                elenco.append((conn, weakref.ref(proprietario)))
+            for orfana in orfane:
+                try:
+                    orfana.close()
+                except sqlite3.Error:
+                    pass
         return conn
 
     def _dimentica_connessione(self, conn: sqlite3.Connection) -> None:
         elenco = getattr(self, "_connessioni", None)
         if elenco is not None:
             with self._connessioni_lock:
-                if conn in elenco:
-                    elenco.remove(conn)
+                elenco[:] = [voce for voce in elenco if voce[0] is not conn]
 
     def _close_thread_connection(self) -> None:
         conn = getattr(self._local, "_conn", None)
@@ -223,7 +243,7 @@ class StudioDB:
             self.chiudi()
             return 0
         with self._connessioni_lock:
-            da_chiudere, elenco[:] = list(elenco), []
+            da_chiudere, elenco[:] = [voce[0] for voce in elenco], []
         for conn in da_chiudere:
             try:
                 conn.close()

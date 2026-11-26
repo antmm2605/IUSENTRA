@@ -477,7 +477,7 @@ PREFETTO = Scheda(
           "edittale; altrimenti archivia.", R("dlgs285:204", "nel limite non inferiore al doppio del minimo edittale")),
     ],
     scadenze=[Scadenza("ricorso al Prefetto entro", 60, "giorni", r"(?:verbale|multa)[^0-9]{0,40}(?:notificat\w*|contestat\w*)(?: il)?",
-                       (R("dlgs285:203", "nel termine di giorni sessanta"),), modello="CDS_RICORSO_PREFETTO_60GG")],
+                       (R("dlgs285:203", "nel termine di giorni sessanta"),), sospensione_feriale=False, modello="CDS_RICORSO_PREFETTO_60GG")],
     dati=["verbale e data di notifica", "pagamento in misura ridotta già fatto o no"],
 )
 

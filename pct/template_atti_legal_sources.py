@@ -1558,6 +1558,35 @@ def _public_row(source: dict[str, Any], confidence: float, match_reason: str) ->
     return row
 
 
+_CRITERI_FONTI: tuple[Any, tuple[tuple[dict[str, Any], tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...]], ...]] | None = None
+
+
+def _criteri_fonti() -> tuple[tuple[dict[str, Any], tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...]], ...]:
+    """Termini e prefissi del registro già normalizzati, calcolati una volta.
+
+    Il registro è fisso nel pacchetto: normalizzare gli stessi termini per ogni
+    modello del catalogo (oltre mille a ricerca) non cambiava il risultato.
+    Se il registro viene sostituito, i criteri si ricalcolano.
+    """
+    global _CRITERI_FONTI
+    sources = TEMPLATE_ATTI_LEGAL_SOURCES
+    if _CRITERI_FONTI is None or _CRITERI_FONTI[0] is not sources:
+        _CRITERI_FONTI = (
+            sources,
+            tuple(
+                (
+                    source,
+                    tuple(_normalise(item) for item in source.get("excludes_terms", ())),
+                    tuple(str(item).upper() for item in source.get("applies_to_prefixes", ())),
+                    tuple(_normalise(item) for item in source.get("match_terms", ())),
+                    tuple(_normalise(item) for item in source.get("prefix_terms", ())),
+                )
+                for source in sources
+            ),
+        )
+    return _CRITERI_FONTI[1]
+
+
 def template_atti_sources_for_model(*, model_code: str = "", model_name: str = "", area: str = "") -> list[dict[str, Any]]:
     """Restituisce le fonti ufficiali coerenti con il modello.
 
@@ -1571,18 +1600,14 @@ def template_atti_sources_for_model(*, model_code: str = "", model_name: str = "
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
 
-    for source in TEMPLATE_ATTI_LEGAL_SOURCES:
-        excludes = tuple(_normalise(item) for item in source.get("excludes_terms", ()))
+    for source, excludes, prefixes, terms, prefix_terms in _criteri_fonti():
         if any(item and item in haystack for item in excludes):
             continue
-        prefixes = tuple(str(item).upper() for item in source.get("applies_to_prefixes", ()))
         prefix_match = bool(prefixes and code and any(code.startswith(prefix) for prefix in prefixes))
-        terms = tuple(_normalise(item) for item in source.get("match_terms", ()))
         term_match = any(term and term in haystack for term in terms)
         if prefix_match and not term_match and not source.get("prefix_valid_for_all", True):
             # Norma d'articolo: il prefisso da solo non basta (CAU non vuol dire art. 700, CIV non vuol dire art.
             # 703). Vale se il nome/tipo dell'atto contiene uno dei termini ammessi solo dentro quel prefisso.
-            prefix_terms = tuple(_normalise(item) for item in source.get("prefix_terms", ()))
             if not any(item and item in haystack for item in prefix_terms):
                 prefix_match = False
         if not prefix_match and not term_match:

@@ -565,7 +565,23 @@ def _compiler_catalog_items() -> list[dict[str, Any]]:
     return sorted((_enrich_cartabia_row(item) for item in items), key=lambda row: (row["priorita"], row["codice"]))
 
 
+@lru_cache(maxsize=1)
+def _template_catalog_items_cached() -> tuple[dict[str, Any], ...]:
+    """Catalogo unificato costruito una sola volta per processo.
+
+    Tutte le fonti sono dati fissi del pacchetto (catalogo master e divisi,
+    modelli del compilatore, collegamenti e regole Cartabia): ricostruirlo a
+    ogni richiesta costava secondi senza cambiare una riga del risultato.
+    """
+    return tuple(_costruisci_template_catalog_items())
+
+
 def build_template_catalog_items() -> list[dict[str, Any]]:
+    """Catalogo unificato, sempre in copia: chi lo modifica non tocca la cache."""
+    return deepcopy(list(_template_catalog_items_cached()))
+
+
+def _costruisci_template_catalog_items() -> list[dict[str, Any]]:
     payload = load_catalogo_master()
     split_index = _build_split_index()
     modules = _module_index(payload)

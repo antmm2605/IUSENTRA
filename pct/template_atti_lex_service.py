@@ -7,8 +7,10 @@ dipendenze web necessarie per scrivere nell'editor professionale.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import asdict, dataclass, field
 from datetime import date
+from functools import lru_cache
 import html
 import re
 import unicodedata
@@ -439,11 +441,31 @@ def _modelli_ricercabili() -> list[dict[str, Any]]:
     return models
 
 
+@lru_cache(maxsize=1)
+def _indice_ricerca_modelli() -> tuple[tuple[str, dict[str, Any], dict[str, Any], str], ...]:
+    """Indice del catalogo per la ricerca, costruito una sola volta.
+
+    Il catalogo del compilatore è fisso dall'import del modulo: rileggere la
+    scheda completa di ogni modello a ogni richiesta costava secondi senza
+    cambiare il risultato. Le schede tornano al chiamante sempre in copia.
+    """
+    voci = []
+    for model in _modelli_ricercabili():
+        code = clean_spaces(model.get("code")).upper()
+        try:
+            metadata = template_metadata_for_model(code)
+        except Exception:
+            metadata = {**_model_source_urls(code), "model_code": code, "name": clean_spaces(model.get("name")), "area": clean_spaces(model.get("area"))}
+        voci.append((code, model, metadata, normalize_text(_model_search_text(model, metadata))))
+    return tuple(voci)
+
+
 def search_template_models(query: str, *, limit: int = 8, model_code: str = "") -> list[TemplateMatch]:
     # Il testo descrittivo del catalogo non è la richiesta dell'avvocato.
     query = re.split(r"modello catalogo atti:", query, maxsplit=1, flags=re.IGNORECASE)[0] or query
     query_norm = normalize_text(query)
-    models = _modelli_ricercabili()
+    indice = _indice_ricerca_modelli()
+    models = [model for _code, model, _metadata, _haystack in indice]
     virtual_aliases = {model["code"] for model in models if model.get("catalog_template_alias")}
     vocabolario = {word for model in models for word in normalize_text(model.get("name")).split() if len(word) >= 5}
     parole = query_norm.split()
@@ -459,13 +481,7 @@ def search_template_models(query: str, *, limit: int = 8, model_code: str = "") 
     requested_code = clean_spaces(model_code).upper()
     identita_pertinenti = set()
     matches: list[TemplateMatch] = []
-    for model in models:
-        code = clean_spaces(model.get("code")).upper()
-        try:
-            metadata = template_metadata_for_model(code)
-        except Exception:
-            metadata = {**_model_source_urls(code), "model_code": code, "name": clean_spaces(model.get("name")), "area": clean_spaces(model.get("area"))}
-        haystack = normalize_text(_model_search_text(model, metadata))
+    for code, model, metadata, haystack in indice:
         score = 0.0
         if requested_code and code == requested_code:
             score = max(score, 1.0)
@@ -499,7 +515,7 @@ def search_template_models(query: str, *, limit: int = 8, model_code: str = "") 
                 area=clean_spaces(model.get("area")),
                 score=score,
                 found=True,
-                metadata=metadata,
+                metadata=copy.deepcopy(metadata),
             )
         )
     if identita_pertinenti:

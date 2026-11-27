@@ -16,6 +16,7 @@ from web.helpers import (
     get_fatturazione,
     get_giurisprudenza,
     get_preventivi,
+    get_preventivi_readonly,
     get_scadenziario,
     get_soggetti,
 )
@@ -244,7 +245,8 @@ def load_studio_operational_context(*, question: str = "", horizon_days: int = 1
     gestore_soggetti = _safe_repo(get_soggetti)
     soggetti = list(gestore_soggetti.tutti()) if gestore_soggetti is not None else []
     fascicoli = _all_fascicoli()
-    gestore_preventivi = get_preventivi()
+    # Consultazione: legge preventivi e conferimenti senza riscrivere il repository.
+    gestore_preventivi = get_preventivi_readonly()
     preventivi = list(gestore_preventivi.tutti_preventivi())
     conferimenti = list(gestore_preventivi.tutti_conferimenti())
     gestore_fatturazione = _safe_repo(get_fatturazione)
@@ -360,7 +362,8 @@ def load_fascicolo_compliance_context(*, pratica_id: str = "", fascicolo_id: str
         }
 
     cliente = get_clienti().get(getattr(fascicolo, "id_cliente", "") or "") if getattr(fascicolo, "id_cliente", "") else None
-    gestore_preventivi = get_preventivi()
+    # Consultazione: legge preventivi e conferimenti senza riscrivere il repository.
+    gestore_preventivi = get_preventivi_readonly()
     preventivi = list(gestore_preventivi.preventivi_per_fascicolo(fascicolo.id))
     conferimenti = list(gestore_preventivi.conferimenti_per_fascicolo(fascicolo.id))
     gestore_soggetti = _safe_repo(get_soggetti)

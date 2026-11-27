@@ -19,6 +19,20 @@ def test_il_timer_interrompe_anche_senza_gestore_di_avanzamento(monkeypatch):
                 connessione.execute(_LUNGA).fetchone()
     assert time.monotonic() - inizio < 3
 
+    # Il timer che scatta quando la connessione è già chiusa non deve sollevare
+    # errori nel suo thread (prima lo copriva solo una ricerca lenta per caso).
+    import threading
+
+    errori = []
+    monkeypatch.setattr(threading, "excepthook", errori.append)
+    with tempo_ricerca.scadenza(0.05):
+        chiusa = tempo_ricerca.applica(sqlite3.connect(":memory:"))
+        chiusa.close()
+        timer = tempo_ricerca._timer_attivi()[-1]
+        timer.join(2)
+    assert not timer.is_alive()
+    assert errori == []
+
 
 def test_senza_scadenza_nessun_limite():
     connessione = tempo_ricerca.applica(sqlite3.connect(":memory:"))

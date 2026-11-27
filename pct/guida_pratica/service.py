@@ -172,8 +172,12 @@ def _unique_by_json(items: Iterable[Any]) -> list[Any]:
     return out
 
 
-def _deep_merge(parent: dict[str, Any], child: dict[str, Any]) -> dict[str, Any]:
-    """Merge profondo standard: dict ricorsivi, liste additive, scalari override."""
+def _deep_merge(parent: dict[str, Any], child: dict[str, Any], *, copia: bool = True) -> dict[str, Any]:
+    """Merge profondo standard: dict ricorsivi, liste additive, scalari override.
+
+    ``copia=False`` solo quando padre e figlio sono scartati subito dopo la
+    fusione (caricamento del KB): il risultato non condivide nulla con dati vivi.
+    """
 
     def unisci(base: dict[str, Any], aggiunte: dict[str, Any]) -> dict[str, Any]:
         risultato = dict(base)
@@ -189,7 +193,8 @@ def _deep_merge(parent: dict[str, Any], child: dict[str, Any]) -> dict[str, Any]
                 risultato[chiave] = valore
         return risultato
 
-    return deepcopy(unisci(parent, child))
+    risultato = unisci(parent, child)
+    return deepcopy(risultato) if copia else risultato
 
 
 def _drop_inherited_scaffold_for_curated_override(previous: dict[str, Any], path: Path, item: dict[str, Any]) -> dict[str, Any]:
@@ -340,7 +345,10 @@ class GuidaPraticaService:
                 codice = normalize_codice_materia(item.get("codice") or item.get("codice_logico"))
                 if not codice:
                     continue
-                row = deepcopy(item)
+                # Il payload del file è appena letto e non viene riusato: basta
+                # una copia superficiale. La provenienza (_source_record) resta
+                # una copia profonda indipendente, i duplicati passano da _deep_merge.
+                row = dict(item)
                 row.setdefault("codice", codice)
                 row.setdefault("categoria", meta["denominazione"])
                 row.setdefault("_source_file", path.name)
@@ -359,6 +367,7 @@ class GuidaPraticaService:
                     row = _deep_merge(
                         {key: value for key, value in previous.items() if key not in {"_source_records", "_source_files"}},
                         {key: value for key, value in row.items() if key not in {"_source_records", "_source_files"}},
+                        copia=False,
                     )
                     row["_source_files"] = _unique_by_json([*(previous.get("_source_files") or [previous.get("_source_file")]), path.name])
                     row["_source_records"] = _unique_by_json(source_records)
@@ -394,7 +403,9 @@ class GuidaPraticaService:
             codice = normalize_codice_materia(item.get("codice") or item.get("codice_logico"))
             if not codice:
                 return
-            row = deepcopy(item)
+            # Base e moduli sono payload privati di questo caricamento, scartati
+            # dopo la fusione: copia superficiale, la provenienza resta profonda.
+            row = dict(item)
             row.setdefault("codice", codice)
             row.setdefault("_source_file", source_label)
             row.setdefault("_source_files", [source_label])
@@ -422,6 +433,7 @@ class GuidaPraticaService:
             merged = _deep_merge(
                 {key: value for key, value in previous.items() if key not in chiavi_provenienza},
                 {key: value for key, value in row.items() if key not in chiavi_provenienza},
+                copia=False,
             )
             merged["_source_records"] = source_records
             merged["_source_files"] = source_files

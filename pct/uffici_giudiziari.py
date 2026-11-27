@@ -666,7 +666,9 @@ def _risolvi_ufficio_da_catalogo_pst_pubblico(codice_o_nome: str, *, tipo: str =
         inferred = _ufficio_da_catalogo_pst_pubblico(row)
         if not inferred:
             continue
-        inferred = _applica_riferimenti_ministero([inferred])[0]
+        # Solo l'ufficio in esame: le righe PST extra aggiunte da
+        # _applica_riferimenti_ministero verrebbero scartate subito.
+        inferred = _arricchisci_con_riferimento_ministero(inferred, _indice_riferimenti_ministero_per_codice())
         if tipo_norm and str(inferred.get("tipo") or "").upper() != tipo_norm:
             continue
         if codice and codice == chiave:
@@ -760,49 +762,51 @@ def _ufficio_extra_da_riferimento_ministeriale(ref: dict) -> dict:
     return ufficio
 
 
+def _arricchisci_con_riferimento_ministero(ufficio: dict, riferimenti: dict[str, dict]) -> dict:
+    """Un solo ufficio arricchito con il riferimento ministeriale, senza le righe extra."""
+    ref = None
+    for codice in (ufficio.get("codice"), ufficio.get("codice_ministero")):
+        codice_norm = str(codice or "").strip()
+        if codice_norm and codice_norm in riferimenti:
+            ref = riferimenti[codice_norm]
+            break
+    if not ref:
+        return ufficio
+    merged = dict(ufficio)
+    distretto = ref.get("distretto_ministero") or ""
+    pec = (ref.get("pec_ministero") or "").strip().lower()
+    if distretto:
+        merged["distretto"] = distretto
+    if pec:
+        merged["pec"] = pec
+    for chiave in (
+        "codice_ministero",
+        "codice_gl",
+        "descrizione_ministero",
+        "tipo_ministero",
+        "tipo_ministero_descrizione",
+        "comune_ministero",
+        "distretto_ministero",
+        "distretto_gl",
+        "regione_ministero",
+        "provincia_ministero",
+        "pec_ministero",
+        "nome_certificato_cifra",
+        "certificato_mimetype",
+        "servizi_ministero",
+        "servizio_pst_predefinito",
+    ):
+        if chiave in ref:
+            merged[chiave] = ref[chiave]
+    return merged
+
+
 def _applica_riferimenti_ministero(uffici: list[dict]) -> list[dict]:
     """Sovrascrive distretto/PEC con il riferimento ministeriale e aggiunge metadati PST."""
     riferimenti = _indice_riferimenti_ministero_per_codice()
     if not riferimenti:
         return uffici
-    arricchiti: list[dict] = []
-    for ufficio in uffici:
-        ref = None
-        for codice in (ufficio.get("codice"), ufficio.get("codice_ministero")):
-            codice_norm = str(codice or "").strip()
-            if codice_norm and codice_norm in riferimenti:
-                ref = riferimenti[codice_norm]
-                break
-        if not ref:
-            arricchiti.append(ufficio)
-            continue
-        merged = dict(ufficio)
-        distretto = ref.get("distretto_ministero") or ""
-        pec = (ref.get("pec_ministero") or "").strip().lower()
-        if distretto:
-            merged["distretto"] = distretto
-        if pec:
-            merged["pec"] = pec
-        for chiave in (
-            "codice_ministero",
-            "codice_gl",
-            "descrizione_ministero",
-            "tipo_ministero",
-            "tipo_ministero_descrizione",
-            "comune_ministero",
-            "distretto_ministero",
-            "distretto_gl",
-            "regione_ministero",
-            "provincia_ministero",
-            "pec_ministero",
-            "nome_certificato_cifra",
-            "certificato_mimetype",
-            "servizi_ministero",
-            "servizio_pst_predefinito",
-        ):
-            if chiave in ref:
-                merged[chiave] = ref[chiave]
-        arricchiti.append(merged)
+    arricchiti: list[dict] = [_arricchisci_con_riferimento_ministero(ufficio, riferimenti) for ufficio in uffici]
     codici_presenti = {
         str(ufficio.get("codice") or "").strip()
         for ufficio in arricchiti

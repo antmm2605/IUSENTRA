@@ -6,14 +6,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1483.
+- File pytest censiti: 1484.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 137 |
-| Backend | 226 |
+| Backend | 227 |
 | E2E | 15 |
 | Frontend static gate | 1 |
 | Frontend/UI | 500 |
@@ -30,7 +30,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 28 |
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 37 |
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 98 |
-| 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 33 |
+| 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 34 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 77 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 98 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 279 |
@@ -1530,6 +1530,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | Tenant isolation | tests/test_telematico_export_cache.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | API contract | tests/test_lex_model_runtime_tenant_cache.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Tenant isolation | API contract | tests/test_storage_postgres_contracts.py | 403/RBAC, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Tenant isolation | Backend | tests/test_storage_connessioni_thread_finiti.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | E2E | tests/e2e/test_tenant_migration_full.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
 | Tenant isolation | Frontend/UI | tests/test_email_storage_errors.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Tenant isolation | Frontend/UI | tests/test_storage_governance.py | contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
